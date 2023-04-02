@@ -172,3 +172,6 @@ data
 norm_torch
 *.ipynb
 test_equivalence.py
+
+# examples
+examples/
