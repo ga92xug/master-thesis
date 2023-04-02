@@ -350,7 +350,7 @@ class BasisExpansion(torch.nn.Module):
         assert weights.shape[0] == self.dimension()
         assert len(weights.shape) == 1
 
-        _filter = _expand_blocks(
+        _filter = self._expand_blocks(
             weights,
             self._representations_pairs,
             self.sampled_bases,
@@ -409,70 +409,69 @@ class BasisExpansion(torch.nn.Module):
                 return False
 
         return True
-
-
-# NOTE: Put back into class and vectorize kernel constraint with vmap
-@torch.jit.script
-def _expand_blocks(
-    weights: torch.Tensor,
-    reprs_pairs: List[str],
-    sampled_bases: Dict[str, torch.Tensor],
-    output_size: int,
-    input_size: int,
-    out_count: Dict[str, int],
-    in_count: Dict[str, int],
-    out_indices: Dict[str, torch.Tensor],
-    in_indices: Dict[str, torch.Tensor],
-    weights_ranges: Dict[str, Tuple[int, int]],
-    kernel_size: int,
-    contiguous: Dict[str, bool],
-):
-    # Build tensor which will contain the filter
-    _filter = torch.zeros(
-        output_size, input_size, kernel_size, device=weights.device, dtype=torch.float32
-    )
-
-    # Iterate through all input-output field representations pairs
-    for io_pair in reprs_pairs:
-        coefficients = weights[weights_ranges[io_pair][0] : weights_ranges[io_pair][1]]
-        # Reshape coefficients for the batch matrix multiplication
-        coefficients = coefficients.view(-1, sampled_bases[io_pair].shape[0])
-
-        assert len(coefficients.shape) == 2 and (
-            coefficients.shape[1] == sampled_bases[io_pair].shape[0]
+    
+    # NOTE: Put back into class and vectorize kernel constraint with vmap
+    # @torch.jit.script
+    def _expand_blocks(
+        weights: torch.Tensor,
+        reprs_pairs: List[str],
+        sampled_bases: Dict[str, torch.Tensor],
+        output_size: int,
+        input_size: int,
+        out_count: Dict[str, int],
+        in_count: Dict[str, int],
+        out_indices: Dict[str, torch.Tensor],
+        in_indices: Dict[str, torch.Tensor],
+        weights_ranges: Dict[str, Tuple[int, int]],
+        kernel_size: int,
+        contiguous: Dict[str, bool],
+    ):
+        # Build tensor which will contain the filter
+        _filter = torch.zeros(
+            output_size, input_size, kernel_size, device=weights.device, dtype=torch.float32
         )
 
-        # Expand current subset of basis vectors and set result in the appropriate place in the filter
-        _filter_block = torch.einsum(
-            "boi...,kb->koi...",
-            sampled_bases[io_pair],
-            coefficients,
-        )
+        # Iterate through all input-output field representations pairs
+        for io_pair in reprs_pairs:
+            coefficients = weights[weights_ranges[io_pair][0] : weights_ranges[io_pair][1]]
+            # Reshape coefficients for the batch matrix multiplication
+            coefficients = coefficients.view(-1, sampled_bases[io_pair].shape[0])
 
-        _filter_block = _filter_block.view(
-            out_count[io_pair.split("->")[1]],
-            in_count[io_pair.split("->")[0]],
-            _filter_block.shape[1],
-            _filter_block.shape[2],
-            kernel_size,
-        )
-        _filter_block = _filter_block.transpose(1, 2).float()
+            assert len(coefficients.shape) == 2 and (
+                coefficients.shape[1] == sampled_bases[io_pair].shape[0]
+            )
 
-        if contiguous[io_pair]:
-            _filter[
-                out_indices[io_pair][0] : out_indices[io_pair][1],
-                in_indices[io_pair][0] : in_indices[io_pair][1],
-                :,
-            ] = _filter_block.reshape(
-                out_indices[io_pair][2],
-                in_indices[io_pair][2],
+            # Expand current subset of basis vectors and set result in the appropriate place in the filter
+            _filter_block = torch.einsum(
+                "boi...,kb->koi...",
+                sampled_bases[io_pair],
+                coefficients,
+            )
+
+            _filter_block = _filter_block.view(
+                out_count[io_pair.split("->")[1]],
+                in_count[io_pair.split("->")[0]],
+                _filter_block.shape[1],
+                _filter_block.shape[2],
                 kernel_size,
             )
-        else:
-            _filter[
-                out_indices[io_pair],
-                in_indices[io_pair],
-                :,
-            ] = _filter_block.reshape(-1, kernel_size)
+            _filter_block = _filter_block.transpose(1, 2).float()
 
-    return _filter
+            if contiguous[io_pair]:
+                _filter[
+                    out_indices[io_pair][0] : out_indices[io_pair][1],
+                    in_indices[io_pair][0] : in_indices[io_pair][1],
+                    :,
+                ] = _filter_block.reshape(
+                    out_indices[io_pair][2],
+                    in_indices[io_pair][2],
+                    kernel_size,
+                )
+            else:
+                _filter[
+                    out_indices[io_pair],
+                    in_indices[io_pair],
+                    :,
+                ] = _filter_block.reshape(-1, kernel_size)
+
+        return _filter
