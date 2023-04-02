@@ -177,7 +177,7 @@ class GSpace2D(GSpace):
 
     def __hash__(self):
         return 1000 * hash(self.name) + hash(self._sg_id)
-'''
+
 
 def rot2dOnR2(N: int = -1, maximum_frequency: int = 6) -> GSpace2D:
     r"""
@@ -269,3 +269,4 @@ def trivialOnR2() -> GSpace2D:
     """
     sg_id = (None, 1)
     return GSpace2D(sg_id, maximum_frequency=1)
+'''
