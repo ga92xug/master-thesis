@@ -321,6 +321,20 @@ class R2Conv(EquivariantModule, ABC):
             # by default, the weights are initialized with a generalized form of He's weight initialization
             nn.generalized_he_init(self.weights.data, self._basisexpansion)
 
+    @property
+    def basisexpansion(self) -> BasisExpansion:
+        r"""
+        Submodule which takes care of building the filter.
+
+        It uses the learnt ``weights`` to expand a basis and returns a filter in the usual form used by conventional
+        convolutional modules.
+        It uses the learned ``weights`` to expand the kernel in the G-steerable basis and returns it in the shape
+        :math:`(c_\text{out}, c_\text{in}, s^d)`, where :math:`s` is the ``kernel_size`` and :math:`d` is the
+        dimensionality of the base space.
+
+        """
+        return self._basisexpansion
+
     def _build_kernel_basis(
         self, in_repr: Representation, out_repr: Representation
     ) -> KernelBasis:
