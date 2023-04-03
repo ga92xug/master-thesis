@@ -350,6 +350,9 @@ class BasisExpansion(torch.nn.Module):
         assert weights.shape[0] == self.dimension()
         assert len(weights.shape) == 1
 
+        # Stefan TODO: check if this is the best place and really needed
+        weights = weights.cuda()
+
         _filter = self._expand_blocks(
             weights,
             self._representations_pairs,
@@ -413,6 +416,7 @@ class BasisExpansion(torch.nn.Module):
     # NOTE: Put back into class and vectorize kernel constraint with vmap
     # @torch.jit.script
     def _expand_blocks(
+        self,
         weights: torch.Tensor,
         reprs_pairs: List[str],
         sampled_bases: Dict[str, torch.Tensor],
@@ -440,6 +444,8 @@ class BasisExpansion(torch.nn.Module):
             assert len(coefficients.shape) == 2 and (
                 coefficients.shape[1] == sampled_bases[io_pair].shape[0]
             )
+
+            # print('device: ', coefficients.device, sampled_bases[io_pair].device)
 
             # Expand current subset of basis vectors and set result in the appropriate place in the filter
             _filter_block = torch.einsum(

@@ -365,7 +365,8 @@ class R2Conv(EquivariantModule, ABC):
         if self.bias is None:
             _bias = None
         else:
-            _bias = self.bias_expansion @ self.bias
+            print('devices', self.bias.device, self.bias_expansion.device)
+            _bias = self.bias_expansion @ self.bias.cuda()
 
         return _filter, _bias
 
@@ -382,6 +383,9 @@ class R2Conv(EquivariantModule, ABC):
         """
 
         assert input.type == self.in_type
+
+        #print('device', input.tensor.device)
+        input.tensor = input.tensor.cuda()
 
         if not self.training:
             _filter = self.filter
