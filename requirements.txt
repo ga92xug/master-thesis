@@ -1,12 +1,16 @@
-einops
-functorch==0.1.1
-hydra
-joblib
+einops # worked
+# functorch==0.1.1
+# functorch is already included in pytorch 1.13.1
+hydra # did not work with conda
+joblib # conda install -c anaconda joblib 
 medmnist
 numpy
 torch==1.13.1+cu117
+# pip install torch==1.13.1+cu117 torchvision==0.14.1+cu117 torchaudio==0.13.1 --extra-index-url https://download.pytorch.org/whl/cu117
 torchvision==0.14.1+cu117
 torch-ema
 torchmetrics
 tqdm
 wandb
+
+ocacus # conda install -c conda-forge opacus 
