@@ -198,9 +198,11 @@ class O2(Group):
                 - a function which maps an element of the original group to the corresponding element in the subgroup (returns None if the element is not contained in the subgroup)
 
         """
+        print("id", id)
         assert isinstance(id, tuple) and len(id) == 2, id
         assert id[0] is None or isinstance(id[0], float), id[0]
         assert isinstance(id[1], int), id[1]
+        print("here")
 
         axis = id[0]
         order = id[1]

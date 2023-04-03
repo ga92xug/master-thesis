@@ -324,6 +324,7 @@ class Group(ABC):
                 - a function which maps an element of the original group to the corresponding element in the subgroup (returns None if the element is not contained in the subgroup)
 
         """
+        print("subgroup", id)
         if id not in self._subgroups:
             subgroup, parent_mapping, child_mapping = self._subgroup(id)
             self._subgroups[id] = subgroup, parent_mapping, child_mapping
