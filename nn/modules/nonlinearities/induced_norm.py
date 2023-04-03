@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from torch.nn import Parameter
 
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -35,7 +35,7 @@ class InducedNormNonLinearity(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(InducedNormNonLinearity, self).__init__()
 

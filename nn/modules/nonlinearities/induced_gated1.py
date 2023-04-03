@@ -4,7 +4,7 @@ import numpy as np
 
 from collections import defaultdict
 
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 from .gated1 import GATED_ID, GATES_ID
@@ -40,7 +40,7 @@ class InducedGatedNonLinearity(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         if gates is None:
             assert len(in_type) % 2 == 0

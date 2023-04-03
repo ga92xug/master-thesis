@@ -1,5 +1,5 @@
 from group_theory import *
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -30,7 +30,7 @@ def _build_kernel(G: Group, irrep: List[tuple]):
 class FourierPointwise(EquivariantModule):
     def __init__(
         self,
-        gspace: GSpace,
+        gspace: GSpace2D,
         channels: int,
         irreps: List,
         *grid_args,
@@ -80,7 +80,7 @@ class FourierPointwise(EquivariantModule):
 
         """
 
-        assert isinstance(gspace, GSpace)
+        assert isinstance(gspace, GSpace2D)
 
         super(FourierPointwise, self).__init__()
 
@@ -222,7 +222,7 @@ class FourierPointwise(EquivariantModule):
 class FourierELU(FourierPointwise):
     def __init__(
         self,
-        gspace: GSpace,
+        gspace: GSpace2D,
         channels: int,
         irreps: List,
         *grid_args,

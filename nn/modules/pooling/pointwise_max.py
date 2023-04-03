@@ -1,5 +1,5 @@
 from ..equivariant_module import EquivariantModule
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 import torch.nn.functional as F
 import torch
@@ -40,7 +40,7 @@ class PointwiseMaxPool(EquivariantModule):
             ceil_mode: when True, will use ceil instead of floor to compute the output shape
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
         assert in_type.gspace.dimensionality == 2
 
         for r in in_type.representations:

@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -37,7 +37,7 @@ class NormAvgPool(EquivariantModule):
             ceil_mode: when ``True``, will use ceil instead of floor to compute the output shape
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
         assert in_type.gspace.dimensionality == 2
 
         super(NormAvgPool, self).__init__()

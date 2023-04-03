@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -26,7 +26,7 @@ class PointwiseDropout(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
         if p < 0 or p > 1:
             raise ValueError(
                 "dropout probability has to be between 0 and 1, but got {}".format(p)

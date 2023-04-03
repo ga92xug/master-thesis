@@ -1,5 +1,5 @@
 from group_theory import *
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -31,7 +31,7 @@ def _build_kernel(G: Group, subgroup_id: Tuple, irrep: List[tuple]):
 class QuotientFourierPointwise(EquivariantModule):
     def __init__(
         self,
-        gspace: GSpace,
+        gspace: GSpace2D,
         subgroup_id: Tuple,
         channels: int,
         irreps: List,
@@ -102,7 +102,7 @@ class QuotientFourierPointwise(EquivariantModule):
 
         """
 
-        assert isinstance(gspace, GSpace)
+        assert isinstance(gspace, GSpace2D)
 
         super(QuotientFourierPointwise, self).__init__()
 
@@ -245,7 +245,7 @@ class QuotientFourierPointwise(EquivariantModule):
 class QuotientFourierELU(QuotientFourierPointwise):
     def __init__(
         self,
-        gspace: GSpace,
+        gspace: GSpace2D,
         subgroup_id: Tuple,
         channels: int,
         irreps: List,

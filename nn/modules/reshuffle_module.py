@@ -1,7 +1,7 @@
 import torch
 
 from .equivariant_module import EquivariantModule
-from nn import GSpace, GroupTensor, FieldType
+from nn import GSpace2D, GroupTensor, FieldType
 
 from typing import List, Tuple, Any
 
@@ -26,7 +26,7 @@ class ReshuffleModule(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(ReshuffleModule, self).__init__()
 

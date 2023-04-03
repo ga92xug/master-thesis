@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from ..equivariant_module import EquivariantModule
 
 from nn.modules.basisexpansion import BasisExpansion
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 from group_theory import Representation, KernelBasis
 
 from typing import Callable, Tuple
@@ -112,7 +112,7 @@ class _RdConv(EquivariantModule, ABC):
         """
 
         assert in_type.gspace == out_type.gspace
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
         assert d >= in_type.gspace.dimensionality
 
         super(_RdConv, self).__init__()

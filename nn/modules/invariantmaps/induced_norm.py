@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from nn.modules.equivariant_module import EquivariantModule
 from nn.modules.utils import indexes_from_labels
@@ -26,7 +26,7 @@ class InducedNormPool(EquivariantModule):
             in_type (FieldType): the input field type
 
         """
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(InducedNormPool, self).__init__()
 

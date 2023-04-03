@@ -45,7 +45,7 @@ class BatchNorm(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(BatchNorm, self).__init__()
 
@@ -294,7 +294,7 @@ class InducedNormBatchNorm(EquivariantModule):
             affine (bool, optional): if ``True``, this module has learnable scale parameters. Default: ``True``
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(InducedNormBatchNorm, self).__init__()
 

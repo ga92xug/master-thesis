@@ -35,7 +35,7 @@ class GroupNorm(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(GroupNorm, self).__init__()
 
@@ -146,7 +146,7 @@ class InducedNormGroupNorm(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(InducedNormGroupNorm, self).__init__()
 
@@ -315,7 +315,7 @@ class GroupStandardization(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(GroupStandardization, self).__init__()
 

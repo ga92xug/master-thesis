@@ -1,4 +1,4 @@
-from .gspace import GSpace
+from .gspace import GSpace2D
 from .r2 import *
 from .field_type import FieldType
 from .group_tensor import tensor_directsum, GroupTensor
@@ -14,7 +14,7 @@ from .initialization import __all__ as initialization_list
 
 __all__ = (
     [
-        "GSpace",
+        # "GSpace",
         "GSpace2D",
         # R2
         "rot2dOnR2",
