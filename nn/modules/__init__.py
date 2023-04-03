@@ -4,8 +4,7 @@ from .multiple_module import MultipleModule
 from .basisexpansion import BasisExpansion
 from .conv import R2Conv
 
-from .nonlinearities import GatedNonLinearity1
-from .nonlinearities import GatedNonLinearity2
+from .nonlinearities import GatedNonLinearity1, GatedNonLinearity2
 from .nonlinearities import InducedGatedNonLinearity
 from .nonlinearities import NormNonLinearity
 from .nonlinearities import InducedNormNonLinearity
@@ -45,7 +44,7 @@ from .identity_module import IdentityModule
 
 from .masking_module import MaskModule
 
-__all__ = ["EquivariantModule", "MultipleModule", "BasisExpansion",] + [
+__all__ = ["EquivariantModule", "MultipleModule", "BasisExpansion", ] + [
     "R2Conv",
     "GatedNonLinearity1",
     "GatedNonLinearity2",

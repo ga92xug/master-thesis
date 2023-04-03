@@ -47,3 +47,25 @@ def linear_transform_array_nd(x, trafo: np.ndarray, exact=True, order=2):
         center[-n:] = -(trafo - np.eye(n)) @ center[-n:]
 
         return affine_transform(x, t, offset=center, order=order)
+
+# Florian Slack 3.4.2023 
+def closest_divisor(number, div):
+    """
+    Get next closest divisor to given number and divisor. Take second closest
+    divisor if initial one results in number smaller than 3.
+    We set the value 3 heuristically as group normalization with groups of less
+    than 4 channels seem to perform worse.
+    """
+    all_divs = [i for i in range(1, number + 1) if number % i == 0]
+    if len(all_divs) < 2:
+        closest_div = all_divs[0]
+    else:
+        idx = np.argsort(np.abs(np.array(all_divs) - div))[:2]
+        # Check next closest divisor if result is too small
+        if int(number / all_divs[idx[0]]) > 3:
+            return all_divs[idx[0]]
+        closest_div = all_divs[idx[1]]
+    # Set divisor to 1 if result is too small
+    if int(number / closest_div) <= 3:
+        return 1
+    return closest_div

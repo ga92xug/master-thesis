@@ -3,7 +3,7 @@ from nn import FieldType, GroupTensor
 
 from nn import *
 from nn.modules import EquivariantModule
-from utils import closest_divisor
+from .utils import closest_divisor
 
 import torch
 from typing import List, Tuple, Any
