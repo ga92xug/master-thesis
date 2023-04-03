@@ -157,6 +157,8 @@ class R2Conv(EquivariantModule, ABC):
         # assert isinstance(in_type.gspace, GSpace)
         assert 2 >= in_type.gspace.dimensionality
 
+        super(R2Conv, self).__init__()
+
         (
             basis_filter,
             self._rings,
