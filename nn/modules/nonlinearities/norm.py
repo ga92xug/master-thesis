@@ -113,6 +113,7 @@ class NormNonLinearity(EquivariantModule):
                 torch.zeros(1, len(self.in_type), 1, 1, dtype=torch.float),
                 requires_grad=True,
             )
+            self.log_bias.data = self.log_bias.data.to(f"cuda:{torch.cuda.current_device()}")
         else:
             self.log_bias = None
 
