@@ -3,6 +3,8 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 import numpy as np
 

@@ -3,6 +3,8 @@ import numpy as np
 from typing import Tuple
 import torch
 from torch import nn
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (
     rot2dOnR2,
@@ -23,7 +25,7 @@ class EquivariantResNet9(nn.Module):
     def __init__(
         self,
         group: str = "cyclic",  # "dihedral", "orthogonal"
-        rotation: int = None,  # discrete number or frequency
+        rotation: int = 4,  # discrete number or frequency
         fix_params: bool = False,
         restrict: str = None,  # "invariant", "reflection", "halved"
         input_channels: int = 3,
@@ -210,7 +212,7 @@ class EquivariantResNet9(nn.Module):
 
 
 if __name__ == "__main__":
-    inp = torch.rand(16, 3, 32, 32)
-    model = EquivariantResNet9()
+    inp = torch.rand(16, 3, 32, 32).cuda()
+    model = EquivariantResNet9().cuda()
     out = model(inp)
     print(out.shape)

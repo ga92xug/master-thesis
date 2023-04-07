@@ -350,8 +350,8 @@ class BasisExpansion(torch.nn.Module):
         assert weights.shape[0] == self.dimension()
         assert len(weights.shape) == 1
 
-        # Stefan TODO: check if this is the best place and really needed
-        weights = weights.cuda()
+        # Stefan TODO
+        # weights = weights.cuda()
 
         _filter = self._expand_blocks(
             weights,

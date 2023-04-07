@@ -138,8 +138,8 @@ class BatchNorm(EquivariantModule):
             batchnorm = getattr(self, f"batch_norm_[{s}]")
             
             # Stefan TODO
-            indices = indices.cuda()
-            batchnorm = batchnorm.cuda()
+            #indices = indices.cuda()
+            #batchnorm = batchnorm.cuda()
             
             if contiguous:
                 # if the fields were contiguous, we can use slicing
