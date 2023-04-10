@@ -1,6 +1,9 @@
 from typing import Tuple
 from torch import nn
 import numpy as np
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
+import nn as nn_eq
 
 from nn import (
     GroupTensor,
@@ -30,6 +33,7 @@ from nn import (
     MultipleModule,
 )
 from group_theory import Representation
+from nn.modules import nonlinearities as nonlinearities
 
 __all__ = [
     "Restriction",
@@ -545,7 +549,6 @@ class EquivariantBottleneck(EquivariantModule):
     def __init__(
         self,
         in_type: FieldType,
-        in_channels: int,
         out_channels: int,
         frequency: int = None,
         kernel_size: int = 3,
@@ -560,11 +563,14 @@ class EquivariantBottleneck(EquivariantModule):
         super(EquivariantBottleneck, self).__init__()
         self.in_type = in_type
 
+        #print('size in_type: ', self.in_type.size)
+        #print('out_channels: ', out_channels)
         # we only have a residual connection 
         # if stride is 1 and the channel number does not change 
-        self.residual_connection = (stride == 1 and in_channels == out_channels)
+        self.residual_connection = (stride == 1 and in_type.size == out_channels)
         
-        expanded_num_channels = self.in_type.size * expand_ratio
+        expanded_num_channels = int(self.in_type.size / self.in_type.fibergroup.order())\
+            * expand_ratio
 
         # 1. Block with 1x1 equivariant convolution
         self.conv1 = EquivariantConvBlock_Conv_BN_actF(
@@ -597,7 +603,7 @@ class EquivariantBottleneck(EquivariantModule):
         # 3. Block with 1x1 equivariant convolution
         self.conv3 = EquivariantConvBlock_Conv_BN_actF(
             in_type=self.conv2.out_type,
-            out_channels=self.in_type.size,
+            out_channels=out_channels,
             frequency=frequency,
             kernel_size=1,
             padding=0,
@@ -625,7 +631,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
     def __init__(
         self,
         in_type: FieldType,
-        in_channels: int,
         out_channels: int,
         frequency: int = None,
         kernel_size: int = 3,
@@ -638,13 +643,13 @@ class EquivariantBottleneckBlock(EquivariantModule):
         expand_ratio: int = 6,
         num_blocks: int = 1,
     ):
+        #print('Block')
         super(EquivariantBottleneckBlock, self).__init__()
         self.in_type = in_type
-        self.blocks = nn.ModuleList(
+        self.layers = \
             [
                 EquivariantBottleneck(
                     in_type=self.in_type,
-                    in_channels=in_channels,
                     out_channels=out_channels,
                     frequency=frequency,
                     kernel_size=kernel_size,
@@ -657,10 +662,10 @@ class EquivariantBottleneckBlock(EquivariantModule):
                     expand_ratio=expand_ratio,
                 )
             ]
-            + [
+        self.layers.extend\
+            ([
                 EquivariantBottleneck(
-                    in_type=self.blocks[-1].out_type,
-                    in_channels=out_channels,
+                    in_type=self.layers[-1].out_type,
                     out_channels=out_channels,
                     frequency=frequency,
                     kernel_size=kernel_size,
@@ -673,14 +678,13 @@ class EquivariantBottleneckBlock(EquivariantModule):
                     expand_ratio=expand_ratio,
                 )
                 for _ in range(num_blocks - 1)
-            ]
-        )
-        self.out_type = self.blocks[-1].out_type
+            ])
+        self.out_type = self.layers[-1].out_type
+        self.block = SequentialModule(*self.layers)
+        #print('number of blocks: ', len(self.layers))
 
     def forward(self, input: GroupTensor) -> GroupTensor:
-        x = input
-        for block in self.blocks:
-            x = block(x)
+        x = self.block(input)
         return x
     
     def evaluate_output_shape(self, input_shape: Tuple):
@@ -722,7 +726,7 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         )
 
         self.norm = EquivariantNorm(
-            self.act_func.out_type, num_groups=num_groups, affine=False
+            self.conv.out_type, num_groups=num_groups, affine=False
         )        
 
         # Induced
@@ -733,8 +737,7 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
             if act_func == "None":
                 self.act_func = nn.Identity(self.conv.out_type)
             else:
-                self.act_func = getattr(act_func)(self.norm.out_type)
-                #self.act_func = Mish(self.conv.out_type)
+                self.act_func = getattr(nonlinearities, act_func)(self.norm.out_type)
 
         self.out_type = self.norm.out_type
 
@@ -749,3 +752,9 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         assert input_shape[1] == self.in_type.size
         return input_shape
 
+if __name__ == "__main__":
+    # 
+    r2_act = nn_eq.rot2dOnR2(N=4)
+    r2_in_type = FieldType(r2_act, [r2_act.trivial_repr])
+    EquivariantConvBlock_Conv_BN_actF(
+        in_type=r2_in_type, out_channels=3, frequency=1, kernel_size=3, padding=1, groups=1, stride=1, dilation=1, bias=True, num_groups=None, act_func="Mish")
