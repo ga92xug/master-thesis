@@ -14,6 +14,7 @@ from nn import (
     BatchNorm,
     InducedNormBatchNorm,
     Mish,
+    ReLU,
     NormNonLinearity,
     InducedGatedNonLinearity,
     GroupPooling,
@@ -37,6 +38,10 @@ __all__ = [
     "EquivariantPool",
     "EquivariantConvBlock",
     "EquivariantWideConvBlock",
+    # MobileNetV2
+    "EquivariantConvBlock_Conv_BN_actF",
+    "EquivariantBottleneck",
+    "EquivariantBottleneckBlock",
 ]
 
 
@@ -300,6 +305,7 @@ class EquivariantPool(EquivariantModule):
 
 
 class EquivariantConvBlock(EquivariantModule):
+    # groups is for induced representations
     def __init__(
         self,
         in_type: FieldType,
@@ -533,3 +539,213 @@ class EquivariantSqueezeExcitation(EquivariantModule):
         assert len(input_shape) == 4
         assert input_shape[1] == self.in_type.size
         return input_shape
+
+
+class EquivariantBottleneck(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        in_channels: int,
+        out_channels: int,
+        frequency: int = None,
+        kernel_size: int = 3,
+        padding: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        num_groups: int = None,
+        act_func: str = "Mish", # Mish or ReLU
+        expand_ratio: int = 6,
+    ):
+        super(EquivariantBottleneck, self).__init__()
+        self.in_type = in_type
+
+        # we only have a residual connection 
+        # if stride is 1 and the channel number does not change 
+        self.residual_connection = (stride == 1 and in_channels == out_channels)
+        
+        expanded_num_channels = self.in_type.size * expand_ratio
+
+        # 1. Block with 1x1 equivariant convolution
+        self.conv1 = EquivariantConvBlock_Conv_BN_actF(
+            in_type=self.in_type,
+            out_channels=expanded_num_channels,
+            frequency=frequency,
+            kernel_size=1,
+            padding=0,
+            stride=1,
+            dilation=dilation,
+            bias=bias,
+            num_groups=num_groups,
+            act_func=act_func,
+        )
+        
+        # 2. Block with 3x3 equivariant convolution
+        self.conv2 = EquivariantConvBlock_Conv_BN_actF(
+            in_type=self.conv1.out_type,
+            out_channels=expanded_num_channels,
+            frequency=frequency,
+            kernel_size=kernel_size,
+            padding=padding,
+            stride=stride,
+            dilation=dilation,
+            bias=bias,
+            num_groups=num_groups,
+            act_func=act_func,
+        )
+
+        # 3. Block with 1x1 equivariant convolution
+        self.conv3 = EquivariantConvBlock_Conv_BN_actF(
+            in_type=self.conv2.out_type,
+            out_channels=self.in_type.size,
+            frequency=frequency,
+            kernel_size=1,
+            padding=0,
+            stride=1,
+            dilation=dilation,
+            bias=bias,
+            num_groups=num_groups,
+            act_func="None",
+        )
+        self.out_type = self.conv3.out_type
+
+    def forward(self, input: GroupTensor) -> GroupTensor:
+        x = self.conv1(input)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        return x + input if self.residual_connection else x
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+        
+
+class EquivariantBottleneckBlock(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        in_channels: int,
+        out_channels: int,
+        frequency: int = None,
+        kernel_size: int = 3,
+        padding: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        num_groups: int = None,
+        act_func: str = "Mish", # Mish or ReLU
+        expand_ratio: int = 6,
+        num_blocks: int = 1,
+    ):
+        super(EquivariantBottleneckBlock, self).__init__()
+        self.in_type = in_type
+        self.blocks = nn.ModuleList(
+            [
+                EquivariantBottleneck(
+                    in_type=self.in_type,
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    frequency=frequency,
+                    kernel_size=kernel_size,
+                    padding=padding,
+                    stride=stride,
+                    dilation=dilation,
+                    bias=bias,
+                    num_groups=num_groups,
+                    act_func=act_func,
+                    expand_ratio=expand_ratio,
+                )
+            ]
+            + [
+                EquivariantBottleneck(
+                    in_type=self.blocks[-1].out_type,
+                    in_channels=out_channels,
+                    out_channels=out_channels,
+                    frequency=frequency,
+                    kernel_size=kernel_size,
+                    padding=padding,
+                    stride=1,
+                    dilation=dilation,
+                    bias=bias,
+                    num_groups=num_groups,
+                    act_func=act_func,
+                    expand_ratio=expand_ratio,
+                )
+                for _ in range(num_blocks - 1)
+            ]
+        )
+        self.out_type = self.blocks[-1].out_type
+
+    def forward(self, input: GroupTensor) -> GroupTensor:
+        x = input
+        for block in self.blocks:
+            x = block(x)
+        return x
+    
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
+
+class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
+    # groups is for induced representations
+    # num_groups is for equivariant normalization
+    # default is None so BatchNorm is used
+    def __init__(
+        self,
+        in_type: FieldType,
+        out_channels: int,
+        frequency: int = None,
+        kernel_size: int = 3,
+        padding: int = 1,
+        groups: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        num_groups: int = None,
+        act_func: str = "Mish", # "Mish" or "ReLU" or "None"
+    ):
+        super().__init__()
+        self.in_type = in_type  # declaration required by base class
+        self.conv = EquivariantConv(
+            in_type=self.in_type,
+            out_channels=out_channels,
+            frequency=frequency,
+            kernel_size=kernel_size,
+            padding=padding,
+            groups=groups,
+            stride=stride,
+            dilation=dilation,
+            bias=bias,
+        )
+
+        self.norm = EquivariantNorm(
+            self.act_func.out_type, num_groups=num_groups, affine=False
+        )        
+
+        # Induced
+        if self.in_type.gspace.fibergroup.name == "O(2)":
+            NotImplementedError("Induced ConvBlock not implemented")
+        # Cyclic and Dihedral Groups
+        else:
+            if act_func == "None":
+                self.act_func = nn.Identity(self.conv.out_type)
+            else:
+                self.act_func = getattr(act_func)(self.norm.out_type)
+                #self.act_func = Mish(self.conv.out_type)
+
+        self.out_type = self.norm.out_type
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.norm(x)
+        x = self.act_func(x)
+        return x
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
