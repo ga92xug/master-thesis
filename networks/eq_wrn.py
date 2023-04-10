@@ -29,7 +29,7 @@ class EquivariantWideResNet(nn.Module):
         depth: int = 16,
         widen_factor: int = 4,
         group: str = "cyclic",
-        rotation: int = None,
+        rotation: int = 4,
         fix_params: bool = False,
         restrict: str = None,  # "invariant", "reflection", "halved"
         input_channels: int = 3,
@@ -44,7 +44,7 @@ class EquivariantWideResNet(nn.Module):
         n = (depth - 4) / 6
         k = widen_factor
 
-        print("| Wide-Resnet %dx%d" % (depth, k))
+        print("Wide-Resnet %dx%d" % (depth, k))
 
         # Get group spaces for specified rotations and flips
         if group == "cyclic":
@@ -140,9 +140,9 @@ class EquivariantWideResNet(nn.Module):
         self.field_type = self.restrict.out_type
 
         self.layer4 = self._wide_layer(
-            EquivariantWideConvBlock,
-            num_channels[2],
-            n,
+            block=EquivariantWideConvBlock,
+            out_channels=num_channels[2],
+            num_blocks=n,
             stride=2,
             frequency=rotation,
             kernel_size=kernel_size,
@@ -168,8 +168,12 @@ class EquivariantWideResNet(nn.Module):
         padding: int,
         num_groups: int,
     ):
+        # num_blocks is n in wide resnet paper
+        # how many layers each block has
         strides = [stride] + [1] * (int(num_blocks) - 1)
         layers = []
+
+        # print(f"Strides: {strides}")
 
         for stride in strides:
             layers.append(
@@ -204,7 +208,7 @@ class EquivariantWideResNet(nn.Module):
 
 
 if __name__ == "__main__":
-    net = EquivariantWideResNet(28, 10, 0.3, 10)
-    y = net(Variable(torch.randn(1, 3, 32, 32)))
-
-    print(y.size())
+    inp = torch.rand(1, 3, 32, 32).cuda()
+    model = EquivariantWideResNet().cuda()
+    out = model(inp)
+    print(out.shape)

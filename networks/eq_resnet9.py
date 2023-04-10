@@ -32,7 +32,7 @@ class EquivariantResNet9(nn.Module):
         layout: Tuple[int] = (64, 128, 256),
         kernel_size: int = 3,
         padding: int = 1,
-        num_groups: Tuple[int] = (None, None, None),
+        num_groups: Tuple[int] = (1,1,1), # (None, None, None),
         num_classes: int = 10,
     ):
         super().__init__()
@@ -129,7 +129,7 @@ class EquivariantResNet9(nn.Module):
         self.res1 = SequentialModule(*res1)
 
         self.scale_norm1 = EquivariantNorm(
-            self.res1.out_type, num_groups=num_groups[1], affine=False
+            in_type=self.res1.out_type, num_groups=num_groups[1], affine=False
         )
 
         self.conv3 = EquivariantConvBlock(
@@ -178,11 +178,11 @@ class EquivariantResNet9(nn.Module):
         self.res2 = SequentialModule(*res2)
 
         self.scale_norm2 = EquivariantNorm(
-            self.res2.out_type, num_groups=num_groups[2], affine=False
+            in_type=self.res2.out_type, num_groups=num_groups[2], affine=False
         )
 
         self.invariant_map = EquivariantPool(
-            self.scale_norm2.out_type, invariant_map=True
+            in_type=self.scale_norm2.out_type, invariant_map=True
         )
         # self.global_pool = Reduce("N C (H 2) (W 2) -> N C H W", "mean")
         self.global_pool = nn.AdaptiveAvgPool2d((2, 2))
@@ -212,7 +212,7 @@ class EquivariantResNet9(nn.Module):
 
 
 if __name__ == "__main__":
-    inp = torch.rand(16, 3, 32, 32).cuda()
+    inp = torch.rand(1, 3, 32, 32).cuda()
     model = EquivariantResNet9().cuda()
     out = model(inp)
     print(out.shape)

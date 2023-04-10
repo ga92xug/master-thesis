@@ -386,7 +386,8 @@ class R2Conv(EquivariantModule, ABC):
         assert input.type == self.in_type
 
         # Stefan TODO 
-        # print('device', input.tensor.device)
+        #print('input device', input.tensor.device)
+        #print('weights device', self.weights.device)
         # input.tensor = input.tensor.cuda()
 
         if not self.training:
