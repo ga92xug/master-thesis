@@ -1,6 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
+
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
 #import e2cnn.nn as enn
 import nn as enn
@@ -10,8 +15,8 @@ import argparse
 import os
 import datetime
 
-import plot_exps
-import utils
+#import plot_exps
+#import utils
 import optimizers_L1L2
 
 from sklearn.metrics import confusion_matrix
@@ -21,6 +26,8 @@ import matplotlib
 if "DISPLAY" not in os.environ:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+os.environ['HYDRA_FULL_ERROR'] = '1'
 
 SHOW_PLOT = False
 SAVE_PLOT = True
@@ -510,7 +517,11 @@ class Experiment:
         return self._optimizer, lr
 
 
-def run_experiment(config):
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+def run_experiment(cfg: DictConfig):
+    print(OmegaConf.to_yaml(cfg))
+
+    return
     exp = Experiment(config)
     exp.run()
     
@@ -526,11 +537,11 @@ def run_experiment(config):
 
 if __name__ == "__main__":
     # Parse training configuration
-    parser = argparse.ArgumentParser()
+    # parser = argparse.ArgumentParser()
 
-    parser = utils.args_exp_parameters(parser)
+    # parser = utils.args_exp_parameters(parser)
     
-    config = parser.parse_args()
+    # config = parser.parse_args()
     
     # Train the model
-    run_experiment(config)
+    run_experiment()
