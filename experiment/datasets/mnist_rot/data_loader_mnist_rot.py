@@ -10,7 +10,7 @@ from . import own_transforms
 class mnist_rot_dataset(data.Dataset):
     """ rotated MNIST dataset """
     
-    def __init__(self, mode, transform=None, target_transform=None, reshuffle_seed=None):
+    def __init__(self, mode, cfg, transform=None, target_transform=None, reshuffle_seed=None):
         """
         :type  mode: string from ['train', 'valid', 'test']
         :param mode: determines which subset of the dataset is loaded and whether augmentation is used
@@ -21,6 +21,9 @@ class mnist_rot_dataset(data.Dataset):
         :type  reshuffle_seed: int
         :param reshuffle_seed: seed to use to reshuffle train or valid sets. If None (default), they are not reshuffled
         """
+        reshuffle_seed = cfg.other.seed
+        transform = 
+
         assert mode in ['train', 'valid', 'trainval', 'test']
         assert reshuffle_seed is None or (mode != "test" and mode != 'trainval')
         
@@ -30,9 +33,12 @@ class mnist_rot_dataset(data.Dataset):
         
         # load the numpy arrays
         if mode in ["train", "valid", "trainval"]:
-            filename = './datasets/mnist_rot/mnist_rot_trainval.npz'
+            import os
+            print("Current directory: ", os.getcwd())
             
-            data = np.load(filename)
+            filename = 'mnist_rot/mnist_rot_trainval.npz'
+            
+            data = np.load(cfg.dataset.data_dir + filename)
 
             num_train = len(data["labels"])
             indices = np.arange(0, num_train)

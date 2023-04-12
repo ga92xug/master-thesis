@@ -1,52 +1,53 @@
 # Dataset parameters        
-dataset:        
-  name: "dataset_name"          # The name of the dataset to use
-  augment: true                 # Augment the training set with rotated images
+dataset:
+  data_dir: '../Data/frischs/'  # Path to the datasets        
+  name: "mnist_rot"             # The name of the dataset to use
+  augment: True                 # Augment the training set with rotated images
   interpolation: 2              # Type of interpolation to use for data augmentation
-  reshuffle: true               # Reshuffle train and valid splits instead of using the default split
+  reshuffle: True               # Reshuffle train and valid splits instead of using the default split
   workers: 8                    # Number of jobs to load the dataset
-  time_limit: null              # Maximum time limit for training (in Minutes)
+  time_limit: Null              # Maximum time limit for training (in Minutes)
   verbose: 2                    # Verbose Level
 
 # Model parameters        
 model:        
   name: "model_name"            # The name of the model to use
-  type: null                    # Type of fiber for the EXP model
-  N: null                       # Size of cyclic group for GCNN and maximum frequency for HNET
-  F: null                       # Frequency cut-off: maximum frequency at radius "r" is "F*r"
-  sigma: null                   # Width of the rings building the bases (std of the gaussian window)
-  J: null                       # Number of additional frequencies in the interwiners of finite groups
+  type: Null                    # Type of fiber for the EXP model
+  N: Null                       # Size of cyclic group for GCNN and maximum frequency for HNET
+  F: Null                       # Frequency cut-off: maximum frequency at radius "r" is "F*r"
+  sigma: Null                   # Width of the rings building the bases (std of the gaussian window)
+  J: Null                       # Number of additional frequencies in the interwiners of finite groups
   restrict: -1                  # Layer where to restrict SFCNN from E(2) to SE(2)
-  sgsize: null                  # Number of rotations in the subgroup to restrict to in the EXP e2sfcnn models
-  flip: false                   # Use also reflection equivariance in the EXP model
-  fixparams: false              # Keep the number of parameters of the model fixed by adjusting its topology
-  deltaorth: false              # Use delta orthogonal initialization in conv layers
+  sgsize: Null                  # Number of rotations in the subgroup to restrict to in the EXP e2sfcnn models
+  flip: False                   # Use also reflection equivariance in the EXP model
+  fixparams: False              # Keep the number of parameters of the model fixed by adjusting its topology
+  deltaorth: False              # Use delta orthogonal initialization in conv layers
   antialias: 0                  # Std for the gaussian blur in the max-pool layer. If zero (default), standard maxpooling is performed
 
 # Training parameters
 training:
   batch_size: 64                # Number of examples to process in a batch during training
-  eval_batch_size: null         # Number of examples to process in a batch during evaluation (default: batch_size)
+  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
   lr: 0.001                     # Learning rate
   epochs: 40                    # Number of training epochs
   steps_per_epoch: -1           # Number of batches to process during each epoch (-1 for all batches)
-  earlystop: true               # Whether to use early stopping based on a validation set
+  earlystop: True               # Whether to use early stopping based on a validation set
   valid_metric: accuracy        # Metric to use for early stopping
-  eval_test: false              # Whether to evaluate on the test set during validation
+  eval_test: False              # Whether to evaluate on the test set during validation
   accumulate: 1                 # Number of batches to accumulate gradients over before updating model
   optimizer: sfcnn              # Name of optimizer to use (sfcnn, SGD, or Adam)
   momentum: 0.9                 # Momentum for SGD optimizer (if used)
   weight_decay: 0.0005          # Weight decay for SGD or Adam optimizer (if used)
-  adapt_lr: False               # Adaptive learning rate scheduler to use (exponential, validation, or null)
+  adapt_lr: False               # Adaptive learning rate scheduler to use (exponential, validation, or Null)
   lr_decay_start: 15            # Epoch to start adaptive learning rate decay
   lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
   lr_decay_epoch: 1             # Period (in epochs) between adaptive learning rate decay
-  lr_decay_schedule: null       # List of specific epochs for adaptive learning rate decay (alternative to lr_decay_epoch)
-  augment_train: false          # Stefan add
+  lr_decay_schedule: Null       # List of specific epochs for adaptive learning rate decay (alternative to lr_decay_epoch)
+  augment_train: False          # Stefan add
 
 # Regularization params
-Regularization:
-  l1: false                      # Use L1L2 regularization as in SFCNN paper
+regularization:
+  l1: False                      # Use L1L2 regularization as in SFCNN paper
   lamb_conv_L1: 1e-7            # Gain of L1 loss for steerable layer variables
   lamb_conv_L2: 1e-7            # Gain of L2 loss for steerable layer variables
   lamb_fully_L1: 1e-8           # Gain of L1 loss for fully connected layer variables
@@ -56,10 +57,16 @@ Regularization:
   lamb_bn_L2: 0                 # Gain of L2 loss for batchnorm weights
 
 # Other experiment's parameters
-Other:
+other:
   eval_frequency: 100           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
   backup_model: False           # Backup the model in a file
   plot_frequency: 100           # Plot frequency (counts iterations if positive, epochs if negative. Use -1 to plot at the end of each epoch)
   store_plot: True              # Store the plot
-  show: false                   # Show the plot during training
+  show: False                   # Show the plot during training
   backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
+  seed: 42                      # Seed for random number generators
+
+# WandB
+wandb:
+  project: scaling-laws         # Name of the wandb project
+  # wandb_entity: Null          # Name of the wandb entity default is your username

@@ -1,11 +1,13 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import pprint
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
+import wandb
 
 #import e2cnn.nn as enn
 import nn as enn
@@ -15,8 +17,9 @@ import argparse
 import os
 import datetime
 
-#import plot_exps
-#import utils
+import plot_exps
+import utils
+import optimizer
 import optimizers_L1L2
 
 from sklearn.metrics import confusion_matrix
@@ -62,153 +65,114 @@ def accuracy(predictions, targets):
     return accuracy
 
 
-def build_optimizer_sfcnn(model, config):
-    # optimizer as in "Learning Steerable Filters for Rotation Equivariant CNNs"
-    # https://arxiv.org/abs/1711.07289
-    
-    # split up parameters into groups, named_parameters() returns tuples ('name', parameter)
-    # each group gets its own regularization gain
-    batchnormLayers = [m for m in model.modules() if isinstance(m,
-                                                                     (nn.modules.batchnorm.BatchNorm1d,
-                                                                      nn.modules.batchnorm.BatchNorm2d,
-                                                                      nn.modules.batchnorm.BatchNorm3d,
-                                                                      enn.NormBatchNorm,
-                                                                      enn.GNormBatchNorm,
-                                                                      )
-                                                                )]
-    linearLayers = [m for m in model.modules() if isinstance(m, nn.modules.linear.Linear)]
-    convlayers = [m for m in model.modules() if isinstance(m, (nn.Conv2d, enn.R2Conv))]
-    weights_conv = [p for m in convlayers for n, p in m.named_parameters() if n.endswith('weights') or n.endswith("weight")]
-    biases = [p for n, p in model.named_parameters() if n.endswith('bias')]
-    weights_bn = [p for m in batchnormLayers for n, p in m.named_parameters()
-                  if n.endswith('weight') or n.split('.')[-1].startswith('weight')
-                  ]
-    weights_fully = [p for m in linearLayers for n, p in m.named_parameters() if n.endswith('weight')]
-    # CROP OFF LAST WEIGHT !!!!! (classification layer)
-    weights_fully, weights_softmax = weights_fully[:-1], [weights_fully[-1]]
-    print("SFCNN optimizer")
-    for n, p in model.named_parameters():
-        if p.requires_grad and not n.endswith(('weight', 'weights', 'bias')):
-            raise Exception('named parameter encountered which is neither a weight nor a bias but `{:s}`'.format(n))
-    param_groups = [dict(params=weights_conv, lamb_L1=config.lamb_conv_L1, lamb_L2=config.lamb_conv_L2, weight_decay=config.lamb_conv_L2),
-                    dict(params=weights_bn, lamb_L1=config.lamb_bn_L1, lamb_L2=config.lamb_bn_L2, weight_decay=config.lamb_bn_L2),
-                    dict(params=weights_fully, lamb_L1=config.lamb_fully_L1, lamb_L2=config.lamb_fully_L2, weight_decay=config.lamb_fully_L2),
-                    dict(params=weights_softmax, lamb_L1=0, lamb_L2=config.lamb_softmax_L2, weight_decay=config.lamb_softmax_L2),
-                    dict(params=biases, lamb_L1=0, lamb_L2=0, weight_decay=0)]
-    if config.l1:
-        return optimizers_L1L2.Adam(param_groups, lr=config.lr, betas=(0.9, 0.999))
-    else:
-        return torch.optim.Adam(param_groups, lr=config.lr, betas=(0.9, 0.999))
-
-
 class Experiment:
     
-    def __init__(self, config):
+    def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
+
+        # Wandb
+        run = wandb.init(project=cfg.wandb.project)
+        print("WANDB RUN:", run)
+        wandb.config = OmegaConf.to_container(
+            cfg, resolve=True, throw_on_missing=True
+        )
+        print("WANDB CONFIG:", wandb.config)
+
         
-        self.seed = config.seed
+        # wandb.log({"loss": loss})
+
+        print(OmegaConf.to_yaml(cfg))
         
-        self._verbose = config.verbose
+        # self.seed = cfg.Other.seed
         
-        self.earlystop = config.earlystop
-        self.eval_test = config.eval_test
+        # self._verbose = cfg.Dataset.verbose
+        
+        # self.earlystop = config.earlystop
+        # self.eval_test = config.eval_test
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-        
         print("DEVICE:", self.device)
         
-        self.logs = pd.DataFrame(data=[], columns=["seed", "split", "iteration", "accuracy", "loss"])
+        # self.logs = pd.DataFrame(data=[], columns=["seed", "split", "iteration", "accuracy", "loss"])
         
-        torch.manual_seed(self.seed)
-        np.random.seed(self.seed)
+        torch.manual_seed(cfg.other.seed)
+        np.random.seed(cfg.other.seed)
         
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(
-            config.dataset,
-            config.batch_size,
-            config.workers,
-            config.augment,
-            config.earlystop,
-            config.reshuffle,
-            eval_batch_size=config.eval_batch_size,
-            interpolation=config.interpolation,
+            cfg.dataset.name, cfg.training.batch_size, cfg.dataset.workers, cfg.dataset.augment,
+            cfg.training.earlystop, cfg.dataset.reshuffle, eval_batch_size=cfg.training.eval_batch_size,
+            interpolation=cfg.dataset.interpolation,
         )
-        
         print("datasets built")
         
+        # Loss function
         if n_outputs == 2:
             n_outputs = 1
             self._loss_function = torch.nn.BCEWithLogitsLoss()
         else:
             self._loss_function = torch.nn.CrossEntropyLoss()
-        
         self.n_outputs = n_outputs
         
         # build the model
-        self.model = utils.build_model(config, n_inputs, n_outputs)
+        # TODO: Stefan check if this works
+        self.model = utils.build_model(cfg, n_inputs, n_outputs)
         
-        self.outpath = utils.out_path(config)
-        os.makedirs(self.outpath, exist_ok=True)
+        # self.outpath = utils.out_path(cfg)
+        # os.makedirs(self.outpath, exist_ok=True)
         
-        self.expname = utils.exp_name(config)
+        # TODO check if this still works and if we want to use it
+        self.expname = utils.exp_name(cfg)
+        print("EXPNAME:", self.expname)
         
         # visualization parameters
-        self._show = config.show
-        self._plot_frequency = config.plot_frequency
+        # self._show = cfg.show
+        # self._plot_frequency = cfg.plot_frequency
         
-        if config.store_plot or config.show:
+        if cfg.other.store_plot or cfg.other.show:
             self._visualization = plt.subplots(1, 2, figsize=(10, 4))
         else:
             self._visualization = None
         
-        if config.store_plot:
-            self.plotpath = utils.plot_path(config)
+        if cfg.other.store_plot:
+            self.plotpath = utils.plot_path(cfg)
         else:
             self.plotpath = None
         
         # backup model parameters
-        self._backup_frequency = config.backup_frequency
-        self._backup_model = config.backup_model
-        self.modelpath = utils.backup_path(config)
+        #self._backup_frequency = cfg.backup_frequency
+        #self._backup_model = cfg.backup_model
+        self.modelpath = utils.backup_path(cfg)
         if self._backup_model:
             os.makedirs(os.path.dirname(self.modelpath), exist_ok=True)
 
-        # training configuration
-        self.epochs = config.epochs
-        self._eval_frequency = config.eval_frequency
-        self.batch_size = config.batch_size
-        self.accumulate = config.accumulate
-        self.steps_per_epoch = config.steps_per_epoch
-        self._lr = config.lr
-        
-        self._lr_decay_start = config.lr_decay_start
-        self._lr_decay_factor = config.lr_decay_factor
-        self._lr_decay_epoch = config.lr_decay_epoch
-        self._lr_decay_schedule = config.lr_decay_schedule
-        if self._lr_decay_schedule is not None:
+        # training cfguration
+        # self.epochs = cfg.epochs
+        # self._eval_frequency = cfg.eval_frequency
+        # self.batch_size = cfg.batch_size
+        # self.accumulate = cfg.accumulate
+        # self.steps_per_epoch = cfg.steps_per_epoch
+        # self._lr = cfg.lr
+        # 
+        # self._lr_decay_start = cfg.lr_decay_start
+        # self._lr_decay_factor = cfg.lr_decay_factor
+        # self._lr_decay_epoch = cfg.lr_decay_epoch
+        # self._lr_decay_schedule = cfg.lr_decay_schedule
+        print("cfg.training.lr_decay_schedule ", cfg.training.lr_decay_schedule)
+        if cfg.training.lr_decay_schedule is not None:
+            print("cfg.training.lr_decay_schedule ", cfg.training.lr_decay_schedule)
             self._lr_decay_epoch = None
             self._lr_decay_start = None
         
         self._lr_exp_steps = 0
-        if config.optimizer == "sfcnn":
-            # optimize as in "Learning Steerable Filters for Rotation Equivariant CNNs"
-            # https://arxiv.org/abs/1711.07289
-            self._optimizer = build_optimizer_sfcnn(self.model, config)
-        elif config.optimizer == "Adam":
-            self._optimizer = torch.optim.Adam(self.model.parameters(),
-                                               lr=config.lr,
-                                               weight_decay=config.weight_decay
-                                               )
-        elif config.optimizer == "SGD":
-            self._optimizer = torch.optim.SGD(self.model.parameters(),
-                                              lr=config.lr,
-                                              momentum=config.momentum,
-                                              weight_decay=config.weight_decay)
-        self._adapt_lr_type = config.adapt_lr
-        if config.adapt_lr == "exponential":
+        
+        self._optimizer = optimizer.build_optimizer(self.model, cfg)
+
+        self._adapt_lr_type = cfg.adapt_lr
+        if cfg.adapt_lr == "exponential":
             self._adapt_lr = self._lr_scheduler_exponential_decay
-        elif config.adapt_lr == "validation":
-            assert config.earlystop
+        elif cfg.adapt_lr == "validation":
+            assert cfg.earlystop
             self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer,
                                                                             factor=self._lr_decay_factor,
                                                                             patience=self._lr_decay_epoch,
@@ -217,10 +181,10 @@ class Experiment:
                                                                             )
             self._adapt_lr = self._lr_scheduler.step
             
-        elif config.adapt_lr is not None:
+        elif cfg.adapt_lr is not None:
             raise ValueError()
         else:
-            config.adapt_lr = None
+            cfg.adapt_lr = None
         
         self._iteration = 0
         self._epoch = 0
@@ -229,15 +193,15 @@ class Experiment:
         self.model = nn.DataParallel(self.model)
         
         if self.earlystop:
-            assert config.valid_metric in ["loss", "accuracy"]
-            self._valid_metric = config.valid_metric
+            assert cfg.valid_metric in ["loss", "accuracy"]
+            self._valid_metric = cfg.valid_metric
         self._last_valid_metric = 1e+20
         self.best_valid_iteration = 0
         self.best_valid_loss = 1e+20
         self.best_valid_accuracy = 0
         self.best_state_dict = self.model.state_dict()
         
-        self._time_limit = config.time_limit
+        self._time_limit = cfg.time_limit
         self._start_time = datetime.datetime.now()
         
         if self._verbose > 1:
@@ -518,17 +482,36 @@ class Experiment:
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
-def run_experiment(cfg: DictConfig):
-    print(OmegaConf.to_yaml(cfg))
+def run_experiment(cfg: DictConfig) -> None:
+    exp = Experiment(cfg)
+    exp.run()
+ 
+    
+    # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    # y_train = tf.squeeze(tf.one_hot(y_train, depth=10))
+    # y_test = tf.squeeze(tf.one_hot(y_test, depth=10))
+    """
+    with wandb.init(**cfg.wandb.setup) as run:
+        model = get_model(cfg.model)
+
+        optim_cfg = omegaconf.OmegaConf.to_container(cfg.optimizer)
+        optimizer = tf.optimizers.get(optim_cfg)
+        model.compile(loss="categorical_crossentropy", optimizer=optimizer)
+        model.summary()
+        model.fit(
+            x_train,
+            y_train,
+            validation_data=(x_test, y_test),
+            callbacks=[wandb.keras.WandbCallback()],
+        )
 
     return
-    exp = Experiment(config)
-    exp.run()
-    
-    utils.update_logs(exp.logs, utils.logs_path(config))
-    utils.update_confusion(exp.conf_matrix, utils.logs_path(config))
-    
-    return exp.model, exp.logs
+    """
+       
+    # utils.update_logs(exp.logs, utils.logs_path(config))
+    # utils.update_confusion(exp.conf_matrix, utils.logs_path(config))
+    # 
+    # return exp.model, exp.logs
 
 
 ################################################################################

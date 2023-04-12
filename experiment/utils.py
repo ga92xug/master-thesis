@@ -99,7 +99,7 @@ def exp_name(config):
 
 
 def out_path(config):
-    path = 'results/{}'.format(config.dataset)
+    path = f'results/{config.dataset.name}'
     if config.reshuffle:
         path += "(shuffled)"
     if config.augment:
@@ -173,7 +173,7 @@ from datasets.STL10 import data_loader_stl10
 from datasets.STL10 import data_loader_stl10frac
 
 
-def build_dataloaders(dataset, batch_size, num_workers, augment, validation=True, reshuffle=False,
+def build_dataloaders(cfg, dataset, batch_size, num_workers, augment, validation=True, reshuffle=False,
                       eval_batch_size=None, interpolation=2):
     if eval_batch_size is None:
         eval_batch_size = batch_size
@@ -185,18 +185,18 @@ def build_dataloaders(dataset, batch_size, num_workers, augment, validation=True
                 seed = np.random.randint(0, 100000)
             else:
                 seed = None
-            train_loader, _, _ = data_loader_mnist_rot.build_mnist_rot_loader("train",
+            train_loader, _, _ = data_loader_mnist_rot.build_mnist_rot_loader("train", cfg,
                                                                               batch_size,
                                                                               rot_interpol_augmentation=augment,
                                                                               interpolation=interpolation,
                                                                               reshuffle_seed=seed)
-            valid_loader, _, _ = data_loader_mnist_rot.build_mnist_rot_loader("valid",
+            valid_loader, _, _ = data_loader_mnist_rot.build_mnist_rot_loader("valid", cfg,
                                                                               eval_batch_size,
                                                                               rot_interpol_augmentation=False,
                                                                               interpolation=interpolation,
                                                                               reshuffle_seed=seed)
         else:
-            train_loader, _, _ = data_loader_mnist_rot.build_mnist_rot_loader("trainval",
+            train_loader, _, _ = data_loader_mnist_rot.build_mnist_rot_loader("trainval", cfg,
                                                                               batch_size,
                                                                               rot_interpol_augmentation=augment,
                                                                               interpolation=interpolation,
@@ -215,25 +215,25 @@ def build_dataloaders(dataset, batch_size, num_workers, augment, validation=True
             else:
                 seed = None
             
-            train_loader, _, _ = data_loader_mnist_fliprot.build_mnist_rot_loader("train",
+            train_loader, _, _ = data_loader_mnist_fliprot.build_mnist_rot_loader("train", cfg,
                                                                                   batch_size,
                                                                                   rot_interpol_augmentation=augment,
                                                                                   interpolation=interpolation,
                                                                                   reshuffle_seed=seed)
-            valid_loader, _, _ = data_loader_mnist_fliprot.build_mnist_rot_loader("valid",
+            valid_loader, _, _ = data_loader_mnist_fliprot.build_mnist_rot_loader("valid", cfg,
                                                                                   eval_batch_size,
                                                                                   rot_interpol_augmentation=False,
                                                                                   interpolation=interpolation,
                                                                                   reshuffle_seed=seed)
         else:
-            train_loader, _, _ = data_loader_mnist_fliprot.build_mnist_rot_loader("trainval",
+            train_loader, _, _ = data_loader_mnist_fliprot.build_mnist_rot_loader("trainval", cfg,
                                                                                   batch_size,
                                                                                   rot_interpol_augmentation=augment,
                                                                                   interpolation=interpolation,
                                                                                   reshuffle_seed=None)
             valid_loader = False
         
-        test_loader, n_inputs, n_outputs = data_loader_mnist_fliprot.build_mnist_rot_loader("test",
+        test_loader, n_inputs, n_outputs = data_loader_mnist_fliprot.build_mnist_rot_loader("test", cfg,
                                                                                             eval_batch_size,
                                                                                             rot_interpol_augmentation=False)
     elif dataset == "mnist12k":
@@ -243,25 +243,25 @@ def build_dataloaders(dataset, batch_size, num_workers, augment, validation=True
                 seed = np.random.randint(0, 100000)
             else:
                 seed = None
-            train_loader, _, _ = data_loader_mnist12k.build_mnist12k_loader("train",
+            train_loader, _, _ = data_loader_mnist12k.build_mnist12k_loader("train", cfg,
                                                                             batch_size,
                                                                             rot_interpol_augmentation=augment,
                                                                             interpolation=interpolation,
                                                                             reshuffle_seed=seed)
-            valid_loader, _, _ = data_loader_mnist12k.build_mnist12k_loader("valid",
+            valid_loader, _, _ = data_loader_mnist12k.build_mnist12k_loader("valid", cfg,
                                                                             eval_batch_size,
                                                                             rot_interpol_augmentation=False,
                                                                             interpolation=interpolation,
                                                                             reshuffle_seed=seed)
         else:
-            train_loader, _, _ = data_loader_mnist12k.build_mnist12k_loader("trainval",
+            train_loader, _, _ = data_loader_mnist12k.build_mnist12k_loader("trainval", cfg,
                                                                             batch_size,
                                                                             rot_interpol_augmentation=augment,
                                                                             interpolation=interpolation,
                                                                             reshuffle_seed=None)
             valid_loader = False
         
-        test_loader, n_inputs, n_outputs = data_loader_mnist12k.build_mnist12k_loader("test",
+        test_loader, n_inputs, n_outputs = data_loader_mnist12k.build_mnist12k_loader("test", cfg,
                                                                                       eval_batch_size,
                                                                                       # rot_interpol_augmentation=False
                                                                                       # interpolation=interpolation,
