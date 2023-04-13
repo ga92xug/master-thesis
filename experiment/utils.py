@@ -214,7 +214,7 @@ def build_dataloaders(cfg):
         test_loader, n_inputs, n_outputs = data_loader_mnist_rot.build_mnist_rot_loader("test", cfg,
                                                                                         eval_batch_size,
                                                                                         rot_interpol_augmentation=False)
-    
+     
     elif dataset == "mnist_fliprot":
         
         if validation:
