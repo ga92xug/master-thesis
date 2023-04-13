@@ -23,7 +23,8 @@ def preprocess(dataset, flip_all=False):
     
     return {"images": images, "labels": labels}
 
-f = open("../mnist_rot/mnist_all_rotation_normalized_float_test.amat", "r")
+location = "../Data/frischs/mnist_rot/"
+f = open(location + "mnist_all_rotation_normalized_float_test.amat", "r")
 
 test = []
 
@@ -31,10 +32,10 @@ for line in f:
     test.append([float(x) for x in line.split()])
 
 test = np.array(test)
-np.savez("mnist_fliprot_test", **preprocess(test, flip_all=True))
+np.savez(location + "mnist_fliprot_test", **preprocess(test, flip_all=True))
 del test
 
-f = open("../mnist_rot/mnist_all_rotation_normalized_float_train_valid.amat", "r")
+f = open(location + "/mnist_all_rotation_normalized_float_train_valid.amat", "r")
 
 trainval = []
 
@@ -47,16 +48,16 @@ trainval = np.array(trainval)
 
 trainval = preprocess(trainval)
 
-np.savez("mnist_fliprot_trainval", **trainval)
-np.savez("mnist_fliprot_train", images=trainval["images"][:10000, ...], labels=trainval["labels"][:10000, ...])
-np.savez("mnist_fliprot_valid", images=trainval["images"][10000:, ...], labels=trainval["labels"][10000:, ...])
+np.savez(location + "mnist_fliprot_trainval", **trainval)
+np.savez(location + "mnist_fliprot_train", images=trainval["images"][:10000, ...], labels=trainval["labels"][:10000, ...])
+np.savez(location + "mnist_fliprot_valid", images=trainval["images"][10000:, ...], labels=trainval["labels"][10000:, ...])
 
 idxs = np.arange(npoints)
 np.random.shuffle(idxs)
 trainval["images"] = trainval["images"][idxs, ...]
 trainval["labels"] = trainval["labels"][idxs]
 
-np.savez("mnist_fliprot_train_shuffled", images=trainval["images"][:10000, ...], labels=trainval["labels"][:10000, ...])
-np.savez("mnist_fliprot_valid_shuffled", images=trainval["images"][10000:, ...], labels=trainval["labels"][10000:, ...])
+np.savez(location + "mnist_fliprot_train_shuffled", images=trainval["images"][:10000, ...], labels=trainval["labels"][:10000, ...])
+np.savez(location + "mnist_fliprot_valid_shuffled", images=trainval["images"][10000:, ...], labels=trainval["labels"][10000:, ...])
 
 

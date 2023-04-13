@@ -7,13 +7,13 @@ from torchvision import transforms
 
 from . import own_transforms
 
-ROOT = "./datasets/mnist12k/"
+ROOT = "mnist12k/"
 
 
 class mnist_dataset(data.Dataset):
     """ flip-rotated MNIST dataset """
     
-    def __init__(self, mode, transform=None, target_transform=None, reshuffle_seed=None):
+    def __init__(self, mode, cfg, transform=None, target_transform=None, reshuffle_seed=None):
         """
         :type  mode: string from ['train', 'valid', 'test']
         :param mode: determines which subset of the dataset is loaded and whether augmentation is used
@@ -35,7 +35,7 @@ class mnist_dataset(data.Dataset):
         if mode in ["train", "valid", "trainval"]:
             filename = os.path.join(ROOT, 'mnist_trainval.npz')
             
-            data = np.load(filename)
+            data = np.load(cfg.dataset.data_dir + filename)
 
             num_train = len(data["labels"])
             indices = np.arange(0, num_train)
@@ -59,7 +59,7 @@ class mnist_dataset(data.Dataset):
             
         else:
             filename = os.path.join(ROOT, 'mnist_test.npz')
-            data = np.load(filename)
+            data = np.load(cfg.dataset.data_dir + filename)
 
         self.images = data['images'].astype(np.float32)
         self.labels = data['labels'].astype(np.int64)
@@ -87,7 +87,7 @@ class mnist_dataset(data.Dataset):
         return len(self.labels)
 
 
-def build_mnist12k_loader(mode, batch_size, num_workers=8, rot_interpol_augmentation=False, interpolation=0,
+def build_mnist12k_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_augmentation=False, interpolation=0,
                           reshuffle_seed=None, coords=False):
     """  """
     rng = np.random.RandomState(42)
@@ -108,7 +108,7 @@ def build_mnist12k_loader(mode, batch_size, num_workers=8, rot_interpol_augmenta
         drop_last = True
         if rot_interpol_augmentation:
             transform = [
-                transforms.RandomRotation(5, resample=interpolation),
+                transforms.RandomRotation(5), # resample=interpolation does not work with current pytorch version
                 own_transforms.GrayToTensor(),
             ]
         else:
@@ -121,7 +121,7 @@ def build_mnist12k_loader(mode, batch_size, num_workers=8, rot_interpol_augmenta
 
     transform = own_transforms.Compose(transform)
     
-    dataset = mnist_dataset(mode, transform=transform, reshuffle_seed=reshuffle_seed)
+    dataset = mnist_dataset(mode, cfg, transform=transform, reshuffle_seed=reshuffle_seed)
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,

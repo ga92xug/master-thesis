@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
 
-def build_mnist_loader(mode, batch_size, num_workers=8, augment=False, reshuffle_seed=None):
+def build_mnist_loader(mode, cfg, batch_size, num_workers=8, augment=False, reshuffle_seed=None):
     """  """
 
     assert mode in ['train', 'valid', 'trainval', 'test']
@@ -20,7 +20,7 @@ def build_mnist_loader(mode, batch_size, num_workers=8, augment=False, reshuffle
     
     if mode == "test":
         # if doesn't exist, download mnist dataset
-        test_set = dset.MNIST(root='./datasets/mnist/', train=False, transform=trans, download=True)
+        test_set = dset.MNIST(root=cfg.dataset.data_dir + 'mnist/', train=False, transform=trans, download=True)
 
         loader = torch.utils.data.DataLoader(
             test_set,
@@ -31,11 +31,11 @@ def build_mnist_loader(mode, batch_size, num_workers=8, augment=False, reshuffle
     else:
         
         # if doesn't exist, download mnist dataset
-        train_set = dset.MNIST(root='./datasets/mnist/', train=True, transform=trans, download=True)
+        train_set = dset.MNIST(root=cfg.dataset.data_dir + 'mnist/', train=True, transform=trans, download=True)
 
         if mode in ["valid", "train"]:
         
-            valid_set = dset.MNIST(root='./datasets/mnist/', train=True, transform=trans, download=True)
+            valid_set = dset.MNIST(root=cfg.dataset.data_dir + 'mnist/', train=True, transform=trans, download=True)
             num_train = len(train_set)
             indices = list(range(num_train))
             split = int(np.floor(num_train * 5/6))

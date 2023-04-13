@@ -173,8 +173,16 @@ from datasets.STL10 import data_loader_stl10
 from datasets.STL10 import data_loader_stl10frac
 
 
-def build_dataloaders(cfg, dataset, batch_size, num_workers, augment, validation=True, reshuffle=False,
-                      eval_batch_size=None, interpolation=2):
+def build_dataloaders(cfg):
+    dataset = cfg.dataset.name
+    batch_size = cfg.training.batch_size
+    num_workers = cfg.dataset.workers
+    augment = cfg.dataset.augment
+    validation = cfg.training.earlystop or True # they used earlystop for validation??? TODO
+    reshuffle = cfg.dataset.reshuffle or False
+    eval_batch_size = cfg.training.eval_batch_size or None
+    interpolation = cfg.dataset.interpolation or 2
+    
     if eval_batch_size is None:
         eval_batch_size = batch_size
         
@@ -203,7 +211,7 @@ def build_dataloaders(cfg, dataset, batch_size, num_workers, augment, validation
                                                                               reshuffle_seed=None)
             valid_loader = False
         
-        test_loader, n_inputs, n_outputs = data_loader_mnist_rot.build_mnist_rot_loader("test",
+        test_loader, n_inputs, n_outputs = data_loader_mnist_rot.build_mnist_rot_loader("test", cfg,
                                                                                         eval_batch_size,
                                                                                         rot_interpol_augmentation=False)
     

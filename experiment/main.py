@@ -30,7 +30,7 @@ if "DISPLAY" not in os.environ:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-os.environ['HYDRA_FULL_ERROR'] = '1'
+#os.environ['HYDRA_FULL_ERROR'] = '1'
 
 SHOW_PLOT = False
 SAVE_PLOT = True
@@ -71,12 +71,12 @@ class Experiment:
         super(Experiment, self).__init__()
 
         # Wandb
-        run = wandb.init(project=cfg.wandb.project)
-        print("WANDB RUN:", run)
-        wandb.config = OmegaConf.to_container(
-            cfg, resolve=True, throw_on_missing=True
-        )
-        print("WANDB CONFIG:", wandb.config)
+        # run = wandb.init(project=cfg.wandb.project)
+        # print("WANDB RUN:", run)
+        # wandb.config = OmegaConf.to_container(
+        #     cfg, resolve=True, throw_on_missing=True
+        # )
+        # print("WANDB CONFIG:", wandb.config)
 
         
         # wandb.log({"loss": loss})
@@ -99,11 +99,12 @@ class Experiment:
         np.random.seed(cfg.other.seed)
         
         # build the datasets and the train, validation and test loaders
-        self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(
-            cfg.dataset.name, cfg.training.batch_size, cfg.dataset.workers, cfg.dataset.augment,
-            cfg.training.earlystop, cfg.dataset.reshuffle, eval_batch_size=cfg.training.eval_batch_size,
-            interpolation=cfg.dataset.interpolation,
-        )
+        self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
+        # self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(
+        #     cfg.dataset.name, cfg.training.batch_size, cfg.dataset.workers, cfg.dataset.augment,
+        #     cfg.training.earlystop, cfg.dataset.reshuffle, eval_batch_size=cfg.training.eval_batch_size,
+        #     interpolation=cfg.dataset.interpolation,
+        # )
         print("datasets built")
         
         # Loss function

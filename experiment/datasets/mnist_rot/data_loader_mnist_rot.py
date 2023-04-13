@@ -21,20 +21,17 @@ class mnist_rot_dataset(data.Dataset):
         :type  reshuffle_seed: int
         :param reshuffle_seed: seed to use to reshuffle train or valid sets. If None (default), they are not reshuffled
         """
-        reshuffle_seed = cfg.other.seed
-        transform = 
-
         assert mode in ['train', 'valid', 'trainval', 'test']
         assert reshuffle_seed is None or (mode != "test" and mode != 'trainval')
         
         self.mode = mode
         self.transform = transform
         self.target_transform = target_transform
+
+        
         
         # load the numpy arrays
         if mode in ["train", "valid", "trainval"]:
-            import os
-            print("Current directory: ", os.getcwd())
             
             filename = 'mnist_rot/mnist_rot_trainval.npz'
             
@@ -61,8 +58,8 @@ class mnist_rot_dataset(data.Dataset):
                 }
             
         else:
-            filename = './datasets/mnist_rot/mnist_rot_test.npz'
-            data = np.load(filename)
+            filename = 'mnist_rot/mnist_rot_test.npz'
+            data = np.load(cfg.dataset.data_dir + filename)
 
         self.images = data['images'].astype(np.float32)
         self.labels = data['labels'].astype(np.int64)
@@ -90,7 +87,7 @@ class mnist_rot_dataset(data.Dataset):
         return len(self.labels)
 
 
-def build_mnist_rot_loader(mode, batch_size, num_workers=8, rot_interpol_augmentation=False, interpolation=0, reshuffle_seed=None, coords=False):
+def build_mnist_rot_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_augmentation=False, interpolation=0, reshuffle_seed=None, coords=False):
     """  """
     rng = np.random.RandomState(42)
 
@@ -134,7 +131,7 @@ def build_mnist_rot_loader(mode, batch_size, num_workers=8, rot_interpol_augment
     
     transform = own_transforms.Compose(transform)
     
-    dataset = mnist_rot_dataset(mode, transform=transform, reshuffle_seed=reshuffle_seed)
+    dataset = mnist_rot_dataset(mode, cfg,transform=transform, reshuffle_seed=reshuffle_seed)
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
