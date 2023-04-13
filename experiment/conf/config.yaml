@@ -1,3 +1,11 @@
+defaults:
+- _self_
+- dataset: default
+- model: default
+- other: default
+- regularization: default
+- training: default
+
 # Dataset parameters        
 dataset:
   data_dir: '../Data/frischs/'  # Path to the datasets        
@@ -11,7 +19,7 @@ dataset:
 
 # Model parameters        
 model:        
-  name: "model_name"            # The name of the model to use
+  _target_: "model_name"        # The name of the model to use
   type: Null                    # Type of fiber for the EXP model
   N: Null                       # Size of cyclic group for GCNN and maximum frequency for HNET
   F: Null                       # Frequency cut-off: maximum frequency at radius "r" is "F*r"

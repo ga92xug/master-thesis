@@ -118,7 +118,12 @@ class Experiment:
         
         # build the model
         # TODO: Stefan check if this works
-        self.model = utils.build_model(cfg, n_inputs, n_outputs)
+        self.model = hydra.utils.instantiate(
+            cfg.model,
+            input_channels=n_inputs,
+            num_classes=n_outputs,
+        ).to(self.device)
+        # self.model = utils.build_model(cfg, n_inputs, n_outputs)
         
         # self.outpath = utils.out_path(cfg)
         # os.makedirs(self.outpath, exist_ok=True)

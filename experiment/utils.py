@@ -7,6 +7,7 @@ import io
 from typing import List
 
 from models import *
+from networks import *
 
 # the values of these command line arguments are used to define the name of the experiments
 # you can add more names in this list
@@ -159,6 +160,16 @@ def build_model(config, n_inputs, n_outputs):
     
     return model
 
+
+def build_model(cfg):
+    if cfg.model.name == 'EquivariantResNet9' or 'ResNet9':
+        model = EquivariantResNet9(cfg.model)
+    elif cfg.model.name == 'EquivariantWideResNet' or 'WideResNet':
+        model = EquivariantWideResNet(cfg.model)
+    elif cfg.model.name == 'EquivariantMobileNetV2' or 'MobileNetV2':
+        model = EquivariantMobileNetV2(cfg.model)
+    else:
+        raise ValueError("Model selected ({}) not recognized!".format(cfg.model.name))
 
 ########################################################################################################################
 # utilites to build dataloaders
