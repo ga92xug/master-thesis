@@ -33,19 +33,6 @@ import matplotlib.pyplot as plt
 
 #os.environ['HYDRA_FULL_ERROR'] = '1'
 
-SHOW_PLOT = False
-SAVE_PLOT = True
-RESHUFFLE = False
-AUGMENT_TRAIN = False
-LEARNING_RATE = 1e-4
-BATCH_SIZE = 64
-EPOCHS = 40
-PLOT_FREQ = 100
-EVAL_FREQ = 100
-BACKUP = False
-BACKUP_FREQ = -1
-
-
 def compute_confusion_matrix(predictions, targets, labels):
     if predictions.shape[1] > 1:
         predictions = predictions.argmax(dim=1)
@@ -70,33 +57,30 @@ class Experiment:
     
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
-
         # Wandb
         # run = wandb.init(project=cfg.wandb.project)
         # print("WANDB RUN:", run)
         # wandb.config = OmegaConf.to_container(
         #     cfg, resolve=True, throw_on_missing=True
         # )
-        # print("WANDB CONFIG:", wandb.config)
-
         # wandb.log({"loss": loss})
-
         print(OmegaConf.to_yaml(cfg))
-        
-        # self.seed = cfg.Other.seed
-        
-        # self._verbose = cfg.Dataset.verbose
-        
-        # self.earlystop = config.earlystop
-        # self.eval_test = config.eval_test
-        
-        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-        print("DEVICE:", self.device)
-        
-        # self.logs = pd.DataFrame(data=[], columns=["seed", "split", "iteration", "accuracy", "loss"])
-        
+        self.cfg = cfg
+        # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
+        # device
+        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        print("DEVICE:", self.device)
+        # outpath
+        self.outpath = utils.out_path(cfg)
+        os.makedirs(self.outpath, exist_ok=True)
+        # experiment name
+        self.expname = utils.exp_name(cfg)
+        print("EXPNAME:", self.expname)
+       
+        # TODO log         
+        # self.logs = pd.DataFrame(data=[], columns=["seed", "split", "iteration", "accuracy", "loss"])
         
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
@@ -118,46 +102,29 @@ class Experiment:
         ).to(self.device)
         print("Stage 2: model built")
         
-        # self.outpath = utils.out_path(cfg)
-        # os.makedirs(self.outpath, exist_ok=True)
-        
-        # TODO check if this still works and if we want to use it
-        self.expname = utils.exp_name(cfg)
-        print("EXPNAME:", self.expname)
-        
-        # visualization parameters
-        # self._show = cfg.show
-        # self._plot_frequency = cfg.plot_frequency
-        
-        if cfg.other.store_plot or cfg.other.show:
-            self._visualization = plt.subplots(1, 2, figsize=(10, 4))
-        else:
-            self._visualization = None
-        
-        if cfg.other.store_plot:
-            self.plotpath = utils.plot_path(cfg)
-        else:
-            self.plotpath = None
-        
+        # visualization
+        self._visualization = plt.subplots(1, 2, figsize=(10, 4)) \
+            if (cfg.other.store_plot or cfg.other.show) else None
+        self.plotpath = utils.plot_path(cfg) if cfg.other.store_plot else None
+
         # backup model parameters
-        #self._backup_frequency = cfg.backup_frequency
-        #self._backup_model = cfg.backup_model
         self.modelpath = utils.backup_path(cfg)
-        if self._backup_model:
+        if cfg.other.backup_model:
             os.makedirs(os.path.dirname(self.modelpath), exist_ok=True)
 
-        # training cfguration
-        # self.epochs = cfg.epochs
-        # self._eval_frequency = cfg.eval_frequency
-        # self.batch_size = cfg.batch_size
-        # self.accumulate = cfg.accumulate
-        # self.steps_per_epoch = cfg.steps_per_epoch
-        # self._lr = cfg.lr
-        # 
-        # self._lr_decay_start = cfg.lr_decay_start
-        # self._lr_decay_factor = cfg.lr_decay_factor
-        # self._lr_decay_epoch = cfg.lr_decay_epoch
-        # self._lr_decay_schedule = cfg.lr_decay_schedule
+        # training configuration
+        self.epochs = cfg.training.epochs
+        self._eval_frequency = cfg.other.eval_frequency
+        self.batch_size = cfg.training.batch_size
+        self.accumulate = cfg.training.accumulate
+        self.steps_per_epoch = cfg.training.steps_per_epoch
+        self._lr = cfg.training.lr
+        self._verbose = cfg.other.verbose
+        
+        self._lr_decay_start = cfg.training.lr_decay_start
+        self._lr_decay_factor = cfg.training.lr_decay_factor
+        self._lr_decay_epoch = cfg.training.lr_decay_epoch
+        self._lr_decay_schedule = cfg.training.lr_decay_schedule
         print("cfg.training.lr_decay_schedule ", cfg.training.lr_decay_schedule)
         if cfg.training.lr_decay_schedule is not None:
             print("cfg.training.lr_decay_schedule ", cfg.training.lr_decay_schedule)
@@ -166,42 +133,45 @@ class Experiment:
         
         self._lr_exp_steps = 0
         
+        # TODO
         self._optimizer = optimizer.build_optimizer(self.model, cfg)
 
-        self._adapt_lr_type = cfg.adapt_lr
-        if cfg.adapt_lr == "exponential":
+        # adapt learning rate
+        self._adapt_lr_type = cfg.training.adapt_lr
+        if cfg.training.adapt_lr == "exponential":
             self._adapt_lr = self._lr_scheduler_exponential_decay
-        elif cfg.adapt_lr == "validation":
-            assert cfg.earlystop
-            self._lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer,
-                                                                            factor=self._lr_decay_factor,
-                                                                            patience=self._lr_decay_epoch,
-                                                                            verbose=self._verbose > 2,
-                                                                            eps=1e-8,
-                                                                            )
+        elif cfg.training.adapt_lr == "validation":
+            assert cfg.training.earlystop
+            self._lr_scheduler = \
+                torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    self._optimizer,
+                    factor=self._lr_decay_factor,
+                    patience=self._lr_decay_epoch,
+                    verbose=self._verbose > 2,
+                    eps=1e-8,
+                )
             self._adapt_lr = self._lr_scheduler.step
             
-        elif cfg.adapt_lr is not None:
+        elif cfg.training.adapt_lr is not None:
             raise ValueError()
         else:
-            cfg.adapt_lr = None
+            self._adapt_lr = None
         
         self._iteration = 0
         self._epoch = 0
         
-        self.model.to(self.device)
         self.model = nn.DataParallel(self.model)
         
-        if self.earlystop:
-            assert cfg.valid_metric in ["loss", "accuracy"]
-            self._valid_metric = cfg.valid_metric
+        if self.cfg.training.earlystop:
+            assert cfg.training.valid_metric in ["loss", "accuracy"]
+            self._valid_metric = cfg.training.valid_metric
         self._last_valid_metric = 1e+20
         self.best_valid_iteration = 0
         self.best_valid_loss = 1e+20
         self.best_valid_accuracy = 0
         self.best_state_dict = self.model.state_dict()
         
-        self._time_limit = cfg.time_limit
+        self._time_limit = cfg.other.time_limit
         self._start_time = datetime.datetime.now()
         
         if self._verbose > 1:
@@ -216,7 +186,7 @@ class Experiment:
         self.logs.loc[len(self.logs)] = row
     
     def backup(self):
-        if self._backup_model:
+        if self.cfg.other.backup_model:
             torch.save(self.best_state_dict, self.modelpath)
     
     def train(self):
@@ -280,10 +250,10 @@ class Experiment:
                 cumulative_loss = 0
                 cumulative_acc = 0
                 
-                if self._backup_frequency > 0 and self._iteration % self._backup_frequency == 0:
+                if self.cfg.other.backup_frequency > 0 and self._iteration % self.cfg.other.backup_frequency == 0:
                     self.backup()
                 
-                if self._plot_frequency > 0 and self._iteration % self._plot_frequency == 0:
+                if self.cfg.other.plot_frequency > 0 and self._iteration % self.cfg.other.plot_frequency == 0:
                     self.plot()
 
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
@@ -294,7 +264,7 @@ class Experiment:
             print("\n")
             print("############################################ START TESTING ########################################")
         
-        if self.earlystop:
+        if self.cfg.training.earlystop:
             self.model.eval()
             self.model.load_state_dict(self.best_state_dict)
         
@@ -317,7 +287,7 @@ class Experiment:
             print("\n")
     
     def valid(self):
-        if self.earlystop:
+        if self.cfg.training.earlystop:
             acc, loss = self.evaluate("valid")
             
             if self._verbose > 1:
@@ -349,7 +319,7 @@ class Experiment:
             self.best_valid_loss = min(loss, self.best_valid_loss)
             self.best_valid_accuracy = max(acc, self.best_valid_accuracy)
         
-        if self.eval_test:
+        if self.cfg.training.eval_test:
             acc, loss = self.evaluate("test")
             if self._verbose > 1:
                 print('################################################################################')
@@ -402,7 +372,7 @@ class Experiment:
     
     def plot(self):
         if self._visualization is not None:
-            plot_exps.plot(self.logs, self.plotpath, self._show, outfig=self._visualization)
+            plot_exps.plot(self.logs, self.plotpath, self.cfg.other.show, outfig=self._visualization)
     
     def run(self):
         
@@ -422,10 +392,10 @@ class Experiment:
             if self._eval_frequency < 0 and self._epoch % (-self._eval_frequency) == 0:
                 self.valid()
             
-            if self._plot_frequency < 0 and self._epoch % (-self._plot_frequency) == 0:
+            if self.cfg.other.plot_frequency < 0 and self._epoch % (-self.cfg.other.plot_frequency) == 0:
                 self.plot()
             
-            if self._backup_frequency < 0 and self._epoch % (-self._backup_frequency) == 0:
+            if self.cfg.other.backup_frequency < 0 and self._epoch % (-self.cfg.other.backup_frequency) == 0:
                 self.backup()
 
             endtime = datetime.datetime.now().timestamp()

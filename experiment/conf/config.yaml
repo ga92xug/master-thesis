@@ -14,8 +14,6 @@ dataset:
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
   workers: 8                    # Number of jobs to load the dataset
-  time_limit: Null              # Maximum time limit for training (in Minutes)
-  verbose: 2                    # Verbose Level
 
 # Model parameters        
 model:        
@@ -63,6 +61,10 @@ other:
   backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
   seed: 42                      # Seed for random number generators
   output_path: 'experiment/output/'  # Path to the output directory
+  verbose: 2                    # Verbose Level
+  time_limit: Null              # Maximum time limit for training (in Minutes)
+
+
 
 # WandB
 wandb:
