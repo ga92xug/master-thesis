@@ -1,0 +1,9 @@
+_target_: None
+l1: False                      # Use L1L2 regularization as in SFCNN paper
+lamb_conv_L1: 1e-7            # Gain of L1 loss for steerable layer variables
+lamb_conv_L2: 1e-7            # Gain of L2 loss for steerable layer variables
+lamb_fully_L1: 1e-8           # Gain of L1 loss for fully connected layer variables
+lamb_fully_L2: 1e-8           # Gain of L2 loss for fully connected layer variables
+lamb_softmax_L2: 0            # Gain of L2 loss for fully connected layer variables
+lamb_bn_L1: 0                 # Gain of L1 loss for batchnorm weights
+lamb_bn_L2: 0                 # Gain of L2 loss for batchnorm weights

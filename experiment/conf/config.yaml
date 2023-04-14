@@ -17,13 +17,12 @@ dataset:
 
 # Model parameters        
 model:        
-  _target_: "model_name"        # The name of the model to use
+  _target_: networks.EquivariantResNet9        # The name of the model to use
 
 # Training parameters
 training:
   batch_size: 64                # Number of examples to process in a batch during training
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
-  lr: 0.001                     # Learning rate
   epochs: 40                    # Number of training epochs
   steps_per_epoch: -1           # Number of batches to process during each epoch (-1 for all batches)
   earlystop: True               # Whether to use early stopping based on a validation set
@@ -31,8 +30,6 @@ training:
   eval_test: False              # Whether to evaluate on the test set during validation
   accumulate: 1                 # Number of batches to accumulate gradients over before updating model
   optimizer: sfcnn              # Name of optimizer to use (sfcnn, SGD, or Adam)
-  momentum: 0.9                 # Momentum for SGD optimizer (if used)
-  weight_decay: 0.0005          # Weight decay for SGD or Adam optimizer (if used)
   adapt_lr: False               # Adaptive learning rate scheduler to use (exponential, validation, or Null)
   lr_decay_start: 15            # Epoch to start adaptive learning rate decay
   lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
@@ -41,15 +38,10 @@ training:
   augment_train: False          # Stefan add
 
 # Regularization params
-regularization:
-  l1: False                      # Use L1L2 regularization as in SFCNN paper
-  lamb_conv_L1: 1e-7            # Gain of L1 loss for steerable layer variables
-  lamb_conv_L2: 1e-7            # Gain of L2 loss for steerable layer variables
-  lamb_fully_L1: 1e-8           # Gain of L1 loss for fully connected layer variables
-  lamb_fully_L2: 1e-8           # Gain of L2 loss for fully connected layer variables
-  lamb_softmax_L2: 0            # Gain of L2 loss for fully connected layer variables
-  lamb_bn_L1: 0                 # Gain of L1 loss for batchnorm weights
-  lamb_bn_L2: 0                 # Gain of L2 loss for batchnorm weights
+optimizer:
+  lr: 0.001                     # Learning rate
+  weight_decay: 0.0005          # Weight decay for SGD or Adam optimizer (if used)
+
 
 # Other experiment's parameters
 other:
@@ -60,7 +52,7 @@ other:
   show: False                   # Show the plot during training
   backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
   seed: 42                      # Seed for random number generators
-  output_path: 'experiment/output/'  # Path to the output directory
+  output_path: 'experiment/outputs/'  # Path to the output directory
   verbose: 2                    # Verbose Level
   time_limit: Null              # Maximum time limit for training (in Minutes)
 

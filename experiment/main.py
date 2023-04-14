@@ -111,6 +111,7 @@ class Experiment:
         self.modelpath = utils.backup_path(cfg)
         if cfg.other.backup_model:
             os.makedirs(os.path.dirname(self.modelpath), exist_ok=True)
+        print("modelpath", self.modelpath)
 
         # training configuration
         self.epochs = cfg.training.epochs
@@ -118,22 +119,26 @@ class Experiment:
         self.batch_size = cfg.training.batch_size
         self.accumulate = cfg.training.accumulate
         self.steps_per_epoch = cfg.training.steps_per_epoch
-        self._lr = cfg.training.lr
+        self._lr = cfg.optimizer.lr
         self._verbose = cfg.other.verbose
         
         self._lr_decay_start = cfg.training.lr_decay_start
         self._lr_decay_factor = cfg.training.lr_decay_factor
         self._lr_decay_epoch = cfg.training.lr_decay_epoch
         self._lr_decay_schedule = cfg.training.lr_decay_schedule
-        print("cfg.training.lr_decay_schedule ", cfg.training.lr_decay_schedule)
+        print("lr_decay_schedule: ", cfg.training.lr_decay_schedule)
         if cfg.training.lr_decay_schedule is not None:
-            print("cfg.training.lr_decay_schedule ", cfg.training.lr_decay_schedule)
             self._lr_decay_epoch = None
             self._lr_decay_start = None
         
         self._lr_exp_steps = 0
         
         # TODO
+        self._optimizer = hydra.utils.instantiate(
+            cfg.optimizer,
+            params=self.model.parameters(),
+            lr=self._lr,
+        )
         self._optimizer = optimizer.build_optimizer(self.model, cfg)
 
         # adapt learning rate
@@ -375,7 +380,10 @@ class Experiment:
             plot_exps.plot(self.logs, self.plotpath, self.cfg.other.show, outfig=self._visualization)
     
     def run(self):
-        
+        """
+        High level functionality to run the experiment. 
+        Implements when to train, evaluate, plot, backup, etc.
+        """
         self._iteration = 0
         
         while self._epoch < self.epochs:
