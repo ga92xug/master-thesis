@@ -58,10 +58,10 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, help='Seed of the experiment')
     parser.add_argument('--output', type=str, default=None, help="Path where to store the extracted model")
     
-    config = parser.parse_args()
+    cfg = parser.parse_args()
     
     # Train the model
-    model = retrieve(config)
+    model = retrieve(cfg)
     
-    if config.output is not None:
-        torch.save(model.state_dict(), config.output)
+    if cfg.output is not None:
+        torch.save(model.state_dict(), cfg.output)

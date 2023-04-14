@@ -152,9 +152,9 @@ if __name__ == "__main__":
     parser.add_argument('--store_plot', dest="store_plot", action="store_true", help='Save the plots in a file or not')
     parser.set_defaults(store_plot=SAVE_PLOT)
     
-    config = parser.parse_args()
+    cfg = parser.parse_args()
     
     # Draw the plot
-    logs_file = utils.logs_path(config)
-    plotpath = utils.plot_path(config)
-    plot(logs_file, plotpath, config.show)
+    logs_file = utils.logs_path(cfg)
+    plotpath = utils.plot_path(cfg)
+    plot(logs_file, plotpath, cfg.show)

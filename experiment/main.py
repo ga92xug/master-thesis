@@ -79,7 +79,6 @@ class Experiment:
         # )
         # print("WANDB CONFIG:", wandb.config)
 
-        
         # wandb.log({"loss": loss})
 
         print(OmegaConf.to_yaml(cfg))
@@ -101,12 +100,7 @@ class Experiment:
         
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
-        # self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(
-        #     cfg.dataset.name, cfg.training.batch_size, cfg.dataset.workers, cfg.dataset.augment,
-        #     cfg.training.earlystop, cfg.dataset.reshuffle, eval_batch_size=cfg.training.eval_batch_size,
-        #     interpolation=cfg.dataset.interpolation,
-        # )
-        print("datasets built")
+        print("Stage 1: datasets built")
         
         # Loss function
         if n_outputs == 2:
@@ -117,13 +111,12 @@ class Experiment:
         self.n_outputs = n_outputs
         
         # build the model
-        # TODO: Stefan check if this works
         self.model = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,
             num_classes=n_outputs,
         ).to(self.device)
-        # self.model = utils.build_model(cfg, n_inputs, n_outputs)
+        print("Stage 2: model built")
         
         # self.outpath = utils.out_path(cfg)
         # os.makedirs(self.outpath, exist_ok=True)

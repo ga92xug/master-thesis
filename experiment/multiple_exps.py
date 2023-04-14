@@ -39,6 +39,6 @@ if __name__ == "__main__":
     ######## EXPERIMENT'S PARAMETERS ########
     parser = utils.args_exp_parameters(parser)
     
-    config = parser.parse_args()
-    main(config)
+    cfg = parser.parse_args()
+    main(cfg)
 

@@ -93,19 +93,21 @@ def retrieve_confusion(path: str) -> List[np.array]:
 # Utilites to build paths and names in a standard way
 ########################################################################################################################
 
+# EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
+EXPERIMENT_PARAMETERS = ["_target_", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
+def exp_name(cfg):
+    values = [str(cfg.model._target_), str(cfg.dataset.name)]
+    # values = [str(config[inner_dict][value]) for inner_dict in config.keys() for value in inner_dict.keys() if value in EXPERIMENT_PARAMETERS]
+    return "_".join(values)
 
-def exp_name(config):
-    config = vars(config)
-    return '_'.join([str(config[p]) for p in EXPERIMENT_PARAMETERS])
 
-
-def out_path(config):
-    path = f'results/{config.dataset.name}'
-    if config.reshuffle:
+def out_path(cfg):
+    path = cfg.other.output_path
+    if cfg.dataset.reshuffle:
         path += "(shuffled)"
-    if config.augment:
+    if cfg.dataset.augment:
         path += "_(train_augmentation)"
-    if not config.earlystop:
+    if not cfg.training.earlystop:
         path += "_(full_train)"
     return path
 
@@ -116,7 +118,7 @@ def plot_path(config):
 
 def backup_path(config):
     backup_folder = os.path.join(out_path(config), exp_name(config))
-    return os.path.join(backup_folder, f"_{config.seed}.model")
+    return os.path.join(backup_folder, f"_{config.other.seed}.model")
 
 
 def logs_path(config):

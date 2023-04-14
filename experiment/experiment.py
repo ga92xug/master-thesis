@@ -529,7 +529,7 @@ if __name__ == "__main__":
 
     parser = utils.args_exp_parameters(parser)
     
-    config = parser.parse_args()
+    cfg = parser.parse_args()
     
     # Train the model
-    run_experiment(config)
+    run_experiment(cfg)

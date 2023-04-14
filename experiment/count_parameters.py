@@ -64,12 +64,12 @@ if __name__ == "__main__":
     ######## EXPERIMENT'S PARAMETERS ########
     parser = utils.args_exp_parameters(parser)
 
-    config = parser.parse_args()
+    cfg = parser.parse_args()
     
     print("----------------------------------------------------------")
     print(datetime.datetime.now())
     
-    expname, nparams = count_params(config)
+    expname, nparams = count_params(cfg)
 
     print(f"{expname}:\t{nparams} parameters")
     
