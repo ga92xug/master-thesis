@@ -1,4 +1,4 @@
-_target_: None
+name: sfnn
 l1: False                      # Use L1L2 regularization as in SFCNN paper
 lamb_conv_L1: 1e-7            # Gain of L1 loss for steerable layer variables
 lamb_conv_L2: 1e-7            # Gain of L2 loss for steerable layer variables

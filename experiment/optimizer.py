@@ -44,19 +44,19 @@ def build_optimizer_sfcnn(model, cfg):
 
 
 def build_optimizer(model, cfg):
-    if cfg.optimizer == "sfcnn":
+    if cfg.optimizer.name == "sfcnn":
         # optimize as in "Learning Steerable Filters for Rotation Equivariant CNNs"
         # https://arxiv.org/abs/1711.07289
         return build_optimizer_sfcnn(model, cfg)
-    elif cfg.optimizer == "Adam":
+    elif cfg.optimizer.name == "Adam":
         return torch.optim.Adam(model.parameters(),
-                                            lr=cfg.training.lr,
-                                            weight_decay=cfg.training.weight_decay
+                                            lr=cfg.optimizer.lr,
+                                            weight_decay=cfg.optimizer.weight_decay
                                             )
-    elif cfg.optimizer == "SGD":
+    elif cfg.optimizer.name == "SGD":
         return torch.optim.SGD(model.parameters(),
-                                            lr=cfg.training.lr,
-                                            momentum=cfg.training.momentum,
-                                            weight_decay=cfg.training.weight_decay)
+                                            lr=cfg.optimizer.lr,
+                                            momentum=cfg.optimizer.momentum,
+                                            weight_decay=cfg.optimizer.weight_decay)
     else:
-        raise Exception(f"Unknown optimizer {cfg.training.optimizer}")
+        raise Exception(f"Unknown optimizer {cfg.optimizer.name}")

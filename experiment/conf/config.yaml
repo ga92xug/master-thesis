@@ -1,7 +1,7 @@
 defaults:
 - _self_
 - dataset: default
-- model: default
+- model: eq_resnet9
 - other: default
 - optimizer: Adam
 - training: default
@@ -16,8 +16,8 @@ dataset:
   workers: 8                    # Number of jobs to load the dataset
 
 # Model parameters        
-model:        
-  _target_: networks.EquivariantResNet9        # The name of the model to use
+#model:        
+#  _target_: networks.EquivariantResNet9        # The name of the model to use
 
 # Training parameters
 training:

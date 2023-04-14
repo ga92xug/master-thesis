@@ -1,2 +1,1 @@
-_target_: torch.optim.Adam
-_args_: self.model.parameters()
+name: Adam
