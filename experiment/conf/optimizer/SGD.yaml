@@ -1,2 +1,3 @@
 _target_: torch.optim.SGD
 momentum: 0.9                 # Momentum for SGD optimizer (if used)
+params: self.model.parameters()

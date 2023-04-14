@@ -136,8 +136,6 @@ class Experiment:
         # TODO
         self._optimizer = hydra.utils.instantiate(
             cfg.optimizer,
-            params=self.model.parameters(),
-            lr=self._lr,
         )
         self._optimizer = optimizer.build_optimizer(self.model, cfg)
 

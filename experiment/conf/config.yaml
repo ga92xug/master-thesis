@@ -3,7 +3,7 @@ defaults:
 - dataset: default
 - model: default
 - other: default
-- regularization: default
+- optimizer: Adam
 - training: default
 
 # Dataset parameters        
