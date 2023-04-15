@@ -1,12 +1,10 @@
 # Model parameters          
 _target_: networks.EquivariantResNet9            # The name of the model to use
-# group: "cyclic"  # "dihedral" "orthogonal"
-# rotation: 4  # discrete number or frequency
-# fix_params: False
-# restrict: null  # "invariant", "reflection", "halved"
-# input_channels: 3
-# layout: (64, 128, 256)
-# kernel_size: 3
-# padding: 1
-# num_groups: (1,1,1), # (null, null, null)
-# num_classes: 10
+group: "cyclic"  # "dihedral" "orthogonal"
+rotation: 4  # discrete number or frequency
+fix_params: False
+restrict: null  # "invariant", "reflection", "halved"
+layout: [64, 128, 256] # hydra does not support tuples
+kernel_size: 3
+padding: 1
+#num_groups: [1,1,1], # (null, null, null) # 

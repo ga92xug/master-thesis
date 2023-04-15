@@ -170,6 +170,8 @@ def build_model(cfg):
         model = EquivariantWideResNet(cfg.model)
     elif cfg.model.name == 'EquivariantMobileNetV2' or 'MobileNetV2':
         model = EquivariantMobileNetV2(cfg.model)
+    elif cfg.model.name == 'RandomNet':
+        model = RandomNet(cfg.model)
     else:
         raise ValueError("Model selected ({}) not recognized!".format(cfg.model.name))
 

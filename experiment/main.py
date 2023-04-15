@@ -1,6 +1,8 @@
 import numpy as np
+import math
 import torch
 import torch.nn as nn
+from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 import pprint
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
@@ -33,6 +35,7 @@ import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
 # TODO early stopping should really stop the training and not just save the model
+# TODO metrics should be a torch function
 
 #os.environ['HYDRA_FULL_ERROR'] = '1'
 
@@ -42,7 +45,8 @@ def compute_confusion_matrix(predictions, targets, labels):
     else:
         predictions = (predictions > 0.)
     
-    return confusion_matrix(targets.cpu().numpy(), predictions.cpu().numpy(), labels)
+    conf_matrix = confusion_matrix(targets.cpu().numpy(), predictions.cpu().numpy(), labels=labels)
+    return conf_matrix
 
 
 def accuracy(predictions, targets):
@@ -96,6 +100,8 @@ class Experiment:
             self._loss_function = torch.nn.CrossEntropyLoss()
         self.n_outputs = n_outputs
         
+        self.train_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device) if self.n_outputs > 1 else BinaryAccuracy().to(self.device)
+
         # build the model
         self.model = hydra.utils.instantiate(
             cfg.model,
@@ -174,7 +180,7 @@ class Experiment:
         self.best_valid_iteration = 0
         self.best_valid_loss = 1e+20
         self.best_valid_accuracy = 0
-        self.best_state_dict = None
+        self.best_state_dict = self.model.state_dict()
         
         self._time_limit = cfg.other.time_limit
         self._start_time = datetime.datetime.now()
@@ -182,9 +188,15 @@ class Experiment:
         if self._verbose > 1:
             tot_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
             print("Total number of parameters:", tot_param)
-        
-        if self._verbose > 1:
             print(f"Starting: {self._start_time}")
+
+        # training statistics
+        self.train_n_batches_len = len(self._dataloaders["train"])
+        self.train_data_len = len(self._dataloaders["train"].dataset)
+        self.actual_batch_size = self.batch_size * self.accumulate
+        self.last_batch_size = self.train_data_len % self.actual_batch_size
+        self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)
+        
 
     def log(self, accuracy, loss, split):
         """
@@ -199,63 +211,50 @@ class Experiment:
             torch.save(self.best_state_dict, self.modelpath)
     
     def train(self):
-        # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-        wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
+        if self.cfg.wandb.watch:
+            # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+            wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
+
         self.model.train()
-        train_len = len(self._dataloaders["train"])
-        data_len = len(self._dataloaders["train"].dataset)
-        
-        actual_batch_size = self.batch_size * self.accumulate
-        last_batch_size = data_len % actual_batch_size
-        n_batches = data_len // actual_batch_size + (last_batch_size > 0)
         
         self._optimizer.zero_grad()
         
         epoch_iterations = 0
-        cumulative_loss = 0
-        cumulative_acc = 0
-        train_loss = 0
-        train_acc = 0
+        train_loss_epoch = 0
+        train_acc_epoch = 0
         n_samples = 0
         for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
             if self._verbose > 3:
-                print(f"\ttrain:{batch_idx}/{train_len}\t\t{datetime.datetime.now()}")
-            
-            batchsize = actual_batch_size if epoch_iterations < n_batches - 1 else last_batch_size
-            assert batchsize == x.shape[0]
-            n_samples += batchsize
+                print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
+            n_samples += x.shape[0]
 
             x = x.to(self.device)
             t = t.to(self.device)
             
             y = self.model(x)
-            
-            loss = self._loss_function(y, t) * x.shape[0]
-            acc = accuracy(y.detach(), t.detach()) * x.shape[0]
-            
-            cumulative_loss += loss.item() / batchsize
-            cumulative_acc += acc / batchsize
-            
-            train_loss += loss.item()
-            train_acc += acc
+
+            loss = self._loss_function(y, t)
+            acc = accuracy(y.detach(), t.detach())
+                        
+            train_loss_epoch += loss.item() * x.shape[0]
+            train_acc_epoch += acc * x.shape[0]
+
+            wandb.log({"train": {"loss": loss, "acc": acc}},\
+                          step=self.global_step)
+            if self._verbose > 2:
+                    print(f"Epoch {self._epoch} | {epoch_iterations}/{self.n_batches};\
+                           loss: {loss.item():.3f}; acc: {acc:.3f}")
 
             loss.backward(retain_graph=True)
-            self.global_step += batchsize
+            self.global_step += x.shape[0]
             
             del loss
             del y
             del x
             del t
 
-            if (batch_idx + 1) % self.accumulate == 0 or batch_idx == train_len - 1:
-                if self._verbose > 2:
-                    print(f"Epoch {self._epoch} | {epoch_iterations}/{n_batches};\
-                           loss: {cumulative_loss:.3f}; acc: {cumulative_acc:.3f}")
-
-                wandb.log({"train-loss": cumulative_loss, "train-acc": cumulative_acc},\
-                          step=self.global_step)
-                # self.log(cumulative_acc, cumulative_loss, "train")
-                
+            # accumulate gradients
+            if (batch_idx + 1) % self.accumulate == 0 or batch_idx == self.train_n_batches_len - 1:                
                 self._optimizer.step()
                 self._optimizer.zero_grad()
             
@@ -264,8 +263,6 @@ class Experiment:
                 
                 self._iteration += 1
                 epoch_iterations += 1
-                cumulative_loss = 0
-                cumulative_acc = 0
                 
                 if self.cfg.other.backup_frequency > 0 and self._iteration % self.cfg.other.backup_frequency == 0:
                     self.backup()
@@ -276,7 +273,7 @@ class Experiment:
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
         
-        return train_loss / n_samples, train_acc / n_samples
+        return train_loss_epoch / n_samples, train_acc_epoch / n_samples
 
     def test(self):
         if self._verbose > 0:
@@ -288,14 +285,16 @@ class Experiment:
             self.model.load_state_dict(self.best_state_dict)
         
         acc, loss, conf_matrix = self.evaluate("test", confusion=True)
-        
+        # wandb.log({"train": {"acc": 0.9}, "val": {"acc": 0.8}})
+        wandb.log({"test": {"loss": loss, "acc": acc}})
+
         self.conf_matrix = conf_matrix
         
         if self._verbose > 0:
             np.set_printoptions(precision=4, suppress=True, threshold=1000000, linewidth=1000000)
             print(f"##### ExperimentClassification [{self.expname}]")
-            print(f"##### TEST LOSS = {loss}")
-            print(f"##### TEST ACCURACY = {acc}")
+            print(f"##### TEST LOSS = {loss:.3f}")
+            print(f"##### TEST ACCURACY = {acc:.3f}")
             print("###################################################################################################")
             print("# Confusion Matrix")
             print(conf_matrix)
@@ -358,12 +357,12 @@ class Experiment:
             
             if confusion:
                 conf_matrix += compute_confusion_matrix(y_test.detach(), t_test, list(range(self.n_outputs)))
-            
-            # predictions.append(y_test.detach())
-            # targets.append(t_test.detach())
+                wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_test.cpu().detach().numpy(), \
+                            y_true=t_test.cpu().detach().numpy(), preds=None, class_names=list(range(self.n_outputs)))})
+
             n_samples += x_test.shape[0]
             cumulative_acc += accuracy(y_test, t_test) * x_test.shape[0]
-            cumulative_loss += self._loss_function(y_test, t_test).mean().item() * x_test.shape[0]
+            cumulative_loss += self._loss_function(y_test, t_test).item() * x_test.shape[0]
             
             del x_test
             del y_test
@@ -373,8 +372,7 @@ class Experiment:
         loss = cumulative_loss / n_samples
         
         if log:
-            # self.log(acc, loss, split)
-            wandb.log({f"{split}-loss": loss, f"{split}-acc": acc}\
+            wandb.log({f"{split}": {"loss": loss, "acc": acc}}\
                           , step=self.global_step)
         
         if confusion:
@@ -423,13 +421,13 @@ class Experiment:
                 self.backup()
 
             endtime = datetime.datetime.now().timestamp()
-            
+            duration = endtime - starttime
             if self._verbose > 1:
-                duration = endtime - starttime
                 print(f"-"*100)
                 print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
                 print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
 
+            wandb.log({"train": {"duration": duration}}, step=self.global_step)
             self._epoch += 1
         
         # Training done, evaluate on test set
@@ -526,14 +524,4 @@ if __name__ == "__main__":
     run_experiment()
 
     # Test the print function
-    """
-    expname = "networks.EquivariantResNet9_mnist12k"
-    _epoch = 0
-    _iteration = 60000
-    acc = 0.99
-    loss = 0.01
-    print('################################################################################')
-    print(f'Evaluating [{expname}] on TEST|\nEpoch: {_epoch}; Iteration: {_iteration}; Accuracy: {acc}; Loss: {loss}')
-    print('################################################################################')
-
-    """
+    

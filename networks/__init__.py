@@ -13,6 +13,7 @@ from .eq_layers import (
 from .eq_resnet9 import EquivariantResNet9
 from .eq_wrn import EquivariantWideResNet
 from .eq_mobilenetv2 import EquivariantMobileNetV2
+from .randomnet import RandomNet
 
 __all__ = [
     "Restriction",
@@ -28,5 +29,6 @@ __all__ = [
 ] + [
     "EquivariantResNet9",
     "EquivariantWideResNet",
-    "EquivariantMobileNetV2"
+    "EquivariantMobileNetV2",
+    "RandomNet"
 ]
