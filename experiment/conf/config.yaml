@@ -29,12 +29,12 @@ training:
   valid_metric: accuracy        # Metric to use for early stopping
   eval_test: False              # Whether to evaluate on the test set during validation
   accumulate: 1                 # Number of batches to accumulate gradients over before updating model
-  optimizer: sfcnn              # Name of optimizer to use (sfcnn, SGD, or Adam)
-  adapt_lr: False               # Adaptive learning rate scheduler to use (exponential, validation, or Null)
+  #optimizer: sfcnn             # Name of optimizer to use (sfcnn, SGD, or Adam)
+  adapt_lr: null                # Adaptive learning rate scheduler to use (exponential, validation, or Null)
   lr_decay_start: 15            # Epoch to start adaptive learning rate decay
   lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
   lr_decay_epoch: 1             # Period (in epochs) between adaptive learning rate decay
-  lr_decay_schedule: Null       # List of specific epochs for adaptive learning rate decay (alternative to lr_decay_epoch)
+  lr_decay_schedule: null       # List of specific epochs for adaptive learning rate decay (alternative to lr_decay_epoch)
   augment_train: False          # Stefan add
 
 # Regularization params
@@ -45,10 +45,10 @@ optimizer:
 
 # Other experiment's parameters
 other:
-  eval_frequency: 100           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
+  eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
   backup_model: False           # Backup the model in a file
   plot_frequency: 100           # Plot frequency (counts iterations if positive, epochs if negative. Use -1 to plot at the end of each epoch)
-  store_plot: True              # Store the plot
+  store_plot: False              # Store the plot
   show: False                   # Show the plot during training
   backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
   seed: 42                      # Seed for random number generators
@@ -61,4 +61,5 @@ other:
 # WandB
 wandb:
   project: scaling-laws         # Name of the wandb project
+  mode: offline                  # For debugging
   # wandb_entity: Null          # Name of the wandb entity default is your username

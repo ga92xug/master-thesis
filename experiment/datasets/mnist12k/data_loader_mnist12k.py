@@ -61,8 +61,10 @@ class mnist_dataset(data.Dataset):
             filename = os.path.join(ROOT, 'mnist_test.npz')
             data = np.load(cfg.dataset.data_dir + filename)
 
-        self.images = data['images'].astype(np.float32)
-        self.labels = data['labels'].astype(np.int64)
+        self.images = np.array(data['images'], dtype=np.float32)
+        self.labels = np.array(data['labels'], dtype=np.int64)
+        #print("Writable images/lables:", self.images.flags.writeable, self.labels.flags.writeable)
+        #self.labels = data['labels'].astype(np.int64)
         self.num_samples = len(self.labels)
     
     def __getitem__(self, index):
@@ -73,6 +75,7 @@ class mnist_dataset(data.Dataset):
             tuple: (image, target) where target is index of the target class.
         """
         image, label = self.images[index], self.labels[index]
+        #print("Writable image/lable:", image.flags.writeable, label.flags.writeable)
         # convert to PIL Image
         image = Image.fromarray(image)
         # transform images and labels

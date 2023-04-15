@@ -30,6 +30,9 @@ import matplotlib
 if "DISPLAY" not in os.environ:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+np.set_printoptions(precision=3, linewidth=10000, suppress=True)
+
+# TODO batch_size != data_size ???
 
 #os.environ['HYDRA_FULL_ERROR'] = '1'
 
@@ -58,12 +61,11 @@ class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
         # Wandb
-        # run = wandb.init(project=cfg.wandb.project)
-        # print("WANDB RUN:", run)
-        # wandb.config = OmegaConf.to_container(
-        #     cfg, resolve=True, throw_on_missing=True
-        # )
-        # wandb.log({"loss": loss})
+        run = wandb.init(project=cfg.wandb.project, mode=cfg.wandb.mode)
+        print("WANDB RUN:", run)
+        wandb.config = OmegaConf.to_container(
+            cfg, resolve=True, throw_on_missing=True
+        )
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
         # seed
@@ -114,7 +116,7 @@ class Experiment:
         print("modelpath", self.modelpath)
 
         # training configuration
-        self.epochs = cfg.training.epochs
+        self.max_epochs = cfg.training.epochs
         self._eval_frequency = cfg.other.eval_frequency
         self.batch_size = cfg.training.batch_size
         self.accumulate = cfg.training.accumulate
@@ -128,6 +130,7 @@ class Experiment:
         self._lr_decay_schedule = cfg.training.lr_decay_schedule
         print("lr_decay_schedule: ", cfg.training.lr_decay_schedule)
         if cfg.training.lr_decay_schedule is not None:
+            print("if statement lr_decay_schedule: ", cfg.training.lr_decay_schedule is not None)
             self._lr_decay_epoch = None
             self._lr_decay_start = None
         
@@ -141,7 +144,6 @@ class Experiment:
         if cfg.training.adapt_lr == "exponential":
             self._adapt_lr = self._lr_scheduler_exponential_decay
         elif cfg.training.adapt_lr == "validation":
-            assert cfg.training.earlystop
             self._lr_scheduler = \
                 torch.optim.lr_scheduler.ReduceLROnPlateau(
                     self._optimizer,
@@ -157,19 +159,22 @@ class Experiment:
         else:
             self._adapt_lr = None
         
+        # iteration is the number of batches seen
         self._iteration = 0
         self._epoch = 0
+        self.global_step = 0
         
         self.model = nn.DataParallel(self.model)
         
-        if self.cfg.training.earlystop:
-            assert cfg.training.valid_metric in ["loss", "accuracy"]
-            self._valid_metric = cfg.training.valid_metric
+        
+        assert cfg.training.valid_metric in ["loss", "accuracy"]
+        self._valid_metric = cfg.training.valid_metric
+
         self._last_valid_metric = 1e+20
         self.best_valid_iteration = 0
         self.best_valid_loss = 1e+20
         self.best_valid_accuracy = 0
-        self.best_state_dict = self.model.state_dict()
+        self.best_state_dict = None
         
         self._time_limit = cfg.other.time_limit
         self._start_time = datetime.datetime.now()
@@ -179,9 +184,13 @@ class Experiment:
             print("Total number of parameters:", tot_param)
         
         if self._verbose > 1:
-            print("Starting: ", self._start_time)
+            print(f"Starting: {self._start_time}")
 
     def log(self, accuracy, loss, split):
+        """
+        Plotting is currently not supported. We rely on wandb to plot the metrics.
+        """
+        return
         row = [self.seed, split, self._iteration, accuracy, loss]
         self.logs.loc[len(self.logs)] = row
     
@@ -190,6 +199,9 @@ class Experiment:
             torch.save(self.best_state_dict, self.modelpath)
     
     def train(self):
+        # Tell wandb to watch what the model gets up to: gradients, weights, and more!
+        wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
+        self.model.train()
         train_len = len(self._dataloaders["train"])
         data_len = len(self._dataloaders["train"].dataset)
         
@@ -202,27 +214,32 @@ class Experiment:
         epoch_iterations = 0
         cumulative_loss = 0
         cumulative_acc = 0
+        train_loss = 0
+        train_acc = 0
+        n_samples = 0
         for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
             if self._verbose > 3:
                 print(f"\ttrain:{batch_idx}/{train_len}\t\t{datetime.datetime.now()}")
             
             batchsize = actual_batch_size if epoch_iterations < n_batches - 1 else last_batch_size
-            
-            self.model.train()
-            
+            n_samples += batchsize
+
             x = x.to(self.device)
             t = t.to(self.device)
             
             y = self.model(x)
             
-            loss = self._loss_function(y, t) * x.shape[0] / batchsize
+            loss = self._loss_function(y, t) * x.shape[0]
+            acc = accuracy(y.detach(), t.detach()) * x.shape[0]
             
-            acc = accuracy(y.detach(), t.detach())
+            cumulative_loss += loss.item() / batchsize
+            cumulative_acc += acc / batchsize
             
-            cumulative_loss += loss.item()
-            cumulative_acc += acc * x.shape[0] / batchsize
-            
-            loss.backward()
+            train_loss += loss.item()
+            train_acc += acc
+
+            loss.backward(retain_graph=True)
+            self.global_step += batchsize
             
             del loss
             del y
@@ -231,13 +248,12 @@ class Experiment:
 
             if (batch_idx + 1) % self.accumulate == 0 or batch_idx == train_len - 1:
                 if self._verbose > 2:
-                    print("Epoch {} | {}/{}; loss: {}; acc: {}".format(self._epoch,
-                                                                       epoch_iterations,
-                                                                       n_batches,
-                                                                       cumulative_loss,
-                                                                       cumulative_acc))
+                    print(f"Epoch {self._epoch} | {epoch_iterations}/{n_batches};\
+                           loss: {cumulative_loss:.3f}; acc: {cumulative_acc:.3f}")
 
-                self.log(cumulative_acc, cumulative_loss, "train")
+                wandb.log({"train-loss": cumulative_loss, "train-acc": cumulative_acc},\
+                          step=self.global_step)
+                # self.log(cumulative_acc, cumulative_loss, "train")
                 
                 self._optimizer.step()
                 self._optimizer.zero_grad()
@@ -258,7 +274,10 @@ class Experiment:
 
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
-    
+        
+        print("n_samples == data_len", n_samples, data_len)
+        return train_loss / data_len, train_acc / data_len
+
     def test(self):
         if self._verbose > 0:
             print("\n")
@@ -274,9 +293,9 @@ class Experiment:
         
         if self._verbose > 0:
             np.set_printoptions(precision=4, suppress=True, threshold=1000000, linewidth=1000000)
-            print("##### ExperimentClassification [{}]".format(self.expname))
-            print("##### TEST LOSS = {}".format(loss))
-            print("##### TEST ACCURACY = {}".format(acc))
+            print(f"##### ExperimentClassification [{self.expname}]")
+            print(f"##### TEST LOSS = {loss}")
+            print(f"##### TEST ACCURACY = {acc}")
             print("###################################################################################################")
             print("# Confusion Matrix")
             print(conf_matrix)
@@ -287,53 +306,44 @@ class Experiment:
             print("\n")
     
     def valid(self):
-        if self.cfg.training.earlystop:
-            acc, loss = self.evaluate("valid")
-            
+        # during validation also evaluate test set. Don't do this
+        if self.cfg.training.eval_test:
+            acc, loss = self.evaluate("test")
             if self._verbose > 1:
-                print('################################################################################')
-                print('Evaluating [{}] on VALID| Epoch: {}; Iteration: {}; Accuracy: {}; Loss: {}'.format(self.expname,
-                                                                                                          self._epoch,
-                                                                                                          self._iteration,
-                                                                                                          acc,
-                                                                                                          loss))
-                print('################################################################################')
+                self.print_results(acc, loss, "TEST")
 
+        # evaluate validation set
+        acc, loss = self.evaluate("valid")
+        if self._verbose > 1:
+            self.print_results(acc, loss, "VALIDATION")
+
+        if self.cfg.training.earlystop or self._adapt_lr_type == "validation":
+            # earlystop part
             if self._valid_metric == "accuracy":
                 _last_valid_metric = acc
-                if acc > self.best_valid_accuracy:
+                if self.cfg.training.earlystop and _last_valid_metric > self.best_valid_accuracy:
+                    self.best_valid_accuracy = _last_valid_metric
                     self.best_valid_iteration = self._epoch
                     self.best_state_dict = self.model.state_dict()
-                    
             elif self._valid_metric == "loss":
                 _last_valid_metric = loss
-                if loss < self.best_valid_loss:
+                if self.cfg.training.earlystop and _last_valid_metric < self.best_valid_loss:
+                    self.best_valid_loss = _last_valid_metric
                     self.best_valid_iteration = self._epoch
                     self.best_state_dict = self.model.state_dict()
             else:
                 raise ValueError(self._valid_metric)
-                
+            
+            # adapt learning rate
             if self._adapt_lr_type == "validation" and self._adapt_lr is not None:
                 self._adapt_lr(_last_valid_metric)
-            
+
             self.best_valid_loss = min(loss, self.best_valid_loss)
             self.best_valid_accuracy = max(acc, self.best_valid_accuracy)
-        
-        if self.cfg.training.eval_test:
-            acc, loss = self.evaluate("test")
-            if self._verbose > 1:
-                print('################################################################################')
-                print('Evaluating [{}] on TEST | Epoch: {}; Iteration: {}; Accuracy: {}; Loss: {}'.format(self.expname,
-                                                                                                          self._epoch,
-                                                                                                          self._iteration,
-                                                                                                          acc,
-                                                                                                          loss))
-                print('################################################################################')
-    
+
+    @torch.no_grad()
     def evaluate(self, split, log=True, confusion=False):
-        
         self.model.eval()
-        
         if confusion:
             conf_matrix = np.zeros((self.n_outputs, self.n_outputs))
         
@@ -363,14 +373,25 @@ class Experiment:
         loss = cumulative_loss / n_samples
         
         if log:
-            self.log(acc, loss, split)
+            # self.log(acc, loss, split)
+            wandb.log({f"{split}-loss": loss, f"{split}-acc": acc}\
+                          , step=self.global_step)
         
         if confusion:
             return acc, loss, conf_matrix
         else:
             return acc, loss
     
+    def print_results(self, acc, loss, mode):
+        print('-'*100)
+        print(f'{mode} Epoch: {self._epoch}; Iteration: {self._iteration};\nAccuracy: {acc:.3f}; Loss: {loss:.3f}\n')
+    
+
     def plot(self):
+        """
+        Plotting is currently not supported. We rely on wandb to plot the metrics.
+        """
+        return
         if self._visualization is not None:
             plot_exps.plot(self.logs, self.plotpath, self.cfg.other.show, outfig=self._visualization)
     
@@ -381,7 +402,7 @@ class Experiment:
         """
         self._iteration = 0
         
-        while self._epoch < self.epochs:
+        while self._epoch < self.max_epochs:
             starttime = datetime.datetime.now().timestamp()
             if self._time_limit is not None:
                 if (datetime.datetime.now().timestamp() - self._start_time.timestamp()) / 60. > self._time_limit:
@@ -390,7 +411,7 @@ class Experiment:
             if self._adapt_lr is not None and self._adapt_lr_type != "validation":
                 self._adapt_lr()
             
-            self.train()
+            loss, acc = self.train()
             
             if self._eval_frequency < 0 and self._epoch % (-self._eval_frequency) == 0:
                 self.valid()
@@ -405,15 +426,17 @@ class Experiment:
             
             if self._verbose > 1:
                 duration = endtime - starttime
-                print(f"Epoch {self._epoch} lasted {duration} seconds")
+                print(f"-"*100)
+                print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
+                print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
 
             self._epoch += 1
         
+        # Training done, evaluate on test set
         if self._verbose > 1:
             print("###################################### Last Backup......... #######################################")
         
         self.backup()
-        
         self.test()
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
@@ -501,3 +524,16 @@ if __name__ == "__main__":
     
     # Train the model
     run_experiment()
+
+    # Test the print function
+    """
+    expname = "networks.EquivariantResNet9_mnist12k"
+    _epoch = 0
+    _iteration = 60000
+    acc = 0.99
+    loss = 0.01
+    print('################################################################################')
+    print(f'Evaluating [{expname}] on TEST|\nEpoch: {_epoch}; Iteration: {_iteration}; Accuracy: {acc}; Loss: {loss}')
+    print('################################################################################')
+
+    """
