@@ -87,7 +87,7 @@ class mnist_dataset(data.Dataset):
         return image, label
     
     def __len__(self):
-        return len(self.labels)
+        return self.num_samples
 
 
 def build_mnist12k_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_augmentation=False, interpolation=0,
@@ -108,7 +108,7 @@ def build_mnist12k_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_aug
         transform = [own_transforms.GrayToTensor()]
     elif mode in ['train', 'trainval']:
         shuffle = True
-        drop_last = True
+        drop_last = cfg.dataset.drop_last_train
         if rot_interpol_augmentation:
             transform = [
                 transforms.RandomRotation(5), # resample=interpolation does not work with current pytorch version
@@ -141,4 +141,5 @@ def build_mnist12k_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_aug
         n_inputs += 2
 
     return loader, n_inputs, n_outputs
+
 

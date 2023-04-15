@@ -14,6 +14,7 @@ dataset:
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
   workers: 8                    # Number of jobs to load the dataset
+  drop_last_train: False       # Drop the last batch if it is smaller than the batch size
 
 # Model parameters        
 #model:        
@@ -61,5 +62,5 @@ other:
 # WandB
 wandb:
   project: scaling-laws         # Name of the wandb project
-  mode: offline                  # For debugging
+  mode: online                  # For debugging
   # wandb_entity: Null          # Name of the wandb entity default is your username

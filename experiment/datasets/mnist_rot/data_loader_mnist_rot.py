@@ -109,7 +109,7 @@ def build_mnist_rot_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_au
             transform = [own_transforms.GrayToTensor()]
     elif mode in ['train', 'trainval']:
         shuffle = True
-        drop_last = True
+        drop_last = cfg.dataset.drop_last_train
         if rot_interpol_augmentation:
             transform = [
                 own_transforms.Rotate(rng=rng, interpolation=interpolation),

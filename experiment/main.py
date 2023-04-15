@@ -32,7 +32,7 @@ if "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
-# TODO batch_size != data_size ???
+# TODO early stopping should really stop the training and not just save the model
 
 #os.environ['HYDRA_FULL_ERROR'] = '1'
 
@@ -222,6 +222,7 @@ class Experiment:
                 print(f"\ttrain:{batch_idx}/{train_len}\t\t{datetime.datetime.now()}")
             
             batchsize = actual_batch_size if epoch_iterations < n_batches - 1 else last_batch_size
+            assert batchsize == x.shape[0]
             n_samples += batchsize
 
             x = x.to(self.device)
@@ -275,8 +276,7 @@ class Experiment:
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
         
-        print("n_samples == data_len", n_samples, data_len)
-        return train_loss / data_len, train_acc / data_len
+        return train_loss / n_samples, train_acc / n_samples
 
     def test(self):
         if self._verbose > 0:
