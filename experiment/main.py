@@ -102,6 +102,7 @@ class Experiment:
         
         self.train_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device) if self.n_outputs > 1 else BinaryAccuracy().to(self.device)
 
+
         # build the model
         self.model = hydra.utils.instantiate(
             cfg.model,
@@ -110,11 +111,6 @@ class Experiment:
         ).to(self.device)
         print("Stage 2: model built")
         
-        # visualization
-        self._visualization = plt.subplots(1, 2, figsize=(10, 4)) \
-            if (cfg.other.store_plot or cfg.other.show) else None
-        self.plotpath = utils.plot_path(cfg) if cfg.other.store_plot else None
-
         # backup model parameters
         self.modelpath = utils.backup_path(cfg)
         if cfg.other.backup_model:
@@ -183,12 +179,12 @@ class Experiment:
         self.best_state_dict = self.model.state_dict()
         
         self._time_limit = cfg.other.time_limit
-        self._start_time = datetime.datetime.now()
+        self._global_start_time = datetime.datetime.now()
         
         if self._verbose > 1:
             tot_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
             print("Total number of parameters:", tot_param)
-            print(f"Starting: {self._start_time}")
+            print(f"Starting: {self._global_start_time}")
 
         # training statistics
         self.train_n_batches_len = len(self._dataloaders["train"])
@@ -211,6 +207,8 @@ class Experiment:
             torch.save(self.best_state_dict, self.modelpath)
     
     def train(self):
+        starttime = datetime.datetime.now().timestamp()
+
         if self.cfg.wandb.watch:
             # Tell wandb to watch what the model gets up to: gradients, weights, and more!
             wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
@@ -266,14 +264,19 @@ class Experiment:
                 
                 if self.cfg.other.backup_frequency > 0 and self._iteration % self.cfg.other.backup_frequency == 0:
                     self.backup()
-                
-                if self.cfg.other.plot_frequency > 0 and self._iteration % self.cfg.other.plot_frequency == 0:
-                    self.plot()
 
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
         
-        return train_loss_epoch / n_samples, train_acc_epoch / n_samples
+        # log the training loss, accuracy, and duration
+        endtime = datetime.datetime.now().timestamp()
+        duration = endtime - starttime
+        if self._verbose > 1:
+            print(f"-"*100)
+            print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
+            print(f'Accuracy: {train_acc_epoch / n_samples:.3f}; Loss: {(train_loss_epoch / n_samples):.3f}\n')
+        wandb.log({"train": {"duration": duration}}, step=self.global_step)
+        return
 
     def test(self):
         if self._verbose > 0:
@@ -284,9 +287,9 @@ class Experiment:
             self.model.eval()
             self.model.load_state_dict(self.best_state_dict)
         
-        acc, loss, conf_matrix = self.evaluate("test", confusion=True)
+        acc, loss, duration, conf_matrix = self.evaluate("test", confusion=True)
         # wandb.log({"train": {"acc": 0.9}, "val": {"acc": 0.8}})
-        wandb.log({"test": {"loss": loss, "acc": acc}})
+        wandb.log({"test": {"loss": loss, "acc": acc, "duration": duration}})
 
         self.conf_matrix = conf_matrix
         
@@ -307,14 +310,14 @@ class Experiment:
     def valid(self):
         # during validation also evaluate test set. Don't do this
         if self.cfg.training.eval_test:
-            acc, loss = self.evaluate("test")
+            acc, loss, duration = self.evaluate("test")
             if self._verbose > 1:
-                self.print_results(acc, loss, "TEST")
+                self.print_results(acc, loss, duration, "TEST")
 
         # evaluate validation set
-        acc, loss = self.evaluate("valid")
+        acc, loss, duration = self.evaluate("valid")
         if self._verbose > 1:
-            self.print_results(acc, loss, "VALIDATION")
+            self.print_results(acc, loss, duration, "VALID")
 
         if self.cfg.training.earlystop or self._adapt_lr_type == "validation":
             # earlystop part
@@ -342,6 +345,7 @@ class Experiment:
 
     @torch.no_grad()
     def evaluate(self, split, log=True, confusion=False):
+        starttime = datetime.datetime.now().timestamp()
         self.model.eval()
         if confusion:
             conf_matrix = np.zeros((self.n_outputs, self.n_outputs))
@@ -369,29 +373,23 @@ class Experiment:
             del t_test
         
         acc = cumulative_acc / n_samples
-        loss = cumulative_loss / n_samples
-        
-        if log:
-            wandb.log({f"{split}": {"loss": loss, "acc": acc}}\
-                          , step=self.global_step)
-        
-        if confusion:
-            return acc, loss, conf_matrix
-        else:
-            return acc, loss
-    
-    def print_results(self, acc, loss, mode):
-        print('-'*100)
-        print(f'{mode} Epoch: {self._epoch}; Iteration: {self._iteration};\nAccuracy: {acc:.3f}; Loss: {loss:.3f}\n')
-    
+        loss = cumulative_loss / n_samples        
+        endtime = datetime.datetime.now().timestamp()
+        duration = endtime - starttime
 
-    def plot(self):
-        """
-        Plotting is currently not supported. We rely on wandb to plot the metrics.
-        """
-        return
-        if self._visualization is not None:
-            plot_exps.plot(self.logs, self.plotpath, self.cfg.other.show, outfig=self._visualization)
+        if log:
+            wandb.log({f"{split}": {"loss": loss, "acc": acc, "duration": duration}}\
+                          , step=self.global_step)
+
+        if confusion:
+            return acc, loss, duration, conf_matrix
+        else:
+            return acc, loss, duration
+    
+    def print_results(self, acc, loss, duration, mode):
+        print('-'*100)
+        print(f'{mode} Epoch: {self._epoch} lasted {duration:.3f} seconds\nAccuracy: {acc:.3f}; Loss: {loss:.3f}\n')
+    
     
     def run(self):
         """
@@ -401,38 +399,31 @@ class Experiment:
         self._iteration = 0
         
         while self._epoch < self.max_epochs:
-            starttime = datetime.datetime.now().timestamp()
+            
             if self._time_limit is not None:
-                if (datetime.datetime.now().timestamp() - self._start_time.timestamp()) / 60. > self._time_limit:
+                if (datetime.datetime.now().timestamp() - self._global_start_time.timestamp()) / 60. > self._time_limit:
+                    print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self._epoch}.")
+                    print(f"Best validation accuracy: {self.best_valid_accuracy:.3f}")
+                    print(f"Best validation loss: {self.best_valid_loss:.3f}")
+                    print(f"Best validation iteration: {self.best_valid_iteration}")
                     break
             
             if self._adapt_lr is not None and self._adapt_lr_type != "validation":
                 self._adapt_lr()
             
-            loss, acc = self.train()
+            self.train()
             
             if self._eval_frequency < 0 and self._epoch % (-self._eval_frequency) == 0:
                 self.valid()
             
-            if self.cfg.other.plot_frequency < 0 and self._epoch % (-self.cfg.other.plot_frequency) == 0:
-                self.plot()
-            
             if self.cfg.other.backup_frequency < 0 and self._epoch % (-self.cfg.other.backup_frequency) == 0:
                 self.backup()
 
-            endtime = datetime.datetime.now().timestamp()
-            duration = endtime - starttime
-            if self._verbose > 1:
-                print(f"-"*100)
-                print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
-                print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
-
-            wandb.log({"train": {"duration": duration}}, step=self.global_step)
             self._epoch += 1
         
         # Training done, evaluate on test set
         if self._verbose > 1:
-            print("###################################### Last Backup......... #######################################")
+            print("###################################### Backup and Test #######################################")
         
         self.backup()
         self.test()

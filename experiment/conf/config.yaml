@@ -1,7 +1,7 @@
 defaults:
 - _self_
 - dataset: default
-- model: eq_resnet9
+- model: eq_wrn
 - other: default
 - optimizer: Adam
 - training: default
@@ -9,7 +9,7 @@ defaults:
 # Dataset parameters        
 dataset:
   data_dir: '../Data/frischs/'  # Path to the datasets        
-  name: "mnist12k"             # The name of the dataset to use
+  name: "mnist_rot"             # The name of the dataset to use
   augment: True                 # Augment the training set with rotated images
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
@@ -17,8 +17,7 @@ dataset:
   drop_last_train: False       # Drop the last batch if it is smaller than the batch size
 
 # Model parameters        
-#model:        
-#  _target_: networks.EquivariantResNet9        # The name of the model to use
+# defined in model/*
 
 # Training parameters
 training:
@@ -30,7 +29,6 @@ training:
   valid_metric: accuracy        # Metric to use for early stopping
   eval_test: False              # Whether to evaluate on the test set during validation
   accumulate: 1                 # Number of batches to accumulate gradients over before updating model
-  #optimizer: sfcnn             # Name of optimizer to use (sfcnn, SGD, or Adam)
   adapt_lr: null                # Adaptive learning rate scheduler to use (exponential, validation, or Null)
   lr_decay_start: 15            # Epoch to start adaptive learning rate decay
   lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
@@ -62,6 +60,6 @@ other:
 # WandB
 wandb:
   project: scaling-laws         # Name of the wandb project
-  mode: disabled                  # For debugging disabled, online, offline
+  mode: online                  # For debugging disabled, online, offline
   watch: False                  # For detailed weight analysis
   # wandb_entity: Null          # Name of the wandb entity default is your username
