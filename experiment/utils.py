@@ -94,10 +94,42 @@ def retrieve_confusion(path: str) -> List[np.array]:
 ########################################################################################################################
 
 # EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
-EXPERIMENT_PARAMETERS = ["_target_", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
 def exp_name(cfg):
-    values = [str(cfg.model._target_), str(cfg.dataset.name)]
-    # values = [str(config[inner_dict][value]) for inner_dict in config.keys() for value in inner_dict.keys() if value in EXPERIMENT_PARAMETERS]
+    values = []
+    # dataset name
+    if cfg.dataset.name == "cifar10":
+        values.append("ci10")
+    elif cfg.dataset.name == "cifar100":
+        values.append("ci100")
+    elif cfg.dataset.name == "stl10":
+        values.append("stl10")
+    elif cfg.dataset.name == "mnist":
+        values.append("mn")
+    elif cfg.dataset.name == "mnist_rot":
+        values.append("mn_rot")
+    elif cfg.dataset.name == "mnist_fliprot":
+        values.append("mn_frot")
+    else:
+        ValueError("Unknown dataset")
+
+    # model name
+    if cfg.model._target_ == "networks.EquivariantWideResNet":
+        values.append("wrn")
+    elif cfg.model._target_ == "networks.EquivariantResNet9":
+        values.append("res9")
+    elif cfg.model._target_ == "networks.EquivariantMobileNetV2":
+        values.append("mobv2")
+    elif cfg.model._target_ == "networks.RandomNet":
+        values.append("rand")
+    else:
+        ValueError("Unknown model")
+    
+    # kernel size
+    if cfg.model._target_ != "networks.RandomNet" and cfg.model.kernel_size != 3:
+        values.append(f"ker{cfg.model.kernel_size}")
+
+    assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
+
     return "_".join(values)
 
 

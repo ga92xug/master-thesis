@@ -65,7 +65,10 @@ class Experiment:
         wandb.config = OmegaConf.to_container(
             cfg, resolve=True, throw_on_missing=True
         )
-        run = wandb.init(project=cfg.wandb.project, mode=cfg.wandb.mode)
+        # experiment name
+        self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
+        run = wandb.init(project=cfg.wandb.project, config=wandb.config, mode=cfg.wandb.mode, \
+                         name=self.expname, notes=cfg.wandb.notes)
         
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
@@ -78,10 +81,7 @@ class Experiment:
         # outpath
         self.outpath = utils.out_path(cfg)
         os.makedirs(self.outpath, exist_ok=True)
-        # experiment name
-        self.expname = utils.exp_name(cfg)
-        print("EXPNAME:", self.expname)
-       
+               
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
         print("Stage 1: datasets built")
