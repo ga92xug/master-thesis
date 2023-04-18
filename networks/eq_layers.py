@@ -478,7 +478,7 @@ class EquivariantWideConvBlock(EquivariantModule):
         out = self.conv2(out)
         out = self.act_func2(out)
         out = self.norm2(out)
-        out += self.shortcut(x)
+        out += self.shortcut(x) # this produces an error for 5x5
         return out
 
     def evaluate_output_shape(self, input_shape: Tuple):

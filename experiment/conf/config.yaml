@@ -8,7 +8,7 @@ defaults:
 
 # Dataset parameters        
 dataset:
-  data_dir: '../Data/frischs/'  # Path to the datasets        
+  data_dir: '../Data/frischs/datasets/'  # Path to the datasets        
   name: "mnist_rot"             # The name of the dataset to use
   augment: True                 # Augment the training set with rotated images
   interpolation: 2              # Type of interpolation to use for data augmentation
@@ -23,7 +23,7 @@ dataset:
 training:
   batch_size: 64                # Number of examples to process in a batch during training
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
-  epochs: 15                    # Number of training epochs
+  epochs: 25                    # Number of training epochs
   steps_per_epoch: -1           # Number of batches to process during each epoch (-1 for all batches)
   earlystop: True               # Whether to use early stopping based on a validation set
   valid_metric: accuracy        # Metric to use for early stopping
@@ -53,7 +53,7 @@ other:
   seed: 42                      # Seed for random number generators
   output_path: 'experiment/outputs/'  # Path to the output directory
   verbose: 2                    # Verbose Level
-  time_limit: 5              # Maximum time limit for training (in Minutes)
+  time_limit: 15              # Maximum time limit for training (in Minutes)
 
 
 

@@ -208,7 +208,7 @@ class EquivariantWideResNet(nn.Module):
 
 
 if __name__ == "__main__":
-    inp = torch.rand(1, 3, 32, 32).cuda()
-    model = EquivariantWideResNet().cuda()
+    inp = torch.rand(1, 1, 28, 28).cuda()
+    model = EquivariantWideResNet(kernel_size=5, input_channels=inp.size(1), padding=2).cuda()
     out = model(inp)
     print(out.shape)

@@ -243,7 +243,8 @@ class EquivariantMobileNetV2(nn.Module):
 
 if __name__ == "__main__":
     # input images from the paper 224 x 224 x 3
-    inp = torch.rand(1, 3, 224, 224).cuda()
-    model = EquivariantMobileNetV2().cuda()
+    # 28x28x1 for MNIST 
+    inp = torch.rand(1, 1, 28, 28).cuda()
+    model = EquivariantMobileNetV2(input_channels=inp.shape[1], kernel_size=5, padding=2).cuda()
     out = model(inp)
     print(out.shape)

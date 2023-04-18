@@ -212,7 +212,14 @@ class EquivariantResNet9(nn.Module):
 
 
 if __name__ == "__main__":
-    inp = torch.rand(1, 3, 32, 32).cuda()
-    model = EquivariantResNet9().cuda()
+    # H x W
+    # ((H-K+2P)/S+1) x ((W-K+2P)/S+1)
+    # ((12-3+2*1)/1+1) x ((12-3+2*1)/1+1) = 12 x 12
+    # ((12-5+2*1)/1+1) x ((12-5+2*1)/1+1) = 10 x 10
+    inp = torch.rand(1, 1, 28, 28).cuda()
+    model = EquivariantResNet9(kernel_size=5, input_channels=inp.size(1), padding=2).cuda()
+    # inp = torch.rand(1, 3, 32, 32).cuda()
+    #inp = torch.rand(1, 3, 32, 32).cuda()
+    #model = EquivariantResNet9().cuda()
     out = model(inp)
     print(out.shape)

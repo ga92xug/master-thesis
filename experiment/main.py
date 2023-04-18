@@ -34,18 +34,15 @@ if "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
-# TODO early stopping should really stop the training and not just save the model
-# TODO metrics should be a torch function
-
-#os.environ['HYDRA_FULL_ERROR'] = '1'
+os.environ['HYDRA_FULL_ERROR'] = '1'
 
 def compute_confusion_matrix(predictions, targets, labels):
     if predictions.shape[1] > 1:
-        predictions = predictions.argmax(dim=1)
+        predictions = predictions.argmax(axis=1)
     else:
         predictions = (predictions > 0.)
     
-    conf_matrix = confusion_matrix(targets.cpu().numpy(), predictions.cpu().numpy(), labels=labels)
+    conf_matrix = confusion_matrix(targets, predictions, labels=labels)
     return conf_matrix
 
 
@@ -65,11 +62,11 @@ class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
         # Wandb
-        run = wandb.init(project=cfg.wandb.project, mode=cfg.wandb.mode)
-        print("WANDB RUN:", run)
         wandb.config = OmegaConf.to_container(
             cfg, resolve=True, throw_on_missing=True
         )
+        run = wandb.init(project=cfg.wandb.project, mode=cfg.wandb.mode)
+        
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
         # seed
@@ -85,9 +82,6 @@ class Experiment:
         self.expname = utils.exp_name(cfg)
         print("EXPNAME:", self.expname)
        
-        # TODO log         
-        # self.logs = pd.DataFrame(data=[], columns=["seed", "split", "iteration", "accuracy", "loss"])
-        
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
         print("Stage 1: datasets built")
@@ -181,8 +175,9 @@ class Experiment:
         self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
         
+        tot_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
+        wandb.log({"total_parameters": tot_param})
         if self._verbose > 1:
-            tot_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
             print("Total number of parameters:", tot_param)
             print(f"Starting: {self._global_start_time}")
 
@@ -349,6 +344,8 @@ class Experiment:
         self.model.eval()
         if confusion:
             conf_matrix = np.zeros((self.n_outputs, self.n_outputs))
+            y_test_all = []
+            t_test_all = []
         
         cumulative_loss = 0.
         cumulative_acc = 0
@@ -360,9 +357,8 @@ class Experiment:
             y_test = self.model(x_test)
             
             if confusion:
-                conf_matrix += compute_confusion_matrix(y_test.detach(), t_test, list(range(self.n_outputs)))
-                wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_test.cpu().detach().numpy(), \
-                            y_true=t_test.cpu().detach().numpy(), preds=None, class_names=list(range(self.n_outputs)))})
+                y_test_all.append(y_test.detach().cpu().numpy())
+                t_test_all.append(t_test.detach().cpu().numpy())
 
             n_samples += x_test.shape[0]
             cumulative_acc += accuracy(y_test, t_test) * x_test.shape[0]
@@ -382,6 +378,11 @@ class Experiment:
                           , step=self.global_step)
 
         if confusion:
+            y_test_all = np.concatenate(y_test_all, axis=0)
+            t_test_all = np.concatenate(t_test_all, axis=0)
+            conf_matrix += compute_confusion_matrix(y_test_all, t_test_all, list(range(self.n_outputs)))
+            wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_test_all, \
+                            y_true=t_test_all, preds=None, class_names=list(range(self.n_outputs)))})
             return acc, loss, duration, conf_matrix
         else:
             return acc, loss, duration
@@ -475,28 +476,6 @@ def run_experiment(cfg: DictConfig) -> None:
     # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
     # y_train = tf.squeeze(tf.one_hot(y_train, depth=10))
     # y_test = tf.squeeze(tf.one_hot(y_test, depth=10))
-    """
-    with wandb.init(**cfg.wandb.setup) as run:
-        model = get_model(cfg.model)
-
-        optim_cfg = omegaconf.OmegaConf.to_container(cfg.optimizer)
-        optimizer = tf.optimizers.get(optim_cfg)
-        model.compile(loss="categorical_crossentropy", optimizer=optimizer)
-        model.summary()
-        model.fit(
-            x_train,
-            y_train,
-            validation_data=(x_test, y_test),
-            callbacks=[wandb.keras.WandbCallback()],
-        )
-
-    return
-    """
-       
-    # utils.update_logs(exp.logs, utils.logs_path(config))
-    # utils.update_confusion(exp.conf_matrix, utils.logs_path(config))
-    # 
-    # return exp.model, exp.logs
 
 
 ################################################################################
