@@ -53,7 +53,8 @@ other:
   seed: 42                      # Seed for random number generators
   output_path: 'experiment/outputs/'  # Path to the output directory
   verbose: 2                    # Verbose Level
-  time_limit: 15              # Maximum time limit for training (in Minutes)
+  time_limit: null              # Maximum time limit for training (in Minutes)
+  should_test: False
 
 
 

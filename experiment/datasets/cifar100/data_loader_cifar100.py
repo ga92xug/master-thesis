@@ -6,10 +6,13 @@ from torchvision import datasets
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 
+import sys
+sys.path.append('../cifar10') # add parent directory
+
 from .autoaugment import CIFAR10Policy
 
-
-DATA_DIR = "./datasets/cifar100/" #cifar-100-batches-py"
+ROOT_DIR = '../Data/frischs/datasets/'
+DATA_DIR = ROOT_DIR + "cifar100/" #cifar-100-batches-py"
 
 MEAN = np.array([125.3, 123.0, 113.9]) / 255.0  # = np.array([0.49137255, 0.48235294, 0.44666667])
 STD = np.array([63.0, 62.1, 66.7]) / 255.0  # = np.array([0.24705882, 0.24352941, 0.26156863])
@@ -256,3 +259,43 @@ def build_cifar100_loaders(batch_size,
     return train_loader, valid_loader, test_loader, n_inputs, n_classes
 
 
+if __name__=="__main__":
+    train_loader, valid_loader, test_loader, n_inputs, n_classes = build_cifar100_loaders(128, 128, validation=True, num_workers=8, augment=True, reshuffle=True)
+
+    print(len(train_loader.dataset))
+    print(len(valid_loader.dataset))
+    print(len(test_loader.dataset))
+
+    print(n_inputs)
+    print(n_classes)
+
+    for i, (images, labels) in enumerate(train_loader):
+        print(images.shape)
+        print(labels.shape)
+        break
+
+    for i, (images, labels) in enumerate(valid_loader):
+        print(images.shape)
+        print(labels.shape)
+        break
+
+    for i, (images, labels) in enumerate(test_loader):
+        print(images.shape)
+        print(labels.shape)
+        break
+
+    print("Done")
+
+    """
+    50000
+    50000
+    10000
+    3
+    100
+    torch.Size([128, 3, 32, 32])
+    torch.Size([128])
+    torch.Size([128, 3, 32, 32])
+    torch.Size([128])
+    torch.Size([128, 3, 32, 32])
+    torch.Size([128])
+    """

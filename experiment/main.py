@@ -427,7 +427,8 @@ class Experiment:
             print("###################################### Backup and Test #######################################")
         
         self.backup()
-        self.test()
+        if self.cfg.other.should_test:
+            self.test()
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
         #optimizer, epoch, epoch_start, init_lr, base_factor=.8, lr_decay_epoch=1, verbose=False):
