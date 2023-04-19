@@ -10,8 +10,6 @@ from nn import GSpace2D
 from nn.modules.equivariant_module import EquivariantModule
 from nn.modules.basisexpansion import BasisExpansion
 
-from .rd_convolution import _RdConv
-
 from typing import Callable, Tuple, Union, List
 
 import torch
