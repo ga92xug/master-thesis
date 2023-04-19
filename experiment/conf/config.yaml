@@ -9,7 +9,7 @@ defaults:
 # Dataset parameters        
 dataset:
   data_dir: '../Data/frischs/datasets/'  # Path to the datasets        
-  name: "mnist_rot"             # The name of the dataset to use
+  name: "cifar10"             # The name of the dataset to use
   augment: True                 # Augment the training set with rotated images
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
@@ -23,7 +23,7 @@ dataset:
 training:
   batch_size: 64                # Number of examples to process in a batch during training
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
-  epochs: 25                    # Number of training epochs
+  epochs: 35                    # Number of training epochs
   steps_per_epoch: -1           # Number of batches to process during each epoch (-1 for all batches)
   earlystop: True               # Whether to use early stopping based on a validation set
   valid_metric: accuracy        # Metric to use for early stopping
