@@ -23,7 +23,7 @@ dataset:
 training:
   batch_size: 64                # Number of examples to process in a batch during training
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
-  epochs: 35                    # Number of training epochs
+  epochs: 50                    # Number of training epochs
   steps_per_epoch: -1           # Number of batches to process during each epoch (-1 for all batches)
   earlystop: True               # Whether to use early stopping based on a validation set
   valid_metric: accuracy        # Metric to use for early stopping
@@ -40,7 +40,6 @@ training:
 optimizer:
   lr: 0.001                     # Learning rate
   weight_decay: 0.0005          # Weight decay for SGD or Adam optimizer (if used)
-
 
 # Other experiment's parameters
 other:

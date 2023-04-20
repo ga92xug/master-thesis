@@ -429,6 +429,8 @@ class Experiment:
         self.backup()
         if self.cfg.other.should_test:
             self.test()
+        
+        wandb.finish(exit_code=0)
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
         #optimizer, epoch, epoch_start, init_lr, base_factor=.8, lr_decay_epoch=1, verbose=False):

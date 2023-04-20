@@ -1,0 +1,14 @@
+program: experiment/main.py
+method: grid
+metric:
+  goal: maximize
+  name: valid/accuracy
+parameters:
+  dataset:
+    name: ["cifar10", "cifar100"]
+
+
+command:
+  - python
+  - ${program}
+  #- ${args_no_hyphens}
