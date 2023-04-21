@@ -179,7 +179,6 @@ class EquivariantConv(EquivariantModule):
                 self.in_type.gspace,
                 [self.in_type.gspace.regular_repr] * out_channels,
             )
-
             self.conv = R2Conv(
                 self.in_type,
                 out_type,
@@ -754,7 +753,19 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
 
 if __name__ == "__main__":
     # 
+    input_channels = 3
+    out_channels = 3
     r2_act = nn_eq.rot2dOnR2(N=4)
-    r2_in_type = FieldType(r2_act, [r2_act.trivial_repr])
-    EquivariantConvBlock_Conv_BN_actF(
-        in_type=r2_in_type, out_channels=3, frequency=1, kernel_size=3, padding=1, groups=1, stride=1, dilation=1, bias=True, num_groups=None, act_func="Mish")
+    r2_in_type = FieldType(r2_act, [r2_act.trivial_repr]*input_channels)
+    
+    eq_conv = EquivariantConv(in_type=r2_in_type, out_channels=out_channels, \
+                              kernel_size=3, padding=1, stride=1, bias=False)
+    
+
+    conv1 = nn.Conv2d(input_channels, out_channels, kernel_size=3, stride=1,
+                               padding=1, bias=False)
+
+    tot_param = sum([p.numel() for p in eq_conv.parameters() if p.requires_grad])
+    print('Total number of parameters: {}'.format(tot_param))
+    tot_param = sum([p.numel() for p in conv1.parameters() if p.requires_grad])
+    print('Total number of parameters: {}'.format(tot_param))

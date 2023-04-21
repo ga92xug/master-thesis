@@ -1,0 +1,8 @@
+# Model parameters          
+_target_: networks.WideResNet            # The name of the model to use
+depth: 16
+widen_factor: 4
+layout: [16, 32, 64]
+kernel_size: 3
+padding: 1
+droup_out: 0.3

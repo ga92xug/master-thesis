@@ -146,7 +146,6 @@ class R2Conv(EquivariantModule, ABC):
                                     the parameters in :attr:`~nn.R2Conv.bias`
         
         """
-
         assert isinstance(in_type.gspace, GSpace2D)
         assert isinstance(out_type.gspace, GSpace2D)
 
@@ -278,11 +277,11 @@ class R2Conv(EquivariantModule, ABC):
 
         # BasisExpansion: submodule which takes care of building the filter
         self._basisexpansion = BasisExpansion(
-            in_type.representations,
+            in_type.representations, 
             out_type.representations,
             self._build_kernel_basis,
             grid,
-            basis_filter=basis_filter,
+            basis_filter=basis_filter, # None
         )
 
         if self._basisexpansion.dimension() == 0:
@@ -294,9 +293,11 @@ class R2Conv(EquivariantModule, ABC):
             """
             )
 
+        #print("dim basis expansion", self._basisexpansion.dimension())
         self.weights = Parameter(
             torch.zeros(self._basisexpansion.dimension()), requires_grad=True
         )
+
 
         filter_size = (out_type.size, in_type.size) + (kernel_size,) * self.d
         self.filter = torch.zeros(*filter_size)
@@ -341,9 +342,9 @@ class R2Conv(EquivariantModule, ABC):
         return self.space.build_kernel_basis(
             in_repr,
             out_repr,
-            self._sigma,
-            self._rings,
-            maximum_frequency=self._maximum_frequency,
+            self._sigma, # None
+            self._rings, # None
+            maximum_frequency=self._maximum_frequency, # lambda r: 3 * r
         )
     
     def expand_parameters(self) -> Tuple[torch.Tensor, torch.Tensor]:

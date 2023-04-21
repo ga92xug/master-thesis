@@ -11,9 +11,10 @@ from .eq_layers import (
     EquivariantBottleneckBlock,
 )
 from .eq_resnet9 import EquivariantResNet9
-from .eq_wrn import EquivariantWideResNet
+#from .eq_wrn import EquivariantWideResNet, calculate_fixed_params, wide_layer
 from .eq_mobilenetv2 import EquivariantMobileNetV2
 from .randomnet import RandomNet
+from .wrn import WideResNet
 
 __all__ = [
     "Restriction",
@@ -30,5 +31,9 @@ __all__ = [
     "EquivariantResNet9",
     "EquivariantWideResNet",
     "EquivariantMobileNetV2",
-    "RandomNet"
+    "RandomNet",
+    "calculate_fixed_params",
+    "wide_layer",
+    "NetworkBlock",
+    "WideResNet"
 ]
