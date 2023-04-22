@@ -3,6 +3,8 @@ from typing import Tuple
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+import hydra
+from omegaconf import DictConfig
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
@@ -20,7 +22,7 @@ from networks import (
     EquivariantPool,
     EquivariantConvBlock,
     EquivariantWideConvBlock,
-    WideResNet,
+    # WideResNet,
 )
 
 
@@ -165,8 +167,6 @@ class EquivariantWideResNet(nn.Module):
             self.invariant_map.out_type.size * 2 * 2, self.num_classes
         )
 
-
-        # TODO check 2 * 2
         if self.fix_params:
             # size of wrn total and size of equivariant part
             norm_para = sum([p.numel() for p in self.wrn.parameters() if p.requires_grad])
@@ -364,46 +364,31 @@ def calculate_fixed_params(num_channels, kernel_size, group, gspace, rotation, r
     
     return num_channels
 
-def _calculate_fixed_params2(num_channels, group, gspace, rotation, restrict, layout):
 
-    for l in range(len(num_channels)):
-        if group == "cyclic":
-            num_channels[l] = int(num_channels[l] /  gspace.fibergroup.rotation_order)
-        elif group == "dihedral":
-            num_channels[l] = int(num_channels[l] / gspace.fibergroup.rotation_order)
-        
-        if num_channels[l] < 1:
-            warnings.warn(
-                f"Group order ({gspace.fibergroup.rotation_order}) is larger"
-                f" than number of channels ({num_channels[l]}) defined in layout!"
-            )
-            num_channels[l] = 1
-    
+@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    print(f"Kernel layout: ", cfg.model.kernel_layout)
+    inp = torch.rand(1, 1, 32, 32)
+    n_inputs = inp.shape[1]
+    n_outputs = 10
+    # depth, num_classes, widen_factor=1, dropRate=0.0
+    net = hydra.utils.instantiate(
+            cfg.model,
+            input_channels=n_inputs,
+            num_classes=n_outputs,
+        )
+    # tot_param = sum([p.numel() for p in net.conv1.parameters()  if p.requires_grad])
+    tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
+    print('Total number of parameters: {}'.format(tot_param)) # total 2.748.890 # block1 121248
+    #print(net.layer1)
 
-    if restrict == "halved":
-        num_channels[2] *= 2
-        if num_channels[2] < 1:
-            warnings.warn(
-                f"Group order ({gspace.fibergroup.rotation_order/2}) is larger"
-                f" than number of channels ({layout[2]}) defined in layout!"
-            )
-            num_channels[2] = 1
-    elif restrict == "reflection":
-        # test with dihedral
-        num_channels[2] = int(num_channels[2] * np.sqrt(3) / 2)
-    elif restrict == "invariant":
-        pass
-        # nothing to do
-        # num_channels[2] = int(num_channels[2] * np.sqrt(1.5))
-    return num_channels
+    inp = inp.cuda()
+    net.cuda()
+    print(net(inp).size())
+
+    #y = net(torch.randn(1,3,32,32))
+    #print(y.size())
 
 
 if __name__ == "__main__":
-    # inp = torch.rand(1, 1, 28, 28).cuda()
-    model = EquivariantWideResNet(kernel_size=3, input_channels=3, padding=1, fix_params=True)
-    tot_param = sum([p.numel() for p in model.parameters() if p.requires_grad])
-    #print("Total number of parameters: ", tot_param) # 9.781.850
-    #print(model)
-
-    # out = model(inp)
-    # print(out.shape)
+    main()

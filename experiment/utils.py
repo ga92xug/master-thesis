@@ -97,6 +97,7 @@ def retrieve_confusion(path: str) -> List[np.array]:
 def exp_name(cfg):
     values = []
     # dataset name
+    """
     if cfg.dataset.name == "cifar10":
         values.append("ci10")
     elif cfg.dataset.name == "cifar100":
@@ -111,7 +112,7 @@ def exp_name(cfg):
         values.append("mn_frot")
     else:
         ValueError("Unknown dataset")
-
+    """
     # model name
     if cfg.model._target_ == "networks.EquivariantWideResNet":
         values.append("wrn")
@@ -121,6 +122,9 @@ def exp_name(cfg):
         values.append("mobv2")
     elif cfg.model._target_ == "networks.RandomNet":
         values.append("rand")
+    elif cfg.model._target_ == "networks.WideResNet":
+        values.append("wrn")
+        values.append(str(cfg.model.kernel_layout))
     else:
         ValueError("Unknown model")
     

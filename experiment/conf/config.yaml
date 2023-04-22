@@ -1,7 +1,7 @@
 defaults:
 - _self_
 - dataset: default
-- model: eq_wrn
+- model: wrn
 - other: default
 - optimizer: Adam
 - training: default
@@ -64,4 +64,4 @@ wandb:
   watch: False                  # For detailed weight analysis
   # wandb_entity: Null          # Name of the wandb entity default is your username
   notes: null
-  give_name: False
+  give_name: True
