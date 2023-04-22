@@ -1,5 +1,5 @@
 import warnings
-from typing import Tuple
+from typing import Tuple, List
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -41,6 +41,7 @@ class EquivariantWideResNet(nn.Module):
         padding: int = 1,
         num_groups: Tuple[int] = (None, None, None, None),
         num_classes: int = 10,
+        kernel_layout: List[int] = [3,3],
     ):
         self.depth = depth
         self.widen_factor = widen_factor
@@ -54,6 +55,7 @@ class EquivariantWideResNet(nn.Module):
         self.padding = padding
         self.num_groups = num_groups
         self.num_classes = num_classes
+        self.kernel_layout = kernel_layout
 
         super(EquivariantWideResNet, self).__init__()
         assert (self.depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
