@@ -42,6 +42,9 @@ class EquivariantWideResNet(nn.Module):
         num_groups: Tuple[int] = (None, None, None, None),
         num_classes: int = 10,
         kernel_layout: List[int] = [3,3],
+        drop_out: float = 0.0,
+        bias: bool = False,
+        act_func: str = "ReLU",
     ):
         self.depth = depth
         self.widen_factor = widen_factor
@@ -56,6 +59,9 @@ class EquivariantWideResNet(nn.Module):
         self.num_groups = num_groups
         self.num_classes = num_classes
         self.kernel_layout = kernel_layout
+        self.drop_out = drop_out
+        self.bias = bias
+        self.act_func = act_func
 
         super(EquivariantWideResNet, self).__init__()
         assert (self.depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
@@ -71,6 +77,9 @@ class EquivariantWideResNet(nn.Module):
                 layout=self.layout,
                 kernel_size=self.kernel_size,
                 padding=self.padding,
+                kernel_layout=self.kernel_layout,
+                drop_out=self.drop_out,
+                bias=self.bias,
             )
 
         print("Wide-Resnet %dx%d" % (self.depth, k))
@@ -87,10 +96,9 @@ class EquivariantWideResNet(nn.Module):
                 f'Group "{self.group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
             )
 
-        # Fix number of parameters for all groups
         self.num_channels = np.array(self.layout)
         
-        
+        # Fix number of parameters for all groups
         if self.fix_params:
             self.num_channels = calculate_fixed_params(self.num_channels, self.kernel_size, 
                                                    self.group, self.gspace, self.rotation, self.restrict)
@@ -111,6 +119,8 @@ class EquivariantWideResNet(nn.Module):
             kernel_size=self.kernel_size,
             padding=self.padding,
             num_groups=self.num_groups[0],
+            bias=self.bias,
+            act_func=self.act_func,
         )
 
         if self.fix_params:
@@ -128,6 +138,8 @@ class EquivariantWideResNet(nn.Module):
             kernel_size=self.kernel_size,
             padding=self.padding,
             num_groups=self.num_groups[1],
+            bias=self.bias,
+            act_func=self.act_func,
         )
         if self.fix_params:
             self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, n=n, stride=1)
@@ -141,6 +153,8 @@ class EquivariantWideResNet(nn.Module):
             kernel_size=self.kernel_size,
             padding=self.padding,
             num_groups=self.num_groups[2],
+            bias=self.bias,
+            act_func=self.act_func,
         )
         if self.fix_params:
             self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, n=n, stride=2)
@@ -158,6 +172,8 @@ class EquivariantWideResNet(nn.Module):
             kernel_size=self.kernel_size,
             padding=self.padding,
             num_groups=self.num_groups[3],
+            bias=self.bias,
+            act_func=self.act_func,
         )
         if self.fix_params:
             self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, n=n, stride=2)
@@ -188,13 +204,15 @@ class EquivariantWideResNet(nn.Module):
         kernel_size: int,
         padding: int,
         num_groups: int,
+        bias: bool,
+        kernel_layout: List[int],
+        act_func: str,
     ):
         # num_blocks is n in wide resnet paper
         # how many layers each block has
+        
         strides = [stride] + [1] * (int(num_blocks) - 1)
         layers = []
-
-        # print(f"Strides: {strides}")
 
         for stride in strides:
             layers.append(
@@ -206,6 +224,9 @@ class EquivariantWideResNet(nn.Module):
                     kernel_size=kernel_size,
                     padding=padding,
                     num_groups=num_groups,
+                    kernel_layout=kernel_layout,
+                    bias=bias,
+                    act_func=act_func,
                 )
             )
             self.field_type = layers[-1].out_type
@@ -312,14 +333,6 @@ def wide_layer(
         field_type = layers[-1].out_type
     return SequentialModule(*layers)
 
-
-
-FIX_PARAM_DICT = {
-    3: 0.8889,
-    5: 0.84,
-    7: 0.8163,
-    9: 0.8025,
-}
 
 def calculate_fixed_params(num_channels, kernel_size, group, gspace, rotation, restrict):
     # deepcopy to avoid changing the original list

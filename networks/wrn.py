@@ -12,7 +12,7 @@ Adapted from https://github.com/xternalz/WideResNet-pytorch/blob/master/wideresn
 """
 
 class BasicBlock(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_layout, stride, drop_out=0.0):
+    def __init__(self, in_planes, out_planes, kernel_layout, stride, drop_out=0.0, bias=False):
         super(BasicBlock, self).__init__()
         stride_used = False if stride==2 else True
         self.kernel_layout = kernel_layout
@@ -24,7 +24,7 @@ class BasicBlock(nn.Module):
         else:
             s = 1
         self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_layout[0], stride=s,
-                                   padding=1 if kernel_layout[0] == 3 else 0, bias=False)
+                                   padding=1 if kernel_layout[0] == 3 else 0, bias=bias)
         
         if len(kernel_layout) == 3:
             if not stride_used and kernel_layout[1] == 3:
@@ -36,7 +36,7 @@ class BasicBlock(nn.Module):
                 nn.BatchNorm2d(out_planes),
                 nn.ReLU(inplace=True),
                 nn.Conv2d(out_planes, out_planes, kernel_size=kernel_layout[1], stride=s,
-                                       padding=1 if kernel_layout[1] == 3 else 0, bias=False),
+                                       padding=1 if kernel_layout[1] == 3 else 0, bias=bias),
             )
 
         self.bn2 = nn.BatchNorm2d(out_planes)
@@ -47,11 +47,11 @@ class BasicBlock(nn.Module):
         else:
             s = 1
         self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size=kernel_layout[-1], stride=s,
-                               padding=1 if kernel_layout[-1] == 3 else 0, bias=False)
+                               padding=1 if kernel_layout[-1] == 3 else 0, bias=bias)
         self.drop_out = drop_out
         self.equalInOut = in_planes == out_planes
         self.convShortcut = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
-                               padding=0, bias=False) if not self.equalInOut else None
+                               padding=0, bias=bias) if not self.equalInOut else None
 
         assert stride_used, "stride was not used"
     
@@ -93,7 +93,7 @@ class NetworkBlock(nn.Module):
 
 class WideResNet(nn.Module):
     def __init__(self, depth, layout, kernel_size, kernel_layout, padding, input_channels, \
-                 num_classes, widen_factor=1, drop_out=0.0):
+                 num_classes, widen_factor=1, bias=False, drop_out=0.0):
         super(WideResNet, self).__init__()
         # nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         nChannels = [layout[0], layout[1]*widen_factor, layout[2]*widen_factor, layout[3]*widen_factor]
@@ -102,7 +102,7 @@ class WideResNet(nn.Module):
         block = BasicBlock
         # 1st conv before any network block
         self.conv1 = nn.Conv2d(input_channels, nChannels[0], kernel_size=kernel_size, stride=1,
-                               padding=1, bias=False)
+                               padding=1, bias=bias)
         # 1st block
         self.layer1 = NetworkBlock(n, nChannels[0], nChannels[1], kernel_layout, block, 1, drop_out)
         # 2nd block

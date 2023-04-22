@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 from torch import nn
 import numpy as np
 import sys
@@ -323,6 +323,7 @@ class EquivariantConvBlock(EquivariantModule):
         num_groups: int = None,
         pool_size: int = None,
         invariant_map: bool = False,
+
     ):
         super().__init__()
         self.in_type = in_type  # declaration required by base class
@@ -388,74 +389,85 @@ class EquivariantWideConvBlock(EquivariantModule):
         dilation: int = 1,
         bias: bool = True,
         num_groups: int = None,
+        kernel_layout: List[int] = None,
+        act_func: str = "ReLU", # ReLU
     ):
         super(EquivariantWideConvBlock, self).__init__()
         self.in_type = in_type
 
-        self.conv1 = EquivariantConv(
-            self.in_type,
-            out_channels,
-            frequency=frequency,
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=1,
-            dilation=dilation,
-            bias=bias,
-        )
 
-        # Induced
-        if self.in_type.gspace.fibergroup.name == "O(2)":
-            labels = ["trivial"] * len(self.conv1.trivials) + ["gate"] * len(
-                self.conv1.gate
-            )
-            modules = [
-                (Mish(self.conv1.trivials), "trivial"),
-                (InducedGatedNonLinearity(self.conv1.gate), "gate"),
-            ]
-            self.act_func1 = MultipleModule(self.conv1.out_type, labels, modules)
-        # Cyclic and Dihedral Groups
-        else:
-            self.act_func1 = Mish(self.conv1.out_type)
+        strides = np.ones_like(kernel_layout)
+        paddings = np.zeros_like(kernel_layout)
+        for i in range(len(kernel_layout)):
+            if kernel_layout[i] == 3:
+                strides[i] = stride
+                break
+        
+        paddings = [padding for i in range(len(kernel_layout)) if kernel_layout[i] > 1 else 0]
+        paddings = np.zeros_like(kernel_layout)
+        for i in range(len(kernel_layout)):
+            if kernel_layout[i] > 1:
+                paddings[i] = padding
 
+        # block 1
         self.norm1 = EquivariantNorm(
-            self.act_func1.out_type, num_groups=num_groups, affine=False
+            self.in_type, num_groups=num_groups, affine=False
         )
-
-        self.conv2 = EquivariantConv(
-            self.norm1.out_type,
+        self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
+        self.conv1 = EquivariantConv(
+            self.act_func1.out_type,
             out_channels,
             frequency=frequency,
             kernel_size=kernel_size,
-            padding=padding,
-            stride=stride,
+            padding=paddings[0],
+            stride=strides[0],
             dilation=dilation,
             bias=bias,
         )
-
-        # Induced
-        if self.in_type.gspace.fibergroup.name == "O(2)":
-            labels = ["trivial"] * len(self.conv1.trivials) + ["gate"] * len(
-                self.conv1.gate
-            )
-            modules = [
-                (Mish(self.conv1.trivials), "trivial"),
-                (InducedGatedNonLinearity(self.conv1.gate), "gate"),
-            ]
-            self.act_func2 = MultipleModule(self.conv2.out_type, labels, modules)
-        # Cyclic and Dihedral Groups
-        else:
-            self.act_func2 = Mish(self.conv2.out_type)
-
+        current_out_type = self.conv1.out_type
+        
+        if len(kernel_layout) == 3:
+            norm = EquivariantNorm(self.conv1.out_type, num_groups=num_groups, affine=False),
+            act_func = getattr(nonlinearities, act_func)(norm.out_type),
+            conv = EquivariantConv(
+                    act_func.out_type,
+                    out_channels,
+                    frequency=frequency,
+                    kernel_size=kernel_layout[1],
+                    padding=paddings[1],
+                    stride=strides[1],
+                    dilation=dilation,
+                    bias=bias,
+                ),
+            current_out_type = conv.out_type
+            self.block = SequentialModule(norm, act_func, conv)
+        
+        # block 2
+        
         self.norm2 = EquivariantNorm(
-            self.act_func2.out_type, num_groups=num_groups, affine=False
+            current_out_type, num_groups=num_groups, affine=False
         )
-
-        self.out_type = self.norm2.out_type
+        self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
+        self.conv2 = EquivariantConv(
+            self.act_func2.out_type,
+            out_channels,
+            frequency=frequency,
+            kernel_size=kernel_layout[-1],
+            padding=paddings[-1],
+            stride=strides[-1],
+            dilation=dilation,
+            bias=bias,
+        )
+        
+        self.out_type = self.conv2.out_type
 
         self.shortcut = nn.Identity()
         if stride != 1 or self.in_type != self.out_type:
+            norm = EquivariantNorm(
+                self.in_type, num_groups=num_groups, affine=False
+            )
             shortcut = EquivariantConv(
-                self.in_type,
+                norm.out_type,
                 out_channels,
                 frequency=frequency,
                 kernel_size=1,
@@ -465,19 +477,18 @@ class EquivariantWideConvBlock(EquivariantModule):
                 bias=bias,
                 no_gates=True,
             )
-            norm = EquivariantNorm(
-                shortcut.out_type, num_groups=num_groups, affine=False
-            )
-            self.shortcut = SequentialModule(*[shortcut, norm])
+            
+            self.shortcut = SequentialModule(*[norm, shortcut])
 
     def forward(self, x):
-        out = self.conv1(x)
+        # bn -> relu -> conv
+        out = self.norm1(x)
         out = self.act_func1(out)
-        out = self.norm1(out)
-        out = self.conv2(out)
-        out = self.act_func2(out)
+        out = self.conv1(out)
         out = self.norm2(out)
-        out += self.shortcut(x) # this produces an error for 5x5
+        out = self.act_func2(out)   
+        out = self.conv2(out)
+        out += self.shortcut(x)
         return out
 
     def evaluate_output_shape(self, input_shape: Tuple):
