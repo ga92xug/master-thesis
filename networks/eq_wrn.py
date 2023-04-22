@@ -7,6 +7,8 @@ import hydra
 from omegaconf import DictConfig
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
+import os
+os.environ['HYDRA_FULL_ERROR'] = '1'
 
 import numpy as np
 
@@ -22,6 +24,7 @@ from networks import (
     EquivariantPool,
     EquivariantConvBlock,
     EquivariantWideConvBlock,
+    EquivariantConv,
     # WideResNet,
 )
 
@@ -36,10 +39,10 @@ class EquivariantWideResNet(nn.Module):
         fix_params: bool = False,
         restrict: str = None,  # "invariant", "reflection", "halved"
         input_channels: int = 3,
-        layout: Tuple[int] = (16, 16, 32, 64),
+        layout: List[int] = [16, 16, 32, 64],
         kernel_size: int = 3,
         padding: int = 1,
-        num_groups: Tuple[int] = (None, None, None, None),
+        num_groups: List[int] = [None, None, None, None],
         num_classes: int = 10,
         kernel_layout: List[int] = [3,3],
         drop_out: float = 0.0,
@@ -112,15 +115,16 @@ class EquivariantWideResNet(nn.Module):
         )
 
         # "Lifting" conv from trivial to regular feature fields
-        self.conv1 = EquivariantConvBlock(
+        self.conv1 = EquivariantConv(
             in_type=self.input_field_type,
             out_channels=int(self.num_channels[0]),
             frequency=self.rotation,
             kernel_size=self.kernel_size,
-            padding=self.padding,
-            num_groups=self.num_groups[0],
-            bias=self.bias,
-            act_func=self.act_func,
+            padding=int(self.padding),
+            groups=1,
+            stride=1,
+            dilation=1,
+            bias=bias,
         )
 
         if self.fix_params:
@@ -140,6 +144,7 @@ class EquivariantWideResNet(nn.Module):
             num_groups=self.num_groups[1],
             bias=self.bias,
             act_func=self.act_func,
+            kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
             self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, n=n, stride=1)
@@ -155,6 +160,7 @@ class EquivariantWideResNet(nn.Module):
             num_groups=self.num_groups[2],
             bias=self.bias,
             act_func=self.act_func,
+            kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
             self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, n=n, stride=2)
@@ -174,6 +180,7 @@ class EquivariantWideResNet(nn.Module):
             num_groups=self.num_groups[3],
             bias=self.bias,
             act_func=self.act_func,
+            kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
             self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, n=n, stride=2)
@@ -387,6 +394,7 @@ def main(cfg: DictConfig) -> None:
     n_inputs = inp.shape[1]
     n_outputs = 10
     # depth, num_classes, widen_factor=1, dropRate=0.0
+    net = EquivariantWideResNet()
     net = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,

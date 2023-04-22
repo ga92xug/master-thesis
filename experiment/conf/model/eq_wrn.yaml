@@ -6,10 +6,10 @@ group: cyclic  # "dihedral" "orthogonal"
 rotation: 4  # discrete number or frequency
 fix_params: False
 restrict: invariant  # "invariant", "reflection", "halved"
-layout: [16, 32, 64]
+layout: [16, 16, 32, 64]
 kernel_size: 3
 padding: 1
-num_groups: [null, null, null] #  [1,1,1],
+num_groups: [null, null, null, null] #  [1,1,1],
 kernel_layout: [3, 3] # [3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
 bias: False
 act_func: ReLU

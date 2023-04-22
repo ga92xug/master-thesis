@@ -323,7 +323,7 @@ class EquivariantConvBlock(EquivariantModule):
         num_groups: int = None,
         pool_size: int = None,
         invariant_map: bool = False,
-
+        act_func: str = "ReLU",
     ):
         super().__init__()
         self.in_type = in_type  # declaration required by base class
@@ -339,19 +339,7 @@ class EquivariantConvBlock(EquivariantModule):
             bias=bias,
         )
 
-        # Induced
-        if self.in_type.gspace.fibergroup.name == "O(2)":
-            labels = ["trivial"] * len(self.conv.trivials) + ["gate"] * len(
-                self.conv.gate
-            )
-            modules = [
-                (Mish(self.conv.trivials), "trivial"),
-                (InducedGatedNonLinearity(self.conv.gate), "gate"),
-            ]
-            self.act_func = MultipleModule(self.conv.out_type, labels, modules)
-        # Cyclic and Dihedral Groups
-        else:
-            self.act_func = Mish(self.conv.out_type)
+        self.act_func = getattr(nonlinearities, act_func)(self.conv.out_type)
 
         self.norm = EquivariantNorm(
             self.act_func.out_type, num_groups=num_groups, affine=False
@@ -403,11 +391,8 @@ class EquivariantWideConvBlock(EquivariantModule):
                 strides[i] = stride
                 break
         
-        paddings = [padding for i in range(len(kernel_layout)) if kernel_layout[i] > 1 else 0]
-        paddings = np.zeros_like(kernel_layout)
-        for i in range(len(kernel_layout)):
-            if kernel_layout[i] > 1:
-                paddings[i] = padding
+        paddings = [padding if kernel_layout[i] > 1 else 0 for i in range(len(kernel_layout))]
+        print("paddings", paddings)
 
         # block 1
         self.norm1 = EquivariantNorm(
