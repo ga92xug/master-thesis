@@ -33,7 +33,7 @@ from nn import (
     MultipleModule,
 )
 from group_theory import Representation
-from nn.modules import nonlinearities as nonlinearities
+from nn.modules import nonlinearities
 
 __all__ = [
     "Restriction",
@@ -382,7 +382,7 @@ class EquivariantWideConvBlock(EquivariantModule):
     ):
         super(EquivariantWideConvBlock, self).__init__()
         self.in_type = in_type
-
+        self.kernel_layout = kernel_layout
 
         strides = np.ones_like(kernel_layout)
         paddings = np.zeros_like(kernel_layout)
@@ -392,7 +392,8 @@ class EquivariantWideConvBlock(EquivariantModule):
                 break
         
         paddings = [padding if kernel_layout[i] > 1 else 0 for i in range(len(kernel_layout))]
-        print("paddings", paddings)
+        #print("strides", strides)
+        #print("paddings", paddings)
 
         # block 1
         self.norm1 = EquivariantNorm(
@@ -403,7 +404,7 @@ class EquivariantWideConvBlock(EquivariantModule):
             self.act_func1.out_type,
             out_channels,
             frequency=frequency,
-            kernel_size=kernel_size,
+            kernel_size=kernel_layout[0],
             padding=paddings[0],
             stride=strides[0],
             dilation=dilation,
@@ -412,10 +413,10 @@ class EquivariantWideConvBlock(EquivariantModule):
         current_out_type = self.conv1.out_type
         
         if len(kernel_layout) == 3:
-            norm = EquivariantNorm(self.conv1.out_type, num_groups=num_groups, affine=False),
-            act_func = getattr(nonlinearities, act_func)(norm.out_type),
+            norm = EquivariantNorm(self.conv1.out_type, num_groups=num_groups, affine=False)
+            act = getattr(nonlinearities, act_func)(norm.out_type)
             conv = EquivariantConv(
-                    act_func.out_type,
+                    act.out_type,
                     out_channels,
                     frequency=frequency,
                     kernel_size=kernel_layout[1],
@@ -423,12 +424,11 @@ class EquivariantWideConvBlock(EquivariantModule):
                     stride=strides[1],
                     dilation=dilation,
                     bias=bias,
-                ),
+                )
             current_out_type = conv.out_type
-            self.block = SequentialModule(norm, act_func, conv)
+            self.block = SequentialModule(norm, act, conv)
         
         # block 2
-        
         self.norm2 = EquivariantNorm(
             current_out_type, num_groups=num_groups, affine=False
         )
@@ -467,12 +467,29 @@ class EquivariantWideConvBlock(EquivariantModule):
 
     def forward(self, x):
         # bn -> relu -> conv
+
+        """
+        x torch.Size([1, 64, 32, 32])
+        out torch.Size([1, 256, 30, 30])
+        Layer 1: 
+        strides [1 1]
+        paddings [0, 1]
+        strides [1 1]
+        paddings [0, 1]
+        """
+        #print("x", x.shape)
         out = self.norm1(x)
         out = self.act_func1(out)
+        # print("out", out.shape)
         out = self.conv1(out)
+        #print("out", out.shape)
+        if len(self.kernel_layout) == 3:
+            out = self.block(out)
+            # print("out", out.shape)
         out = self.norm2(out)
         out = self.act_func2(out)   
         out = self.conv2(out)
+        #print("out", out.shape)
         out += self.shortcut(x)
         return out
 

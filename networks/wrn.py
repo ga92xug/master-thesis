@@ -7,6 +7,8 @@ from omegaconf import DictConfig
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
+__all__ = ['WideResNet']
+
 """
 Adapted from https://github.com/xternalz/WideResNet-pytorch/blob/master/wideresnet.py
 """

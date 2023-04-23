@@ -35,5 +35,5 @@ __all__ = [
     # "calculate_fixed_params",
     #"wide_layer",
     #"NetworkBlock",
-    #"WideResNet"
+    "WideResNet"
 ]

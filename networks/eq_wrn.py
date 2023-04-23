@@ -6,6 +6,7 @@ from torch.autograd import Variable
 import hydra
 from omegaconf import DictConfig
 import sys
+import copy
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
@@ -27,6 +28,8 @@ from networks import (
     EquivariantConv,
     # WideResNet,
 )
+
+from networks.wrn import WideResNet
 
 
 class EquivariantWideResNet(nn.Module):
@@ -102,9 +105,9 @@ class EquivariantWideResNet(nn.Module):
         self.num_channels = np.array(self.layout)
         
         # Fix number of parameters for all groups
-        if self.fix_params:
-            self.num_channels = calculate_fixed_params(self.num_channels, self.kernel_size, 
-                                                   self.group, self.gspace, self.rotation, self.restrict)
+        #if self.fix_params:
+        #    self.num_channels = calculate_fixed_params(self.num_channels, self.group, 
+        #                                               self.gspace, self.rotation, self.restrict)
 
         # Add width
         self.num_channels *= np.array([1, k, k, k])
@@ -129,10 +132,10 @@ class EquivariantWideResNet(nn.Module):
 
         if self.fix_params:
             self.conv1 = self.iter_fix_param(0, self.conv1, self.wrn.conv1)
+            preserved_field_type = self.conv1.out_type
             
 
         self.field_type = self.conv1.out_type
-
         self.layer1 = self._wide_layer(
             EquivariantWideConvBlock,
             self.num_channels[1],
@@ -147,8 +150,9 @@ class EquivariantWideResNet(nn.Module):
             kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
-            self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, n=n, stride=1)
-
+            self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, preserved_field_type, n=n, stride=1)
+            preserved_field_type = self.layer1.out_type
+        
         self.layer2 = self._wide_layer(
             EquivariantWideConvBlock,
             self.num_channels[2],
@@ -163,11 +167,15 @@ class EquivariantWideResNet(nn.Module):
             kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
-            self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, n=n, stride=2)
+            self.field_type = preserved_field_type
+            self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, preserved_field_type, n=n, stride=2)
 
         # Restrict last conv and res layers
         self.restrict = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict)
         self.field_type = self.restrict.out_type
+
+        if self.fix_params:
+            preserved_field_type = self.field_type
 
         self.layer3 = self._wide_layer(
             block=EquivariantWideConvBlock,
@@ -183,7 +191,8 @@ class EquivariantWideResNet(nn.Module):
             kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
-            self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, n=n, stride=2)
+            self.field_type = preserved_field_type
+            self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, preserved_field_type, n=n, stride=2)
 
         self.invariant_map = EquivariantPool(self.layer3.out_type, invariant_map=True)
         self.global_pool = nn.AdaptiveAvgPool2d((2, 2))
@@ -217,7 +226,6 @@ class EquivariantWideResNet(nn.Module):
     ):
         # num_blocks is n in wide resnet paper
         # how many layers each block has
-        
         strides = [stride] + [1] * (int(num_blocks) - 1)
         layers = []
 
@@ -254,94 +262,83 @@ class EquivariantWideResNet(nn.Module):
         x = self.flatten(x)
         x = self.classifier(x)
         return x
-    
-    def iter_fix_param(self, l, eq_conv_block, normal_conv_block, n=None, stride=None):
-        #print(f"\nFixing parameters for layer {l}")
-        # large number
-        last_ratio = 1e8
-        norm_para = sum([p.numel() for p in normal_conv_block.parameters() if p.requires_grad])
-        sign_switch = None
-        old_sign = None
-        while True:
-            equi_param = sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad])
-            # get the sign and ratio
-            sign = np.sign(equi_param - norm_para)
-            if old_sign != None:
-                sign_switch = True if sign != old_sign else False
-            current_ratio = equi_param / norm_para
-            # if current_ratio is in 5% range, break
-            # print(f"Current ratio: {current_ratio}, last ratio: {last_ratio}")
-
-            if abs(current_ratio - 1) < 0.05 or sign_switch:
-                break
-            # if not, change the number of channels
-            self.num_channels[l] -= sign
-            old_eq_conv_block = eq_conv_block
-            if l == 0:
-                # change the conv1
-                eq_conv_block = EquivariantConvBlock(
-                    in_type=self.input_field_type,
-                    out_channels=int(self.num_channels[l]),
-                    frequency=self.rotation,
-                    kernel_size=self.kernel_size,
-                    padding=self.padding,
-                    num_groups=self.num_groups[l],
-                )
-            else:
-                eq_conv_block = EquivariantWideConvBlock(
-                    self.field_type,
-                    out_channels=self.num_channels[l],
-                    stride=stride,
-                    frequency=self.rotation,
-                    kernel_size=self.kernel_size,
-                    padding=self.padding,
-                    num_groups=self.num_groups[l],
-                )
-            
-            last_ratio = current_ratio
-            old_sign = sign
-            # print(f'equi_conv_block_params: {equi_param}, normal_conv_block_params: {norm_para}, ratio: {last_ratio}')
         
-        if abs(last_ratio - 1) < abs(current_ratio - 1):
-            eq_conv_block = old_eq_conv_block
-        equi_param = sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad])
-        last_ratio = equi_param / norm_para
-        #print(f'fixed block ratio {last_ratio}')
-        return eq_conv_block
+    
+    def iter_fix_param(self, l, equi_conv_block, normal_conv_block, preserved_field_type=None, n=None, stride=None):
+        norm_param = sum([p.numel() for p in normal_conv_block.parameters() if p.requires_grad])
+        equi_param = sum([p.numel() for p in equi_conv_block.parameters() if p.requires_grad])
+        current_channel_size = self.num_channels[l]
+        old_equi_param = None
 
-def wide_layer(
-    field_type,
-    block,
-    out_channels: int,
-    num_blocks: int,
-    stride: int,
-    frequency: int,
-    kernel_size: int,
-    padding: int,
-    num_groups: int,
-):
-    # num_blocks is n in wide resnet paper
-    # how many layers each block has
-    strides = [stride] + [1] * (int(num_blocks) - 1)
-    layers = []
-    # print(f"Strides: {strides}")
-    for stride in strides:
-        layers.append(
-            block(
-                field_type,
-                out_channels,
-                stride=stride,
-                frequency=frequency,
-                kernel_size=kernel_size,
-                padding=padding,
-                num_groups=num_groups,
+        # initialize search range
+        if equi_param > norm_param:
+            lower_bound = max(current_channel_size - 100, 1)
+            upper_bound = current_channel_size
+        else:
+            lower_bound = current_channel_size
+            upper_bound = int(self.layout[l] // 0.7)
+
+        # binary search
+        while lower_bound <= upper_bound:
+            prediction = (lower_bound + upper_bound) // 2
+            # save the old one since we might not be in 1% range
+            old_equi_param, old_equi_conv_block = equi_param, equi_conv_block 
+            equi_param, equi_conv_block = self.param_count(l,
+                                                    prediction, preserved_field_type, n, stride)
+
+            if abs(equi_param - norm_param) < 0.01:
+                last_ratio = equi_param / norm_param
+                return equi_conv_block
+
+            if equi_param < norm_param:
+                # prediction is too small
+                lower_bound = prediction + 1
+            else:
+                upper_bound = prediction - 1
+
+        # if no solution found, return closest channel size
+        if old_equi_param is not None:
+            if abs(old_equi_param - norm_param) < abs(equi_param - norm_param):
+                equi_conv_block = old_equi_conv_block
+            
+        last_ratio = equi_param / norm_param
+        print(f'Ratio for block {l+1}: {last_ratio}')
+        return equi_conv_block
+
+
+    def param_count(self, l, channel_size_prediction, preserved_field_type=None, n=None, stride=None):
+        if l == 0:
+            # change the conv1
+            eq_conv_block = EquivariantConv(
+                in_type=self.input_field_type,
+                out_channels=channel_size_prediction,
+                frequency=self.rotation,
+                kernel_size=self.kernel_size,
+                padding=self.padding,
+                groups=1,
+                stride=1,
+                dilation=1,
+                bias=self.bias,
             )
-        )
-        field_type = layers[-1].out_type
-    return SequentialModule(*layers)
+        else:
+            self.field_type = copy.deepcopy(preserved_field_type)
+            eq_conv_block = self._wide_layer(
+                block=EquivariantWideConvBlock,
+                out_channels=channel_size_prediction,
+                num_blocks=n,
+                stride=stride,
+                frequency=self.rotation,
+                kernel_size=self.kernel_size,
+                padding=self.padding,
+                num_groups=self.num_groups[l],
+                bias=self.bias,
+                act_func=self.act_func,
+                kernel_layout=self.kernel_layout,
+            )
+        return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
+        
 
-
-def calculate_fixed_params(num_channels, kernel_size, group, gspace, rotation, restrict):
+def calculate_fixed_params(num_channels, group, gspace, rotation, restrict):
     # deepcopy to avoid changing the original list
     num_channels = num_channels.copy()
     layout = num_channels.copy()
@@ -364,25 +361,21 @@ def calculate_fixed_params(num_channels, kernel_size, group, gspace, rotation, r
             num_channels[l] = 1
     
 
-    if restrict == "halved":
-        print("Group order: ", gspace.fibergroup.rotation_order)
-        reduction = FIX_PARAM_DICT[kernel_size] * (gspace.fibergroup.rotation_order / 2)
-        if group == "dihedral":
-            reduction *= 2
-        num_channels[3] = int(round(
-            layout[3]                 
-            / reduction, 0
-            ))
-        if num_channels[3] < 1:
-            warnings.warn(
-                f"Group order ({gspace.fibergroup.rotation_order/2}) is larger"
-                f" than number of channels ({layout[2]}) defined in layout!"
+        if restrict == "halved":
+            num_channels[3] = int(
+                (layout[2] * np.sqrt(0.65 * gspace.fibergroup.rotation_order))
+                / (gspace.fibergroup.rotation_order / 2)
             )
-            num_channels[3] = 1
-    elif restrict == "reflection":
-        num_channels[3] = int(num_channels[2] * np.sqrt(3) / 2)
-    elif restrict == "invariant":
-        num_channels[3] = layout[3]
+            if num_channels[3] < 1:
+                warnings.warn(
+                    f"Group order ({gspace.fibergroup.rotation_order/2}) is larger"
+                    f" than number of channels ({layout[2]}) defined in layout!"
+                )
+                num_channels[3] = 1
+        elif restrict == "reflection":
+            num_channels[3] = int(num_channels[2] * np.sqrt(3) / 2)
+        elif restrict == "invariant":
+            num_channels[3] = int(num_channels[2] * np.sqrt(1.5))
     
     return num_channels
 
@@ -394,7 +387,7 @@ def main(cfg: DictConfig) -> None:
     n_inputs = inp.shape[1]
     n_outputs = 10
     # depth, num_classes, widen_factor=1, dropRate=0.0
-    net = EquivariantWideResNet()
+    #net = EquivariantWideResNet()
     net = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,
@@ -402,11 +395,11 @@ def main(cfg: DictConfig) -> None:
         )
     # tot_param = sum([p.numel() for p in net.conv1.parameters()  if p.requires_grad])
     tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
-    print('Total number of parameters: {}'.format(tot_param)) # total 2.748.890 # block1 121248
+    print(f'Total number of parameters: {tot_param}') # total 2.748.890 # block1 121248
     #print(net.layer1)
 
-    inp = inp.cuda()
-    net.cuda()
+    inp = inp# .cuda()
+    net #.cuda()
     print(net(inp).size())
 
     #y = net(torch.randn(1,3,32,32))
