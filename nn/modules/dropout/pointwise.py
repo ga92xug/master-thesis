@@ -58,8 +58,7 @@ class PointwiseDropout(EquivariantModule):
             the resulting feature map
 
         """
-
-        assert input.type == self.in_type
+        assert input.type == self.in_type, "input type is {}, but expected {}".format(input.type, self.in_type)
 
         output = F.dropout(input.tensor, self.p, self.training, self.inplace)
 

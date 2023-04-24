@@ -115,7 +115,8 @@ def exp_name(cfg):
     """
     # model name
     if cfg.model._target_ == "networks.EquivariantWideResNet":
-        values.append("wrn")
+        values.append("eq_wrn")
+        values.append(str(cfg.model.kernel_layout))
     elif cfg.model._target_ == "networks.EquivariantResNet9":
         values.append("res9")
     elif cfg.model._target_ == "networks.EquivariantMobileNetV2":

@@ -9,7 +9,7 @@ import sys
 import copy
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 import os
-os.environ['HYDRA_FULL_ERROR'] = '1'
+#os.environ['HYDRA_FULL_ERROR'] = '1'
 
 import numpy as np
 
@@ -24,12 +24,15 @@ from networks import (
     Restriction,
     EquivariantPool,
     EquivariantConvBlock,
-    EquivariantWideConvBlock,
     EquivariantConv,
-    # WideResNet,
 )
 
 from networks.wrn import WideResNet
+from networks.eq_wrn_util import (
+    EquivariantWideConvBlock, 
+    EquivariantWideConvBlock_vary_l, 
+    EquivariantWideConvBlock_drop_out,
+)
 
 
 class EquivariantWideResNet(nn.Module):
@@ -72,7 +75,21 @@ class EquivariantWideResNet(nn.Module):
         super(EquivariantWideResNet, self).__init__()
         assert (self.depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
         n = (self.depth - 4) / 6
+        if len(kernel_layout) == 1:
+            n = int(n * 2)
+        elif len(kernel_layout) == 4:
+            n = int(n / 2)
         k = self.widen_factor
+
+        if drop_out > 0.0:
+            assert len(kernel_layout) == 2, "Dropout only implemented for kernel_layout = [3,3]"
+            wide_conv_block = EquivariantWideConvBlock_drop_out
+        elif len(kernel_layout) == 3 and not kernel_layout == [3,3,3] or len(kernel_layout) == 2:
+            wide_conv_block = EquivariantWideConvBlock
+        elif len(kernel_layout) in [1,3,4]:
+            wide_conv_block = EquivariantWideConvBlock_vary_l
+        else:
+            raise ValueError("kernel_layout not recognized")
 
         if self.fix_params:
             self.wrn = WideResNet(
@@ -137,7 +154,7 @@ class EquivariantWideResNet(nn.Module):
 
         self.field_type = self.conv1.out_type
         self.layer1 = self._wide_layer(
-            EquivariantWideConvBlock,
+            wide_conv_block,
             self.num_channels[1],
             n,
             stride=1,
@@ -150,11 +167,12 @@ class EquivariantWideResNet(nn.Module):
             kernel_layout=self.kernel_layout,
         )
         if self.fix_params:
-            self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, preserved_field_type, n=n, stride=1)
+            self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, wide_conv_block, 
+                                              preserved_field_type, n=n, stride=1)
             preserved_field_type = self.layer1.out_type
         
         self.layer2 = self._wide_layer(
-            EquivariantWideConvBlock,
+            wide_conv_block,
             self.num_channels[2],
             n,
             stride=2,
@@ -168,7 +186,8 @@ class EquivariantWideResNet(nn.Module):
         )
         if self.fix_params:
             self.field_type = preserved_field_type
-            self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, preserved_field_type, n=n, stride=2)
+            self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, wide_conv_block, 
+                                              preserved_field_type, n=n, stride=2)
 
         # Restrict last conv and res layers
         self.restrict = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict)
@@ -178,7 +197,7 @@ class EquivariantWideResNet(nn.Module):
             preserved_field_type = self.field_type
 
         self.layer3 = self._wide_layer(
-            block=EquivariantWideConvBlock,
+            block=wide_conv_block,
             out_channels=self.num_channels[3],
             num_blocks=n,
             stride=2,
@@ -192,7 +211,8 @@ class EquivariantWideResNet(nn.Module):
         )
         if self.fix_params:
             self.field_type = preserved_field_type
-            self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, preserved_field_type, n=n, stride=2)
+            self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, 
+                                              wide_conv_block, preserved_field_type, n=n, stride=2)
 
         self.invariant_map = EquivariantPool(self.layer3.out_type, invariant_map=True)
         self.global_pool = nn.AdaptiveAvgPool2d((2, 2))
@@ -264,7 +284,8 @@ class EquivariantWideResNet(nn.Module):
         return x
         
     
-    def iter_fix_param(self, l, equi_conv_block, normal_conv_block, preserved_field_type=None, n=None, stride=None):
+    def iter_fix_param(self, l, equi_conv_block, normal_conv_block, block=None,
+                       preserved_field_type=None, n=None, stride=None):
         norm_param = sum([p.numel() for p in normal_conv_block.parameters() if p.requires_grad])
         equi_param = sum([p.numel() for p in equi_conv_block.parameters() if p.requires_grad])
         current_channel_size = self.num_channels[l]
@@ -272,7 +293,7 @@ class EquivariantWideResNet(nn.Module):
 
         # initialize search range
         if equi_param > norm_param:
-            lower_bound = max(current_channel_size - 100, 1)
+            lower_bound = max(current_channel_size - 200, 1)
             upper_bound = current_channel_size
         else:
             lower_bound = current_channel_size
@@ -284,7 +305,7 @@ class EquivariantWideResNet(nn.Module):
             # save the old one since we might not be in 1% range
             old_equi_param, old_equi_conv_block = equi_param, equi_conv_block 
             equi_param, equi_conv_block = self.param_count(l,
-                                                    prediction, preserved_field_type, n, stride)
+                                        prediction, block, preserved_field_type, n, stride)
 
             if abs(equi_param - norm_param) < 0.01:
                 last_ratio = equi_param / norm_param
@@ -302,11 +323,11 @@ class EquivariantWideResNet(nn.Module):
                 equi_conv_block = old_equi_conv_block
             
         last_ratio = equi_param / norm_param
-        print(f'Ratio for block {l+1}: {last_ratio}')
+        print(f'Ratio for block {l}: {last_ratio}')
         return equi_conv_block
 
 
-    def param_count(self, l, channel_size_prediction, preserved_field_type=None, n=None, stride=None):
+    def param_count(self, l, channel_size_prediction, block, preserved_field_type=None, n=None, stride=None):
         if l == 0:
             # change the conv1
             eq_conv_block = EquivariantConv(
@@ -323,7 +344,7 @@ class EquivariantWideResNet(nn.Module):
         else:
             self.field_type = copy.deepcopy(preserved_field_type)
             eq_conv_block = self._wide_layer(
-                block=EquivariantWideConvBlock,
+                block=block,
                 out_channels=channel_size_prediction,
                 num_blocks=n,
                 stride=stride,
@@ -398,8 +419,8 @@ def main(cfg: DictConfig) -> None:
     print(f'Total number of parameters: {tot_param}') # total 2.748.890 # block1 121248
     #print(net.layer1)
 
-    inp = inp# .cuda()
-    net #.cuda()
+    inp = inp.cuda()
+    net.cuda()
     print(net(inp).size())
 
     #y = net(torch.randn(1,3,32,32))

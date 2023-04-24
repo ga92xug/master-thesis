@@ -78,16 +78,60 @@ class BasicBlock(nn.Module):
         out = self.conv2(out)
         #print("out.shape: ", out.shape, "x.shape: ", x.shape)
         return torch.add(x if self.equalInOut else self.convShortcut(x), out)
+    
+class BasicBlock_vary_l(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_layout, stride, drop_out=0.0, bias=False):
+        super(BasicBlock_vary_l, self).__init__()
+        assert drop_out == 0.0, "dropout not supported"
+        self.bn1 = nn.BatchNorm2d(in_planes)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_layout[0], stride=stride,
+                               padding=1, bias=bias)
+        
+        self.layer = []
+        for i in range(1, len(kernel_layout)):
+            self.layer.append(nn.BatchNorm2d(out_planes))
+            self.layer.append(nn.ReLU(inplace=True))
+            self.layer.append(nn.Conv2d(out_planes, out_planes, kernel_size=kernel_layout[i], stride=1,
+                                       padding=1, bias=bias))
+        self.layer = nn.Sequential(*self.layer)
+
+        self.equalInOut = in_planes == out_planes
+        self.convShortcut = nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride,
+                               padding=0, bias=bias) if not self.equalInOut else None
+        
+    def forward(self, x):
+        if self.equalInOut:
+            out = self.relu1(self.bn1(x))
+        else:
+            x = self.relu1(self.bn1(x))
+        # first conv
+        tmp = out if self.equalInOut else x
+        out = self.conv1(tmp)
+
+        if len(self.layer)>0:
+            out = self.layer(out)
+
+        return torch.add(x if self.equalInOut else self.convShortcut(x), out)
 
 class NetworkBlock(nn.Module):
-    def __init__(self, nb_layers, in_planes, out_planes, kernel_layout, block, stride, drop_out=0.0):
+    def __init__(self, nb_layers, in_planes, out_planes, kernel_layout, block, stride, drop_out=0.0, bias=False):
         super(NetworkBlock, self).__init__()
         self.layer = []
-        for i in range(int(nb_layers)):
-            stride = stride if i == 0 else 1
-            in_planes = in_planes if i == 0 else out_planes
-            self.layer.append(block(in_planes, out_planes, kernel_layout, stride, drop_out))
 
+        if len(kernel_layout) == 3 and not kernel_layout == [3,3,3] or len(kernel_layout) == 2:
+            for i in range(int(nb_layers)):
+                stride = stride if i == 0 else 1
+                in_planes = in_planes if i == 0 else out_planes
+                self.layer.append(block(in_planes, out_planes, kernel_layout, stride, drop_out, bias=bias))
+        elif len(kernel_layout) in [1,3,4]:
+            for i in range(int(nb_layers)):
+                stride = stride if i == 0 else 1
+                in_planes = in_planes if i == 0 else out_planes
+                self.layer.append(BasicBlock_vary_l(in_planes, out_planes, kernel_layout, stride, drop_out, bias=bias))
+        else:
+            raise ValueError("kernel_layout must be of length 2, 3 or 4")
+        
         self.layer = nn.Sequential(*self.layer)
        
     def forward(self, x):
@@ -95,22 +139,26 @@ class NetworkBlock(nn.Module):
 
 class WideResNet(nn.Module):
     def __init__(self, depth, layout, kernel_size, kernel_layout, padding, input_channels, \
-                 num_classes, widen_factor=1, bias=False, drop_out=0.0):
+                 num_classes, widen_factor=1, bias=False, drop_out=0.0, restrict=None):
         super(WideResNet, self).__init__()
         # nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         nChannels = [layout[0], layout[1]*widen_factor, layout[2]*widen_factor, layout[3]*widen_factor]
         assert((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
+        if len(kernel_layout) == 1:
+            n = int(n * 2)
+        elif len(kernel_layout) == 4:
+            n = int(n / 2)
         block = BasicBlock
         # 1st conv before any network block
         self.conv1 = nn.Conv2d(input_channels, nChannels[0], kernel_size=kernel_size, stride=1,
                                padding=1, bias=bias)
         # 1st block
-        self.layer1 = NetworkBlock(n, nChannels[0], nChannels[1], kernel_layout, block, 1, drop_out)
+        self.layer1 = NetworkBlock(n, nChannels[0], nChannels[1], kernel_layout, block, 1, drop_out, bias=bias)
         # 2nd block
-        self.layer2 = NetworkBlock(n, nChannels[1], nChannels[2], kernel_layout, block, 2, drop_out)
+        self.layer2 = NetworkBlock(n, nChannels[1], nChannels[2], kernel_layout, block, 2, drop_out, bias=bias)
         # 3rd block
-        self.layer3 = NetworkBlock(n, nChannels[2], nChannels[3], kernel_layout, block, 2, drop_out)
+        self.layer3 = NetworkBlock(n, nChannels[2], nChannels[3], kernel_layout, block, 2, drop_out, bias=bias)
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
@@ -125,7 +173,6 @@ class WideResNet(nn.Module):
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 m.bias.data.zero_()
-
 
     def forward(self, x):
         out = self.conv1(x)
@@ -150,12 +197,12 @@ def main(cfg: DictConfig) -> None:
             num_classes=n_outputs,
         )
     # tot_param = sum([p.numel() for p in net.conv1.parameters()  if p.requires_grad])
-    tot_param = sum([p.numel() for p in net.layer1.parameters()  if p.requires_grad])
+    tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
     print('Total number of parameters: {}'.format(tot_param)) # total 2.748.890 # block1 121248
     #print(net.layer1)
 
-    inp = inp.cuda()
-    net.cuda()
+    inp = inp# .cuda()
+    net# .cuda()
     print(net(inp).size())
 
     #y = net(torch.randn(1,3,32,32))

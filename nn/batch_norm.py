@@ -125,7 +125,7 @@ class BatchNorm(EquivariantModule):
 
         """
 
-        assert input.type == self.in_type
+        assert input.type == self.in_type, "input type is {}, but expected {}".format(input.type, self.in_type)
 
         b, c, h, w = input.tensor.shape
 

@@ -4,7 +4,6 @@ from .eq_layers import (
     EquivariantNorm,
     EquivariantPool,
     EquivariantConvBlock,
-    EquivariantWideConvBlock,
     EquivariantSqueezeExcitation,
     EquivariantConvBlock_Conv_BN_actF,
     EquivariantBottleneck,
@@ -15,6 +14,11 @@ from .eq_wrn import EquivariantWideResNet
 from .eq_mobilenetv2 import EquivariantMobileNetV2
 from .randomnet import RandomNet
 from .wrn import WideResNet
+from .eq_wrn_util import (
+    EquivariantWideConvBlock, 
+    EquivariantWideConvBlock_vary_l, 
+    EquivariantWideConvBlock_drop_out,
+)
 
 __all__ = [
     "Restriction",
@@ -23,6 +27,7 @@ __all__ = [
     "EquivariantPool",
     "EquivariantConvBlock",
     "EquivariantWideConvBlock",
+    "EquivariantWideConvBlock_vary_l",
     "EquivariantSqueezeExcitation",
     "EquivariantConvBlock_Conv_BN_actF",
     "EquivariantBottleneck",
@@ -35,5 +40,6 @@ __all__ = [
     # "calculate_fixed_params",
     #"wide_layer",
     #"NetworkBlock",
-    "WideResNet"
+    "WideResNet",
+    
 ]

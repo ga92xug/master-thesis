@@ -19,7 +19,6 @@ from networks import (
     Restriction,
     EquivariantPool,
     EquivariantConvBlock,
-    EquivariantWideConvBlock,
     EquivariantConvBlock_Conv_BN_actF,
     EquivariantBottleneck,
     EquivariantBottleneckBlock,

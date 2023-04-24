@@ -1,0 +1,390 @@
+from typing import Tuple, List
+from torch import nn
+import numpy as np
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
+import nn as nn_eq
+
+from nn import (
+    GroupTensor,
+    FieldType,
+    EquivariantModule,
+    SequentialModule,
+    R2Conv,
+    GroupNorm,
+    InducedNormGroupNorm,
+    GroupStandardization,
+    BatchNorm,
+    InducedNormBatchNorm,
+    Mish,
+    ReLU,
+    NormNonLinearity,
+    InducedGatedNonLinearity,
+    GroupPooling,
+    NormPool,
+    InducedNormPool,
+    NormAvgPool,
+    NormMaxPool,
+    PointwiseAvgPool,
+    PointwiseAdaptiveAvgPool,
+    PointwiseMaxPool,
+    DisentangleModule,
+    RestrictionModule,
+    MultipleModule,
+    PointwiseDropout,
+)
+from group_theory import Representation
+from nn.modules import nonlinearities
+from networks.eq_layers import EquivariantNorm, EquivariantConv
+
+
+# TODO check equivariantnorm
+
+class EquivariantWideConvBlock(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        out_channels: int,
+        frequency: int = None,
+        kernel_size: int = 3,
+        padding: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        num_groups: int = None,
+        kernel_layout: List[int] = None,
+        act_func: str = "ReLU", # ReLU
+    ):
+        super(EquivariantWideConvBlock, self).__init__()
+        self.in_type = in_type
+        self.kernel_layout = kernel_layout
+
+        strides = np.ones_like(kernel_layout)
+        paddings = np.zeros_like(kernel_layout)
+        for i in range(len(kernel_layout)):
+            if kernel_layout[i] == 3:
+                strides[i] = stride
+                break
+        
+        paddings = [padding if kernel_layout[i] > 1 else 0 for i in range(len(kernel_layout))]
+        #print("strides", strides)
+        #print("paddings", paddings)
+
+        # block 1
+        self.norm1 = EquivariantNorm(
+            self.in_type, num_groups=num_groups, affine=False
+        )
+        self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
+        self.conv1 = EquivariantConv(
+            self.act_func1.out_type,
+            out_channels,
+            frequency=frequency,
+            kernel_size=kernel_layout[0],
+            padding=paddings[0],
+            stride=strides[0],
+            dilation=dilation,
+            bias=bias,
+        )
+        current_out_type = self.conv1.out_type
+        
+        if len(kernel_layout) == 3:
+            norm = EquivariantNorm(self.conv1.out_type, num_groups=num_groups, affine=False)
+            act = getattr(nonlinearities, act_func)(norm.out_type)
+            conv = EquivariantConv(
+                    act.out_type,
+                    out_channels,
+                    frequency=frequency,
+                    kernel_size=kernel_layout[1],
+                    padding=paddings[1],
+                    stride=strides[1],
+                    dilation=dilation,
+                    bias=bias,
+                )
+            current_out_type = conv.out_type
+            self.block = SequentialModule(norm, act, conv)
+        
+        # block 2
+        self.norm2 = EquivariantNorm(
+            current_out_type, num_groups=num_groups, affine=False
+        )
+        self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
+        self.conv2 = EquivariantConv(
+            self.act_func2.out_type,
+            out_channels,
+            frequency=frequency,
+            kernel_size=kernel_layout[-1],
+            padding=paddings[-1],
+            stride=strides[-1],
+            dilation=dilation,
+            bias=bias,
+        )
+        
+        self.out_type = self.conv2.out_type
+
+        self.shortcut = nn.Identity()
+        if stride != 1 or self.in_type != self.out_type:
+            norm = EquivariantNorm(
+                self.in_type, num_groups=num_groups, affine=False
+            )
+            shortcut = EquivariantConv(
+                norm.out_type,
+                out_channels,
+                frequency=frequency,
+                kernel_size=1,
+                padding=0,
+                stride=stride,
+                dilation=dilation,
+                bias=bias,
+                no_gates=True,
+            )
+            
+            self.shortcut = SequentialModule(*[norm, shortcut])
+
+    def forward(self, x):
+        # bn -> relu -> conv
+
+        """
+        x torch.Size([1, 64, 32, 32])
+        out torch.Size([1, 256, 30, 30])
+        Layer 1: 
+        strides [1 1]
+        paddings [0, 1]
+        strides [1 1]
+        paddings [0, 1]
+        """
+        #print("x", x.shape)
+        out = self.norm1(x)
+        out = self.act_func1(out)
+        # print("out", out.shape)
+        out = self.conv1(out)
+        #print("out", out.shape)
+        if len(self.kernel_layout) == 3:
+            out = self.block(out)
+            # print("out", out.shape)
+        out = self.norm2(out)
+        out = self.act_func2(out)   
+        out = self.conv2(out)
+        #print("out", out.shape)
+        out += self.shortcut(x)
+        return out
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
+
+
+class EquivariantWideConvBlock_vary_l(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        out_channels: int,
+        frequency: int = None,
+        kernel_size: int = 3,
+        padding: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        num_groups: int = None,
+        kernel_layout: List[int] = None,
+        act_func: str = "ReLU", # ReLU
+    ):
+        super(EquivariantWideConvBlock_vary_l, self).__init__()
+        self.in_type = in_type
+        self.kernel_layout = kernel_layout
+
+        strides = np.ones_like(kernel_layout)
+        for i in range(len(kernel_layout)):
+            if kernel_layout[i] > 1:
+                strides[i] = stride
+                break
+        
+        paddings = [padding if kernel_layout[i] > 1 else 0 for i in range(len(kernel_layout))]
+        #print("strides", strides)
+        #print("paddings", paddings)
+
+        # block 1
+        self.norm1 = EquivariantNorm(
+            self.in_type, num_groups=num_groups, affine=False
+        )
+        self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
+        self.conv1 = EquivariantConv(
+            self.act_func1.out_type,
+            out_channels,
+            frequency=frequency,
+            kernel_size=kernel_layout[0],
+            padding=paddings[0],
+            stride=strides[0],
+            dilation=dilation,
+            bias=bias,
+        )
+        current_out_type = self.conv1.out_type
+        
+        self.layer = []
+        for i in range(1, len(kernel_layout)):
+            norm = EquivariantNorm(current_out_type, num_groups=num_groups, affine=False)
+            act = getattr(nonlinearities, act_func)(norm.out_type)
+            conv = EquivariantConv(
+                    act.out_type,
+                    out_channels,
+                    frequency=frequency,
+                    kernel_size=kernel_layout[i],
+                    padding=paddings[i],
+                    stride=strides[i],
+                    dilation=dilation,
+                    bias=bias,
+                )
+            current_out_type = conv.out_type
+            self.layer.extend([norm, act, conv])
+        
+        self.layer = SequentialModule(*self.layer)
+        self.out_type = current_out_type
+
+        self.shortcut = nn.Identity()
+        if stride != 1 or self.in_type != self.out_type:
+            norm = EquivariantNorm(
+                self.in_type, num_groups=num_groups, affine=False
+            )
+            shortcut = EquivariantConv(
+                norm.out_type,
+                out_channels,
+                frequency=frequency,
+                kernel_size=1,
+                padding=0,
+                stride=stride,
+                dilation=dilation,
+                bias=bias,
+                no_gates=True,
+            )
+            
+            self.shortcut = SequentialModule(*[norm, shortcut])
+
+    def forward(self, x):
+        # bn -> relu -> conv
+        """
+        x torch.Size([1, 64, 32, 32])
+        out torch.Size([1, 256, 30, 30])
+        Layer 1: 
+        strides [1 1]
+        paddings [0, 1]
+        strides [1 1]
+        paddings [0, 1]
+        """
+        #print("x", x.shape)
+        out = self.norm1(x)
+        out = self.act_func1(out)
+        out = self.conv1(out)
+        #print("out", out.shape)
+        if len(self.kernel_layout) > 1:
+            out = self.layer(out)
+        #print("out", out.shape)
+        out += self.shortcut(x)
+        return out
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
+
+class EquivariantWideConvBlock_drop_out(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        out_channels: int,
+        frequency: int = None,
+        kernel_size: int = 3,
+        padding: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        num_groups: int = None,
+        kernel_layout: List[int] = None,
+        act_func: str = "ReLU", # ReLU
+        drop_out: float = 0.0
+    ):
+        super(EquivariantWideConvBlock_drop_out, self).__init__()
+        self.in_type = in_type
+        self.kernel_layout = kernel_layout
+
+        strides = np.ones_like(kernel_layout)
+        for i in range(len(kernel_layout)):
+            if kernel_layout[i] > 1:
+                strides[i] = stride
+                break
+        
+        paddings = [padding if kernel_layout[i] > 1 else 0 for i in range(len(kernel_layout))]
+        #print("strides", strides)
+        #print("paddings", paddings)
+
+        # block 1
+        self.norm1 = EquivariantNorm(
+            self.in_type, num_groups=num_groups, affine=False
+        )
+        self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
+        self.conv1 = EquivariantConv(
+            self.act_func1.out_type,
+            out_channels,
+            frequency=frequency,
+            kernel_size=kernel_layout[0],
+            padding=paddings[0],
+            stride=strides[0],
+            dilation=dilation,
+            bias=bias,
+        )
+        
+        self.drop_out1 = PointwiseDropout(in_type=self.conv1.out_type, p=drop_out)
+        
+        self.norm2 = EquivariantNorm(self.drop_out1.out_type, num_groups=num_groups, affine=False)
+        self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
+        self.conv2 = EquivariantConv(
+                    self.act_func2.out_type,
+                    out_channels,
+                    frequency=frequency,
+                    kernel_size=kernel_layout[1],
+                    padding=paddings[1],
+                    stride=strides[1],
+                    dilation=dilation,
+                    bias=bias,
+                )
+        self.drop_out2 = PointwiseDropout(in_type=self.conv2.out_type, p=drop_out)
+        
+        self.out_type = self.drop_out2.out_type
+
+        self.shortcut = nn.Identity()
+        if stride != 1 or self.in_type != self.out_type:
+            norm = EquivariantNorm(
+                self.in_type, num_groups=num_groups, affine=False
+            )
+            shortcut = EquivariantConv(
+                norm.out_type,
+                out_channels,
+                frequency=frequency,
+                kernel_size=1,
+                padding=0,
+                stride=stride,
+                dilation=dilation,
+                bias=bias,
+                no_gates=True,
+            )
+            
+            self.shortcut = SequentialModule(*[norm, shortcut])
+
+    def forward(self, x):
+        # bn -> relu -> conv
+        out = self.norm1(x)
+        out = self.act_func1(out)
+        out = self.conv1(out)
+        out = self.drop_out1(out)
+        out = self.norm2(out)
+        out = self.act_func2(out)
+        out = self.conv2(out)
+        out = self.drop_out2(out)
+        out += self.shortcut(x)
+        return out
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
