@@ -14,10 +14,26 @@ from .eq_wrn import EquivariantWideResNet
 from .eq_mobilenetv2 import EquivariantMobileNetV2
 from .randomnet import RandomNet
 from .wrn import WideResNet
+from .eq_efficientnet import EquivariantEfficientNet
+from .efficientnet import EfficientNet
 from .eq_wrn_util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 
     EquivariantWideConvBlock_drop_out,
+)
+from .eq_efficientnet_util import (
+    SwishImplementation,
+    efficientnet_params,
+    SwishImplementation,
+    MemoryEfficientSwish,
+    round_filters,
+    round_repeats,
+    drop_connect,
+    get_width_and_height_from_size,
+    calculate_output_image_size,
+    Conv2dSamePadding,
+    Eq_Conv2dSamePadding,
+    BlockDecoder,
 )
 
 __all__ = [
@@ -32,6 +48,9 @@ __all__ = [
     "EquivariantConvBlock_Conv_BN_actF",
     "EquivariantBottleneck",
     "EquivariantBottleneckBlock",
+    "Conv2dSamePadding",
+    "Eq_Conv2dSamePadding",
+    "BlockDecoder",
 ] + [
     "EquivariantResNet9",
     "EquivariantWideResNet",
@@ -41,5 +60,6 @@ __all__ = [
     #"wide_layer",
     #"NetworkBlock",
     "WideResNet",
-    
+    "EquivariantEfficientNet",
+    "EfficientNet",    
 ]

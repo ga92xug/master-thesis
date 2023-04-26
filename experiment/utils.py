@@ -116,7 +116,6 @@ def exp_name(cfg):
     # model name
     if cfg.model._target_ == "networks.EquivariantWideResNet":
         values.append("eq_wrn")
-        values.append(str(cfg.model.kernel_layout))
     elif cfg.model._target_ == "networks.EquivariantResNet9":
         values.append("res9")
     elif cfg.model._target_ == "networks.EquivariantMobileNetV2":
@@ -125,13 +124,27 @@ def exp_name(cfg):
         values.append("rand")
     elif cfg.model._target_ == "networks.WideResNet":
         values.append("wrn")
-        values.append(str(cfg.model.kernel_layout))
     else:
         ValueError("Unknown model")
+
+    # depth
+    if cfg.model._target_ != "networks.RandomNet":
+        values.append(f"{cfg.model.depth}")
+    
+    # width
+    if cfg.model._target_ != "networks.RandomNet":
+        values.append(f"{cfg.model.widen_factor}")
     
     # kernel size
-    if cfg.model._target_ != "networks.RandomNet" and cfg.model.kernel_size != 3:
-        values.append(f"ker{cfg.model.kernel_size}")
+    if cfg.model._target_ != "networks.RandomNet":
+        if len(cfg.model.kernel_layout) == 3:
+            values.append(f"{cfg.model.kernel_layout[0]}x{cfg.model.kernel_layout[1]}x{cfg.model.kernel_layout[2]}")
+        elif len(cfg.model.kernel_layout) == 2:
+            values.append(f"{cfg.model.kernel_layout[0]}x{cfg.model.kernel_layout[1]}")
+        elif len(cfg.model.kernel_layout) == 1:
+            values.append(f"{cfg.model.kernel_layout[0]}")
+        elif len(cfg.model.kernel_layout) == 4:
+            values.append(f"{cfg.model.kernel_layout[0]}x{cfg.model.kernel_layout[1]}x{cfg.model.kernel_layout[2]}x{cfg.model.kernel_layout[3]}")
 
     assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
 

@@ -440,8 +440,11 @@ class Experiment:
         """
         
         if self._lr_decay_schedule is not None:
-            count = len([e for e in self._lr_decay_schedule if e <= self._epoch])
-            lr = self._lr * (self._lr_decay_factor ** count)
+            if self._epoch in self._lr_decay_schedule:
+                self._lr_decay_schedule.remove(self._epoch)
+                self._lr *= self._lr_decay_factor
+            # count = len([e for e in self._lr_decay_schedule if e <= self._epoch])
+            # lr = self._lr * (self._lr_decay_factor ** count)
         else:
             if self._epoch <= self._lr_decay_start:
                 lr = self._lr

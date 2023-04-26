@@ -5,20 +5,16 @@
 # Author: lukemelas (github username)
 # Github repo: https://github.com/lukemelas/EfficientNet-PyTorch
 # With adjustments and added comments by workingcoder (github username).
-
-from typing import List, Tuple
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import sys
-
-from networks.efficientnet import EfficientNet
 sys.path.append('../scaling-laws-ecnn') # add parent directory
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 from networks.eq_efficientnet_util import (
     BlockDecoder,
-    eq_drop_connect,
     round_filters,
     round_repeats,
     drop_connect,
@@ -28,48 +24,9 @@ from networks.eq_efficientnet_util import (
     load_pretrained_weights,
     Swish,
     MemoryEfficientSwish,
-    calculate_output_image_size,
-    Eq_Conv2dSamePadding,
-    Conv2dSamePadding
+    calculate_output_image_size
 )
 
-from networks.eq_layers import EquivariantSqueezeExcitation, Restriction
-
-from nn import (
-    rot2dOnR2,
-    flipRot2dOnR2,
-    GroupTensor,
-    FieldType,
-    EquivariantModule,
-    SequentialModule,
-    R2Conv,
-    GroupNorm,
-    InducedNormGroupNorm,
-    GroupStandardization,
-    BatchNorm,
-    InducedNormBatchNorm,
-    Mish,
-    ReLU,
-    Swish,
-    NormNonLinearity,
-    InducedGatedNonLinearity,
-    GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormAvgPool,
-    NormMaxPool,
-    PointwiseAvgPool,
-    PointwiseAdaptiveAvgPool,
-    PointwiseMaxPool,
-    DisentangleModule,
-    RestrictionModule,
-    MultipleModule,
-)
-from group_theory import Representation
-from nn.modules import nonlinearities
-
-import os
-os.environ['HYDRA_FULL_ERROR'] = '1'
 
 VALID_MODELS = (
     'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3',
@@ -81,82 +38,58 @@ VALID_MODELS = (
 )
 
 
-class MBConvBlock(EquivariantModule):
+class MBConvBlock(nn.Module):
     """Mobile Inverted Residual Bottleneck Block.
     Args:
         block_args (namedtuple): BlockArgs, defined in utils.py.
         global_params (namedtuple): GlobalParam, defined in utils.py.
         image_size (tuple or list): [image_height, image_width].
+    References:
+        [1] https://arxiv.org/abs/1704.04861 (MobileNet v1)
+        [2] https://arxiv.org/abs/1801.04381 (MobileNet v2)
+        [3] https://arxiv.org/abs/1905.02244 (MobileNet v3)
     """
 
-    # TODO for fix params need to use both final 
-    # _block_args.expand_ratio
-    # _block_args.output_filters
-
-    def __init__(self, in_type, block_args, global_params, image_size=None):
+    def __init__(self, block_args, global_params, image_size=None):
         super().__init__()
         self._block_args = block_args
-        self.in_type = in_type
         self._bn_mom = 1 - global_params.batch_norm_momentum  # pytorch's difference from tensorflow
         self._bn_eps = global_params.batch_norm_epsilon
         self.has_se = (self._block_args.se_ratio is not None) and (0 < self._block_args.se_ratio <= 1)
         self.id_skip = block_args.id_skip  # whether to use skip connection and drop connect
 
         # Expansion phase (Inverted Bottleneck)
-        # inp = self._block_args.input_filters  # number of input channels
-        inp = in_type
-        # oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
-        oup = len(in_type) * self._block_args.expand_ratio
+        inp = self._block_args.input_filters  # number of input channels
+        oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
         if self._block_args.expand_ratio != 1:
-            self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
-                                image_size=image_size, kernel_size=1, bias=False)
-
-            # self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
-            self._bn0 = BatchNorm(in_type=self._expand_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
-            self._swish0 = Swish(in_type=self._bn0.out_type)
-            inp = self._swish0.out_type
+            Conv2d = get_same_padding_conv2d(image_size=image_size)
+            self._expand_conv = Conv2d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
+            self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
             # image_size = calculate_output_image_size(image_size, 1) <-- this wouldn't modify image_size
 
         # Depthwise convolution phase
         k = self._block_args.kernel_size
         s = self._block_args.stride
-        # Conv2d = get_same_padding_conv2d(image_size=image_size)
-        # groups are not working yet
-        self._depthwise_conv = Eq_Conv2dSamePadding(
-            in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
-            kernel_size=k, stride=s, bias=False
-        )
-        self._bn1 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
-        self._swish1 = Swish(in_type=self._bn1.out_type)
-        out_type = self._swish1.out_type
-        # self._depthwise_conv = Conv2d(
-        #     in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
-        #     kernel_size=k, stride=s, bias=False)
-        #self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
+        Conv2d = get_same_padding_conv2d(image_size=image_size)
+        self._depthwise_conv = Conv2d(
+            in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
+            kernel_size=k, stride=s, bias=False)
+        self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
         image_size = calculate_output_image_size(image_size, s)
 
         # Squeeze and Excitation layer, if desired
         if self.has_se:
-            # we don't need same padding as it is a 1x1 conv
-            # Conv2d = get_same_padding_conv2d(image_size=(1, 1))
-            input_channels_squeeze = len(in_type)
-            num_squeezed_channels = max(1, int(input_channels_squeeze * self._block_args.se_ratio))
-            self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
-                            in_channels=input_channels_squeeze, squeeze_channels=num_squeezed_channels, 
-                            act_func="Swish")
-            out_type = self.squeeze.out_type
+            Conv2d = get_same_padding_conv2d(image_size=(1, 1))
+            num_squeezed_channels = max(1, int(self._block_args.input_filters * self._block_args.se_ratio))
+            self._se_reduce = Conv2d(in_channels=oup, out_channels=num_squeezed_channels, kernel_size=1)
+            self._se_expand = Conv2d(in_channels=num_squeezed_channels, out_channels=oup, kernel_size=1)
 
         # Pointwise convolution phase
         final_oup = self._block_args.output_filters
-        # Conv2d = get_same_padding_conv2d(image_size=image_size)
-        self._project_conv = Eq_Conv2dSamePadding(in_type=out_type, out_channels=final_oup, image_size=image_size, kernel_size=1, bias=False)
-        
-        #self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
-        self._bn2 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
-
-        self.out_type = self._bn2.out_type
-        # self._swish = MemoryEfficientSwish()
-        # self._swish = Swish()
+        Conv2d = get_same_padding_conv2d(image_size=image_size)
+        self._project_conv = Conv2d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
+        self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
+        self._swish = MemoryEfficientSwish()
 
     def forward(self, inputs, drop_connect_rate=None):
         """MBConvBlock's forward function.
@@ -172,15 +105,19 @@ class MBConvBlock(EquivariantModule):
         if self._block_args.expand_ratio != 1:
             x = self._expand_conv(inputs)
             x = self._bn0(x)
-            x = self._swish0(x)
+            x = self._swish(x)
 
         x = self._depthwise_conv(x)
         x = self._bn1(x)
-        x = self._swish1(x)
+        x = self._swish(x)
 
         # Squeeze and Excitation
         if self.has_se:
-            x = self.squeeze(x)
+            x_squeezed = F.adaptive_avg_pool2d(x, 1)
+            x_squeezed = self._se_reduce(x_squeezed)
+            x_squeezed = self._swish(x_squeezed)
+            x_squeezed = self._se_expand(x_squeezed)
+            x = torch.sigmoid(x_squeezed) * x
 
         # Pointwise Convolution
         x = self._project_conv(x)
@@ -188,19 +125,22 @@ class MBConvBlock(EquivariantModule):
 
         # Skip connection and drop connect
         input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
-        if self.id_skip and self._block_args.stride == 1 and len(self.in_type) == output_filters:
+        if self.id_skip and self._block_args.stride == 1 and input_filters == output_filters:
             # The combination of skip connection and drop connect brings about stochastic depth.
             if drop_connect_rate:
-                x = eq_drop_connect(x, p=drop_connect_rate, training=self.training)
+                x = drop_connect(x, p=drop_connect_rate, training=self.training)
             x = x + inputs  # skip connection
         return x
 
-    def evaluate_output_shape(self, input_shape: Tuple):
-        assert len(input_shape) == 4
-        assert input_shape[1] == self.in_type.size
-        return input_shape
+    def set_swish(self, memory_efficient=True):
+        """Sets swish function as memory efficient (for training) or standard (for export).
+        Args:
+            memory_efficient (bool): Whether to use memory-efficient version of swish.
+        """
+        self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
 
-class EquivariantEfficientNet(nn.Module):
+
+class EfficientNet(nn.Module):
     """EfficientNet model.
        Most easily loaded with the .from_name or .from_pretrained methods.
     Args:
@@ -217,21 +157,9 @@ class EquivariantEfficientNet(nn.Module):
         >>> outputs = model(inputs)
     """
 
-    def __init__(
-            self, blocks_args=None, global_params=None, image_size=None, 
-            input_channels=3, num_classes=10, 
-            group: str = "cyclic",
-            rotation: int = 4,
-            restrict: str = None,  # "invariant", "reflection", "halved"
-            fix_params: bool = True,
-            ):
+    def __init__(self, blocks_args=None, global_params=None, 
+                 image_size=None, input_channels=3, num_classes=10):
         super().__init__()
-        self.fix_params = fix_params
-        if self.fix_params:
-            self.efficentnet = EfficientNet(
-                blocks_args=blocks_args, global_params=global_params, image_size=image_size,
-                input_channels=input_channels, num_classes=num_classes,
-            )
         blocks_args = list(blocks_args)
         assert image_size is not None, 'Please provide image size'
         assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
@@ -241,52 +169,27 @@ class EquivariantEfficientNet(nn.Module):
         blocks_args = BlockDecoder.decode(blocks_args)
         self._blocks_args = blocks_args
 
-        self.group = group
-        self.rotation = rotation
         self.input_channels = input_channels
         image_size = list(image_size)
         self.image_size = image_size
         self.num_classes = num_classes
-        
+
         # Batch norm parameters
         bn_mom = 1 - self._global_params.batch_norm_momentum
         bn_eps = self._global_params.batch_norm_epsilon
 
         # Get stem static or dynamic convolution depending on image size
-        # Conv2d = get_same_padding_conv2d(image_size=image_size)
-
-        # Get group spaces for specified rotations and flips
-        if self.group == "cyclic":
-            self.gspace = rot2dOnR2(self.rotation)
-        elif self.group == "dihedral":
-            self.gspace = flipRot2dOnR2(self.rotation)
-        elif self.group == "orthogonal":
-            self.gspace = flipRot2dOnR2(-1)
-        else:
-            raise ValueError(
-                f'Group "{self.group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
-            )
-
-        # Color channels are trivial fields and don't transform when input is rotated/flipped
-        self.input_field_type = FieldType(
-            self.gspace, [self.gspace.trivial_repr] * self.input_channels
-        )
+        Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Stem
+        in_channels = 3  # rgb
         out_channels = round_filters(32, self._global_params)  # number of output channels
-        self._conv_stem = Eq_Conv2dSamePadding(self.input_field_type, out_channels, 
-                                               kernel_size=3, stride=2, 
-                                               image_size=image_size, bias=False)
-        if self.fix_params:
-            pass
-        self._bn0 = BatchNorm(in_type=self._conv_stem.out_type, momentum=bn_mom, eps=bn_eps)
-        #self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
-        self.field_type = self._bn0.out_type
+        self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
+        self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
 
         # Build blocks
-        # self._blocks = nn.ModuleList([])
-        self._blocks = []
+        self._blocks = nn.ModuleList([])
         for block_args in self._blocks_args:
 
             # Update block input and output filters based on depth multiplier.
@@ -297,51 +200,39 @@ class EquivariantEfficientNet(nn.Module):
             )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock(self.field_type, block_args, 
-                                            self._global_params, image_size=image_size))
-            self.field_type = self._blocks[-1].out_type
+            self._blocks.append(MBConvBlock(block_args, self._global_params, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(self.field_type, block_args, self._global_params, image_size=image_size))
-                self.field_type = self._blocks[-1].out_type
+                self._blocks.append(MBConvBlock(block_args, self._global_params, image_size=image_size))
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
-        self._blocks = SequentialModule(self._blocks)
-
-        # Restrict
-        self.restrict = Restriction(self.field_type, self.group, self.rotation, self.restrict)
-        self.field_type = self.restrict.out_type
-
         # Head
-        input_channels = block_args.output_filters  # output of final block
+        in_channels = block_args.output_filters  # output of final block
         out_channels = round_filters(1280, self._global_params)
-        self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
-                                               kernel_size=1, image_size=image_size, 
-                                               bias=False)
-        # self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
-        self._bn1 = BatchNorm(in_type=self._conv_head.out_type, momentum=bn_mom, eps=bn_eps)
+        Conv2d = get_same_padding_conv2d(image_size=image_size)
+        self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
         # Final linear layer
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-        if self.include_top:
-            self._dropout = nn.Dropout(self._global_params.dropout_rate)
-            self._fc = nn.Linear(out_channels, self._global_params.num_classes)
+        if self._global_params.include_top:
+            self._dropout = nn.Dropout(self._global_params.drop_out)
+            self._fc = nn.Linear(out_channels, self.num_classes)
 
         # set activation to memory efficient swish by default
-        self._swish = Swish()
-        # self._swish = MemoryEfficientSwish()
+        self._swish = MemoryEfficientSwish()
 
-        if self.fix_params:
-            # size of wrn total and size of equivariant part
-            norm_para = sum([p.numel() for p in self.efficentnet.parameters() if p.requires_grad])
-            del self.efficentnet
-            equi_param = sum([p.numel() for p in self.parameters() if p.requires_grad])
-            current_ratio = equi_param / norm_para
-            print(f"Equivariant_EfficientNet / EfficientNet parameter ratio: {current_ratio:.3f}")
+    def set_swish(self, memory_efficient=True):
+        """Sets swish function as memory efficient (for training) or standard (for export).
+        Args:
+            memory_efficient (bool): Whether to use memory-efficient version of swish.
+        """
+        self._swish = MemoryEfficientSwish() if memory_efficient else Swish()
+        for block in self._blocks:
+            block.set_swish(memory_efficient)
 
-    
     def extract_endpoints(self, inputs):
         """Use convolution layer to extract features
         from reduction levels i in [1, 2, 3, 4, 5].
@@ -422,7 +313,7 @@ class EquivariantEfficientNet(nn.Module):
         x = self.extract_features(inputs)
         # Pooling and final linear layer
         x = self._avg_pooling(x)
-        if self.include_top:
+        if self._global_params.include_top:
             x = x.flatten(start_dim=1)
             x = self._dropout(x)
             x = self._fc(x)
@@ -438,7 +329,7 @@ class EquivariantEfficientNet(nn.Module):
                 Params to override model's global_params.
                 Optional key:
                     'width_coefficient', 'depth_coefficient',
-                    'image_size', 'dropout_rate',
+                    'image_size', 'drop_out',
                     'num_classes', 'batch_norm_momentum',
                     'batch_norm_epsilon', 'drop_connect_rate',
                     'depth_divisor', 'min_depth'
@@ -450,7 +341,40 @@ class EquivariantEfficientNet(nn.Module):
         model = cls(blocks_args, global_params)
         model._change_in_channels(in_channels)
         return model
-    
+
+    @classmethod
+    def from_pretrained(cls, model_name, weights_path=None, advprop=False,
+                        in_channels=3, num_classes=1000, **override_params):
+        """Create an efficientnet model according to name.
+        Args:
+            model_name (str): Name for efficientnet.
+            weights_path (None or str):
+                str: path to pretrained weights file on the local disk.
+                None: use pretrained weights downloaded from the Internet.
+            advprop (bool):
+                Whether to load pretrained weights
+                trained with advprop (valid when weights_path is None).
+            in_channels (int): Input data's channel number.
+            num_classes (int):
+                Number of categories for classification.
+                It controls the output size for final linear layer.
+            override_params (other key word params):
+                Params to override model's global_params.
+                Optional key:
+                    'width_coefficient', 'depth_coefficient',
+                    'image_size', 'drop_out',
+                    'batch_norm_momentum',
+                    'batch_norm_epsilon', 'drop_connect_rate',
+                    'depth_divisor', 'min_depth'
+        Returns:
+            A pretrained efficientnet model.
+        """
+        model = cls.from_name(model_name, num_classes=num_classes, **override_params)
+        load_pretrained_weights(model, model_name, weights_path=weights_path,
+                                load_fc=(num_classes == 1000), advprop=advprop)
+        model._change_in_channels(in_channels)
+        return model
+
     @classmethod
     def get_image_size(cls, model_name):
         """Get the input image size for a given efficientnet model.
@@ -487,7 +411,7 @@ class EquivariantEfficientNet(nn.Module):
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
-    inp = torch.rand(1, 1, 32, 32)
+    inp = torch.rand(1, 3, 32, 32)
     image_size = [inp.shape[2], inp.shape[3]]
     n_inputs = inp.shape[1]
     n_outputs = 10
@@ -499,6 +423,7 @@ def main(cfg: DictConfig) -> None:
             input_channels=n_inputs,
             num_classes=n_outputs,
         )
+    net.eval()
     tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
     print(f'Total number of parameters: {tot_param}') # total 2.748.890 # block1 121248
     print(net)

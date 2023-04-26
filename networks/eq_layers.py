@@ -114,83 +114,32 @@ class EquivariantConv(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
-        groups: int = 1,
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        no_gates: bool = False,
     ):
         super().__init__()
         self.in_type = in_type  # declaration required by base class
 
-        # Induced
-        if self.in_type.gspace.fibergroup.name == "O(2)":
-            subgroup_id = (None, self.in_type.gspace.fibergroup.rotation_order)
-            sg, _, _ = self.in_type.gspace.restrict(subgroup_id)
-
-            induced_trivial = self.in_type.gspace.induced_repr(
-                subgroup_id, sg.trivial_repr
-            )
-            induced_irreps = []
-            irrep_list = sg.fibergroup.irreps()[: frequency + 1]
-            for irr in irrep_list:
-                if not irr.is_trivial():
-                    induced_irreps += [
-                        self.in_type.gspace.induced_repr(subgroup_id, irr)
-                    ]
-
-            # Total channels = C * S   +  1 * C * len(induced_irreps)  = C * M
-            # i.e.:           (fields) + (gates for non-trivial fields)
-
-            self.trivials = FieldType(
-                self.in_type.gspace, [induced_trivial] * out_channels
-            )
-            gates = FieldType(
-                self.in_type.gspace,
-                [induced_trivial] * out_channels * len(induced_irreps),
-            )
-            gated = FieldType(
-                self.in_type.gspace, induced_irreps * out_channels
-            ).sorted()
-            self.gate = gates + gated
-
-            if no_gates:  # for shortcut conv without activation
-                out_type = self.trivials + gated
-            else:
-                out_type = self.trivials + self.gate
-
-            self.conv = R2Conv(
-                self.in_type,
-                out_type,
-                kernel_size=kernel_size,
-                padding=padding,
-                groups=groups,
-                stride=stride,
-                dilation=dilation,
-                bias=bias,
-                frequencies_cutoff=lambda r: 3 * r,
-            )
         # Cyclic and Dihedral Groups
-        else:
-            out_type = FieldType(
-                self.in_type.gspace,
-                [self.in_type.gspace.regular_repr] * out_channels,
-            )
-            self.conv = R2Conv(
-                self.in_type,
-                out_type,
-                kernel_size=kernel_size,
-                padding=padding,
-                stride=stride,
-                dilation=dilation,
-                bias=bias,
-                sigma=None,
-                frequencies_cutoff=lambda r: 3 * r,
-            )
-            self.trivials, self.gate = None, None
+        out_type = FieldType(
+            self.in_type.gspace,
+            [self.in_type.gspace.regular_repr] * out_channels,
+        )
+        self.conv = R2Conv(
+            self.in_type,
+            out_type,
+            kernel_size=kernel_size,
+            padding=padding,
+            stride=stride,
+            dilation=dilation,
+            bias=bias,
+            sigma=None,
+            frequencies_cutoff=lambda r: 3 * r,
+        )
+        self.trivials, self.gate = None, None
 
         self.out_type = self.conv.out_type
 
@@ -207,20 +156,15 @@ class EquivariantNorm(EquivariantModule):
     def __init__(
         self,
         in_type: FieldType,
-        num_groups: int = None,
         affine: bool = False,
     ):
         super().__init__()
         self.in_type = in_type
 
-        if num_groups:  # group norm
-            norm = GroupNorm
-            induced_norm = GroupStandardization
-            param = num_groups
-        else:  # batch norm
-            norm = BatchNorm
-            induced_norm = InducedNormBatchNorm
-            param = affine
+        # batch norm
+        norm = BatchNorm
+        induced_norm = InducedNormBatchNorm
+        param = affine
 
         # Split into pointwise and induced representations
         if len(set(self.in_type.fields_names())) == 1:
@@ -320,7 +264,6 @@ class EquivariantConvBlock(EquivariantModule):
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         pool_size: int = None,
         invariant_map: bool = False,
         act_func: str = "ReLU",
@@ -342,7 +285,7 @@ class EquivariantConvBlock(EquivariantModule):
         self.act_func = getattr(nonlinearities, act_func)(self.conv.out_type)
 
         self.norm = EquivariantNorm(
-            self.act_func.out_type, num_groups=num_groups, affine=False
+            self.act_func.out_type, affine=False
         )
 
         if pool_size is not None or invariant_map:
@@ -370,32 +313,20 @@ class EquivariantSqueezeExcitation(EquivariantModule):
         in_type: FieldType,
         in_channels: int,
         squeeze_channels: int,
-        frequency: int = None,
+        act_func: str = "Swish",
     ):
         super(EquivariantSqueezeExcitation, self).__init__()
         self.in_type = in_type
 
         self.avgpool = PointwiseAdaptiveAvgPool(self.in_type, 1)
         self.fc1 = EquivariantConv(
-            self.avgpool.out_type, squeeze_channels, frequency, kernel_size=1, padding=0
+            self.avgpool.out_type, squeeze_channels, kernel_size=1, padding=0
         )
 
-        # Induced
-        if self.in_type.gspace.fibergroup.name == "O(2)":
-            labels = ["trivial"] * len(self.fc1.trivials) + ["gate"] * len(
-                self.fc1.gate
-            )
-            modules = [
-                (Mish(self.fc1.trivials), "trivial"),
-                (InducedGatedNonLinearity(self.fc1.gate), "gate"),
-            ]
-            self.activation = MultipleModule(self.fc1.out_type, labels, modules)
-        # Cyclic and Dihedral Groups
-        else:
-            self.activation = Mish(self.fc1.out_type)
+        self.act_func = getattr(nonlinearities, act_func)(self.fc1.out_type)
 
         self.fc2 = EquivariantConv(
-            self.activation.out_type, in_channels, frequency, kernel_size=1, padding=0
+            self.act_func.out_type, in_channels, kernel_size=1, padding=0
         )
 
         # TODO: Check if trivial, regular and induced reps support norm non-linearity
@@ -408,7 +339,7 @@ class EquivariantSqueezeExcitation(EquivariantModule):
     def _scale(self, input: GroupTensor):
         scale = self.avgpool(input)
         scale = self.fc1(scale)
-        scale = self.activation(scale)
+        scale = self.act_func(scale)
         scale = self.fc2(scale)
         return self.scale_activation(scale)
 
@@ -433,7 +364,6 @@ class EquivariantBottleneck(EquivariantModule):
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         act_func: str = "Mish", # Mish or ReLU
         expand_ratio: int = 6,
     ):
@@ -444,7 +374,7 @@ class EquivariantBottleneck(EquivariantModule):
         #print('out_channels: ', out_channels)
         # we only have a residual connection 
         # if stride is 1 and the channel number does not change 
-        self.residual_connection = (stride == 1 and in_type.size == out_channels)
+        self.residual_connection = (stride == 1 and len(in_type) == out_channels)
         
         expanded_num_channels = int(self.in_type.size / self.in_type.fibergroup.order())\
             * expand_ratio
@@ -459,7 +389,6 @@ class EquivariantBottleneck(EquivariantModule):
             stride=1,
             dilation=dilation,
             bias=bias,
-            num_groups=num_groups,
             act_func=act_func,
         )
         
@@ -473,7 +402,6 @@ class EquivariantBottleneck(EquivariantModule):
             stride=stride,
             dilation=dilation,
             bias=bias,
-            num_groups=num_groups,
             act_func=act_func,
         )
 
@@ -487,7 +415,6 @@ class EquivariantBottleneck(EquivariantModule):
             stride=1,
             dilation=dilation,
             bias=bias,
-            num_groups=num_groups,
             act_func="None",
         )
         self.out_type = self.conv3.out_type
@@ -515,7 +442,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         act_func: str = "Mish", # Mish or ReLU
         expand_ratio: int = 6,
         num_blocks: int = 1,
@@ -534,7 +460,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
                     stride=stride,
                     dilation=dilation,
                     bias=bias,
-                    num_groups=num_groups,
                     act_func=act_func,
                     expand_ratio=expand_ratio,
                 )
@@ -550,7 +475,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
                     stride=1,
                     dilation=dilation,
                     bias=bias,
-                    num_groups=num_groups,
                     act_func=act_func,
                     expand_ratio=expand_ratio,
                 )
@@ -585,7 +509,6 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         act_func: str = "Mish", # "Mish" or "ReLU" or "None"
     ):
         super().__init__()
@@ -603,7 +526,7 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         )
 
         self.norm = EquivariantNorm(
-            self.conv.out_type, num_groups=num_groups, affine=False
+            self.conv.out_type, affine=False
         )        
 
         # Induced

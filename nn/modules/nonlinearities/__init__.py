@@ -9,6 +9,7 @@ from .vectorfield import VectorFieldNonLinearity
 from .relu import ReLU
 from .elu import ELU
 from .mish import Mish
+from .swish import Swish
 
 from .fourier import *
 from .fourier_quotient import *
@@ -24,6 +25,7 @@ __all__ = [
     "ReLU",
     "ELU",
     "Mish",
+    "Swish",
     "FourierPointwise",
     "FourierELU",
     "QuotientFourierPointwise",

@@ -45,13 +45,11 @@ class EquivariantWideConvBlock(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         kernel_layout: List[int] = None,
         act_func: str = "ReLU", # ReLU
     ):
@@ -72,13 +70,12 @@ class EquivariantWideConvBlock(EquivariantModule):
 
         # block 1
         self.norm1 = EquivariantNorm(
-            self.in_type, num_groups=num_groups, affine=False
+            self.in_type, affine=False
         )
         self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
         self.conv1 = EquivariantConv(
             self.act_func1.out_type,
             out_channels,
-            frequency=frequency,
             kernel_size=kernel_layout[0],
             padding=paddings[0],
             stride=strides[0],
@@ -88,12 +85,11 @@ class EquivariantWideConvBlock(EquivariantModule):
         current_out_type = self.conv1.out_type
         
         if len(kernel_layout) == 3:
-            norm = EquivariantNorm(self.conv1.out_type, num_groups=num_groups, affine=False)
+            norm = EquivariantNorm(self.conv1.out_type, affine=False)
             act = getattr(nonlinearities, act_func)(norm.out_type)
             conv = EquivariantConv(
                     act.out_type,
                     out_channels,
-                    frequency=frequency,
                     kernel_size=kernel_layout[1],
                     padding=paddings[1],
                     stride=strides[1],
@@ -105,13 +101,12 @@ class EquivariantWideConvBlock(EquivariantModule):
         
         # block 2
         self.norm2 = EquivariantNorm(
-            current_out_type, num_groups=num_groups, affine=False
+            current_out_type, affine=False
         )
         self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
         self.conv2 = EquivariantConv(
             self.act_func2.out_type,
             out_channels,
-            frequency=frequency,
             kernel_size=kernel_layout[-1],
             padding=paddings[-1],
             stride=strides[-1],
@@ -124,18 +119,16 @@ class EquivariantWideConvBlock(EquivariantModule):
         self.shortcut = nn.Identity()
         if stride != 1 or self.in_type != self.out_type:
             norm = EquivariantNorm(
-                self.in_type, num_groups=num_groups, affine=False
+                self.in_type, affine=False
             )
             shortcut = EquivariantConv(
                 norm.out_type,
                 out_channels,
-                frequency=frequency,
                 kernel_size=1,
                 padding=0,
                 stride=stride,
                 dilation=dilation,
                 bias=bias,
-                no_gates=True,
             )
             
             self.shortcut = SequentialModule(*[norm, shortcut])
@@ -180,13 +173,11 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         kernel_layout: List[int] = None,
         act_func: str = "ReLU", # ReLU
     ):
@@ -206,13 +197,12 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
 
         # block 1
         self.norm1 = EquivariantNorm(
-            self.in_type, num_groups=num_groups, affine=False
+            self.in_type, affine=False
         )
         self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
         self.conv1 = EquivariantConv(
             self.act_func1.out_type,
             out_channels,
-            frequency=frequency,
             kernel_size=kernel_layout[0],
             padding=paddings[0],
             stride=strides[0],
@@ -223,12 +213,11 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         
         self.layer = []
         for i in range(1, len(kernel_layout)):
-            norm = EquivariantNorm(current_out_type, num_groups=num_groups, affine=False)
+            norm = EquivariantNorm(current_out_type, affine=False)
             act = getattr(nonlinearities, act_func)(norm.out_type)
             conv = EquivariantConv(
                     act.out_type,
                     out_channels,
-                    frequency=frequency,
                     kernel_size=kernel_layout[i],
                     padding=paddings[i],
                     stride=strides[i],
@@ -244,18 +233,16 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         self.shortcut = nn.Identity()
         if stride != 1 or self.in_type != self.out_type:
             norm = EquivariantNorm(
-                self.in_type, num_groups=num_groups, affine=False
+                self.in_type, affine=False
             )
             shortcut = EquivariantConv(
                 norm.out_type,
                 out_channels,
-                frequency=frequency,
                 kernel_size=1,
                 padding=0,
                 stride=stride,
                 dilation=dilation,
                 bias=bias,
-                no_gates=True,
             )
             
             self.shortcut = SequentialModule(*[norm, shortcut])
@@ -293,13 +280,11 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         kernel_layout: List[int] = None,
         act_func: str = "ReLU", # ReLU
         drop_out: float = 0.0
@@ -320,13 +305,12 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
 
         # block 1
         self.norm1 = EquivariantNorm(
-            self.in_type, num_groups=num_groups, affine=False
+            self.in_type, affine=False
         )
         self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
         self.conv1 = EquivariantConv(
             self.act_func1.out_type,
             out_channels,
-            frequency=frequency,
             kernel_size=kernel_layout[0],
             padding=paddings[0],
             stride=strides[0],
@@ -336,12 +320,11 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         
         self.drop_out1 = PointwiseDropout(in_type=self.conv1.out_type, p=drop_out)
         
-        self.norm2 = EquivariantNorm(self.drop_out1.out_type, num_groups=num_groups, affine=False)
+        self.norm2 = EquivariantNorm(self.drop_out1.out_type, affine=False)
         self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
         self.conv2 = EquivariantConv(
                     self.act_func2.out_type,
                     out_channels,
-                    frequency=frequency,
                     kernel_size=kernel_layout[1],
                     padding=paddings[1],
                     stride=strides[1],
@@ -355,18 +338,16 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         self.shortcut = nn.Identity()
         if stride != 1 or self.in_type != self.out_type:
             norm = EquivariantNorm(
-                self.in_type, num_groups=num_groups, affine=False
+                self.in_type, affine=False
             )
             shortcut = EquivariantConv(
                 norm.out_type,
                 out_channels,
-                frequency=frequency,
                 kernel_size=1,
                 padding=0,
                 stride=stride,
                 dilation=dilation,
                 bias=bias,
-                no_gates=True,
             )
             
             self.shortcut = SequentialModule(*[norm, shortcut])

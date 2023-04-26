@@ -48,7 +48,6 @@ class EquivariantWideResNet(nn.Module):
         layout: List[int] = [16, 16, 32, 64],
         kernel_size: int = 3,
         padding: int = 1,
-        num_groups: List[int] = [None, None, None, None],
         num_classes: int = 10,
         kernel_layout: List[int] = [3,3],
         drop_out: float = 0.0,
@@ -65,7 +64,6 @@ class EquivariantWideResNet(nn.Module):
         self.layout = layout
         self.kernel_size = kernel_size
         self.padding = padding
-        self.num_groups = num_groups
         self.num_classes = num_classes
         self.kernel_layout = kernel_layout
         self.drop_out = drop_out
@@ -161,7 +159,6 @@ class EquivariantWideResNet(nn.Module):
             frequency=self.rotation,
             kernel_size=self.kernel_size,
             padding=self.padding,
-            num_groups=self.num_groups[1],
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
@@ -179,7 +176,6 @@ class EquivariantWideResNet(nn.Module):
             frequency=self.rotation,
             kernel_size=self.kernel_size,
             padding=self.padding,
-            num_groups=self.num_groups[2],
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
@@ -204,7 +200,6 @@ class EquivariantWideResNet(nn.Module):
             frequency=self.rotation,
             kernel_size=self.kernel_size,
             padding=self.padding,
-            num_groups=self.num_groups[3],
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
@@ -239,7 +234,6 @@ class EquivariantWideResNet(nn.Module):
         frequency: int,
         kernel_size: int,
         padding: int,
-        num_groups: int,
         bias: bool,
         kernel_layout: List[int],
         act_func: str,
@@ -258,7 +252,6 @@ class EquivariantWideResNet(nn.Module):
                     frequency=frequency,
                     kernel_size=kernel_size,
                     padding=padding,
-                    num_groups=num_groups,
                     kernel_layout=kernel_layout,
                     bias=bias,
                     act_func=act_func,
@@ -351,7 +344,6 @@ class EquivariantWideResNet(nn.Module):
                 frequency=self.rotation,
                 kernel_size=self.kernel_size,
                 padding=self.padding,
-                num_groups=self.num_groups[l],
                 bias=self.bias,
                 act_func=self.act_func,
                 kernel_layout=self.kernel_layout,

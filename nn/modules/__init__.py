@@ -13,6 +13,7 @@ from .nonlinearities import VectorFieldNonLinearity
 from .nonlinearities import ReLU
 from .nonlinearities import ELU
 from .nonlinearities import Mish
+from .nonlinearities import Swish
 from .nonlinearities import FourierPointwise
 from .nonlinearities import FourierELU
 from .nonlinearities import QuotientFourierPointwise
@@ -56,6 +57,7 @@ __all__ = ["EquivariantModule", "MultipleModule", "BasisExpansion", ] + [
     "ReLU",
     "ELU",
     "Mish",
+    "Swish",
     "FourierPointwise",
     "FourierELU",
     "QuotientFourierPointwise",
