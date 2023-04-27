@@ -96,23 +96,6 @@ def retrieve_confusion(path: str) -> List[np.array]:
 # EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
 def exp_name(cfg):
     values = []
-    # dataset name
-    """
-    if cfg.dataset.name == "cifar10":
-        values.append("ci10")
-    elif cfg.dataset.name == "cifar100":
-        values.append("ci100")
-    elif cfg.dataset.name == "stl10":
-        values.append("stl10")
-    elif cfg.dataset.name == "mnist":
-        values.append("mn")
-    elif cfg.dataset.name == "mnist_rot":
-        values.append("mn_rot")
-    elif cfg.dataset.name == "mnist_fliprot":
-        values.append("mn_frot")
-    else:
-        ValueError("Unknown dataset")
-    """
     # model name
     if cfg.model._target_ == "networks.EquivariantWideResNet":
         values.append("eq_wrn")
@@ -128,15 +111,15 @@ def exp_name(cfg):
         ValueError("Unknown model")
 
     # depth
-    if cfg.model._target_ != "networks.RandomNet":
+    if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
         values.append(f"{cfg.model.depth}")
     
     # width
-    if cfg.model._target_ != "networks.RandomNet":
+    if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
         values.append(f"{cfg.model.widen_factor}")
     
     # kernel size
-    if cfg.model._target_ != "networks.RandomNet":
+    if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
         if len(cfg.model.kernel_layout) == 3:
             values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]})")
         elif len(cfg.model.kernel_layout) == 2:

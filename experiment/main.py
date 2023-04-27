@@ -96,7 +96,6 @@ class Experiment:
         
         self.train_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device) if self.n_outputs > 1 else BinaryAccuracy().to(self.device)
 
-
         # build the model
         self.model = hydra.utils.instantiate(
             cfg.model,

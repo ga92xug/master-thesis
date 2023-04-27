@@ -5,7 +5,7 @@ widen_factor: 4
 group: cyclic  # "dihedral" "orthogonal"
 rotation: 4  # discrete number or frequency
 fix_params: True
-restrict: null  # "invariant", "reflection", "halved"
+restrict: [null, null]  # "invariant", "reflection", "halved"
 layout: [16, 16, 32, 64]
 kernel_size: 3
 padding: 1

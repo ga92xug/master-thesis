@@ -1,3 +1,6 @@
+from datetime import time
+import math
+import timeit
 import warnings
 from typing import Tuple, List
 import torch
@@ -34,6 +37,7 @@ from networks.eq_wrn_util import (
     EquivariantWideConvBlock_drop_out,
 )
 
+CHANNELS_CONSTANT = 1
 
 class EquivariantWideResNet(nn.Module):
     def __init__(
@@ -43,7 +47,7 @@ class EquivariantWideResNet(nn.Module):
         group: str = "cyclic",
         rotation: int = 4,
         fix_params: bool = False,
-        restrict: str = None,  # "invariant", "reflection", "halved"
+        restrict: List[str] = [None, None],  # "invariant", "reflection", "halved"
         input_channels: int = 3,
         layout: List[int] = [16, 16, 32, 64],
         kernel_size: int = 3,
@@ -59,7 +63,9 @@ class EquivariantWideResNet(nn.Module):
         self.group = group
         self.rotation = rotation
         self.fix_params = fix_params
-        self.restrict = restrict
+        self.restrict = [None, restrict] if isinstance(restrict, str) or restrict is None else restrict
+        self.restrict = list(self.restrict)
+        assert len(self.restrict) == 2, "restrict must be a string or a list of two strings"
         self.input_channels = input_channels
         self.layout = layout
         self.kernel_size = kernel_size
@@ -118,14 +124,14 @@ class EquivariantWideResNet(nn.Module):
             )
 
         self.num_channels = np.array(self.layout)
-        
-        # Fix number of parameters for all groups
-        #if self.fix_params:
-        #    self.num_channels = calculate_fixed_params(self.num_channels, self.group, 
-        #                                               self.gspace, self.rotation, self.restrict)
-
         # Add width
         self.num_channels *= np.array([1, k, k, k])
+
+        # Heuristic to reduce number of parameters
+        # heuristic is slower since binary search looks in the upper more expensive part of the channels
+        # if self.fix_params:
+        #     self.num_channels = calculate_fixed_params(self.num_channels,
+        #                                                self.gspace, self.restrict)
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
@@ -166,6 +172,10 @@ class EquivariantWideResNet(nn.Module):
                                               preserved_field_type, n=n, stride=1)
             preserved_field_type = self.layer1.out_type
         
+        self.restrict1 = Restriction(preserved_field_type, self.group, self.rotation, self.restrict[0])
+        self.field_type = self.restrict1.out_type
+        preserved_field_type = self.field_type
+
         self.layer2 = self._wide_layer(
             wide_conv_block,
             self.num_channels[2],
@@ -183,8 +193,8 @@ class EquivariantWideResNet(nn.Module):
                                               preserved_field_type, n=n, stride=2)
 
         # Restrict last conv and res layers
-        self.restrict = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict)
-        self.field_type = self.restrict.out_type
+        self.restrict2 = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict[1])
+        self.field_type = self.restrict2.out_type
 
         if self.fix_params:
             preserved_field_type = self.field_type
@@ -260,8 +270,9 @@ class EquivariantWideResNet(nn.Module):
         x = GroupTensor(x, self.input_field_type)
         x = self.conv1(x)
         x = self.layer1(x)
+        x = self.restrict1(x)
         x = self.layer2(x)
-        x = self.restrict(x)
+        x = self.restrict2(x)
         x = self.layer3(x)
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
@@ -343,50 +354,32 @@ class EquivariantWideResNet(nn.Module):
         return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
         
 
-def calculate_fixed_params(num_channels, group, gspace, rotation, restrict):
+def calculate_fixed_params(num_channels, gspace, restrict):
     # deepcopy to avoid changing the original list
     num_channels = num_channels.copy()
-    layout = num_channels.copy()
     for l in range(len(num_channels)):
-        if group == "orthogonal":
-            num_channels[l] = int(num_channels[l] / (rotation + 0.9))
-        else:
-            num_channels[l] = int(
-                        (
-                            num_channels[l]
-                            * np.sqrt(1.25 * gspace.fibergroup.rotation_order)
-                        )
-                        / gspace.fibergroup.rotation_order
-                    )
-        if num_channels[l] < 1:
-            warnings.warn(
-                f"Group order ({gspace.fibergroup.rotation_order}) is larger"
-                f" than number of channels ({num_channels[l]}) defined in layout!"
-            )
-            num_channels[l] = 1
-    
-
-        if restrict == "halved":
-            num_channels[3] = int(
-                (layout[2] * np.sqrt(0.65 * gspace.fibergroup.rotation_order))
-                / (gspace.fibergroup.rotation_order / 2)
-            )
-            if num_channels[3] < 1:
+        if l >= 2 and restrict[l-2] is not None:
+            if restrict[l-2] == "halved":
+                num_channels[l] = int(num_channels[l] * math.sqrt(gspace.fibergroup.order() * CHANNELS_CONSTANT) * 2)
+            elif restrict[l-2] == "reflection":
+                num_channels[l] = int(num_channels[l] * math.sqrt(gspace.fibergroup.order() * CHANNELS_CONSTANT) * 2)
+            elif restrict[l-2] == "invariant":
+                pass
+            if num_channels[l] < 1:
+                num_channels[l] = 1
                 warnings.warn(
-                    f"Group order ({gspace.fibergroup.rotation_order/2}) is larger"
-                    f" than number of channels ({layout[2]}) defined in layout!"
-                )
-                num_channels[3] = 1
-        elif restrict == "reflection":
-            num_channels[3] = int(num_channels[2] * np.sqrt(3) / 2)
-        elif restrict == "invariant":
-            num_channels[3] = int(num_channels[2] * np.sqrt(1.5))
-    
+                        f"num_channels[{l}] < 1",
+                    )
+            continue
+        else:
+            num_channels[l] *= math.sqrt(gspace.fibergroup.order() * CHANNELS_CONSTANT)
     return num_channels
 
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
+    # measure time
+    start = timeit.default_timer()
     print(f"Kernel layout: ", cfg.model.kernel_layout)
     inp = torch.rand(1, 1, 32, 32)
     n_inputs = inp.shape[1]
@@ -406,6 +399,10 @@ def main(cfg: DictConfig) -> None:
     inp = inp.cuda()
     net.cuda()
     print(net(inp).size())
+
+    # measure time
+    stop = timeit.default_timer()
+    print(f"Time elapsed: {stop - start}")
 
     #y = net(torch.randn(1,3,32,32))
     #print(y.size())
