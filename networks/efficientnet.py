@@ -428,8 +428,8 @@ def main(cfg: DictConfig) -> None:
     print(f'Total number of parameters: {tot_param}') # total 2.748.890 # block1 121248
     print(net)
 
-    inp = inp.cuda()
-    net.cuda()
+    inp = inp# .cuda()
+    net#.cuda()
     print(net(inp).size())
 
     #y = net(torch.randn(1,3,32,32))

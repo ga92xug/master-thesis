@@ -57,6 +57,8 @@ from networks import (
     EquivariantConv,
 )
 
+CHANNELS_CONSTANT = 1
+
 ################################################################################
 # Help functions for model architecture
 ################################################################################
@@ -121,7 +123,7 @@ class MemoryEfficientSwish(nn.Module):
         return SwishImplementation.apply(x)
 
 
-def round_filters(filters, global_params, rotations=4):
+def round_filters(filters, global_params, rotation=1, fix_params=False):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
     Args:
@@ -136,14 +138,20 @@ def round_filters(filters, global_params, rotations=4):
     # TODO: modify the params names.
     #       maybe the names (width_divisor,min_width)
     #       are more suitable than (depth_divisor,min_depth).
-    divisor = global_params.depth_divisor * rotations
+    divisor = global_params.depth_divisor
     min_depth = global_params.min_depth
     filters *= multiplier
     min_depth = min_depth or divisor  # pay attention to this line when using min_depth
     # follow the formula transferred from official TensorFlow implementation
     new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
-    if new_filters < 0.9 * filters and rotations == 1:  # prevent rounding by more than 10%
+    if new_filters < 0.9 * filters and rotation == 1:  # prevent rounding by more than 10%
          new_filters += divisor
+    new_filters /= rotation
+    if fix_params:
+        new_filters *= math.sqrt(rotation * CHANNELS_CONSTANT)
+        if new_filters < 1:
+            print("Warning: new_filters < 1")
+            new_filters = 1
     return int(new_filters)
 
 
@@ -327,17 +335,13 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         dilation: int = 1,
         groups: int = 1,
         bias: bool = True,
-        num_groups: int = None,
         # kernel_layout: List[int] = None,
     ):
         super().__init__()
-        assert groups==1, "groups>1 not supported"
-        print("stride", stride)
         self.stride = [stride] * 2 if isinstance(stride, int) else stride
         self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
         self.dilation = [dilation] * 2
-
-        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, stride=self.stride)
+        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, stride=self.stride, groups=groups, bias=bias)
         self.out_type = self.conv2d.out_type
         
 
@@ -348,7 +352,6 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         kh, kw = kernel_size, kernel_size # we don't support uneven kernel sizes
         sh, sw = self.stride[0], self.stride[1]
         # types of ih, sh, iw and sw
-        print(type(ih), type(sh), type(iw), type(sw))
         oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)
         pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
         pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)

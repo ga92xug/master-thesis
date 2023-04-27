@@ -119,6 +119,7 @@ class EquivariantConv(EquivariantModule):
         stride: int = 1,
         dilation: int = 1,
         bias: bool = True,
+        groups: int = 1,
     ):
         super().__init__()
         self.in_type = in_type  # declaration required by base class
@@ -135,6 +136,7 @@ class EquivariantConv(EquivariantModule):
             padding=padding,
             stride=stride,
             dilation=dilation,
+            groups=groups,
             bias=bias,
             sigma=None,
             frequencies_cutoff=lambda r: 3 * r,
@@ -257,7 +259,6 @@ class EquivariantConvBlock(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         groups: int = 1,
@@ -273,7 +274,6 @@ class EquivariantConvBlock(EquivariantModule):
         self.conv = EquivariantConv(
             self.in_type,
             out_channels,
-            frequency=frequency,
             kernel_size=kernel_size,
             padding=padding,
             groups=groups,
@@ -358,7 +358,6 @@ class EquivariantBottleneck(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
@@ -383,7 +382,6 @@ class EquivariantBottleneck(EquivariantModule):
         self.conv1 = EquivariantConvBlock_Conv_BN_actF(
             in_type=self.in_type,
             out_channels=expanded_num_channels,
-            frequency=frequency,
             kernel_size=1,
             padding=0,
             stride=1,
@@ -396,7 +394,6 @@ class EquivariantBottleneck(EquivariantModule):
         self.conv2 = EquivariantConvBlock_Conv_BN_actF(
             in_type=self.conv1.out_type,
             out_channels=expanded_num_channels,
-            frequency=frequency,
             kernel_size=kernel_size,
             padding=padding,
             stride=stride,
@@ -409,7 +406,6 @@ class EquivariantBottleneck(EquivariantModule):
         self.conv3 = EquivariantConvBlock_Conv_BN_actF(
             in_type=self.conv2.out_type,
             out_channels=out_channels,
-            frequency=frequency,
             kernel_size=1,
             padding=0,
             stride=1,
@@ -436,7 +432,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
@@ -454,7 +449,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
                 EquivariantBottleneck(
                     in_type=self.in_type,
                     out_channels=out_channels,
-                    frequency=frequency,
                     kernel_size=kernel_size,
                     padding=padding,
                     stride=stride,
@@ -469,7 +463,6 @@ class EquivariantBottleneckBlock(EquivariantModule):
                 EquivariantBottleneck(
                     in_type=self.layers[-1].out_type,
                     out_channels=out_channels,
-                    frequency=frequency,
                     kernel_size=kernel_size,
                     padding=padding,
                     stride=1,
@@ -502,7 +495,6 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        frequency: int = None,
         kernel_size: int = 3,
         padding: int = 1,
         groups: int = 1,
@@ -516,7 +508,6 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         self.conv = EquivariantConv(
             in_type=self.in_type,
             out_channels=out_channels,
-            frequency=frequency,
             kernel_size=kernel_size,
             padding=padding,
             groups=groups,

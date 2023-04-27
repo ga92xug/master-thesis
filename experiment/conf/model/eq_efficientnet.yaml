@@ -1,6 +1,6 @@
 _target_: networks.EquivariantEfficientNet
 group: cyclic
-rotation: 4
+rotation: 8
 restrict: null # "invariant", "reflection", "halved"
 fix_params: True
 global_params:

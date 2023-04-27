@@ -6,12 +6,12 @@
 # Github repo: https://github.com/lukemelas/EfficientNet-PyTorch
 # With adjustments and added comments by workingcoder (github username).
 
+import math
 from typing import List, Tuple
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import sys
 
-from networks.efficientnet import EfficientNet
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 import torch
 from torch import nn
@@ -32,8 +32,8 @@ from networks.eq_efficientnet_util import (
     Eq_Conv2dSamePadding,
     Conv2dSamePadding
 )
-
-from networks.eq_layers import EquivariantSqueezeExcitation, Restriction
+from networks.efficientnet import EfficientNet
+from networks.eq_layers import EquivariantPool, EquivariantSqueezeExcitation, Restriction
 
 from nn import (
     rot2dOnR2,
@@ -71,6 +71,8 @@ from nn.modules import nonlinearities
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
+CHANNELS_CONSTANT = 1
+
 VALID_MODELS = (
     'efficientnet-b0', 'efficientnet-b1', 'efficientnet-b2', 'efficientnet-b3',
     'efficientnet-b4', 'efficientnet-b5', 'efficientnet-b6', 'efficientnet-b7',
@@ -106,7 +108,8 @@ class MBConvBlock(EquivariantModule):
         # inp = self._block_args.input_filters  # number of input channels
         inp = in_type
         # oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
-        oup = len(in_type) * self._block_args.expand_ratio
+        oup = int((self._block_args.input_filters * self._block_args.expand_ratio) / len(in_type))
+        # oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
             self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
                                 image_size=image_size, kernel_size=1, bias=False)
@@ -121,7 +124,7 @@ class MBConvBlock(EquivariantModule):
         k = self._block_args.kernel_size
         s = self._block_args.stride
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
-        # groups are not working yet
+        print("MBConvBlock: inp", inp)
         self._depthwise_conv = Eq_Conv2dSamePadding(
             in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
             kernel_size=k, stride=s, bias=False
@@ -227,8 +230,9 @@ class EquivariantEfficientNet(nn.Module):
             ):
         super().__init__()
         self.fix_params = fix_params
+        self.restrict = restrict
         if self.fix_params:
-            self.efficentnet = EfficientNet(
+            self.efficientnet = EfficientNet(
                 blocks_args=blocks_args, global_params=global_params, image_size=image_size,
                 input_channels=input_channels, num_classes=num_classes,
             )
@@ -273,26 +277,31 @@ class EquivariantEfficientNet(nn.Module):
         )
 
         # Stem
-        out_channels = round_filters(32, self._global_params)  # number of output channels
+        out_channels = round_filters(32, self._global_params, rotation=1, fix_params=False)
         self._conv_stem = Eq_Conv2dSamePadding(self.input_field_type, out_channels, 
                                                kernel_size=3, stride=2, 
                                                image_size=image_size, bias=False)
-        if self.fix_params:
-            pass
+        
+        # size params of conv_stem
+        
+        print(f"params of conv_stem: {self.get_param_size(self._conv_stem)}")
+        print(f"params of conv_stem: {self.get_param_size(self.efficientnet._conv_stem)}")
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type, momentum=bn_mom, eps=bn_eps)
+        self._swish0 = Swish(in_type=self._bn0.out_type)
         #self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
-        self.field_type = self._bn0.out_type
+        self.field_type = self._swish0.out_type
+        print(f"field_type: {self.field_type}")
         image_size = calculate_output_image_size(image_size, 2)
 
         # Build blocks
         # self._blocks = nn.ModuleList([])
         self._blocks = []
-        for block_args in self._blocks_args:
-
+        for i, block_args in enumerate(self._blocks_args):
+            print(f"Building block: {i}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(block_args.input_filters, self._global_params),
-                output_filters=round_filters(block_args.output_filters, self._global_params),
+                input_filters=round_filters(block_args.input_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
+                output_filters=round_filters(block_args.output_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
                 num_repeat=round_repeats(block_args.num_repeat, self._global_params)
             )
 
@@ -308,35 +317,39 @@ class EquivariantEfficientNet(nn.Module):
                 self.field_type = self._blocks[-1].out_type
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
-        self._blocks = SequentialModule(self._blocks)
+        self._blocks = SequentialModule(*self._blocks)
 
         # Restrict
-        self.restrict = Restriction(self.field_type, self.group, self.rotation, self.restrict)
-        self.field_type = self.restrict.out_type
+        self.restriction = Restriction(self.field_type, self.group, self.rotation, self.restrict)
+        self.field_type = self.restriction.out_type
 
         # Head
         input_channels = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._global_params)
+        out_channels = round_filters(1280, self._global_params, rotation=self.rotation, fix_params=self.fix_params)
         self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
                                                kernel_size=1, image_size=image_size, 
                                                bias=False)
         # self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         self._bn1 = BatchNorm(in_type=self._conv_head.out_type, momentum=bn_mom, eps=bn_eps)
+        self._swish1 = Swish(in_type=self._bn1.out_type)
+
 
         # Final linear layer
+        self.invariant_map = EquivariantPool(self._swish1.out_type, invariant_map=True)
+
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-        if self.include_top:
-            self._dropout = nn.Dropout(self._global_params.dropout_rate)
-            self._fc = nn.Linear(out_channels, self._global_params.num_classes)
+        if self._global_params.include_top:
+            self._dropout = nn.Dropout(self._global_params.drop_out)
+            self._fc = nn.Linear(out_channels, self.num_classes)
 
         # set activation to memory efficient swish by default
-        self._swish = Swish()
+        # self._swish = Swish()
         # self._swish = MemoryEfficientSwish()
 
         if self.fix_params:
             # size of wrn total and size of equivariant part
-            norm_para = sum([p.numel() for p in self.efficentnet.parameters() if p.requires_grad])
-            del self.efficentnet
+            norm_para = sum([p.numel() for p in self.efficientnet.parameters() if p.requires_grad])
+            del self.efficientnet
             equi_param = sum([p.numel() for p in self.parameters() if p.requires_grad])
             current_ratio = equi_param / norm_para
             print(f"Equivariant_EfficientNet / EfficientNet parameter ratio: {current_ratio:.3f}")
@@ -366,7 +379,8 @@ class EquivariantEfficientNet(nn.Module):
         endpoints = dict()
 
         # Stem
-        x = self._swish(self._bn0(self._conv_stem(inputs)))
+        x = GroupTensor(inputs, self.input_field_type)
+        x = self._swish0(self._bn0(self._conv_stem(x)))
         prev_x = x
 
         # Blocks
@@ -382,7 +396,7 @@ class EquivariantEfficientNet(nn.Module):
             prev_x = x
 
         # Head
-        x = self._swish(self._bn1(self._conv_head(x)))
+        x = self._swish1(self._bn1(self._conv_head(x)))
         endpoints['reduction_{}'.format(len(endpoints) + 1)] = x
 
         return endpoints
@@ -396,7 +410,7 @@ class EquivariantEfficientNet(nn.Module):
             layer in the efficientnet model.
         """
         # Stem
-        x = self._swish(self._bn0(self._conv_stem(inputs)))
+        x = self._swish0(self._bn0(self._conv_stem(inputs)))
 
         # Blocks
         for idx, block in enumerate(self._blocks):
@@ -406,7 +420,7 @@ class EquivariantEfficientNet(nn.Module):
             x = block(x, drop_connect_rate=drop_connect_rate)
 
         # Head
-        x = self._swish(self._bn1(self._conv_head(x)))
+        x = self._swish1(self._bn1(self._conv_head(x)))
 
         return x
 
@@ -419,38 +433,18 @@ class EquivariantEfficientNet(nn.Module):
             Output of this model after processing.
         """
         # Convolution layers
-        x = self.extract_features(inputs)
+        x = GroupTensor(inputs, self.input_field_type)
+        x = self.extract_features(x)
         # Pooling and final linear layer
+        x = self.invariant_map(x)
+        x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
         x = self._avg_pooling(x)
-        if self.include_top:
+        if self._global_params.include_top:
             x = x.flatten(start_dim=1)
             x = self._dropout(x)
             x = self._fc(x)
         return x
 
-    @classmethod
-    def from_name(cls, model_name, in_channels=3, **override_params):
-        """Create an efficientnet model according to name.
-        Args:
-            model_name (str): Name for efficientnet.
-            in_channels (int): Input data's channel number.
-            override_params (other key word params):
-                Params to override model's global_params.
-                Optional key:
-                    'width_coefficient', 'depth_coefficient',
-                    'image_size', 'dropout_rate',
-                    'num_classes', 'batch_norm_momentum',
-                    'batch_norm_epsilon', 'drop_connect_rate',
-                    'depth_divisor', 'min_depth'
-        Returns:
-            An efficientnet model.
-        """
-        cls._check_model_name_is_valid(model_name)
-        blocks_args, global_params = get_model_params(model_name, override_params)
-        model = cls(blocks_args, global_params)
-        model._change_in_channels(in_channels)
-        return model
-    
     @classmethod
     def get_image_size(cls, model_name):
         """Get the input image size for a given efficientnet model.
@@ -462,28 +456,89 @@ class EquivariantEfficientNet(nn.Module):
         cls._check_model_name_is_valid(model_name)
         _, _, res, _ = efficientnet_params(model_name)
         return res
-
-    @classmethod
-    def _check_model_name_is_valid(cls, model_name):
-        """Validates model name.
+    
+    def get_param_size(self, model_name):
+        """Get the number of parameters of a given model.
         Args:
-            model_name (str): Name for efficientnet.
+            params (tensor): Input tensor.
         Returns:
-            bool: Is a valid name or not.
+            Number of parameters of a given model.
         """
-        if model_name not in VALID_MODELS:
-            raise ValueError('model_name should be one of: ' + ', '.join(VALID_MODELS))
+        return sum(p.numel() for p in model_name.parameters() if p.requires_grad)
+    
+    def iter_fix_param(self, l, equi_conv_block, normal_conv_block, block=None,
+                       preserved_field_type=None, n=None, stride=None):
+        norm_param = sum([p.numel() for p in normal_conv_block.parameters() if p.requires_grad])
+        equi_param = sum([p.numel() for p in equi_conv_block.parameters() if p.requires_grad])
+        current_channel_size = self.num_channels[l]
+        old_equi_param = None
 
-    def _change_in_channels(self, in_channels):
-        """Adjust model's first convolution layer to in_channels, if in_channels not equals 3.
-        Args:
-            in_channels (int): Input data's channel number.
-        """
-        if in_channels != 3:
-            Conv2d = get_same_padding_conv2d(image_size=self._global_params.image_size)
-            out_channels = round_filters(32, self._global_params)
-            self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
+        # initialize search range
+        if equi_param > norm_param:
+            lower_bound = max(current_channel_size - 200, 1)
+            upper_bound = current_channel_size
+        else:
+            lower_bound = current_channel_size
+            upper_bound = int(self.layout[l] // 0.7)
 
+        # binary search
+        while lower_bound <= upper_bound:
+            prediction = (lower_bound + upper_bound) // 2
+            # save the old one since we might not be in 1% range
+            old_equi_param, old_equi_conv_block = equi_param, equi_conv_block 
+            equi_param, equi_conv_block = self.param_count(l,
+                                        prediction, block, preserved_field_type, n, stride)
+
+            if abs(equi_param - norm_param) < 0.01:
+                last_ratio = equi_param / norm_param
+                return equi_conv_block
+
+            if equi_param < norm_param:
+                # prediction is too small
+                lower_bound = prediction + 1
+            else:
+                upper_bound = prediction - 1
+
+        # if no solution found, return closest channel size
+        if old_equi_param is not None:
+            if abs(old_equi_param - norm_param) < abs(equi_param - norm_param):
+                equi_conv_block = old_equi_conv_block
+            
+        last_ratio = equi_param / norm_param
+        print(f'Ratio for block {l}: {last_ratio}')
+        return equi_conv_block
+
+
+    def param_count(self, l, channel_size_prediction, block, preserved_field_type=None, n=None, stride=None):
+        if l == 0:
+            # change the conv1
+            eq_conv_block = EquivariantConv(
+                in_type=self.input_field_type,
+                out_channels=channel_size_prediction,
+                frequency=self.rotation,
+                kernel_size=self.kernel_size,
+                padding=self.padding,
+                groups=1,
+                stride=1,
+                dilation=1,
+                bias=self.bias,
+            )
+        else:
+            self.field_type = copy.deepcopy(preserved_field_type)
+            eq_conv_block = self._wide_layer(
+                block=block,
+                out_channels=channel_size_prediction,
+                num_blocks=n,
+                stride=stride,
+                frequency=self.rotation,
+                kernel_size=self.kernel_size,
+                padding=self.padding,
+                bias=self.bias,
+                act_func=self.act_func,
+                kernel_layout=self.kernel_layout,
+            )
+        return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
+        
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
@@ -500,9 +555,9 @@ def main(cfg: DictConfig) -> None:
             num_classes=n_outputs,
         )
     tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
-    print(f'Total number of parameters: {tot_param}') # total 2.748.890 # block1 121248
-    print(net)
-
+    print(f'Total number of parameters: {tot_param}')
+    # print(net)
+    return
     inp = inp.cuda()
     net.cuda()
     print(net(inp).size())

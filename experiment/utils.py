@@ -138,15 +138,15 @@ def exp_name(cfg):
     # kernel size
     if cfg.model._target_ != "networks.RandomNet":
         if len(cfg.model.kernel_layout) == 3:
-            values.append(f"{cfg.model.kernel_layout[0]}x{cfg.model.kernel_layout[1]}x{cfg.model.kernel_layout[2]}")
+            values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]})")
         elif len(cfg.model.kernel_layout) == 2:
-            values.append(f"{cfg.model.kernel_layout[0]}x{cfg.model.kernel_layout[1]}")
+            values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]})")
         elif len(cfg.model.kernel_layout) == 1:
-            values.append(f"{cfg.model.kernel_layout[0]}")
+            values.append(f"B({cfg.model.kernel_layout[0]})")
         elif len(cfg.model.kernel_layout) == 4:
-            values.append(f"{cfg.model.kernel_layout[0]}x{cfg.model.kernel_layout[1]}x{cfg.model.kernel_layout[2]}x{cfg.model.kernel_layout[3]}")
+            values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]},{cfg.model.kernel_layout[3]})")
 
-    assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
+    # assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
 
     return "_".join(values)
 

@@ -104,6 +104,13 @@ class Experiment:
             num_classes=n_outputs,
         ).to(self.device)
         print("Stage 2: model built")
+
+        total_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
+        assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
+        wandb.log({"total_parameters": total_param})
+        if self._verbose > 1:
+            print("Total number of parameters:", total_param)
+            print(f"Starting: {self._global_start_time}")
         
         # backup model parameters
         self.modelpath = utils.backup_path(cfg)
@@ -174,12 +181,6 @@ class Experiment:
         
         self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
-        
-        tot_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
-        wandb.log({"total_parameters": tot_param})
-        if self._verbose > 1:
-            print("Total number of parameters:", tot_param)
-            print(f"Starting: {self._global_start_time}")
 
         # training statistics
         self.train_n_batches_len = len(self._dataloaders["train"])
