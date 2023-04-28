@@ -95,7 +95,7 @@ class MBConvBlock(EquivariantModule):
     # _block_args.expand_ratio
     # _block_args.output_filters
 
-    def __init__(self, in_type, block_args, global_params, image_size=None):
+    def __init__(self, in_type, block_args, global_params, image_size, fix_params, normal_block):
         super().__init__()
         self._block_args = block_args
         self.in_type = in_type
@@ -111,8 +111,10 @@ class MBConvBlock(EquivariantModule):
         oup = int((self._block_args.input_filters * self._block_args.expand_ratio) / len(in_type))
         # oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
-            self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
-                                image_size=image_size, kernel_size=1, bias=False)
+            kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
+            self._expand_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._expand_conv, fix_params, **kwargs)
+            # self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
+            #                     image_size=image_size, kernel_size=1, bias=False)
 
             # self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
             self._bn0 = BatchNorm(in_type=self._expand_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
@@ -124,11 +126,13 @@ class MBConvBlock(EquivariantModule):
         k = self._block_args.kernel_size
         s = self._block_args.stride
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
-        print("MBConvBlock: inp", inp)
-        self._depthwise_conv = Eq_Conv2dSamePadding(
-            in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
-            kernel_size=k, stride=s, bias=False
-        )
+        kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'groups': oup, 
+                  'kernel_size': k, 'stride': s, 'bias': False}
+        self._depthwise_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._depthwise_conv, fix_params, **kwargs)
+        # self._depthwise_conv = Eq_Conv2dSamePadding(
+        #     in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
+        #     kernel_size=k, stride=s, bias=False
+        # )
         self._bn1 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
         self._swish1 = Swish(in_type=self._bn1.out_type)
         out_type = self._swish1.out_type
@@ -144,6 +148,8 @@ class MBConvBlock(EquivariantModule):
             # Conv2d = get_same_padding_conv2d(image_size=(1, 1))
             input_channels_squeeze = len(in_type)
             num_squeezed_channels = max(1, int(input_channels_squeeze * self._block_args.se_ratio))
+            kwargs = {'in_type': out_type, 'in_channels': input_channels_squeeze, 'squeeze_channels': num_squeezed_channels, 'act_func': "Swish"}
+            self.squeeze = iter_fix_param(EquivariantSqueezeExcitation, normal_block.squeeze, fix_params, **kwargs)
             self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
                             in_channels=input_channels_squeeze, squeeze_channels=num_squeezed_channels, 
                             act_func="Swish")
@@ -152,7 +158,9 @@ class MBConvBlock(EquivariantModule):
         # Pointwise convolution phase
         final_oup = self._block_args.output_filters
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
-        self._project_conv = Eq_Conv2dSamePadding(in_type=out_type, out_channels=final_oup, image_size=image_size, kernel_size=1, bias=False)
+        kwargs = {'in_type': out_type, 'out_channels': final_oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
+        self._project_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._project_conv, fix_params, **kwargs)
+        # self._project_conv = Eq_Conv2dSamePadding(in_type=out_type, out_channels=final_oup, image_size=image_size, kernel_size=1, bias=False)
         
         #self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._bn2 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
@@ -278,24 +286,29 @@ class EquivariantEfficientNet(nn.Module):
 
         # Stem
         out_channels = round_filters(32, self._global_params, rotation=1, fix_params=False)
-        self._conv_stem = Eq_Conv2dSamePadding(self.input_field_type, out_channels, 
-                                               kernel_size=3, stride=2, 
-                                               image_size=image_size, bias=False)
-        
+        # self._conv_stem = Eq_Conv2dSamePadding()
+        kwargs = {
+            'in_field': self.input_field_type,
+            'out_channels': out_channels,
+            'kernel_size': 3,
+            'stride': 2,
+            'image_size': image_size,
+            'bias': False
+        }
+        self._conv_stem = self.iter_fix_params(Eq_Conv2dSamePadding, self.efficientnet._conv_stem,
+                                               **kwargs)
+
         # size params of conv_stem
-        
-        print(f"params of conv_stem: {self.get_param_size(self._conv_stem)}")
-        print(f"params of conv_stem: {self.get_param_size(self.efficientnet._conv_stem)}")
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type, momentum=bn_mom, eps=bn_eps)
         self._swish0 = Swish(in_type=self._bn0.out_type)
         #self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         self.field_type = self._swish0.out_type
-        print(f"field_type: {self.field_type}")
         image_size = calculate_output_image_size(image_size, 2)
 
         # Build blocks
         # self._blocks = nn.ModuleList([])
         self._blocks = []
+        counter = 0
         for i, block_args in enumerate(self._blocks_args):
             print(f"Building block: {i}")
             # Update block input and output filters based on depth multiplier.
@@ -307,13 +320,16 @@ class EquivariantEfficientNet(nn.Module):
 
             # The first block needs to take care of stride and filter size increase.
             self._blocks.append(MBConvBlock(self.field_type, block_args, 
-                                            self._global_params, image_size=image_size))
+                                            self._global_params, image_size=image_size, 
+                                            i=i, fix_params=self.fix_params, normal_block=self.efficientnet._blocks[counter]))
+            counter += 1
             self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(self.field_type, block_args, self._global_params, image_size=image_size))
+                self._blocks.append(MBConvBlock(self.field_type, block_args, self._global_params, image_size=image_size, normal_block=self.efficientnet._blocks[counter]))
+                counter += 1
                 self.field_type = self._blocks[-1].out_type
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
@@ -456,58 +472,6 @@ class EquivariantEfficientNet(nn.Module):
         cls._check_model_name_is_valid(model_name)
         _, _, res, _ = efficientnet_params(model_name)
         return res
-    
-    def get_param_size(self, model_name):
-        """Get the number of parameters of a given model.
-        Args:
-            params (tensor): Input tensor.
-        Returns:
-            Number of parameters of a given model.
-        """
-        return sum(p.numel() for p in model_name.parameters() if p.requires_grad)
-    
-    def iter_fix_param(self, l, equi_conv_block, normal_conv_block, block=None,
-                       preserved_field_type=None, n=None, stride=None):
-        norm_param = sum([p.numel() for p in normal_conv_block.parameters() if p.requires_grad])
-        equi_param = sum([p.numel() for p in equi_conv_block.parameters() if p.requires_grad])
-        current_channel_size = self.num_channels[l]
-        old_equi_param = None
-
-        # initialize search range
-        if equi_param > norm_param:
-            lower_bound = max(current_channel_size - 200, 1)
-            upper_bound = current_channel_size
-        else:
-            lower_bound = current_channel_size
-            upper_bound = int(self.layout[l] // 0.7)
-
-        # binary search
-        while lower_bound <= upper_bound:
-            prediction = (lower_bound + upper_bound) // 2
-            # save the old one since we might not be in 1% range
-            old_equi_param, old_equi_conv_block = equi_param, equi_conv_block 
-            equi_param, equi_conv_block = self.param_count(l,
-                                        prediction, block, preserved_field_type, n, stride)
-
-            if abs(equi_param - norm_param) < 0.01:
-                last_ratio = equi_param / norm_param
-                return equi_conv_block
-
-            if equi_param < norm_param:
-                # prediction is too small
-                lower_bound = prediction + 1
-            else:
-                upper_bound = prediction - 1
-
-        # if no solution found, return closest channel size
-        if old_equi_param is not None:
-            if abs(old_equi_param - norm_param) < abs(equi_param - norm_param):
-                equi_conv_block = old_equi_conv_block
-            
-        last_ratio = equi_param / norm_param
-        print(f'Ratio for block {l}: {last_ratio}')
-        return equi_conv_block
-
 
     def param_count(self, l, channel_size_prediction, block, preserved_field_type=None, n=None, stride=None):
         if l == 0:
@@ -538,7 +502,56 @@ class EquivariantEfficientNet(nn.Module):
                 kernel_layout=self.kernel_layout,
             )
         return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
+
+    
+def iter_fix_param(type_equi_block, normal_block, fix_params, **kwargs):
+    equi_block = type_equi_block(**kwargs)
+    if not fix_params:
+        return equi_block
+    param_normal_block = get_param_count(normal_block)
+    param_equi_block = get_param_count(equi_block)
+    out_channels = kwargs['out_channels']
+    old_equi_param = None
+    # initialize search range
+    if param_equi_block > param_normal_block:
+        lower_bound = max(out_channels - 200, 1)
+        upper_bound = out_channels
+    else:
+        lower_bound = out_channels
+        upper_bound = int(out_channels // 0.7)
+    # binary search
+    while lower_bound <= upper_bound:
+        kwargs['out_channels'] = (lower_bound + upper_bound) // 2
+        # save the old one since we might not be in 1% range
+        old_equi_param, old_equi_conv_block = param_equi_block, equi_block 
+        # get new equi_block
+        equi_block = type_equi_block(**kwargs)
+        param_equi_block = get_param_count(equi_block)
+        if abs(param_equi_block - param_normal_block) < 0.01:
+            last_ratio = param_equi_block / param_normal_block
+            return equi_block
+        if param_equi_block < param_normal_block:
+            # prediction is too small
+            lower_bound = kwargs['out_channels'] + 1
+        else:
+            upper_bound = kwargs['out_channels'] - 1
+    # if no solution found, return closest channel size
+    if old_equi_param is not None:
+        if abs(old_equi_param - param_normal_block) < abs(param_equi_block - param_normal_block):
+            equi_block = old_equi_conv_block
         
+    last_ratio = param_equi_block / param_normal_block
+    print(f'Ratio for block: {last_ratio}')
+    return equi_block
+
+def get_param_count(model_name):
+        """Get the number of parameters of a given model.
+        Args:
+            params (tensor): Input tensor.
+        Returns:
+            Number of parameters of a given model.
+        """
+        return sum(p.numel() for p in model_name.parameters() if p.requires_grad)
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
