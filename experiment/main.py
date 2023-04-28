@@ -104,6 +104,8 @@ class Experiment:
         ).to(self.device)
         print("Stage 2: model built")
 
+        self._global_start_time = datetime.datetime.now()
+        self._verbose = cfg.other.verbose
         total_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
         assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
         wandb.log({"total_parameters": total_param})
@@ -124,7 +126,6 @@ class Experiment:
         self.accumulate = cfg.training.accumulate
         self.steps_per_epoch = cfg.training.steps_per_epoch
         self._lr = cfg.optimizer.lr
-        self._verbose = cfg.other.verbose
         
         self._lr_decay_start = cfg.training.lr_decay_start
         self._lr_decay_factor = cfg.training.lr_decay_factor

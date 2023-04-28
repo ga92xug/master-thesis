@@ -123,9 +123,10 @@ class EquivariantWideResNet(nn.Module):
                 f'Group "{self.group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
             )
 
-        self.num_channels = np.array(self.layout)
+        self.num_channels = np.array(self.layout, dtype=float)
         # Add width
         self.num_channels *= np.array([1, k, k, k])
+        self.num_channels = np.rint(self.num_channels).astype(int)
 
         # Heuristic to reduce number of parameters
         # heuristic is slower since binary search looks in the upper more expensive part of the channels
@@ -295,7 +296,9 @@ class EquivariantWideResNet(nn.Module):
             upper_bound = current_channel_size
         else:
             lower_bound = current_channel_size
-            upper_bound = int(self.layout[l] // 0.7)
+            upper_bound = int(self.layout[l] // 0.7) 
+            if l == 1:
+                upper_bound = max(upper_bound, int(self.layout[l]) + 20)
 
         # binary search
         while lower_bound <= upper_bound:

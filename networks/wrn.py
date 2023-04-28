@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -20,7 +21,7 @@ class BasicBlock(nn.Module):
         self.kernel_layout = kernel_layout
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.relu1 = nn.ReLU(inplace=True)
-        if not stride_used and kernel_layout[0] == 3:
+        if not stride_used and kernel_layout[0] > 1:
             s = stride
             stride_used = True
         else:
@@ -29,7 +30,7 @@ class BasicBlock(nn.Module):
                                    padding=1 if kernel_layout[0] == 3 else 0, bias=bias)
         
         if len(kernel_layout) == 3:
-            if not stride_used and kernel_layout[1] == 3:
+            if not stride_used and kernel_layout[1] > 1:
                 s = stride
                 stride_used = True
             else:
@@ -43,7 +44,7 @@ class BasicBlock(nn.Module):
 
         self.bn2 = nn.BatchNorm2d(out_planes)
         self.relu2 = nn.ReLU(inplace=True)
-        if not stride_used and kernel_layout[-1] == 3:
+        if not stride_used and kernel_layout[-1] > 1:
             s = stride
             stride_used = True
         else:
@@ -143,6 +144,7 @@ class WideResNet(nn.Module):
         super(WideResNet, self).__init__()
         # nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         nChannels = [layout[0], layout[1]*widen_factor, layout[2]*widen_factor, layout[3]*widen_factor]
+        nChannels = np.rint(nChannels).astype(int)
         assert((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
         if len(kernel_layout) == 1:
