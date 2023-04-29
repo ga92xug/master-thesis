@@ -108,7 +108,7 @@ class MBConvBlock(EquivariantModule):
         # inp = self._block_args.input_filters  # number of input channels
         inp = in_type
         # oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
-        oup = int((self._block_args.input_filters * self._block_args.expand_ratio) / len(in_type))
+        oup = int((self._block_args.input_filters * self._block_args.expand_ratio))
         # oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
             kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
@@ -126,9 +126,9 @@ class MBConvBlock(EquivariantModule):
         k = self._block_args.kernel_size
         s = self._block_args.stride
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
-        kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'groups': oup, 
+        kwargs = {'in_type': inp, 'out_channels': len(inp), 'image_size': image_size, 'groups': len(inp), 
                   'kernel_size': k, 'stride': s, 'bias': False}
-        self._depthwise_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._depthwise_conv, fix_params, **kwargs)
+        self._depthwise_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._depthwise_conv, False, **kwargs)
         # self._depthwise_conv = Eq_Conv2dSamePadding(
         #     in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
         #     kernel_size=k, stride=s, bias=False
@@ -148,11 +148,15 @@ class MBConvBlock(EquivariantModule):
             # Conv2d = get_same_padding_conv2d(image_size=(1, 1))
             input_channels_squeeze = len(in_type)
             num_squeezed_channels = max(1, int(input_channels_squeeze * self._block_args.se_ratio))
-            kwargs = {'in_type': out_type, 'in_channels': input_channels_squeeze, 'squeeze_channels': num_squeezed_channels, 'act_func': "Swish"}
-            self.squeeze = iter_fix_param(EquivariantSqueezeExcitation, normal_block.squeeze, fix_params, **kwargs)
-            self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
-                            in_channels=input_channels_squeeze, squeeze_channels=num_squeezed_channels, 
-                            act_func="Swish")
+            kwargs = {'in_type': out_type, 'in_channels': input_channels_squeeze, 
+                      'squeeze_channels': num_squeezed_channels, 'act_func': "Swish"}
+            
+            self.squeeze = iter_fix_param(EquivariantSqueezeExcitation, 
+                                          nn.Sequential(*[normal_block._se_reduce, normal_block._se_expand]), 
+                                          fix_params, channel_name='in_channels', **kwargs)
+            # self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
+            #                 in_channels=input_channels_squeeze, squeeze_channels=num_squeezed_channels, 
+            #                 act_func="Swish")
             out_type = self.squeeze.out_type
 
         # Pointwise convolution phase
@@ -287,16 +291,10 @@ class EquivariantEfficientNet(nn.Module):
         # Stem
         out_channels = round_filters(32, self._global_params, rotation=1, fix_params=False)
         # self._conv_stem = Eq_Conv2dSamePadding()
-        kwargs = {
-            'in_field': self.input_field_type,
-            'out_channels': out_channels,
-            'kernel_size': 3,
-            'stride': 2,
-            'image_size': image_size,
-            'bias': False
-        }
-        self._conv_stem = self.iter_fix_params(Eq_Conv2dSamePadding, self.efficientnet._conv_stem,
-                                               **kwargs)
+        kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
+            'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
+        self._conv_stem = iter_fix_param(Eq_Conv2dSamePadding, self.efficientnet._conv_stem,
+                                               fix_params=self.fix_params, **kwargs)
 
         # size params of conv_stem
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type, momentum=bn_mom, eps=bn_eps)
@@ -321,14 +319,16 @@ class EquivariantEfficientNet(nn.Module):
             # The first block needs to take care of stride and filter size increase.
             self._blocks.append(MBConvBlock(self.field_type, block_args, 
                                             self._global_params, image_size=image_size, 
-                                            i=i, fix_params=self.fix_params, normal_block=self.efficientnet._blocks[counter]))
+                                            fix_params=self.fix_params, normal_block=self.efficientnet._blocks[counter]))
             counter += 1
             self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(self.field_type, block_args, self._global_params, image_size=image_size, normal_block=self.efficientnet._blocks[counter]))
+                self._blocks.append(MBConvBlock(self.field_type, block_args, 
+                                                self._global_params, image_size=image_size, 
+                                                fix_params=self.fix_params, normal_block=self.efficientnet._blocks[counter]))
                 counter += 1
                 self.field_type = self._blocks[-1].out_type
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
@@ -504,24 +504,27 @@ class EquivariantEfficientNet(nn.Module):
         return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
 
     
-def iter_fix_param(type_equi_block, normal_block, fix_params, **kwargs):
+def iter_fix_param(type_equi_block, normal_block, fix_params, 
+                   channel_name="out_channels", **kwargs):
     equi_block = type_equi_block(**kwargs)
     if not fix_params:
         return equi_block
     param_normal_block = get_param_count(normal_block)
     param_equi_block = get_param_count(equi_block)
-    out_channels = kwargs['out_channels']
+    out_channels = kwargs[channel_name]
     old_equi_param = None
     # initialize search range
     if param_equi_block > param_normal_block:
-        lower_bound = max(out_channels - 200, 1)
+        lower_bound = max(out_channels - 400, 1)
         upper_bound = out_channels
     else:
         lower_bound = out_channels
-        upper_bound = int(out_channels // 0.7)
+        # the upper bound search is expensive so we gradually increase it
+        upper_bound = int(round(out_channels // 0.7))
     # binary search
     while lower_bound <= upper_bound:
-        kwargs['out_channels'] = (lower_bound + upper_bound) // 2
+        # print(f'lower bound: {lower_bound}, upper bound: {upper_bound}, prediction: {kwargs[channel_name]}')
+        kwargs[channel_name] = (lower_bound + upper_bound) // 2
         # save the old one since we might not be in 1% range
         old_equi_param, old_equi_conv_block = param_equi_block, equi_block 
         # get new equi_block
@@ -529,12 +532,18 @@ def iter_fix_param(type_equi_block, normal_block, fix_params, **kwargs):
         param_equi_block = get_param_count(equi_block)
         if abs(param_equi_block - param_normal_block) < 0.01:
             last_ratio = param_equi_block / param_normal_block
+            print(f'Ratio for block: {last_ratio}')
             return equi_block
         if param_equi_block < param_normal_block:
             # prediction is too small
-            lower_bound = kwargs['out_channels'] + 1
+            lower_bound = kwargs[channel_name] + 1
+            if lower_bound >= upper_bound:
+                # we increase to upper bound slowly to avoid expensive search
+                upper_bound += 20
+                 
         else:
-            upper_bound = kwargs['out_channels'] - 1
+            upper_bound = kwargs[channel_name] - 1
+                
     # if no solution found, return closest channel size
     if old_equi_param is not None:
         if abs(old_equi_param - param_normal_block) < abs(param_equi_block - param_normal_block):
