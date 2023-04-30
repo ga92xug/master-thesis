@@ -29,11 +29,14 @@ from .eq_efficientnet_util import (
     round_filters,
     round_repeats,
     drop_connect,
-    get_width_and_height_from_size,
-    calculate_output_image_size,
     Conv2dSamePadding,
     Eq_Conv2dSamePadding,
     BlockDecoder,
+)
+
+from .util import (
+    get_width_and_height_from_size,
+    calculate_output_image_size,
 )
 
 __all__ = [
@@ -62,4 +65,7 @@ __all__ = [
     "WideResNet",
     "EquivariantEfficientNet",
     "EfficientNet",    
+] + [
+    "get_width_and_height_from_size",
+    "calculate_output_image_size",
 ]

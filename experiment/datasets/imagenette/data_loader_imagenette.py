@@ -48,45 +48,53 @@ def download_data(DATA_DIR):
     else:
         print("This directory doesn't exist. Create the directory and run again")
 
-
-
-
 def build_imagenette_loaders(batch_size,
                           eval_batchsize,
                           num_workers=8,
                           augment=False,
                           drop_last=False,
+                          resolution_scaling=1.0,
+                          resolution_test=False
                           ):
+    image_size = int(224 * resolution_scaling)
 
     # download_data(DATA_DIR)
     # Define training and validation data paths
+    if image_size > 320:
+        DATA_DIR = ROOT_DIR + "imagenette/imagenette2/"
+    else:
+        DATA_DIR = ROOT_DIR + "imagenette/imagenette2-320/"
+
     TRAIN_DIR = os.path.join(DATA_DIR, 'train') 
     VAL_DIR = os.path.join(DATA_DIR, 'val')
 
-
-
     #Performing Transformations on the dataset and defining training and validation dataloaders
+    if image_size <= 256 and not resolution_test:
+        image_size_transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(image_size),
+            ])
+    elif image_size > 256 or resolution_test:
+        image_size_transform = transforms.Compose([
+            transforms.Resize(image_size),
+            transforms.CenterCrop(image_size),
+            ])
 
-    # transforms.RandomCrop(32, padding=4),
+    valid_transform = transforms.Compose([
+            image_size_transform,
+            transforms.ToTensor(),
+            ])
+
     if augment:
         train_transform = transforms.Compose([
-                transforms.Resize(256),
-                transforms.CenterCrop(224),
+                image_size_transform,
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 ])
     else:
-        train_transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            ])
+        train_transform = valid_transform
 
-    valid_transform = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            ])
+    
 
     train_dataset = datasets.ImageFolder(TRAIN_DIR, transform=train_transform)
     val_dataset = datasets.ImageFolder(VAL_DIR, transform=valid_transform)
@@ -114,6 +122,8 @@ if __name__ == "__main__":
             eval_batchsize=128,
             num_workers=8,
             augment=False,
+            resolution_scaling=1.0,
+            resolution_test=True,
         )
         
         print(len(train_dataloader.dataset))
@@ -126,17 +136,17 @@ if __name__ == "__main__":
         for i, (images, labels) in enumerate(train_dataloader):
             print(images.shape)
             print(labels.shape)
-            break
+            
     
         for i, (images, labels) in enumerate(val_dataloader):
             print(images.shape)
             print(labels.shape)
-            break
+            
     
         for i, (images, labels) in enumerate(test_dataloader):
             print(images.shape)
             print(labels.shape)
-            break
+            
     
         print("Done")
     

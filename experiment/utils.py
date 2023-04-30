@@ -219,14 +219,16 @@ from datasets.cifar10 import data_loader_cifar10
 from datasets.cifar100 import data_loader_cifar100
 from datasets.STL10 import data_loader_stl10
 from datasets.STL10 import data_loader_stl10frac
+from datasets.imagenette import data_loader_imagenette
 
 
 def build_dataloaders(cfg):
     dataset = cfg.dataset.name
     batch_size = cfg.training.batch_size
     num_workers = cfg.dataset.workers
-    augment = cfg.dataset.augment
-    validation = cfg.training.earlystop or True # they used earlystop for validation??? TODO
+    drop_last_train = cfg.dataset.drop_last_train or False
+    augment = cfg.dataset.augment or False
+    validation = cfg.training.earlystop or True 
     reshuffle = cfg.dataset.reshuffle or False
     eval_batch_size = cfg.training.eval_batch_size or None
     interpolation = cfg.dataset.interpolation or 2
@@ -380,6 +382,18 @@ def build_dataloaders(cfg):
             num_workers=num_workers,
             reshuffle=reshuffle
         )
+    elif dataset == "imagenette":
+        resolution_scaling = cfg.dataset.resolution_scaling or None
+        resolution_test = cfg.dataset.resolution_test or None
+        train_loader, valid_loader, test_loader, n_inputs, n_outputs = data_loader_imagenette.build_imagenette_loaders(
+            batch_size,
+            eval_batch_size,
+            augment=augment,
+            num_workers=num_workers,
+            drop_last=drop_last_train,
+            resolution_scaling=resolution_scaling,
+            resolution_test = resolution_test,
+        )    
     else:
         raise ValueError("Dataset '{}' not recognized!".format(dataset))
     

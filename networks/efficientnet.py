@@ -24,8 +24,9 @@ from networks.eq_efficientnet_util import (
     load_pretrained_weights,
     Swish,
     MemoryEfficientSwish,
-    calculate_output_image_size
 )
+
+from networks.util import calculate_output_image_size
 
 
 VALID_MODELS = (

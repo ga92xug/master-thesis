@@ -5,6 +5,7 @@ import warnings
 from typing import Tuple, List
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 import hydra
 from omegaconf import DictConfig
@@ -29,12 +30,17 @@ from networks import (
     EquivariantConvBlock,
     EquivariantConv,
 )
-
+from nn.modules import nonlinearities
+from networks.eq_layers import EquivariantNorm
 from networks.wrn import WideResNet
 from networks.eq_wrn_util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 
     EquivariantWideConvBlock_drop_out,
+)
+
+from networks.util import (
+    calculate_output_image_size,
 )
 
 CHANNELS_CONSTANT = 1
@@ -57,6 +63,7 @@ class EquivariantWideResNet(nn.Module):
         drop_out: float = 0.0,
         bias: bool = False,
         act_func: str = "ReLU",
+        image_size: int = 32,
     ):
         self.depth = depth
         self.widen_factor = widen_factor
@@ -150,10 +157,10 @@ class EquivariantWideResNet(nn.Module):
             dilation=1,
             bias=bias,
         )
-
         if self.fix_params:
             self.conv1 = self.iter_fix_param(0, self.conv1, self.wrn.conv1)
             preserved_field_type = self.conv1.out_type
+        image_size = calculate_output_image_size(image_size, stride=1)
             
 
         self.field_type = self.conv1.out_type
@@ -171,7 +178,8 @@ class EquivariantWideResNet(nn.Module):
         if self.fix_params:
             self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, wide_conv_block, 
                                               preserved_field_type, n=n, stride=1)
-            preserved_field_type = self.layer1.out_type
+        preserved_field_type = self.layer1.out_type
+        image_size = calculate_output_image_size(image_size, stride=1)
         
         self.restrict1 = Restriction(preserved_field_type, self.group, self.rotation, self.restrict[0])
         self.field_type = self.restrict1.out_type
@@ -192,6 +200,7 @@ class EquivariantWideResNet(nn.Module):
             self.field_type = preserved_field_type
             self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, wide_conv_block, 
                                               preserved_field_type, n=n, stride=2)
+        image_size = calculate_output_image_size(image_size, stride=2)
 
         # Restrict last conv and res layers
         self.restrict2 = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict[1])
@@ -215,12 +224,16 @@ class EquivariantWideResNet(nn.Module):
             self.field_type = preserved_field_type
             self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, 
                                               wide_conv_block, preserved_field_type, n=n, stride=2)
+        image_size = calculate_output_image_size(image_size, stride=2)
 
-        self.invariant_map = EquivariantPool(self.layer3.out_type, invariant_map=True)
-        self.global_pool = nn.AdaptiveAvgPool2d((2, 2))
+        self.bn1 = EquivariantNorm(self.layer3.out_type, affine=False)
+        self.relu = getattr(nonlinearities, act_func)(self.bn1.out_type)
+
+        self.invariant_map = EquivariantPool(self.relu.out_type, invariant_map=True)
+        image_size = int(image_size[0] / 2)
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
-            self.invariant_map.out_type.size * 2 * 2, self.num_classes
+            self.invariant_map.out_type.size * image_size * image_size, self.num_classes
         )
 
         if self.fix_params:
@@ -275,9 +288,10 @@ class EquivariantWideResNet(nn.Module):
         x = self.layer2(x)
         x = self.restrict2(x)
         x = self.layer3(x)
+        x = self.relu(self.bn1(x))
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
-        x = self.global_pool(x)
+        x = F.avg_pool2d(x, 2)
         x = self.flatten(x)
         x = self.classifier(x)
         return x
@@ -384,15 +398,18 @@ def main(cfg: DictConfig) -> None:
     # measure time
     start = timeit.default_timer()
     print(f"Kernel layout: ", cfg.model.kernel_layout)
-    inp = torch.rand(1, 1, 32, 32)
+    input_image_size = 410
+    inp = torch.rand(1, 1, input_image_size, input_image_size)
     n_inputs = inp.shape[1]
     n_outputs = 10
+    image_size=inp.shape[2]
     # depth, num_classes, widen_factor=1, dropRate=0.0
     #net = EquivariantWideResNet()
     net = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,
             num_classes=n_outputs,
+            image_size=image_size,
         )
     # tot_param = sum([p.numel() for p in net.conv1.parameters()  if p.requires_grad])
     tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])

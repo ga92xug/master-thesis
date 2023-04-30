@@ -1,7 +1,7 @@
 defaults:
 - _self_
-- dataset: default
-- model: eq_efficientnet
+- dataset: cifar10
+- model: eq_wrn
 - other: default
 - optimizer: Adam
 - training: default
@@ -9,7 +9,6 @@ defaults:
 # Dataset parameters        
 dataset:
   data_dir: '../Data/frischs/datasets/'  # Path to the datasets        
-  name: "cifar10"             # The name of the dataset to use
   augment: True                 # Augment the training set with rotated images
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
@@ -65,3 +64,4 @@ wandb:
   # wandb_entity: Null          # Name of the wandb entity default is your username
   notes: null
   give_name: True
+  tags: null

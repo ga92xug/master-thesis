@@ -28,12 +28,12 @@ from networks.eq_efficientnet_util import (
     load_pretrained_weights,
     Swish,
     MemoryEfficientSwish,
-    calculate_output_image_size,
     Eq_Conv2dSamePadding,
     Conv2dSamePadding
 )
 from networks.efficientnet import EfficientNet
 from networks.eq_layers import EquivariantPool, EquivariantSqueezeExcitation, Restriction
+from networks.util import calculate_output_image_size
 
 from nn import (
     rot2dOnR2,
@@ -473,94 +473,6 @@ class EquivariantEfficientNet(nn.Module):
         _, _, res, _ = efficientnet_params(model_name)
         return res
 
-    def param_count(self, l, channel_size_prediction, block, preserved_field_type=None, n=None, stride=None):
-        if l == 0:
-            # change the conv1
-            eq_conv_block = EquivariantConv(
-                in_type=self.input_field_type,
-                out_channels=channel_size_prediction,
-                frequency=self.rotation,
-                kernel_size=self.kernel_size,
-                padding=self.padding,
-                groups=1,
-                stride=1,
-                dilation=1,
-                bias=self.bias,
-            )
-        else:
-            self.field_type = copy.deepcopy(preserved_field_type)
-            eq_conv_block = self._wide_layer(
-                block=block,
-                out_channels=channel_size_prediction,
-                num_blocks=n,
-                stride=stride,
-                frequency=self.rotation,
-                kernel_size=self.kernel_size,
-                padding=self.padding,
-                bias=self.bias,
-                act_func=self.act_func,
-                kernel_layout=self.kernel_layout,
-            )
-        return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
-
-    
-def iter_fix_param(type_equi_block, normal_block, fix_params, 
-                   channel_name="out_channels", **kwargs):
-    equi_block = type_equi_block(**kwargs)
-    if not fix_params:
-        return equi_block
-    param_normal_block = get_param_count(normal_block)
-    param_equi_block = get_param_count(equi_block)
-    out_channels = kwargs[channel_name]
-    old_equi_param = None
-    # initialize search range
-    if param_equi_block > param_normal_block:
-        lower_bound = max(out_channels - 400, 1)
-        upper_bound = out_channels
-    else:
-        lower_bound = out_channels
-        # the upper bound search is expensive so we gradually increase it
-        upper_bound = int(round(out_channels // 0.7))
-    # binary search
-    while lower_bound <= upper_bound:
-        # print(f'lower bound: {lower_bound}, upper bound: {upper_bound}, prediction: {kwargs[channel_name]}')
-        kwargs[channel_name] = (lower_bound + upper_bound) // 2
-        # save the old one since we might not be in 1% range
-        old_equi_param, old_equi_conv_block = param_equi_block, equi_block 
-        # get new equi_block
-        equi_block = type_equi_block(**kwargs)
-        param_equi_block = get_param_count(equi_block)
-        if abs(param_equi_block - param_normal_block) < 0.01:
-            last_ratio = param_equi_block / param_normal_block
-            print(f'Ratio for block: {last_ratio}')
-            return equi_block
-        if param_equi_block < param_normal_block:
-            # prediction is too small
-            lower_bound = kwargs[channel_name] + 1
-            if lower_bound >= upper_bound:
-                # we increase to upper bound slowly to avoid expensive search
-                upper_bound += 20
-                 
-        else:
-            upper_bound = kwargs[channel_name] - 1
-                
-    # if no solution found, return closest channel size
-    if old_equi_param is not None:
-        if abs(old_equi_param - param_normal_block) < abs(param_equi_block - param_normal_block):
-            equi_block = old_equi_conv_block
-        
-    last_ratio = param_equi_block / param_normal_block
-    print(f'Ratio for block: {last_ratio}')
-    return equi_block
-
-def get_param_count(model_name):
-        """Get the number of parameters of a given model.
-        Args:
-            params (tensor): Input tensor.
-        Returns:
-            Number of parameters of a given model.
-        """
-        return sum(p.numel() for p in model_name.parameters() if p.requires_grad)
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:

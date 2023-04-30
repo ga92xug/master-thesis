@@ -68,7 +68,7 @@ class Experiment:
         # experiment name
         self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
         run = wandb.init(project=cfg.wandb.project, config=wandb.config, mode=cfg.wandb.mode, \
-                         name=self.expname, notes=cfg.wandb.notes)
+                         name=self.expname, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
         
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
@@ -79,11 +79,12 @@ class Experiment:
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         print("DEVICE:", self.device)
         # outpath
-        self.outpath = utils.out_path(cfg)
-        os.makedirs(self.outpath, exist_ok=True)
+        # self.outpath = utils.out_path(cfg)
+        # os.makedirs(self.outpath, exist_ok=True)
                
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
+        #self._dataloaders, n_inputs, n_outputs = hydra.utils.instantiate(cfg.dataset)
         print("Stage 1: datasets built")
         
         # Loss function
@@ -187,8 +188,7 @@ class Experiment:
         self.train_data_len = len(self._dataloaders["train"].dataset)
         self.actual_batch_size = self.batch_size * self.accumulate
         self.last_batch_size = self.train_data_len % self.actual_batch_size
-        self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)
-        
+        self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
 
     def log(self, accuracy, loss, split):
         """
@@ -220,11 +220,11 @@ class Experiment:
         for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
             if self._verbose > 3:
                 print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
+            
             n_samples += x.shape[0]
 
             x = x.to(self.device)
             t = t.to(self.device)
-            
             y = self.model(x)
 
             loss = self._loss_function(y, t)
@@ -472,6 +472,16 @@ class Experiment:
         for param_group in self._optimizer.param_groups:
             param_group['lr'] = lr
         return self._optimizer, lr
+
+
+def cuda_memory_usage():
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    a = torch.cuda.memory_allocated(0)
+    f = r-a  # free inside reserved
+    print(f"Allocated: {r / 1024 ** 3:.1f} GB")
+    print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
+    print(f"Free:         {f / 1024 ** 3:.1f} GB")
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")

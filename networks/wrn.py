@@ -8,6 +8,10 @@ from omegaconf import DictConfig
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
+from networks.util import (
+    calculate_output_image_size,
+)
+
 __all__ = ['WideResNet']
 
 """
@@ -140,7 +144,8 @@ class NetworkBlock(nn.Module):
 
 class WideResNet(nn.Module):
     def __init__(self, depth, layout, kernel_size, kernel_layout, padding, input_channels, \
-                 num_classes, widen_factor=1, bias=False, drop_out=0.0, restrict=None):
+                 num_classes, widen_factor=1, bias=False, drop_out=0.0, restrict=None,
+                 image_size=32):
         super(WideResNet, self).__init__()
         # nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         nChannels = [layout[0], layout[1]*widen_factor, layout[2]*widen_factor, layout[3]*widen_factor]
@@ -155,16 +160,21 @@ class WideResNet(nn.Module):
         # 1st conv before any network block
         self.conv1 = nn.Conv2d(input_channels, nChannels[0], kernel_size=kernel_size, stride=1,
                                padding=1, bias=bias)
+        image_size = calculate_output_image_size(image_size, stride=1)
         # 1st block
         self.layer1 = NetworkBlock(n, nChannels[0], nChannels[1], kernel_layout, block, 1, drop_out, bias=bias)
+        image_size = calculate_output_image_size(image_size, stride=1)
         # 2nd block
         self.layer2 = NetworkBlock(n, nChannels[1], nChannels[2], kernel_layout, block, 2, drop_out, bias=bias)
+        image_size = calculate_output_image_size(image_size, stride=2)
         # 3rd block
         self.layer3 = NetworkBlock(n, nChannels[2], nChannels[3], kernel_layout, block, 2, drop_out, bias=bias)
+        image_size = calculate_output_image_size(image_size, stride=2)
         # global average pooling and classifier
         self.bn1 = nn.BatchNorm2d(nChannels[3])
         self.relu = nn.ReLU(inplace=True)
-        self.fc = nn.Linear(nChannels[3], num_classes)
+        image_size = int(image_size[0] / 2)
+        self.fc = nn.Linear(nChannels[3] * image_size * image_size, num_classes)
         self.nChannels = nChannels[3]
 
         for m in self.modules():
@@ -182,24 +192,28 @@ class WideResNet(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.relu(self.bn1(out))
-        out = F.avg_pool2d(out, 8)
-        out = out.view(-1, self.nChannels)
-        return self.fc(out)
+        out = F.avg_pool2d(out, 2)
+        out = out.flatten(start_dim=1)
+        out = self.fc(out)
+        return out
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     print(f"Kernel layout: ", cfg.model.kernel_layout)
-    inp = torch.rand(1, 1, 32, 32)
+    input_image_size = 410
+    inp = torch.rand(1, 1, input_image_size, input_image_size)
     n_inputs = inp.shape[1]
+    image_size=inp.shape[2]
     n_outputs = 10
     # depth, num_classes, widen_factor=1, dropRate=0.0
     net = hydra.utils.instantiate(
             cfg.model,
+            image_size=image_size,
             input_channels=n_inputs,
             num_classes=n_outputs,
         )
     # tot_param = sum([p.numel() for p in net.conv1.parameters()  if p.requires_grad])
-    tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
+    tot_param = sum([p.numel() for p in net.parameters() if p.requires_grad])
     print('Total number of parameters: {}'.format(tot_param)) # total 2.748.890 # block1 121248
     #print(net.layer1)
 
