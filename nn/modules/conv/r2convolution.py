@@ -258,9 +258,10 @@ class R2Conv(EquivariantModule, ABC):
                         pi += irr.size
                     p += r.size
 
-                self.bias_expansion = bias_expansion.to(
-                    f"cuda:{torch.cuda.current_device()}"
-                )
+                # CPU training
+                self.bias_expansion = bias_expansion# .to(
+                #     f"cuda:{torch.cuda.current_device()}"
+                # )
                 self.bias = Parameter(torch.zeros(trivials), requires_grad=True)
                 self.expanded_bias = torch.zeros(out_type.size)
             else:
@@ -297,7 +298,6 @@ class R2Conv(EquivariantModule, ABC):
         self.weights = Parameter(
             torch.zeros(self._basisexpansion.dimension()), requires_grad=True
         )
-
 
         filter_size = (out_type.size, in_type.size) + (kernel_size,) * self.d
         self.filter = torch.zeros(*filter_size)
@@ -356,6 +356,9 @@ class R2Conv(EquivariantModule, ABC):
             the expanded filter and bias
 
         """
+        # CPU training
+        self.weights = Parameter(self.weights.to(torch.device("cpu")))
+        # print('expand parameters device', self.weights.device)
         _filter = self.basisexpansion(self.weights)
         _filter = _filter.reshape(
             _filter.shape[0], _filter.shape[1], *(self.kernel_size,) * self.d
@@ -364,9 +367,9 @@ class R2Conv(EquivariantModule, ABC):
         if self.bias is None:
             _bias = None
         else:
-            # Stefan TODO
-            # print('devices', self.bias.device, self.bias_expansion.device)
+            # CPU training
             self.bias_expansion = self.bias_expansion.cpu()
+            self.bias = Parameter(self.bias.cpu())
             _bias = self.bias_expansion @ self.bias # .cuda()
 
         return _filter, _bias
@@ -400,6 +403,9 @@ class R2Conv(EquivariantModule, ABC):
         # Weight standardization
         std, mean = torch.std_mean(_filter, dim=(1, 2, 3), unbiased=False, keepdim=True)
         _filter = (_filter - mean) / (std.expand_as(_filter - mean) + 1e-5)
+
+        # CPU training
+        input.tensor = input.tensor.to(torch.device("cpu"))
 
         # Use filter for convolution and return result
         if self.padding_mode == "zeros":
@@ -554,7 +560,7 @@ class R2Conv(EquivariantModule, ABC):
             return GroupTensor(
                 torch.FloatTensor(
                     block_reduce(t.tensor.detach().cpu().numpy(), s, func=np.mean)
-                ).cuda(),
+                ),#.cuda(),
                 t.type,
             )
 

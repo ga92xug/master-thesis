@@ -334,7 +334,8 @@ class BasisExpansion(torch.nn.Module):
         sampled_basis = sampled_basis[mask, ...]
 
         # register the bases tensors as parameters of this module
-        return sampled_basis.to(f"cuda:{torch.cuda.current_device()}")
+        # CPU training
+        return sampled_basis # .to(f"cuda:{torch.cuda.current_device()}")
 
     def forward(self, weights: torch.Tensor) -> torch.Tensor:
         """
@@ -444,8 +445,8 @@ class BasisExpansion(torch.nn.Module):
             assert len(coefficients.shape) == 2 and (
                 coefficients.shape[1] == sampled_bases[io_pair].shape[0]
             )
+            # CPU training
             sampled_bases[io_pair] = sampled_bases[io_pair].cpu()
-            # print('device: ', coefficients.device, sampled_bases[io_pair].device)
 
             # Expand current subset of basis vectors and set result in the appropriate place in the filter
             _filter_block = torch.einsum(

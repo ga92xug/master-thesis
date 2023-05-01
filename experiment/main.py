@@ -75,9 +75,13 @@ class Experiment:
         # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
+        
         # device
-        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        # CPU training
+        # self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cpu")
         print("DEVICE:", self.device)
+
         # outpath
         # self.outpath = utils.out_path(cfg)
         # os.makedirs(self.outpath, exist_ok=True)
@@ -103,6 +107,8 @@ class Experiment:
             input_channels=n_inputs,
             num_classes=n_outputs,
         ).to(self.device)
+        if self.device != torch.device("cpu"):
+            self.model = nn.DataParallel(self.model)
         print("Stage 2: model built")
 
         self._global_start_time = datetime.datetime.now()
@@ -166,10 +172,7 @@ class Experiment:
         # iteration is the number of batches seen
         self._iteration = 0
         self._epoch = 0
-        self.global_step = 0
-        
-        self.model = nn.DataParallel(self.model)
-        
+        self.global_step = 0        
         
         assert cfg.training.valid_metric in ["loss", "accuracy"]
         self._valid_metric = cfg.training.valid_metric
