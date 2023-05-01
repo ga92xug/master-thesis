@@ -1,6 +1,6 @@
 name: 'imagenette'             # The name of the dataset to use
-batch_size: 1
-eval_batchsize: 1
+batch_size: 128
+eval_batchsize: 64
 augment: False                 # Augment the training set with rotated images
 drop_last_train: False       # Drop the last batch if it is smaller than the batch size
 resolution_scaling: 1.0

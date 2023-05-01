@@ -54,7 +54,7 @@ def build_imagenette_loaders(batch_size,
                           augment=False,
                           drop_last=False,
                           resolution_scaling=1.0,
-                          resolution_test=False
+                          resolution_test=True
                           ):
     image_size = int(224 * resolution_scaling)
 
@@ -122,7 +122,7 @@ if __name__ == "__main__":
             eval_batchsize=128,
             num_workers=8,
             augment=False,
-            resolution_scaling=1.0,
+            resolution_scaling=3.0,
             resolution_test=True,
         )
         
@@ -136,17 +136,19 @@ if __name__ == "__main__":
         for i, (images, labels) in enumerate(train_dataloader):
             print(images.shape)
             print(labels.shape)
+            break
             
     
         for i, (images, labels) in enumerate(val_dataloader):
             print(images.shape)
             print(labels.shape)
+            break
             
     
         for i, (images, labels) in enumerate(test_dataloader):
             print(images.shape)
             print(labels.shape)
-            
+            break        
     
         print("Done")
     

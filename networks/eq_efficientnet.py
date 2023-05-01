@@ -33,7 +33,7 @@ from networks.eq_efficientnet_util import (
 )
 from networks.efficientnet import EfficientNet
 from networks.eq_layers import EquivariantPool, EquivariantSqueezeExcitation, Restriction
-from networks.util import calculate_output_image_size
+from networks.util import calculate_output_image_size, iter_fix_param
 
 from nn import (
     rot2dOnR2,

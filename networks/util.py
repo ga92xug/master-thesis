@@ -1,4 +1,14 @@
+from copy import deepcopy
 import math
+import warnings
+import numpy as np
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
+
+from nn import (
+    rot2dOnR2,
+    flipRot2dOnR2,
+)
 
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.
@@ -92,3 +102,57 @@ def get_param_count(model_name):
             Number of parameters of a given model.
         """
         return sum(p.numel() for p in model_name.parameters() if p.requires_grad)
+
+def get_gspace(group, rotation):
+        """Get group space for a given group and rotation.
+        Args:
+            group (str): Group name.
+            rotation (int): Rotation.
+        Returns:
+            gspace: Group space.
+        """
+        if group == "cyclic":
+            gspace = rot2dOnR2(rotation)
+        elif group == "dihedral":
+            gspace = flipRot2dOnR2(rotation)
+        elif group == "orthogonal":
+            gspace = flipRot2dOnR2(-1)
+        else:
+            raise ValueError(
+                f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
+            )
+        return gspace
+
+def calculate_fixed_params(num_c, gspace, restrict):
+    CHANNELS_CONSTANT = 1
+    # deepcopy to avoid changing the original list
+    num_channels = deepcopy(num_c)
+    diff = len(num_channels) - len(restrict)
+
+    current_order = gspace.fibergroup.order()
+    for l in range(len(num_channels)):
+        
+        if l >= diff and restrict[l-diff] is not None:
+            if restrict[l-diff] == "halved":
+                current_order = current_order // 2
+                num_channels[l] = int(num_channels[l] * 2)
+            elif restrict[l-diff] == "reflection":
+                pass
+            elif restrict[l-diff] == "invariant":
+                current_order = 1
+            
+        num_channels[l] *= math.sqrt(current_order * CHANNELS_CONSTANT)
+
+    
+    return np.array(num_channels).astype(int)
+
+
+if __name__ == "__main__":
+    rotation = 4
+    gspace = get_gspace("cyclic", rotation)
+
+    num_c = np.array([32, 16, 24, 32, 64, 96, 160, 320, 1280])
+    restrict = ["invariant", None]
+    out = calculate_fixed_params(num_c, gspace, restrict)
+    print(num_c)
+    print(out)

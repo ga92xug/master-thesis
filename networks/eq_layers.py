@@ -76,23 +76,16 @@ class Restriction(EquivariantModule):
             layers = list()
 
             if restrict == "reflection":
-                assert (
-                    group != "cyclic"
-                ), "Cyclic groups can't be restricted to reflection."
-
+                assert group != "cyclic", "Cyclic groups can't be restricted to reflection."
                 subgroup_id = (np.pi, 1) if group == "orthogonal" else (0, 1)
-            elif restrict == "halved":
-                assert (
-                    group != "orthogonal"
-                ), "Orthogonal group can't be restricted by halve."
-                assert (
-                    rotation % 2 == 0
-                ), f"Number of rotations ({rotation}) is not divisible by 2."
 
-                subgroup_id = (
-                    (0, rotation // 2) if group == "dihedral" else (rotation // 2)
-                )
-            else:  # restrict to invariant case
+            elif restrict == "halved":
+                assert group != "orthogonal", "Orthogonal group can't be restricted by halve."
+                assert rotation % 2 == 0, f"Number of rotations ({rotation}) is not divisible by 2."
+                subgroup_id = (0, rotation // 2) if group == "dihedral" else (rotation // 2)
+                
+            else:  
+                # restrict to invariant case
                 subgroup_id = (None, 1) if group != "cyclic" else 1
 
             layers.append(RestrictionModule(self.in_type, subgroup_id))
@@ -374,9 +367,7 @@ class EquivariantBottleneck(EquivariantModule):
         # we only have a residual connection 
         # if stride is 1 and the channel number does not change 
         self.residual_connection = (stride == 1 and len(in_type) == out_channels)
-        
-        expanded_num_channels = int(self.in_type.size / self.in_type.fibergroup.order())\
-            * expand_ratio
+        expanded_num_channels = int(np.round(len(self.in_type) * expand_ratio))
 
         # 1. Block with 1x1 equivariant convolution
         self.conv1 = EquivariantConvBlock_Conv_BN_actF(
@@ -400,6 +391,7 @@ class EquivariantBottleneck(EquivariantModule):
             dilation=dilation,
             bias=bias,
             act_func=act_func,
+            groups=expanded_num_channels,
         )
 
         # 3. Block with 1x1 equivariant convolution

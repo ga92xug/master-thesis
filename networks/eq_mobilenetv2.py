@@ -1,12 +1,14 @@
+import timeit
 import warnings
-from typing import Tuple
+import hydra
+import numpy as np
+from typing import List, Tuple
+from omegaconf import DictConfig
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-
-import numpy as np
 
 from nn import (
     rot2dOnR2,
@@ -14,6 +16,12 @@ from nn import (
     FieldType,
     SequentialModule,
     GroupTensor,
+)
+from networks.util import (
+    calculate_fixed_params, 
+    calculate_output_image_size, 
+    get_gspace, 
+    get_param_count
 )
 from networks import (
     Restriction,
@@ -33,189 +41,145 @@ class EquivariantMobileNetV2(nn.Module):
         group: str = "cyclic",  # "dihedral", "orthogonal"
         rotation: int = 4,  # discrete number or frequency
         fix_params: bool = False,
-        restrict: str = None,  # "invariant", "reflection", "halved"
+        restrict: List[str] = [None, None, None],  # "invariant", "reflection", "halved"
         input_channels: int = 3,
-        channel_layout: Tuple[int] = (32, 16, 24, 32, 64, 96, 160, 320, 1280),
-        bottleneck_layout: Tuple[int] = (1, 2, 3, 4, 3, 3, 1),
+        channel_layout: List[int] = [32, 16, 24, 32, 64, 96, 160, 320, 1280],
+        bottleneck_layout: List[int] = [1, 2, 3, 4, 3, 3, 1],
         kernel_size: int = 3,
         padding: int = 1,
-        num_groups: Tuple[int] = (None, None, None, None, None, None,\
-                                  None, None, None), # (None x 9) for no group equivariance
         num_classes: int = 10,
         expand_ratio: int = 6,
-        size_reduction: int = 1,
+        image_size: int = 32,
+        depth_multiplier: int = 1,
+        width_multiplier: int = 1,
 
     ):
         super().__init__()
-        # Get group spaces for specified rotations and flips
-        if group == "cyclic":
-            gspace = rot2dOnR2(rotation)
-        elif group == "dihedral":
-            gspace = flipRot2dOnR2(rotation)
-        elif group == "orthogonal":
-            gspace = flipRot2dOnR2(-1)
-        else:
-            raise ValueError(
-                f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
-            )
+        self.restrict = list(restrict)
+        gspace = get_gspace(group, rotation)
 
+        self.num_channels = (np.round((np.array(channel_layout) * width_multiplier) / gspace.fibergroup.order())).astype(int)
+        self.bottleneck_layout = (np.round(np.array(bottleneck_layout) * depth_multiplier)).astype(int) 
+        
         # Normalize channel layout by group order
-        num_channels = (np.array(channel_layout) / ((gspace.fibergroup.order()) * size_reduction)).astype(int)
-        # print(num_channels)
-        # Fix number of parameters for all groups
-        # these values are not yet correct. Taken from ResNet9
-        if fix_params:  # values heuristically found
-            for l in range(len(num_channels)):
-                if group == "orthogonal":
-                    num_channels[l] = int(num_channels[l] / np.sqrt(1.75 * rotation))
-                else:
-                    num_channels[l] = int(
-                        (num_channels[l] * np.sqrt(1.5 * gspace.fibergroup.order()))
-                        / gspace.fibergroup.order()
-                    )
-                if num_channels[l] < 1:
-                    warnings.warn(
-                        f"Group order (number of rotations or frequency) is larger"
-                        f" than number of channels ({num_channels[l]}) defined in layout!"
-                    )
-                    num_channels[l] = 1
-            if restrict == "halved":
-                num_channels[2] = int(
-                    (channel_layout[2] * np.sqrt(0.75 * gspace.fibergroup.order()))
-                    / (gspace.fibergroup.order() / 2)
-                )
-                if num_channels[2] < 1:
-                    warnings.warn(
-                        f"Group order ({gspace.fibergroup.order()/2}) is larger"
-                        f" than number of channels ({channel_layout[2]}) defined in layout!"
-                    )
-                    num_channels[2] = 1
-            elif restrict == "reflection":
-                num_channels[2] = int(num_channels[2] * np.sqrt(3) / 2)
-            elif restrict == "invariant":
-                num_channels[2] = int(num_channels[2] * np.sqrt(1.5))
-
+        if fix_params:
+            self.num_channels = calculate_fixed_params(self.num_channels,
+                                                       gspace, restrict)
+ 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
-        self.input_field_type = FieldType(
-            gspace, [gspace.trivial_repr] * input_channels
-        )
+        self.input_field_type = FieldType(gspace, [gspace.trivial_repr] * input_channels)
 
         # conv 1
         self.conv1 = EquivariantConvBlock_Conv_BN_actF(
             in_type=self.input_field_type,
-            out_channels=num_channels[0],
-            frequency=rotation,
+            out_channels=self.num_channels[0],
             kernel_size=kernel_size,
             padding=padding,
-            num_groups=num_groups[0],
             act_func="ReLU",
             stride=2,
         )
+        image_size = calculate_output_image_size(image_size, stride=2)
+
         # block 0
         self.bottleneck_block_0 = EquivariantBottleneckBlock(
             in_type=self.conv1.out_type,
-            out_channels=num_channels[1],
-            frequency=rotation,
+            out_channels=self.num_channels[1],
             kernel_size=kernel_size,
             padding=padding,
             stride=1,
-            num_groups=num_groups[1],
             act_func="ReLU",
             expand_ratio=1,
-            num_blocks=bottleneck_layout[0],
+            num_blocks=self.bottleneck_layout[0],
         )
+        image_size = calculate_output_image_size(image_size, stride=1)
         # block 1
         self.bottleneck_block_1 = EquivariantBottleneckBlock(
             in_type=self.bottleneck_block_0.out_type,
-            out_channels=num_channels[2],
-            frequency=rotation,
+            out_channels=self.num_channels[2],
             kernel_size=kernel_size,
             padding=padding,
             stride=2,
-            num_groups=num_groups[2],
             act_func="ReLU",
             expand_ratio=expand_ratio,
-            num_blocks=bottleneck_layout[1],
+            num_blocks=self.bottleneck_layout[1],
         )
+        image_size = calculate_output_image_size(image_size, stride=2)
         # block 2
         self.bottleneck_block_2 = EquivariantBottleneckBlock(
             in_type=self.bottleneck_block_1.out_type,
-            out_channels=num_channels[3],
-            frequency=rotation,
+            out_channels=self.num_channels[3],
             kernel_size=kernel_size,
             padding=padding,
             stride=2,
-            num_groups=num_groups[3],
             act_func="ReLU",
             expand_ratio=expand_ratio,
-            num_blocks=bottleneck_layout[2],
+            num_blocks=self.bottleneck_layout[2],
         )
+        image_size = calculate_output_image_size(image_size, stride=2)
         # block 3
         self.bottleneck_block_3 = EquivariantBottleneckBlock(
             in_type=self.bottleneck_block_2.out_type,
-            out_channels=num_channels[4],
-            frequency=rotation,
+            out_channels=self.num_channels[4],
             kernel_size=kernel_size,
             padding=padding,
             stride=2,
-            num_groups=num_groups[4],
             act_func="ReLU",
             expand_ratio=expand_ratio,
-            num_blocks=bottleneck_layout[3],
+            num_blocks=self.bottleneck_layout[3],
         )
+        image_size = calculate_output_image_size(image_size, stride=2)
         # block 4
         self.bottleneck_block_4 = EquivariantBottleneckBlock(
             in_type=self.bottleneck_block_3.out_type,
-            out_channels=num_channels[5],
-            frequency=rotation,
+            out_channels=self.num_channels[5],
             kernel_size=kernel_size,
             padding=padding,
             stride=1,
-            num_groups=num_groups[5],
             act_func="ReLU",
             expand_ratio=expand_ratio,
-            num_blocks=bottleneck_layout[4],
+            num_blocks=self.bottleneck_layout[4],
         )
+        self.restrict_4 = Restriction(self.bottleneck_block_4.out_type, group, rotation, self.restrict[-3])
+        image_size = calculate_output_image_size(image_size, stride=1)
         # block 5
         self.bottleneck_block_5 = EquivariantBottleneckBlock(
-            in_type=self.bottleneck_block_4.out_type,
-            out_channels=num_channels[6],
-            frequency=rotation,
+            in_type=self.restrict_4.out_type,
+            out_channels=self.num_channels[6],
             kernel_size=kernel_size,
             padding=padding,
             stride=2,
-            num_groups=num_groups[6],
             act_func="ReLU",
             expand_ratio=expand_ratio,
-            num_blocks=bottleneck_layout[5],
+            num_blocks=self.bottleneck_layout[5],
         )
+        self.restrict_5 = Restriction(self.bottleneck_block_5.out_type, group, rotation, self.restrict[-2])
+        image_size = calculate_output_image_size(image_size, stride=2)
         # block 6
         self.bottleneck_block_6 = EquivariantBottleneckBlock(
-            in_type=self.bottleneck_block_5.out_type,
-            out_channels=num_channels[7],
-            frequency=rotation,
+            in_type=self.restrict_5.out_type,
+            out_channels=self.num_channels[7],
             kernel_size=kernel_size,
             padding=padding,
             stride=1,
-            num_groups=num_groups[7],
             act_func="ReLU",
             expand_ratio=expand_ratio,
-            num_blocks=bottleneck_layout[6],
+            num_blocks=self.bottleneck_layout[6],
         )
+        image_size = calculate_output_image_size(image_size, stride=1)
         # conv 2
+        self.restrict_6 = Restriction(self.bottleneck_block_6.out_type, group, rotation, self.restrict[-1])
         self.conv2 = EquivariantConvBlock_Conv_BN_actF(
-            in_type=self.bottleneck_block_6.out_type,
-            out_channels=num_channels[8],
-            frequency=rotation,
+            in_type=self.restrict_6.out_type,
+            out_channels=self.num_channels[8],
             kernel_size=1,
             padding=0,
-            num_groups=num_groups[8],
         )
         self.invariant_map = EquivariantPool(self.conv2.out_type, invariant_map=True)
-        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        image_size = max(int(image_size[0] / 2), 1)
+        self.global_pool = nn.AdaptiveAvgPool2d(2) if image_size > 1 else nn.Identity()
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
-            self.invariant_map.out_type.size, num_classes
+            self.invariant_map.out_type.size  * image_size * image_size, num_classes
         )
 
         #self.avgpool = GeometricAveragePooling(self.conv2.out_type)
@@ -229,21 +193,48 @@ class EquivariantMobileNetV2(nn.Module):
         x = self.bottleneck_block_2(x)
         x = self.bottleneck_block_3(x)
         x = self.bottleneck_block_4(x)
+        x = self.restrict_4(x)
         x = self.bottleneck_block_5(x)
+        x = self.restrict_5(x)
         x = self.bottleneck_block_6(x)
+        x = self.restrict_6(x)
         x = self.conv2(x)
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
-        x = self.global_pool(x)
+        x = nn.functional.avg_pool2d(x, 2) if x.shape[-1] > 1 else x
         x = self.flatten(x)
         x = self.classifier(x)
         return x
     
 
+@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    # measure time
+    start = timeit.default_timer()
+    input_image_size = 224
+    inp = torch.rand(1, 1, input_image_size, input_image_size)
+    n_inputs = inp.shape[1]
+    n_outputs = 10
+    image_size=inp.shape[2]
+    # depth, num_classes, widen_factor=1, dropRate=0.0
+    #net = EquivariantWideResNet()
+    net = hydra.utils.instantiate(
+            cfg.model,
+            input_channels=n_inputs,
+            num_classes=n_outputs,
+            image_size=image_size,
+        )
+    print(f'Total number of parameters: {get_param_count(net)}') # total 2.748.890 # block1 121248
+    #print(net.layer1)
+
+    inp = inp# .cuda()
+    net# .cuda()
+    print(net(inp).size())
+
+    # measure time
+    stop = timeit.default_timer()
+    print(f"Time elapsed: {stop - start}")
+
+
 if __name__ == "__main__":
-    # input images from the paper 224 x 224 x 3
-    # 28x28x1 for MNIST 
-    inp = torch.rand(1, 1, 28, 28).cuda()
-    model = EquivariantMobileNetV2(input_channels=inp.shape[1], kernel_size=5, padding=2).cuda()
-    out = model(inp)
-    print(out.shape)
+    main()

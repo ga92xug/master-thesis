@@ -41,6 +41,7 @@ from networks.eq_wrn_util import (
 
 from networks.util import (
     calculate_output_image_size,
+    get_gspace,
 )
 
 CHANNELS_CONSTANT = 1
@@ -116,24 +117,14 @@ class EquivariantWideResNet(nn.Module):
                 bias=self.bias,
             )
 
-        print("Wide-Resnet %dx%d" % (self.depth, k))
+        print("Eq_WRN_%d_%d" % (self.depth, k))
+        gspace = get_gspace(group, rotation)
 
-        # Get group spaces for specified rotations and flips
-        if self.group == "cyclic":
-            self.gspace = rot2dOnR2(self.rotation)
-        elif self.group == "dihedral":
-            self.gspace = flipRot2dOnR2(self.rotation)
-        elif self.group == "orthogonal":
-            self.gspace = flipRot2dOnR2(-1)
-        else:
-            raise ValueError(
-                f'Group "{self.group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
-            )
 
         self.num_channels = np.array(self.layout, dtype=float)
         # Add width
-        self.num_channels *= np.array([1, k, k, k])
-        self.num_channels = np.rint(self.num_channels).astype(int)
+        self.num_channels = (self.num_channels * np.array([1, k, k, k])) / gspace.fibergroup.order()
+        self.num_channels = np.round(self.num_channels).astype(int)
 
         # Heuristic to reduce number of parameters
         # heuristic is slower since binary search looks in the upper more expensive part of the channels
@@ -291,7 +282,7 @@ class EquivariantWideResNet(nn.Module):
         x = self.relu(self.bn1(x))
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
-        x = F.avg_pool2d(x, 2)
+        x = F.avg_pool2d(x, 2) if x.shape[-1] > 1 else x
         x = self.flatten(x)
         x = self.classifier(x)
         return x
@@ -369,29 +360,6 @@ class EquivariantWideResNet(nn.Module):
                 kernel_layout=self.kernel_layout,
             )
         return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
-        
-
-def calculate_fixed_params(num_channels, gspace, restrict):
-    # deepcopy to avoid changing the original list
-    num_channels = num_channels.copy()
-    for l in range(len(num_channels)):
-        if l >= 2 and restrict[l-2] is not None:
-            if restrict[l-2] == "halved":
-                num_channels[l] = int(num_channels[l] * math.sqrt(gspace.fibergroup.order() * CHANNELS_CONSTANT) * 2)
-            elif restrict[l-2] == "reflection":
-                num_channels[l] = int(num_channels[l] * math.sqrt(gspace.fibergroup.order() * CHANNELS_CONSTANT) * 2)
-            elif restrict[l-2] == "invariant":
-                pass
-            if num_channels[l] < 1:
-                num_channels[l] = 1
-                warnings.warn(
-                        f"num_channels[{l}] < 1",
-                    )
-            continue
-        else:
-            num_channels[l] *= math.sqrt(gspace.fibergroup.order() * CHANNELS_CONSTANT)
-    return num_channels
-
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:

@@ -192,7 +192,7 @@ class WideResNet(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.relu(self.bn1(out))
-        out = F.avg_pool2d(out, 2)
+        out = F.avg_pool2d(out, 2) if x.shape[-1] > 1 else x
         out = out.flatten(start_dim=1)
         out = self.fc(out)
         return out

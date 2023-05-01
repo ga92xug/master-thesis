@@ -8,24 +8,54 @@ from run_command import run_command
 global_args = ["model=eq_wrn,wrn", "dataset=imagenette"]
 
 # normal run
-args = ["model.restrict=[null, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=1", "wandb.tags=[eff_exp_1]", "wandb.notes=normal_run"]
-args.extend(global_args)
-run_command(args)
+# depth-width-resolution
+# 52-1-224 => 1.259.194
+args = ["model.restrict=[null, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=1", "wandb.tags=[eff_exp_1]", "wandb.notes=eq_wrn_baseline"]
+run_command(args, global_args)
 
-# Scale WRN-52 by depth (d=4) 
-# 52=1.259.194 -- *d =  -> 160=3.009.082; 124 -> 2.425.786
+# Scale WRN-52 by depth 
+# 124= 2.425.786
+# 160= 3.009.082 
 args = ["model.restrict=[null, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=160,124", "model.widen_factor=1", "wandb.tags=[eff_exp_1]", "wandb.notes=depth_scaling"]
-args.extend(global_args)
-run_command(args)
+run_command(args, global_args)
 
-# Scale WRN-52 by width (w=2)
-# widen_factor 2: 3.080.634; 1.5: 2.452.602
+# Scale WRN-52 by width
+# 1.5= 2.452.602
+# 2  = 3.080.634
+# 
 args = ["model.restrict=[null, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=2,1.5", "wandb.tags=[eff_exp_1]", "wandb.notes=width_scaling"]
-args.extend(global_args)
-run_command(args)
+run_command(args, global_args)
 
 # Scale WRN-52 by Resolution 
-# 224 = 1.259.194 -- *r = 2.14 -> 3.061.434; r=1.83: 2.422.074
+# 1.83= 2.422.074
+# 2.14= 3.061.434
 args = ["model.restrict=[null, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=1", "dataset.resolution_scaling=2.14,1.83", "wandb.tags=[eff_exp_1]", "wandb.notes=resolution_scaling"]
-args.extend(global_args)
-run_command(args)
+run_command(args, global_args)
+
+
+# eq_mobilenetv2
+global_args = ["model=eq_mobilenetv2", "dataset=imagenette"]
+# normal run
+# depth-width-resolution
+# 1-1-224 => 621.658
+args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=1", "model.width_multiplier=1", "wandb.tags=[eff_exp_1]", "wandb.notes=eq_mobilenetv2_baseline"]
+run_command(args, global_args)
+
+# Scale eq_mobilenetv2 by depth 
+# d = 2 -> 1.380.554
+# d = 4 -> 2.898.346
+args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=2,4", "model.width_multiplier=1", "wandb.tags=[eff_exp_1]", "wandb.notes=depth_scaling"]
+run_command(args, global_args)
+
+# Scale eq_mobilenetv2 by width
+# width_multiplier 2: 1.331.050
+# width_multiplier 3: 
+args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=1", "model.width_multiplier=2,1.5", "wandb.tags=[eff_exp_1]", "wandb.notes=width_scaling"]
+run_command(args, global_args)
+
+# Scale eq_mobilenetv2 by Resolution 
+# 
+# 224: r:1 = 621.658 
+# 480: r:2.147 = 749.658
+args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution_scaling=2.14,1.83", "wandb.tags=[eff_exp_1]", "wandb.notes=resolution_scaling"]
+run_command(args, global_args)

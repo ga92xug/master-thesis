@@ -366,6 +366,7 @@ class R2Conv(EquivariantModule, ABC):
         else:
             # Stefan TODO
             # print('devices', self.bias.device, self.bias_expansion.device)
+            self.bias_expansion = self.bias_expansion.cpu()
             _bias = self.bias_expansion @ self.bias # .cuda()
 
         return _filter, _bias

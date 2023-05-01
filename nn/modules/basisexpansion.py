@@ -444,7 +444,7 @@ class BasisExpansion(torch.nn.Module):
             assert len(coefficients.shape) == 2 and (
                 coefficients.shape[1] == sampled_bases[io_pair].shape[0]
             )
-
+            sampled_bases[io_pair] = sampled_bases[io_pair].cpu()
             # print('device: ', coefficients.device, sampled_bases[io_pair].device)
 
             # Expand current subset of basis vectors and set result in the appropriate place in the filter
