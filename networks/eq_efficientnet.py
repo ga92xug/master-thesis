@@ -19,7 +19,7 @@ from torch.nn import functional as F
 from networks.eq_efficientnet_util import (
     BlockDecoder,
     eq_drop_connect,
-    round_filters,
+    eq_round_filters,
     round_repeats,
     drop_connect,
     get_same_padding_conv2d,
@@ -243,11 +243,11 @@ class EquivariantEfficientNet(nn.Module):
         super().__init__()
         self.fix_params = fix_params
         self.restrict = restrict
-        if self.fix_params:
-            self.efficientnet = EfficientNet(
-                blocks_args=blocks_args, global_params=global_params, image_size=image_size,
+        
+        self.efficientnet = EfficientNet(
+            blocks_args=blocks_args, global_params=global_params, image_size=image_size,
                 input_channels=input_channels, num_classes=num_classes,
-            )
+        )
         blocks_args = list(blocks_args)
         assert image_size is not None, 'Please provide image size'
         assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
@@ -289,7 +289,7 @@ class EquivariantEfficientNet(nn.Module):
         )
 
         # Stem
-        out_channels = round_filters(32, self._global_params, rotation=1, fix_params=False)
+        out_channels = eq_round_filters(32, self._global_params, rotation=1, fix_params=False)
         # self._conv_stem = Eq_Conv2dSamePadding()
         kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
             'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
@@ -311,8 +311,8 @@ class EquivariantEfficientNet(nn.Module):
             print(f"Building block: {i}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(block_args.input_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
-                output_filters=round_filters(block_args.output_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
+                input_filters=eq_round_filters(block_args.input_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
+                output_filters=eq_round_filters(block_args.output_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
                 num_repeat=round_repeats(block_args.num_repeat, self._global_params)
             )
 
@@ -341,7 +341,7 @@ class EquivariantEfficientNet(nn.Module):
 
         # Head
         input_channels = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._global_params, rotation=self.rotation, fix_params=self.fix_params)
+        out_channels = eq_round_filters(1280, self._global_params, rotation=self.rotation, fix_params=self.fix_params)
         self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
                                                kernel_size=1, image_size=image_size, 
                                                bias=False)
@@ -363,10 +363,10 @@ class EquivariantEfficientNet(nn.Module):
         # self._swish = MemoryEfficientSwish()
 
         if self.fix_params:
-            # size of wrn total and size of equivariant part
-            norm_para = sum([p.numel() for p in self.efficientnet.parameters() if p.requires_grad])
+            # size of efficientnet normal and size of equivariant efficientnet
+            norm_para = get_model_params(self.efficientnet)
             del self.efficientnet
-            equi_param = sum([p.numel() for p in self.parameters() if p.requires_grad])
+            equi_param = get_model_params(self)
             current_ratio = equi_param / norm_para
             print(f"Equivariant_EfficientNet / EfficientNet parameter ratio: {current_ratio:.3f}")
 
@@ -476,7 +476,8 @@ class EquivariantEfficientNet(nn.Module):
 
 @hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
-    inp = torch.rand(1, 1, 32, 32)
+    input_image_size = 400
+    inp = torch.rand(1, 1, input_image_size, input_image_size)
     image_size = [inp.shape[2], inp.shape[3]]
     n_inputs = inp.shape[1]
     n_outputs = 10

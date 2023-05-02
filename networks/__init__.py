@@ -26,7 +26,7 @@ from .eq_efficientnet_util import (
     efficientnet_params,
     SwishImplementation,
     MemoryEfficientSwish,
-    round_filters,
+    eq_round_filters,
     round_repeats,
     drop_connect,
     Conv2dSamePadding,

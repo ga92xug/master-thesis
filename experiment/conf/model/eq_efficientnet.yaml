@@ -2,11 +2,11 @@ _target_: networks.EquivariantEfficientNet
 group: cyclic
 rotation: 8
 restrict: null # "invariant", "reflection", "halved"
-fix_params: True
+fix_params: False
 global_params:
   width_coefficient: 1
   depth_coefficient: 1
-  drop_out: 0.3
+  drop_out: 0.2
   # num_classes: num_classes
   batch_norm_momentum: 0.99
   batch_norm_epsilon: 1e-3

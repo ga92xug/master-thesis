@@ -78,8 +78,8 @@ class Experiment:
         
         # device
         # CPU training
-        # self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-        self.device = torch.device("cpu")
+        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        # self.device = torch.device("cpu")
         print("DEVICE:", self.device)
 
         # outpath

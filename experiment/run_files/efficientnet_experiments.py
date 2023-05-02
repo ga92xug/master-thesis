@@ -59,3 +59,20 @@ run_command(args, global_args)
 # 480: r:2.147 = 749.658
 args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution_scaling=2.14,1.83", "wandb.tags=[eff_exp_1]", "wandb.notes=resolution_scaling"]
 run_command(args, global_args)
+
+# eq_efficientnet
+global_args = ["model=eq_efficientnet", "dataset=imagenette"]
+
+# normal run
+# depth-width-resolution
+# 1-1-224 => 5.787.953
+args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=1", "model.width_multiplier=1", "wandb.tags=[eff_exp_1]", "wandb.notes=eq_efficientnet_baseline"]
+run_command(args, global_args)
+
+# Scale eq_efficientnet by depth
+# d = 1.1 -> 9.359.204
+
+# Scale eq_efficientnet by width
+# w = 1.275 -> 9.447.196
+
+# Scale eq_efficientnet by Resolution

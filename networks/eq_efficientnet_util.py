@@ -123,7 +123,32 @@ class MemoryEfficientSwish(nn.Module):
         return SwishImplementation.apply(x)
 
 
-def round_filters(filters, global_params, rotation=1, fix_params=False):
+def eq_round_filters(filters, global_params):
+    """Calculate and round number of filters based on width multiplier.
+       Use width_coefficient, depth_divisor and min_depth of global_params.
+    Args:
+        filters (int): Filters number to be calculated.
+        global_params (namedtuple): Global params of the model.
+    Returns:
+        new_filters: New filters number after calculating.
+    """
+    multiplier = global_params.width_coefficient
+    if not multiplier:
+        return filters
+    # TODO: modify the params names.
+    #       maybe the names (width_divisor,min_width)
+    #       are more suitable than (depth_divisor,min_depth).
+    divisor = global_params.depth_divisor
+    min_depth = global_params.min_depth
+    filters *= multiplier
+    min_depth = min_depth or divisor  # pay attention to this line when using min_depth
+    # follow the formula transferred from official TensorFlow implementation
+    new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
+    if new_filters < 0.9 * filters:  # prevent rounding by more than 10%
+        new_filters += divisor
+    return int(new_filters)
+
+def eq_round_filters(filters, global_params, rotation=1, fix_params=False):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
     Args:
@@ -152,7 +177,7 @@ def round_filters(filters, global_params, rotation=1, fix_params=False):
         if new_filters < 1:
             print("Warning: new_filters < 1")
             new_filters = 1
-    return int(new_filters)
+    return int(round(new_filters))
 
 
 def round_repeats(repeats, global_params):

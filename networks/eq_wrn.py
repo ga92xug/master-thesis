@@ -119,7 +119,7 @@ class EquivariantWideResNet(nn.Module):
 
         print("Eq_WRN_%d_%d" % (self.depth, k))
         gspace = get_gspace(group, rotation)
-
+        self.gspace = gspace
 
         self.num_channels = np.array(self.layout, dtype=float)
         # Add width
@@ -301,7 +301,7 @@ class EquivariantWideResNet(nn.Module):
             upper_bound = current_channel_size
         else:
             lower_bound = current_channel_size
-            upper_bound = int(self.layout[l] // 0.7) 
+            upper_bound = int((self.layout[l] // 0.7) + 50) 
             if l == 1:
                 upper_bound = max(upper_bound, int(self.layout[l]) + 20)
 

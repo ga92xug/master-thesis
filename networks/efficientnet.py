@@ -15,7 +15,7 @@ from torch import nn
 from torch.nn import functional as F
 from networks.eq_efficientnet_util import (
     BlockDecoder,
-    round_filters,
+    eq_round_filters,
     round_repeats,
     drop_connect,
     get_same_padding_conv2d,
@@ -184,7 +184,7 @@ class EfficientNet(nn.Module):
 
         # Stem
         in_channels = 3  # rgb
-        out_channels = round_filters(32, self._global_params)  # number of output channels
+        out_channels = eq_round_filters(32, self._global_params)  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
         self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
@@ -195,8 +195,8 @@ class EfficientNet(nn.Module):
 
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=round_filters(block_args.input_filters, self._global_params),
-                output_filters=round_filters(block_args.output_filters, self._global_params),
+                input_filters=eq_round_filters(block_args.input_filters, self._global_params),
+                output_filters=eq_round_filters(block_args.output_filters, self._global_params),
                 num_repeat=round_repeats(block_args.num_repeat, self._global_params)
             )
 
@@ -211,7 +211,7 @@ class EfficientNet(nn.Module):
 
         # Head
         in_channels = block_args.output_filters  # output of final block
-        out_channels = round_filters(1280, self._global_params)
+        out_channels = eq_round_filters(1280, self._global_params)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
         self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
@@ -406,7 +406,7 @@ class EfficientNet(nn.Module):
         """
         if in_channels != 3:
             Conv2d = get_same_padding_conv2d(image_size=self._global_params.image_size)
-            out_channels = round_filters(32, self._global_params)
+            out_channels = eq_round_filters(32, self._global_params)
             self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
 
 
