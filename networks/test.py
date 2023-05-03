@@ -24,7 +24,6 @@ def main(cfg: DictConfig) -> None:
     n_inputs = inp.shape[1]
     n_outputs = 10
     image_size=inp.shape[2]
-    #net = e2wrn28_7R()
     # depth, num_classes, widen_factor=1, dropRate=0.0
     #net = EquivariantWideResNet()
     net = hydra.utils.instantiate(

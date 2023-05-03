@@ -33,7 +33,7 @@ from networks.eq_efficientnet_util import (
 )
 from networks.efficientnet import EfficientNet
 from networks.eq_layers import EquivariantPool, EquivariantSqueezeExcitation, Restriction
-from networks.util import calculate_output_image_size, iter_fix_param
+from networks.util import calculate_output_image_size, get_fixed_params
 
 from nn import (
     rot2dOnR2,
@@ -112,7 +112,7 @@ class MBConvBlock(EquivariantModule):
         # oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
             kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
-            self._expand_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._expand_conv, fix_params, **kwargs)
+            self._expand_conv = get_fixed_params(Eq_Conv2dSamePadding, normal_block._expand_conv, fix_params, **kwargs)
             # self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
             #                     image_size=image_size, kernel_size=1, bias=False)
 
@@ -128,7 +128,7 @@ class MBConvBlock(EquivariantModule):
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': inp, 'out_channels': len(inp), 'image_size': image_size, 'groups': len(inp), 
                   'kernel_size': k, 'stride': s, 'bias': False}
-        self._depthwise_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._depthwise_conv, False, **kwargs)
+        self._depthwise_conv = get_fixed_params(Eq_Conv2dSamePadding, normal_block._depthwise_conv, False, **kwargs)
         # self._depthwise_conv = Eq_Conv2dSamePadding(
         #     in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
         #     kernel_size=k, stride=s, bias=False
@@ -151,7 +151,7 @@ class MBConvBlock(EquivariantModule):
             kwargs = {'in_type': out_type, 'in_channels': input_channels_squeeze, 
                       'squeeze_channels': num_squeezed_channels, 'act_func': "Swish"}
             
-            self.squeeze = iter_fix_param(EquivariantSqueezeExcitation, 
+            self.squeeze = get_fixed_params(EquivariantSqueezeExcitation, 
                                           nn.Sequential(*[normal_block._se_reduce, normal_block._se_expand]), 
                                           fix_params, channel_name='in_channels', **kwargs)
             # self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
@@ -163,7 +163,7 @@ class MBConvBlock(EquivariantModule):
         final_oup = self._block_args.output_filters
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': out_type, 'out_channels': final_oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
-        self._project_conv = iter_fix_param(Eq_Conv2dSamePadding, normal_block._project_conv, fix_params, **kwargs)
+        self._project_conv = get_fixed_params(Eq_Conv2dSamePadding, normal_block._project_conv, fix_params, **kwargs)
         # self._project_conv = Eq_Conv2dSamePadding(in_type=out_type, out_channels=final_oup, image_size=image_size, kernel_size=1, bias=False)
         
         #self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
@@ -293,7 +293,7 @@ class EquivariantEfficientNet(nn.Module):
         # self._conv_stem = Eq_Conv2dSamePadding()
         kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
             'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
-        self._conv_stem = iter_fix_param(Eq_Conv2dSamePadding, self.efficientnet._conv_stem,
+        self._conv_stem = get_fixed_params(Eq_Conv2dSamePadding, self.efficientnet._conv_stem,
                                                fix_params=self.fix_params, **kwargs)
 
         # size params of conv_stem

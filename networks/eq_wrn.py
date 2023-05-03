@@ -42,7 +42,9 @@ from networks.eq_wrn_util import (
 from networks.util import (
     calculate_fixed_params,
     calculate_output_image_size,
+    get_fixed_params,
     get_gspace,
+    get_param_count,
 )
 
 CHANNELS_CONSTANT = 1
@@ -54,7 +56,6 @@ class EquivariantWideResNet(nn.Module):
         widen_factor: int = 4,
         group: str = "cyclic",
         rotation: int = 4,
-        fix_params: bool = False,
         fix_params_mode: str = "no", # "iter", "heuristic", "all"
         restrict: List[str] = [None, None],  # "invariant", "reflection", "halved"
         input_channels: int = 3,
@@ -72,7 +73,6 @@ class EquivariantWideResNet(nn.Module):
         self.widen_factor = widen_factor
         self.group = group
         self.rotation = rotation
-        self.fix_params = fix_params
         self.restrict = [None, restrict] if isinstance(restrict, str) or restrict is None else restrict
         self.restrict = list(self.restrict)
         assert len(self.restrict) == 2, "restrict must be a string or a list of two strings"
@@ -88,8 +88,6 @@ class EquivariantWideResNet(nn.Module):
 
         super(EquivariantWideResNet, self).__init__()
         assert (self.depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
-        if fix_params_mode == "no":
-            assert fix_params, "fix_param_mode only works if fix_params is True" 
         self.fix_params_mode = fix_params_mode
         n = (self.depth - 4) / 6
         if len(kernel_layout) == 1:
@@ -131,39 +129,25 @@ class EquivariantWideResNet(nn.Module):
         self.num_channels = (self.num_channels * np.array([1, k, k, k])) / gspace.fibergroup.order()
         self.num_channels = np.round(self.num_channels).astype(int)
 
-        # Heuristic to reduce number of parameters
-        # heuristic is slower since binary search looks in the upper more expensive part of the channels
-        if self.fix_params_mode == "heuristic":
-            self.num_channels = calculate_fixed_params(self.num_channels,
-                                                       self.gspace, self.restrict)
-
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * self.input_channels
         )
 
         # "Lifting" conv from trivial to regular feature fields
-        self.conv1 = EquivariantConv(
-            in_type=self.input_field_type,
-            out_channels=int(self.num_channels[0]),
-            # kernel_size=self.kernel_size,
-            kernel_size=5,
-            # padding=int(self.padding),
-            padding=2,
-            groups=1,
-            stride=1,
-            dilation=1,
-            bias=bias,
-        )
-        if self.fix_params:
-            self.conv1 = self.iter_fix_param(0, self.conv1, self.wrn.conv1)
-            preserved_field_type = self.conv1.out_type
+        kwargs = {"in_type": self.input_field_type, "out_channels": self.num_channels[0],
+            'kernel_size': 5, "padding": 2, "groups": 1, 'bias': bias}
+        normal_conv = self.wrn.conv1 if fix_params_mode in ["all", "iter"] else None
+        self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, 
+                        normal_block=normal_conv, gspace=self.input_field_type.gspace, 
+                        **kwargs)
         image_size = calculate_output_image_size(image_size, stride=1)
-            
+        
 
         self.field_type = self.conv1.out_type
+        normal_blocks = self.wrn.layer1 if fix_params_mode in ["all", "iter"] else None
         self.layer1 = self._wide_layer(
-            wide_conv_block,
+            wide_conv_block, 
             self.num_channels[1],
             n,
             stride=1,
@@ -172,17 +156,14 @@ class EquivariantWideResNet(nn.Module):
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
+            normal_blocks=normal_blocks
         )
-        if self.fix_params:
-            self.layer1 = self.iter_fix_param(1, self.layer1, self.wrn.layer1, wide_conv_block, 
-                                              preserved_field_type, n=n, stride=1)
-        preserved_field_type = self.layer1.out_type
         image_size = calculate_output_image_size(image_size, stride=1)
         
-        self.restrict1 = Restriction(preserved_field_type, self.group, self.rotation, self.restrict[0])
+        self.restrict1 = Restriction(self.layer1.out_type, self.group, self.rotation, self.restrict[0])
         self.field_type = self.restrict1.out_type
-        preserved_field_type = self.field_type
 
+        normal_blocks = self.wrn.layer2 if fix_params_mode in ["all", "iter"] else None
         self.layer2 = self._wide_layer(
             wide_conv_block,
             self.num_channels[2],
@@ -193,20 +174,15 @@ class EquivariantWideResNet(nn.Module):
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
+            normal_blocks=normal_blocks
         )
-        if self.fix_params:
-            self.field_type = preserved_field_type
-            self.layer2 = self.iter_fix_param(2, self.layer2, self.wrn.layer2, wide_conv_block, 
-                                              preserved_field_type, n=n, stride=2)
         image_size = calculate_output_image_size(image_size, stride=2)
 
         # Restrict last conv and res layers
         self.restrict2 = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict[1])
         self.field_type = self.restrict2.out_type
 
-        if self.fix_params:
-            preserved_field_type = self.field_type
-
+        normal_blocks = self.wrn.layer3 if fix_params_mode in ["all", "iter"] else None
         self.layer3 = self._wide_layer(
             block=wide_conv_block,
             out_channels=self.num_channels[3],
@@ -217,11 +193,8 @@ class EquivariantWideResNet(nn.Module):
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
+            normal_blocks=normal_blocks
         )
-        if self.fix_params:
-            self.field_type = preserved_field_type
-            self.layer3 = self.iter_fix_param(3, self.layer3, self.wrn.layer3, 
-                                              wide_conv_block, preserved_field_type, n=n, stride=2)
         image_size = calculate_output_image_size(image_size, stride=2)
 
         self.bn1 = EquivariantNorm(self.layer3.out_type, affine=False)
@@ -234,13 +207,17 @@ class EquivariantWideResNet(nn.Module):
             self.invariant_map.out_type.size * image_size * image_size, self.num_classes
         )
 
-        if self.fix_params:
+        # print stats
+        if self.fix_params_mode in ["all", "iter"]:
             # size of wrn total and size of equivariant part
-            norm_para = sum([p.numel() for p in self.wrn.parameters() if p.requires_grad])
+            norm_para = get_param_count(self.wrn)
             del self.wrn
-            equi_param = sum([p.numel() for p in self.parameters() if p.requires_grad])
+            equi_param = get_param_count(self)
             current_ratio = equi_param / norm_para
             print(f"Equivariant_WRN / WRN parameter ratio: {current_ratio:.3f}")
+        elif self.fix_params_mode == "no":
+            equi_param = get_param_count(self)
+            print(f"Equivariant_WRN params: {equi_param}")
             
 
     def _wide_layer(
@@ -254,13 +231,18 @@ class EquivariantWideResNet(nn.Module):
         bias: bool,
         kernel_layout: List[int],
         act_func: str,
+        normal_blocks = None,
     ):
         # num_blocks is n in wide resnet paper
         # how many layers each block has
         strides = [stride] + [1] * (int(num_blocks) - 1)
         layers = []
 
-        for stride in strides:
+        
+        for i, stride in enumerate(strides):
+            if normal_blocks is not None:
+                normal_block = normal_blocks.layer[i]
+
             layers.append(
                 block(
                     self.field_type,
@@ -271,6 +253,7 @@ class EquivariantWideResNet(nn.Module):
                     kernel_layout=kernel_layout,
                     bias=bias,
                     act_func=act_func,
+                    normal_block=normal_block,
                 )
             )
             self.field_type = layers[-1].out_type
@@ -367,41 +350,3 @@ class EquivariantWideResNet(nn.Module):
                 kernel_layout=self.kernel_layout,
             )
         return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block
-
-@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
-def main(cfg: DictConfig) -> None:
-    # measure time
-    start = timeit.default_timer()
-    print(f"Kernel layout: ", cfg.model.kernel_layout)
-    input_image_size = 410
-    inp = torch.rand(1, 1, input_image_size, input_image_size)
-    n_inputs = inp.shape[1]
-    n_outputs = 10
-    image_size=inp.shape[2]
-    # depth, num_classes, widen_factor=1, dropRate=0.0
-    #net = EquivariantWideResNet()
-    net = hydra.utils.instantiate(
-            cfg.model,
-            input_channels=n_inputs,
-            num_classes=n_outputs,
-            image_size=image_size,
-        )
-    # tot_param = sum([p.numel() for p in net.conv1.parameters()  if p.requires_grad])
-    tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
-    print(f'Total number of parameters: {tot_param}') # total 2.748.890 # block1 121248
-    #print(net.layer1)
-
-    inp = inp.cuda()
-    net.cuda()
-    print(net(inp).size())
-
-    # measure time
-    stop = timeit.default_timer()
-    print(f"Time elapsed: {stop - start}")
-
-    #y = net(torch.randn(1,3,32,32))
-    #print(y.size())
-
-
-if __name__ == "__main__":
-    main()

@@ -10,6 +10,8 @@ from nn import (
     flipRot2dOnR2,
 )
 
+CHANNELS_CONSTANT = 1
+
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.
     Args:
@@ -42,14 +44,20 @@ def calculate_output_image_size(input_image_size, stride):
     image_width = int(math.ceil(image_width / stride))
     return [image_height, image_width]
 
-def iter_fix_param(type_equi_block, normal_block, fix_params, 
+def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
                    channel_name="out_channels", **kwargs):
     """
     TODO
     """
+    N = gspace.fibergroup.order()
+    if fix_params_mode in ["heuristic", "all"]:
+        kwargs["out_channels"] = int(kwargs["out_channels"] * math.sqrt(N * CHANNELS_CONSTANT))
+
     equi_block = type_equi_block(**kwargs)
-    if not fix_params:
+    if fix_params_mode in ["heuristic", "no"]:
         return equi_block
+    
+    # fix param iter search
     param_normal_block = get_param_count(normal_block)
     param_equi_block = get_param_count(equi_block)
     out_channels = kwargs[channel_name]

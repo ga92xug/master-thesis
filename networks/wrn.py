@@ -39,12 +39,12 @@ class BasicBlock(nn.Module):
                 stride_used = True
             else:
                 s = 1
-            self.seq = nn.Sequential(
-                nn.BatchNorm2d(out_planes),
-                nn.ReLU(inplace=True),
-                nn.Conv2d(out_planes, out_planes, kernel_size=kernel_layout[1], stride=s,
-                                       padding=1 if kernel_layout[1] == 3 else 0, bias=bias),
-            )
+
+            bn = nn.BatchNorm2d(out_planes)
+            act = nn.ReLU(inplace=True)
+            self.conv = nn.Conv2d(out_planes, out_planes, kernel_size=kernel_layout[1], stride=s,
+                                       padding=1 if kernel_layout[1] == 3 else 0, bias=bias)
+            self.seq = nn.Sequential(bn, act, self.conv)
 
         self.bn2 = nn.BatchNorm2d(out_planes)
         self.relu2 = nn.ReLU(inplace=True)
