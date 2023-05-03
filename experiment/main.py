@@ -493,25 +493,10 @@ def run_experiment(cfg: DictConfig) -> None:
     exp.run()
  
     
-    # (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-    # y_train = tf.squeeze(tf.one_hot(y_train, depth=10))
-    # y_test = tf.squeeze(tf.one_hot(y_test, depth=10))
-
-
 ################################################################################
 ################################################################################
 
 
 if __name__ == "__main__":
-    # Parse training configuration
-    # parser = argparse.ArgumentParser()
-
-    # parser = utils.args_exp_parameters(parser)
-    
-    # config = parser.parse_args()
-    
-    # Train the model
     run_experiment()
-
-    # Test the print function
     

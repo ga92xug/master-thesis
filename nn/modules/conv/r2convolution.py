@@ -358,7 +358,6 @@ class R2Conv(EquivariantModule, ABC):
         """
         # CPU training
         # self.weights = Parameter(self.weights.to(torch.device("cpu")))
-        # print('expand parameters device', self.weights.device)
         _filter = self.basisexpansion(self.weights)
         _filter = _filter.reshape(
             _filter.shape[0], _filter.shape[1], *(self.kernel_size,) * self.d

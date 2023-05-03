@@ -14,6 +14,7 @@ args = ["model.restrict=[halved, invariant]", "model.kernel_layout=[3,3]", "mode
 args.extend(global_args)
 run_command(args)
 """
+"""
 # experiment 5 test rotations
 # need to think about using 5x5 kernels with rotations larger than 4
 # we already have rotation 4, so we just need to add 2, 8, 12, 16
@@ -35,9 +36,9 @@ run_command(args, global_args)
 global_args = ["model=eq_wrn", "wandb.tags=[wrn_exp_6,additional]"]
 # evaluate the effect of using different groups first 
 # then evaluate the effect of using different groups with different rotations
-
+"""
 # test dihedral groups
-args = ["model.restrict=[null, invariant]", "model.group=dihedral", "model.kernel_layout=[3,3]", "model.depth=28", "model.widen_factor=2", "wandb.notes=test_dihedral", "model.rotation=2,4,8,10,12,16"]
+args = ["model.restrict=[null, invariant]", "model.group=dihedral", "model.kernel_layout=[3,3]", "model.depth=28", "model.widen_factor=2", "wandb.notes=test_dihedral", "model.rotation=4,8,10,12,16"]
 run_command(args, global_args)
 
 args = ["model.restrict=[halved, halved]", "model.group=dihedral", "model.kernel_layout=[3,3]", "model.depth=28", "model.widen_factor=2", "wandb.notes=test_dihedral", "model.rotation=4,8,12"]

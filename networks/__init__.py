@@ -34,6 +34,8 @@ from .eq_efficientnet_util import (
     BlockDecoder,
 )
 
+from .e2_wide_resnet import e2wrn28_7R
+
 from .util import (
     get_width_and_height_from_size,
     calculate_output_image_size,
@@ -68,4 +70,6 @@ __all__ = [
 ] + [
     "get_width_and_height_from_size",
     "calculate_output_image_size",
+] + [
+    "e2wrn28_7R",
 ]

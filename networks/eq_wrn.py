@@ -40,6 +40,7 @@ from networks.eq_wrn_util import (
 )
 
 from networks.util import (
+    calculate_fixed_params,
     calculate_output_image_size,
     get_gspace,
 )
@@ -54,6 +55,7 @@ class EquivariantWideResNet(nn.Module):
         group: str = "cyclic",
         rotation: int = 4,
         fix_params: bool = False,
+        fix_params_mode: str = "no", # "iter", "heuristic", "all"
         restrict: List[str] = [None, None],  # "invariant", "reflection", "halved"
         input_channels: int = 3,
         layout: List[int] = [16, 16, 32, 64],
@@ -86,6 +88,9 @@ class EquivariantWideResNet(nn.Module):
 
         super(EquivariantWideResNet, self).__init__()
         assert (self.depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
+        if fix_params_mode == "no":
+            assert fix_params, "fix_param_mode only works if fix_params is True" 
+        self.fix_params_mode = fix_params_mode
         n = (self.depth - 4) / 6
         if len(kernel_layout) == 1:
             n = int(n * 2)
@@ -103,7 +108,7 @@ class EquivariantWideResNet(nn.Module):
         else:
             raise ValueError("kernel_layout not recognized")
 
-        if self.fix_params:
+        if self.fix_params_mode == "iter":
             self.wrn = WideResNet(
                 depth=self.depth,
                 num_classes=self.num_classes,
@@ -128,9 +133,9 @@ class EquivariantWideResNet(nn.Module):
 
         # Heuristic to reduce number of parameters
         # heuristic is slower since binary search looks in the upper more expensive part of the channels
-        # if self.fix_params:
-        #     self.num_channels = calculate_fixed_params(self.num_channels,
-        #                                                self.gspace, self.restrict)
+        if self.fix_params_mode == "heuristic":
+            self.num_channels = calculate_fixed_params(self.num_channels,
+                                                       self.gspace, self.restrict)
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
@@ -141,8 +146,10 @@ class EquivariantWideResNet(nn.Module):
         self.conv1 = EquivariantConv(
             in_type=self.input_field_type,
             out_channels=int(self.num_channels[0]),
-            kernel_size=self.kernel_size,
-            padding=int(self.padding),
+            # kernel_size=self.kernel_size,
+            kernel_size=5,
+            # padding=int(self.padding),
+            padding=2,
             groups=1,
             stride=1,
             dilation=1,
