@@ -80,6 +80,7 @@ class EquivariantWideConvBlock(EquivariantModule):
         normal_conv = normal_block.conv1 if fix_params_mode in ["all", "iter"] else None        
         self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
                                       gspace=self.in_type.gspace, **kwargs)
+        
         # self.conv1 = EquivariantConv(
         #     self.act_func1.out_type,
         #     out_channels,
@@ -140,21 +141,15 @@ class EquivariantWideConvBlock(EquivariantModule):
             norm = EquivariantNorm(
                 self.in_type, affine=False
             )
-            kwargs = {"in_type": norm.out_type, "out_channels": out_channels,
-                "kernel_size": 1, "padding": 0, "stride": stride, 
-                "dilation": dilation, "bias": bias}
-            normal_conv = normal_block.convShortcut if fix_params_mode in ["all", "iter"] else None
-            shortcut = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv,
-                                        gspace=norm.out_type, **kwargs)
-            # shortcut = EquivariantConv(
-            #     norm.out_type,
-            #     out_channels,
-            #     kernel_size=1,
-            #     padding=0,
-            #     stride=stride,
-            #     dilation=dilation,
-            #     bias=bias,
-            # )
+            shortcut = EquivariantConv(
+                norm.out_type,
+                len(self.conv2.out_type),
+                kernel_size=1,
+                padding=0,
+                stride=stride,
+                dilation=dilation,
+                bias=bias,
+            )
             
             self.shortcut = SequentialModule(*[norm, shortcut])
 
@@ -205,6 +200,8 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         bias: bool = True,
         kernel_layout: List[int] = None,
         act_func: str = "ReLU", # ReLU
+        normal_block = None, 
+        fix_params_mode: str = "no",
     ):
         super(EquivariantWideConvBlock_vary_l, self).__init__()
         self.in_type = in_type
@@ -225,30 +222,42 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
             self.in_type, affine=False
         )
         self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
-        self.conv1 = EquivariantConv(
-            self.act_func1.out_type,
-            out_channels,
-            kernel_size=kernel_layout[0],
-            padding=paddings[0],
-            stride=strides[0],
-            dilation=dilation,
-            bias=bias,
-        )
+        kwargs = {"in_type": self.act_func1.out_type, "out_channels": out_channels,
+            "kernel_size": kernel_layout[0], "padding": paddings[0], 
+            "stride": strides[0], "dilation": dilation, "bias": bias}
+        normal_conv = normal_block.conv1 if fix_params_mode in ["all", "iter"] else None        
+        self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
+                                      gspace=self.in_type.gspace, **kwargs)
+        # self.conv1 = EquivariantConv(
+        #     self.act_func1.out_type,
+        #     out_channels,
+        #     kernel_size=kernel_layout[0],
+        #     padding=paddings[0],
+        #     stride=strides[0],
+        #     dilation=dilation,
+        #     bias=bias,
+        # )
         current_out_type = self.conv1.out_type
         
         self.layer = []
         for i in range(1, len(kernel_layout)):
             norm = EquivariantNorm(current_out_type, affine=False)
             act = getattr(nonlinearities, act_func)(norm.out_type)
-            conv = EquivariantConv(
-                    act.out_type,
-                    out_channels,
-                    kernel_size=kernel_layout[i],
-                    padding=paddings[i],
-                    stride=strides[i],
-                    dilation=dilation,
-                    bias=bias,
-                )
+            kwargs = {"in_type": act.out_type, "out_channels": out_channels,
+                "kernel_size": kernel_layout[i], "padding": paddings[i], 
+                "stride": strides[i], "dilation": dilation, "bias": bias}
+            normal_conv = normal_block.conv2 if fix_params_mode in ["all", "iter"] else None
+            conv = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv,
+                                            gspace=act.out_type, **kwargs)
+            # conv = EquivariantConv(
+            #         act.out_type,
+            #         out_channels,
+            #         kernel_size=kernel_layout[i],
+            #         padding=paddings[i],
+            #         stride=strides[i],
+            #         dilation=dilation,
+            #         bias=bias,
+            #     )
             current_out_type = conv.out_type
             self.layer.extend([norm, act, conv])
         
@@ -262,7 +271,7 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
             )
             shortcut = EquivariantConv(
                 norm.out_type,
-                out_channels,
+                len(conv.out_type),
                 kernel_size=1,
                 padding=0,
                 stride=stride,
@@ -312,7 +321,9 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         bias: bool = True,
         kernel_layout: List[int] = None,
         act_func: str = "ReLU", # ReLU
-        drop_out: float = 0.0
+        drop_out: float = 0.0,
+        normal_block = None, 
+        fix_params_mode: str = "no",
     ):
         super(EquivariantWideConvBlock_drop_out, self).__init__()
         self.in_type = in_type
@@ -333,32 +344,34 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
             self.in_type, affine=False
         )
         self.act_func1 = getattr(nonlinearities, act_func)(self.norm1.out_type)
-        self.conv1 = EquivariantConv(
-            self.act_func1.out_type,
-            out_channels,
-            kernel_size=kernel_layout[0],
-            padding=paddings[0],
-            stride=strides[0],
-            dilation=dilation,
-            bias=bias,
-        )
+        kwargs = {"in_type": self.act_func1.out_type, "out_channels": out_channels,
+            "kernel_size": kernel_layout[0], "padding": paddings[0], 
+            "stride": strides[0], "dilation": dilation, "bias": bias}
+        normal_conv = normal_block.conv1 if fix_params_mode in ["all", "iter"] else None        
+        self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
+                                      gspace=self.in_type.gspace, **kwargs)
         
-        self.drop_out1 = PointwiseDropout(in_type=self.conv1.out_type, p=drop_out)
-        
-        self.norm2 = EquivariantNorm(self.drop_out1.out_type, affine=False)
+        # self.conv1 = EquivariantConv(
+        #     self.act_func1.out_type,
+        #     out_channels,
+        #     kernel_size=kernel_layout[0],
+        #     padding=paddings[0],
+        #     stride=strides[0],
+        #     dilation=dilation,
+        #     bias=bias,
+        # )
+                
+        self.norm2 = EquivariantNorm(self.conv1.out_type, affine=False)
         self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
-        self.conv2 = EquivariantConv(
-                    self.act_func2.out_type,
-                    out_channels,
-                    kernel_size=kernel_layout[1],
-                    padding=paddings[1],
-                    stride=strides[1],
-                    dilation=dilation,
-                    bias=bias,
-                )
-        self.drop_out2 = PointwiseDropout(in_type=self.conv2.out_type, p=drop_out)
+        self.drop_out = PointwiseDropout(in_type=self.act_func2.out_type, p=drop_out)
+        kwargs = {"in_type": self.drop_out.out_type, "out_channels": out_channels,
+            "kernel_size": kernel_layout[-1], "padding": paddings[-1], 
+            "stride": strides[-1], "dilation": dilation, "bias": bias}
+        normal_conv = normal_block.conv2 if fix_params_mode in ["all", "iter"] else None
+        self.conv2 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv,
+                                        gspace=self.act_func2.out_type, **kwargs)
         
-        self.out_type = self.drop_out2.out_type
+        self.out_type = self.conv2.out_type
 
         self.shortcut = nn.Identity()
         if stride != 1 or self.in_type != self.out_type:
@@ -367,7 +380,7 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
             )
             shortcut = EquivariantConv(
                 norm.out_type,
-                out_channels,
+                len(self.conv2.out_type),
                 kernel_size=1,
                 padding=0,
                 stride=stride,
@@ -382,11 +395,11 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         out = self.norm1(x)
         out = self.act_func1(out)
         out = self.conv1(out)
-        out = self.drop_out1(out)
+        
         out = self.norm2(out)
         out = self.act_func2(out)
+        out = self.drop_out(out)
         out = self.conv2(out)
-        out = self.drop_out2(out)
         out += self.shortcut(x)
         return out
 

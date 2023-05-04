@@ -50,6 +50,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     TODO
     """
     N = gspace.fibergroup.order()
+    kwargs["out_channels"] = int(kwargs["out_channels"] / N)
     if fix_params_mode in ["heuristic", "all"]:
         kwargs["out_channels"] = int(kwargs["out_channels"] * math.sqrt(N * CHANNELS_CONSTANT))
 
@@ -69,7 +70,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     else:
         lower_bound = out_channels
         # the upper bound search is expensive so we gradually increase it
-        upper_bound = int(round(out_channels // 0.7))
+        upper_bound = int(round(out_channels // 0.5) + 100)
     # binary search
     while lower_bound <= upper_bound:
         # print(f'lower bound: {lower_bound}, upper bound: {upper_bound}, prediction: {kwargs[channel_name]}')
@@ -81,14 +82,14 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
         param_equi_block = get_param_count(equi_block)
         if abs(param_equi_block - param_normal_block) < 0.01:
             last_ratio = param_equi_block / param_normal_block
-            print(f'Ratio for block: {last_ratio}')
+            print(f'Ratio for block: {last_ratio:.3f}')
             return equi_block
         if param_equi_block < param_normal_block:
             # prediction is too small
             lower_bound = kwargs[channel_name] + 1
-            if lower_bound >= upper_bound:
-                # we increase to upper bound slowly to avoid expensive search
-                upper_bound += 20
+            # if lower_bound >= upper_bound:
+            #      # we increase to upper bound slowly to avoid expensive search
+            #      upper_bound *= 2
                  
         else:
             upper_bound = kwargs[channel_name] - 1
@@ -99,7 +100,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
             equi_block = old_equi_conv_block
         
     last_ratio = param_equi_block / param_normal_block
-    print(f'Ratio for block: {last_ratio}')
+    print(f'Ratio for block: {last_ratio:.3f}')
     return equi_block
 
 def get_param_count(model_name):

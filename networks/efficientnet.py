@@ -171,7 +171,8 @@ class EfficientNet(nn.Module):
         self._blocks_args = blocks_args
 
         self.input_channels = input_channels
-        image_size = list(image_size)
+        # image_size = list(image_size)
+        image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         self.image_size = image_size
         self.num_classes = num_classes
 

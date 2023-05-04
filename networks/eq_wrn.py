@@ -80,8 +80,11 @@ class EquivariantWideResNet(nn.Module):
         self.layout = layout
         self.kernel_size = kernel_size
         self.padding = padding
-        self.num_classes = num_classes
         self.kernel_layout = kernel_layout
+        if self.rotation > 4 and self.kernel_layout == [3,3]:
+            self.kernel_layout = [5,5]
+            self.padding = 2
+        self.num_classes = num_classes
         self.drop_out = drop_out
         self.bias = bias
         self.act_func = act_func
@@ -126,7 +129,7 @@ class EquivariantWideResNet(nn.Module):
 
         self.num_channels = np.array(self.layout, dtype=float)
         # Add width
-        self.num_channels = (self.num_channels * np.array([1, k, k, k])) / gspace.fibergroup.order()
+        self.num_channels = (self.num_channels * np.array([1, k, k, k]))
         self.num_channels = np.round(self.num_channels).astype(int)
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
@@ -143,7 +146,6 @@ class EquivariantWideResNet(nn.Module):
                         **kwargs)
         image_size = calculate_output_image_size(image_size, stride=1)
         
-
         self.field_type = self.conv1.out_type
         normal_blocks = self.wrn.layer1 if fix_params_mode in ["all", "iter"] else None
         self.layer1 = self._wide_layer(
@@ -201,7 +203,7 @@ class EquivariantWideResNet(nn.Module):
         self.relu = getattr(nonlinearities, act_func)(self.bn1.out_type)
 
         self.invariant_map = EquivariantPool(self.relu.out_type, invariant_map=True)
-        image_size = int(image_size[0] / 2)
+        image_size = int(image_size[0] / 4) 
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
             self.invariant_map.out_type.size * image_size * image_size, self.num_classes
@@ -242,6 +244,8 @@ class EquivariantWideResNet(nn.Module):
         for i, stride in enumerate(strides):
             if normal_blocks is not None:
                 normal_block = normal_blocks.layer[i]
+            else:
+                normal_block = None
 
             layers.append(
                 block(
@@ -254,6 +258,7 @@ class EquivariantWideResNet(nn.Module):
                     bias=bias,
                     act_func=act_func,
                     normal_block=normal_block,
+                    fix_params_mode=self.fix_params_mode,
                 )
             )
             self.field_type = layers[-1].out_type
@@ -272,7 +277,7 @@ class EquivariantWideResNet(nn.Module):
         x = self.relu(self.bn1(x))
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
-        x = F.avg_pool2d(x, 2) if x.shape[-1] > 1 else x
+        x = F.avg_pool2d(x, 4) if x.shape[-1] > 1 else x
         x = self.flatten(x)
         x = self.classifier(x)
         return x

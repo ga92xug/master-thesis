@@ -33,7 +33,7 @@ from networks.eq_efficientnet_util import (
 )
 from networks.efficientnet import EfficientNet
 from networks.eq_layers import EquivariantPool, EquivariantSqueezeExcitation, Restriction
-from networks.util import calculate_output_image_size, get_fixed_params
+from networks.util import calculate_output_image_size, get_fixed_params, get_gspace, get_param_count
 
 from nn import (
     rot2dOnR2,
@@ -95,7 +95,8 @@ class MBConvBlock(EquivariantModule):
     # _block_args.expand_ratio
     # _block_args.output_filters
 
-    def __init__(self, in_type, block_args, global_params, image_size, fix_params, normal_block):
+    def __init__(self, in_type, fix_params_mode, block_args, global_params, 
+                 image_size, normal_block):
         super().__init__()
         self._block_args = block_args
         self.in_type = in_type
@@ -112,7 +113,9 @@ class MBConvBlock(EquivariantModule):
         # oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
             kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
-            self._expand_conv = get_fixed_params(Eq_Conv2dSamePadding, normal_block._expand_conv, fix_params, **kwargs)
+            self._expand_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, 
+                                                 normal_block._expand_conv, 
+                                                 gspace=in_type.gspace, **kwargs)
             # self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
             #                     image_size=image_size, kernel_size=1, bias=False)
 
@@ -128,7 +131,8 @@ class MBConvBlock(EquivariantModule):
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': inp, 'out_channels': len(inp), 'image_size': image_size, 'groups': len(inp), 
                   'kernel_size': k, 'stride': s, 'bias': False}
-        self._depthwise_conv = get_fixed_params(Eq_Conv2dSamePadding, normal_block._depthwise_conv, False, **kwargs)
+        self._depthwise_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode="no", 
+                                                normal_block=None, gspace=inp.gspace, **kwargs)
         # self._depthwise_conv = Eq_Conv2dSamePadding(
         #     in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
         #     kernel_size=k, stride=s, bias=False
@@ -151,9 +155,10 @@ class MBConvBlock(EquivariantModule):
             kwargs = {'in_type': out_type, 'in_channels': input_channels_squeeze, 
                       'squeeze_channels': num_squeezed_channels, 'act_func': "Swish"}
             
-            self.squeeze = get_fixed_params(EquivariantSqueezeExcitation, 
-                                          nn.Sequential(*[normal_block._se_reduce, normal_block._se_expand]), 
-                                          fix_params, channel_name='in_channels', **kwargs)
+            self.squeeze = get_fixed_params(EquivariantSqueezeExcitation, fix_params_mode,
+                                          nn.Sequential(*[normal_block._se_reduce, 
+                                                          normal_block._se_expand]), 
+                                          gspace=out_type.gspace, channel_name='in_channels', **kwargs)
             # self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
             #                 in_channels=input_channels_squeeze, squeeze_channels=num_squeezed_channels, 
             #                 act_func="Swish")
@@ -163,7 +168,9 @@ class MBConvBlock(EquivariantModule):
         final_oup = self._block_args.output_filters
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': out_type, 'out_channels': final_oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
-        self._project_conv = get_fixed_params(Eq_Conv2dSamePadding, normal_block._project_conv, fix_params, **kwargs)
+        self._project_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, 
+                                              normal_block._project_conv, 
+                                              gspace=out_type.gspace, **kwargs)
         # self._project_conv = Eq_Conv2dSamePadding(in_type=out_type, out_channels=final_oup, image_size=image_size, kernel_size=1, bias=False)
         
         #self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
@@ -238,10 +245,10 @@ class EquivariantEfficientNet(nn.Module):
             group: str = "cyclic",
             rotation: int = 4,
             restrict: str = None,  # "invariant", "reflection", "halved"
-            fix_params: bool = True,
-            ):
+            fix_params_mode: str =  "iter", # "iter", "heuristic", "all"
+    ):
         super().__init__()
-        self.fix_params = fix_params
+        self.fix_params_mode = fix_params_mode
         self.restrict = restrict
         
         self.efficientnet = EfficientNet(
@@ -260,7 +267,7 @@ class EquivariantEfficientNet(nn.Module):
         self.group = group
         self.rotation = rotation
         self.input_channels = input_channels
-        image_size = list(image_size)
+        image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         self.image_size = image_size
         self.num_classes = num_classes
         
@@ -272,16 +279,8 @@ class EquivariantEfficientNet(nn.Module):
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Get group spaces for specified rotations and flips
-        if self.group == "cyclic":
-            self.gspace = rot2dOnR2(self.rotation)
-        elif self.group == "dihedral":
-            self.gspace = flipRot2dOnR2(self.rotation)
-        elif self.group == "orthogonal":
-            self.gspace = flipRot2dOnR2(-1)
-        else:
-            raise ValueError(
-                f'Group "{self.group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
-            )
+        gspace = get_gspace(group, rotation)
+        self.gspace = gspace
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
@@ -289,12 +288,12 @@ class EquivariantEfficientNet(nn.Module):
         )
 
         # Stem
-        out_channels = eq_round_filters(32, self._global_params, rotation=1, fix_params=False)
+        out_channels = eq_round_filters(32, self._global_params, rotation=1)
         # self._conv_stem = Eq_Conv2dSamePadding()
         kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
             'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
-        self._conv_stem = get_fixed_params(Eq_Conv2dSamePadding, self.efficientnet._conv_stem,
-                                               fix_params=self.fix_params, **kwargs)
+        self._conv_stem = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, self.efficientnet._conv_stem,
+                                               gspace=self.input_field_type.gspace, **kwargs)
 
         # size params of conv_stem
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type, momentum=bn_mom, eps=bn_eps)
@@ -311,29 +310,29 @@ class EquivariantEfficientNet(nn.Module):
             print(f"Building block: {i}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=eq_round_filters(block_args.input_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
-                output_filters=eq_round_filters(block_args.output_filters, self._global_params, rotation=self.rotation, fix_params=self.fix_params),
+                input_filters=eq_round_filters(block_args.input_filters, self._global_params, rotation=self.rotation),
+                output_filters=eq_round_filters(block_args.output_filters, self._global_params, rotation=self.rotation),
                 num_repeat=round_repeats(block_args.num_repeat, self._global_params)
             )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock(self.field_type, block_args, 
+            self._blocks.append(MBConvBlock(self.field_type, self.fix_params_mode, block_args, 
                                             self._global_params, image_size=image_size, 
-                                            fix_params=self.fix_params, normal_block=self.efficientnet._blocks[counter]))
+                                            normal_block=self.efficientnet._blocks[counter]))
             counter += 1
             self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(self.field_type, block_args, 
+                self._blocks.append(MBConvBlock(self.field_type, self.fix_params_mode, block_args, 
                                                 self._global_params, image_size=image_size, 
-                                                fix_params=self.fix_params, normal_block=self.efficientnet._blocks[counter]))
+                                                normal_block=self.efficientnet._blocks[counter]))
                 counter += 1
                 self.field_type = self._blocks[-1].out_type
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
-        self._blocks = SequentialModule(*self._blocks)
+        #self._blocks = SequentialModule(*self._blocks)
 
         # Restrict
         self.restriction = Restriction(self.field_type, self.group, self.rotation, self.restrict)
@@ -341,7 +340,7 @@ class EquivariantEfficientNet(nn.Module):
 
         # Head
         input_channels = block_args.output_filters  # output of final block
-        out_channels = eq_round_filters(1280, self._global_params, rotation=self.rotation, fix_params=self.fix_params)
+        out_channels = eq_round_filters(1280, self._global_params, rotation=self.rotation)
         self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
                                                kernel_size=1, image_size=image_size, 
                                                bias=False)
@@ -362,14 +361,17 @@ class EquivariantEfficientNet(nn.Module):
         # self._swish = Swish()
         # self._swish = MemoryEfficientSwish()
 
-        if self.fix_params:
-            # size of efficientnet normal and size of equivariant efficientnet
-            norm_para = get_model_params(self.efficientnet)
+        # print stats
+        if self.fix_params_mode in ["all", "iter"]:
+            # size of wrn total and size of equivariant part
+            norm_para = get_param_count(self.efficientnet)
             del self.efficientnet
-            equi_param = get_model_params(self)
+            equi_param = get_param_count(self)
             current_ratio = equi_param / norm_para
-            print(f"Equivariant_EfficientNet / EfficientNet parameter ratio: {current_ratio:.3f}")
-
+            print(f"Equivariant_WRN / WRN parameter ratio: {current_ratio:.3f}")
+        elif self.fix_params_mode == "no":
+            equi_param = get_param_count(self)
+            print(f"Equivariant_WRN params: {equi_param}")
     
     def extract_endpoints(self, inputs):
         """Use convolution layer to extract features

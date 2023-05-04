@@ -15,7 +15,7 @@ from networks.util import (
 )
 
 
-@hydra.main(config_path="../experiment/conf", config_name="train_e2", version_base="1.2")
+@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     # measure time
     start = timeit.default_timer()
@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
             # image_size=image_size,
         )
     print(f'Total number of parameters: {get_param_count(net)}') # total 2.748.890 # block1 121248
-    #print(net.layer1)
+    print(net)  
 
     inp = inp.cuda()
     net.cuda()

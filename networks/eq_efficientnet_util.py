@@ -148,7 +148,7 @@ def eq_round_filters(filters, global_params):
         new_filters += divisor
     return int(new_filters)
 
-def eq_round_filters(filters, global_params, rotation=1, fix_params=False):
+def eq_round_filters(filters, global_params, rotation=1):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
     Args:
@@ -171,12 +171,7 @@ def eq_round_filters(filters, global_params, rotation=1, fix_params=False):
     new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
     if new_filters < 0.9 * filters and rotation == 1:  # prevent rounding by more than 10%
          new_filters += divisor
-    new_filters /= rotation
-    if fix_params:
-        new_filters *= math.sqrt(rotation * CHANNELS_CONSTANT)
-        if new_filters < 1:
-            print("Warning: new_filters < 1")
-            new_filters = 1
+    # new_filters /= rotation
     return int(round(new_filters))
 
 

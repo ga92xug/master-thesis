@@ -2,7 +2,7 @@ _target_: networks.EquivariantEfficientNet
 group: cyclic
 rotation: 8
 restrict: null # "invariant", "reflection", "halved"
-fix_params: False
+fix_params_mode: "iter" # "iter", "heuristic", "all", "no"
 global_params:
   width_coefficient: 1
   depth_coefficient: 1

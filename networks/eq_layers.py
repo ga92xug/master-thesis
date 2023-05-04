@@ -509,7 +509,7 @@ class EquivariantConvBlock_Conv_BN_actF(EquivariantModule):
         )
 
         self.norm = EquivariantNorm(
-            self.conv.out_type, affine=False
+            self.conv.out_type, affine=True
         )        
 
         # Induced
