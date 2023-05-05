@@ -75,11 +75,6 @@ class GSpace(ABC):
         # To not recompute the basis for the same intertwiner as many times as it appears,
         # the basis is stored in these dictionaries the first time we compute it
 
-        # Store the computed intertwiners between irreps
-        # - key = (filter size, sigma, rings)
-        # - value = dictionary mapping (input_irrep, output_irrep) pairs to the corresponding basis
-        self._irreps_intertwiners_basis_memory = defaultdict(lambda: dict())
-
         # Store the computed intertwiners between general representations
         # - key = (filter size, sigma, rings)
         # - value = dictionary mapping (input_repr, output_repr) pairs to the corresponding basis

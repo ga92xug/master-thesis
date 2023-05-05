@@ -9,29 +9,22 @@ from .optimizers import AdaClipDPOptimizer
 from .modules import *
 from .modules import __all__ as modules_list
 
-from .initialization import *
-from .initialization import __all__ as initialization_list
-
-__all__ = (
-    [
-        "GSpace",
-        "GSpace2D",
-        # R2
-        "rot2dOnR2",
-        "flipRot2dOnR2",
-        "flip2dOnR2",
-        "trivialOnR2",
-        #
-        "tensor_directsum",
-        "FieldType",
-        "GroupTensor",
-        "GroupNorm",
-        "InducedNormGroupNorm",
-        "GroupStandardization",
-        "BatchNorm",
-        "InducedNormBatchNorm",
-        "AdaClipDPOptimizer",
-    ]
-    + modules_list
-    + initialization_list
-)
+__all__ = [
+    "GSpace",
+    "GSpace2D",
+    # R2
+    "rot2dOnR2",
+    "flipRot2dOnR2",
+    "flip2dOnR2",
+    "trivialOnR2",
+    #
+    "tensor_directsum",
+    "FieldType",
+    "GroupTensor",
+    "GroupNorm",
+    "InducedNormGroupNorm",
+    "GroupStandardization",
+    "BatchNorm",
+    "InducedNormBatchNorm",
+    "AdaClipDPOptimizer",
+] + modules_list

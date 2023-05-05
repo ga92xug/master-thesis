@@ -24,7 +24,7 @@ class Group(ABC):
         :class:`~GroupElement`.
 
         One can retrieve or generate elements of a group by using, for instance, the properties or methods
-        :meth:`~Group.identity` , :meth:`~Group.elements` or :meth:`~Group.sample`.
+        :meth:`~Group.identity` or :meth:`~Group.sample`.
         Each group may also have additional methods to generate its group elements.
         Additionally, one can use the method :meth:`~Group.element` to generate a new group element.
 
@@ -60,14 +60,16 @@ class Group(ABC):
 
         self._homspaces = {}
 
+        self._elements = None
+
     def order(self) -> int:
         r"""
         Returns the number of elements in this group if it is a finite group, otherwise -1 is returned
         Returns:
             the size of the group or ``-1`` if it is a continuous group
         """
-        if self.elements is not None:
-            return len(self.elements)
+        if self._elements is not None:
+            return len(self._elements)
         else:
             return -1
 
@@ -83,18 +85,6 @@ class Group(ABC):
 
         """
         return GroupElement(element, self)
-
-    @property
-    @abstractmethod
-    def elements(self) -> List[GroupElement]:
-        r"""
-        If the group is finite (i.e. ``self.continuous = False``), it is a list of all group elements.
-        If the group is not finite, this property is `None`.
-
-        Returns:
-            a list of :class:`~GroupElement` instances
-        """
-        pass
 
     @property
     @abstractmethod
@@ -569,7 +559,6 @@ class Group(ABC):
             name = f"induced[{subgroup_id}][{repr.name}]"
 
         if name not in self.representations:
-
             supported_nonlinearities = _induced_nonlinearities(repr)
 
             irreps, change_of_basis, change_of_basis_inv = self._induced_from_irrep(
@@ -592,7 +581,6 @@ class Group(ABC):
         repr: group_theory.IrreducibleRepresentation,
         representatives: List[GroupElement] = None,
     ) -> Tuple[List[group_theory.IrreducibleRepresentation], np.ndarray, np.ndarray,]:
-
         r"""
         Builds the induced representation from the input *irreducible* representation ``repr`` of the subgroup
         identified by the input ``subgroup_id``.
@@ -783,7 +771,8 @@ class Group(ABC):
             a pair containing the change of basis and the list of irreps of the subgroup which appear in the restricted irrep
 
         """
-
+        # TODO: Use torch instead of np here and anywhere in this library? Make sure without grad
+        # TODO: Why use psi later on? Make an eye matrix to one that is slightly not eye
         irr = self.irrep(*irrep)
 
         sg, _, _ = self.subgroup(id)
@@ -794,7 +783,7 @@ class Group(ABC):
         if isinstance(id, tuple) and len(id) == 2:
             reflection = id[0]
             rotation = id[1]
-            if rotation != -1:
+            if self.rotation_order != -1:
                 angle = 2 * np.pi / self.rotation_order
             else:
                 angle = 1
@@ -839,11 +828,13 @@ class Group(ABC):
         elif reflection is not None and rotation > 1:
             f = irr.attributes["frequency"]
             j = irr.attributes["flip_frequency"]
+            if f == self.rotation_order / 2:
+                j = (j + reflection) % 2
             k = f % rotation
 
             if k > rotation / 2:
                 k = rotation - k
-                change_of_basis = np.array([[1, 0], [0, -1]])
+                change_of_basis = chi(1)
             else:
                 change_of_basis = np.eye(irr.size)
 
@@ -873,12 +864,16 @@ class Group(ABC):
         m = self.get_irrep_id(m)
         n = self.get_irrep_id(n)
         j = self.get_irrep_id(j)
-        return group_theory.clebsch_gordan_tensor(m, n, j, self)
+        return group_theory.clebsch_gordan_tensor(
+            m, n, j, self.__class__(self.rotation_order)
+        )
 
     def _tensor_product_irreps(self, m, n) -> List[Tuple[Tuple, int]]:
         m = self.get_irrep_id(m)
         n = self.get_irrep_id(n)
-        return group_theory.find_tensor_decomposition(m, n, self)
+        return group_theory.find_tensor_decomposition(
+            m, n, self.__class__(self.rotation_order)
+        )
 
     def _tensor_product(
         self, rho1: group_theory.Representation, rho2: group_theory.Representation

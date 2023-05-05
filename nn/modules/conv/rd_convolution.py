@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 from ..equivariant_module import EquivariantModule
+from .basisexpansion import BasisExpansion
 
-from nn.modules.basisexpansion import BasisExpansion
 from nn import GSpace, FieldType, GroupTensor
 from group_theory import Representation, KernelBasis
 
@@ -281,7 +281,11 @@ class _RdConv(EquivariantModule, ABC):
             the expanded filter and bias
 
         """
-        _filter = self.basisexpansion(self.weights)
+        # Weight standardization
+        std, mean = torch.std_mean(self.weights, dim=(0), unbiased=False, keepdim=True)
+        weights = (self.weights - mean) / (std.expand_as(self.weights) + 1e-5)
+
+        _filter = self.basisexpansion(weights)
         _filter = _filter.reshape(
             _filter.shape[0], _filter.shape[1], *(self.kernel_size,) * self.d
         )

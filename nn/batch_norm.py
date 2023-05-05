@@ -65,9 +65,7 @@ class BatchNorm(EquivariantModule):
         self.momentum = momentum
         self.track_running_stats = track_running_stats
 
-        # group fields by their size and
-        #   - check if fields with the same size are contiguous
-        #   - retrieve the indices of the fields
+        # Group fields by their size and retrieve the indices of the fields
         grouped_fields = indexes_from_labels(
             self.in_type, [r.size for r in self.in_type.representations]
         )
@@ -77,20 +75,9 @@ class BatchNorm(EquivariantModule):
 
         # indices of the channels corresponding to fields belonging to each group
         _indices = {}
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
-
-        for s, (contiguous, fields, indices) in grouped_fields.items():
+        for s, (fields, indices) in grouped_fields.items():
             self._nfields[s] = len(fields)
-            self._contiguous[s] = contiguous
-
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _indices[s] = torch.LongTensor([min(indices), max(indices) + 1])
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _indices[s] = torch.LongTensor(indices)
+            _indices[s] = torch.LongTensor([min(indices), max(indices) + 1])
 
             # register the indices tensors as parameters of this module
             self.register_buffer("indices_{}".format(s), _indices[s])
@@ -106,12 +93,12 @@ class BatchNorm(EquivariantModule):
             self.add_module("batch_norm_[{}]".format(s), _batchnorm)
 
     def reset_running_stats(self):
-        for s, contiguous in self._contiguous.items():
+        for s in list(self._nfields.keys()):
             batchnorm = getattr(self, f"batch_norm_[{s}]")
             batchnorm.reset_running_stats()
 
     def reset_parameters(self):
-        for s, contiguous in self._contiguous.items():
+        for s in list(self._nfields.keys()):
             batchnorm = getattr(self, f"batch_norm_[{s}]")
             batchnorm.reset_parameters()
 
@@ -132,27 +119,18 @@ class BatchNorm(EquivariantModule):
         output = torch.empty_like(input.tensor)
 
         # iterate through all field sizes
-        for s, contiguous in self._contiguous.items():
-
+        for s in list(self._nfields.keys()):
             indices = getattr(self, f"indices_{s}")
             batchnorm = getattr(self, f"batch_norm_[{s}]")
 
-            if contiguous:
-                # if the fields were contiguous, we can use slicing
-                output[:, indices[0] : indices[1], :, :] = batchnorm(
-                    input.tensor[:, indices[0] : indices[1], :, :].view(b, -1, s, h, w)
-                ).view(b, -1, h, w)
-            else:
-                # otherwise we have to use indexing
-                output[:, indices, :, :] = batchnorm(
-                    input.tensor[:, indices, :, :].view(b, -1, s, h, w)
-                ).view(b, -1, h, w)
+            output[:, indices[0] : indices[1], :, :] = batchnorm(
+                input.tensor[:, indices[0] : indices[1], :, :].view(b, -1, s, h, w)
+            ).view(b, -1, h, w)
 
         # wrap the result in a GroupTensor
         return GroupTensor(output, self.out_type, input.coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -193,14 +171,7 @@ class BatchNorm(EquivariantModule):
 
         num_batches_tracked = None
 
-        for s, contiguous in self._contiguous.items():
-            if not contiguous:
-                raise NotImplementedError(
-                    """Non-contiguous indices not supported yet when converting
-                    inner-batch normalization into conventional BatchNorm2d"""
-                )
-
-            # indices = getattr(self, 'indices_{}'.format(s))
+        for s in list(self._nfields.keys()):
             start, end = getattr(self, "indices_{}".format(s))
             bn = getattr(self, "batch_norm_[{}]".format(s))
 
@@ -315,21 +286,14 @@ class InducedNormBatchNorm(EquivariantModule):
 
         self.affine = affine
 
-        # group fields by their size and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
-
+        # Group fields by their size and retrieve the indices of the fields
         # number of fields of each size
         self._nfields = defaultdict(int)
 
         # indices of the channales corresponding to fields belonging to each group
-        _indices = defaultdict(lambda: [])
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
+        _indices = defaultdict(list)
 
         position = 0
-        last_id = None
         for r in self.in_type.representations:
             subfield_size = None
             for nl in r.supported_nonlinearities:
@@ -343,23 +307,12 @@ class InducedNormBatchNorm(EquivariantModule):
 
             id = (r.size, subfield_size)
 
-            if id != last_id:
-                self._contiguous[id] = not id in self._contiguous
-            last_id = id
-
             _indices[id] += list(range(position, position + r.size))
             self._nfields[id] += 1
             position += r.size
 
-        for id, contiguous in self._contiguous.items():
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _indices[id] = torch.LongTensor(
-                    [min(_indices[id]), max(_indices[id]) + 1]
-                )
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _indices[id] = torch.LongTensor(_indices[id])
+        for id in list(self._nfields.keys()):
+            _indices[id] = torch.LongTensor([min(_indices[id]), max(_indices[id]) + 1])
 
             # register the indices tensors as parameters of this module
             self.register_buffer(f"{id}_indices", _indices[id])
@@ -427,7 +380,6 @@ class InducedNormBatchNorm(EquivariantModule):
         output = input.tensor.clone()
 
         if self.training:
-
             # self.running_var *= 1 - exponential_average_factor
 
             next_var = 0
@@ -439,26 +391,12 @@ class InducedNormBatchNorm(EquivariantModule):
                 indices = getattr(self, f"{id}_indices")
                 running_var = getattr(self, f"{id}_running_var")
 
-                # compute the norm squared of the fields
-
-                if self._contiguous[id]:
-                    # if the fields were contiguous, we can use slicing
-
-                    # compute the norm of each field by summing the squares
-                    norms = (
-                        n[:, indices[0] : indices[1], :, :]
-                        .view(b, -1, n_subfields, subfield_size, h, w)
-                        .sum(dim=3, keepdim=False)
-                    )  # .sqrt()
-                else:
-                    # otherwise we have to use indexing
-
-                    # compute the norm of each field by summing the squares
-                    norms = (
-                        n[:, indices, :, :]
-                        .view(b, -1, n_subfields, subfield_size, h, w)
-                        .sum(dim=3, keepdim=False)
-                    )  # .sqrt()
+                # compute the norm of each field by summing the squares
+                norms = (
+                    n[:, indices[0] : indices[1], :, :]
+                    .view(b, -1, n_subfields, subfield_size, h, w)
+                    .sum(dim=3, keepdim=False)
+                )
 
                 # Since the mean of the fields is 0, we can compute the variance as the mean of the norms squared
                 # corrected with Bessel's correction
@@ -502,12 +440,7 @@ class InducedNormBatchNorm(EquivariantModule):
                 b, -1, n_subfields, subfield_size, h, w
             ).reshape(b, -1, h, w)
 
-            if self._contiguous[id]:
-                # if the fields are contiguous, we can use slicing
-                output[:, indices[0] : indices[1], :, :] *= multipliers
-            else:
-                # otherwise we have to use indexing
-                output[:, indices, :, :] *= multipliers
+            output[:, indices[0] : indices[1], :, :] *= multipliers
 
             # shift the position on the running_var and weight tensors
             next_var += self._nfields[id]
@@ -516,7 +449,6 @@ class InducedNormBatchNorm(EquivariantModule):
         return GroupTensor(output, self.out_type, input.coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 

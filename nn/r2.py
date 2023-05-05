@@ -43,17 +43,15 @@ class GSpace2D(GSpace):
 
         """
 
-        o2 = O2(maximum_frequency)
+        o2 = O2(maximum_frequency=maximum_frequency)
         _sg_id = o2._process_subgroup_id(sg_id)
-        fibergroup, inclusion, restriction = o2.subgroup(_sg_id)
+        fibergroup, self._inclusion, self._restriction = o2.subgroup(_sg_id)
 
         # TODO - catch sg_id and build a dictionary of more meaningful names
         # use the input sg_id instead of the processed one to avoid adding the adjoint parameter unless specified
         name = f"{fibergroup}_on_R2[{sg_id}]"
 
         self._sg_id = _sg_id
-        self._inclusion = inclusion
-        self._restriction = restriction
         self._base_action = o2.irrep(1, 1).restrict(_sg_id)
 
         super(GSpace2D, self).__init__(fibergroup, 2, name)

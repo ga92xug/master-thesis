@@ -1,13 +1,12 @@
 from torch.nn.functional import conv2d, pad
 
-from nn import FieldType
-from nn import GroupTensor
-import nn
+from nn import FieldType, GroupTensor
 
 from group_theory import Representation, KernelBasis
 from nn import GSpace2D
 
 from .rd_convolution import _RdConv
+from .initialization import generalized_he_init
 
 from typing import Callable, Union, List
 
@@ -172,7 +171,7 @@ class R2Conv(_RdConv):
 
         if initialize:
             # by default, the weights are initialized with a generalized form of He's weight initialization
-            nn.generalized_he_init(self.weights.data, self.basisexpansion)
+            generalized_he_init(self.weights.data, self.basisexpansion)
 
     def _build_kernel_basis(
         self, in_repr: Representation, out_repr: Representation
@@ -206,10 +205,6 @@ class R2Conv(_RdConv):
             # Retrieve filter and bias
             _filter, _bias = self.expand_parameters()
 
-        # Weight standardization
-        std, mean = torch.std_mean(_filter, dim=(1, 2, 3), unbiased=False, keepdim=True)
-        _filter = (_filter - mean) / (std.expand_as(_filter - mean) + 1e-5)
-
         # Use filter for convolution and return result
         if self.padding_mode == "zeros":
             output = conv2d(
@@ -240,8 +235,8 @@ class R2Conv(_RdConv):
     def check_equivariance(
         self,
         x: torch.Tensor = None,
-        atol: float = 0.1,
-        rtol: float = 0.1,
+        atol: float = 1e-6,
+        rtol: float = 1e-5,
         assertion: bool = True,
         verbose: bool = True,
     ):
@@ -256,7 +251,7 @@ class R2Conv(_RdConv):
         if x is None:
             c = self.in_type.size
 
-            x = torch.rand(3, 32, 32)[np.newaxis, 0:c, :, :]
+            x = np.random.rand(3, 768, 1024)[np.newaxis, 0:c, :, :]
             x = resize(
                 x,
                 (x.shape[0], x.shape[1], initial_size, initial_size),
@@ -276,7 +271,7 @@ class R2Conv(_RdConv):
         def shrink(t: GroupTensor, s) -> GroupTensor:
             return GroupTensor(
                 torch.FloatTensor(
-                    block_reduce(t.tensor.detach().cpu().numpy(), s, func=np.mean)
+                    block_reduce(t.tensor.detach().numpy(), s, func=np.mean)
                 ).cuda(),
                 t.type,
             )
@@ -326,29 +321,15 @@ class R2Conv(_RdConv):
 
             if verbose:
                 print(
-                    el,
-                    relerr.max(),
-                    relerr.mean(),
-                    relerr.var(),
-                    errs.max(),
-                    errs.mean(),
-                    errs.var(),
+                    f"Group {el}: - relerr max: {relerr.max()} - relerr mean: {relerr.mean()} - relerr var: "
+                    f"{relerr.var()}; err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
                 )
 
-            tol = rtol * esum + atol
-
-            if np.any(errs > tol) and verbose:
-                print("Errors:")
-                print(out1[errs > tol])
-                print(out2[errs > tol])
-                print(tol[errs > tol])
-
-            if assertion:
-                assert np.all(
-                    errs < tol
-                ), 'The error found during equivariance check with element "{}" is too high: max = {}, mean = {} var ={}'.format(
-                    el, errs.max(), errs.mean(), errs.var()
-                )
+            assert np.allclose(
+                out1, out2, atol=atol, rtol=rtol
+            ), 'The error found during equivariance check with element "{}" is too high: max = {}, mean = {} var ={}'.format(
+                el, errs.max(), errs.mean(), errs.var()
+            )
 
             errors.append((el, errs.mean()))
 

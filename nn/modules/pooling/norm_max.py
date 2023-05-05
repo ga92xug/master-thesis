@@ -76,44 +76,22 @@ class NormMaxPool(EquivariantModule):
 
         self.ceil_mode = ceil_mode
 
-        self._nfields = None
-
-        # group fields by their size and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
-
+        # Group fields by their size and retrieve the indices of the fields
         # number of fields of each size
         self._nfields = defaultdict(int)
 
         # indices of the channales corresponding to fields belonging to each group
-        _indices = defaultdict(lambda: [])
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
+        _indices = defaultdict(list)
 
         position = 0
-        last_size = None
         for i, r in enumerate(self.in_type.representations):
-
-            if r.size != last_size:
-                if not r.size in self._contiguous:
-                    self._contiguous[r.size] = True
-                else:
-                    self._contiguous[r.size] = False
-            last_size = r.size
-
             _indices[r.size] += list(range(position, position + r.size))
             self._nfields[r.size] += 1
             position += r.size
 
         self.indices = {}
-        for s, contiguous in self._contiguous.items():
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _indices[s] = torch.LongTensor([min(_indices[s]), max(_indices[s]) + 1])
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _indices[s] = torch.LongTensor(_indices[s])
+        for s in list(self._nfields.keys()):
+            _indices[s] = torch.LongTensor([min(_indices[s]), max(_indices[s]) + 1])
 
             # register the indices tensors as parameters of this module
             self.indices[s] = _indices[s].to(f"cuda:{torch.cuda.current_device()}")
@@ -145,78 +123,44 @@ class NormMaxPool(EquivariantModule):
         input = input.tensor.reshape(b, c, -1)
 
         # iterate through all field sizes
-        for s, contiguous in self._contiguous.items():
+        for s in list(self._nfields.keys()):
             indices = self.indices[s]
-            if contiguous:
-                # if the fields were contiguous, we can use slicing
+            # compute the norms
+            norms = (
+                n[:, indices[0] : indices[1], :, :]
+                .view(b, -1, s, hi, wi)
+                .sum(dim=2)
+                .sqrt()
+            )
 
-                # compute the norms
-                norms = (
-                    n[:, indices[0] : indices[1], :, :]
-                    .view(b, -1, s, hi, wi)
-                    .sum(dim=2)
-                    .sqrt()
-                )
+            # run max-pooling on the norms-tensor
+            _, indx = F.max_pool2d(
+                norms,
+                self.kernel_size,
+                self.stride,
+                self.padding,
+                self.dilation,
+                self.ceil_mode,
+                return_indices=True,
+            )
 
-                # run max-pooling on the norms-tensor
-                _, indx = F.max_pool2d(
-                    norms,
-                    self.kernel_size,
-                    self.stride,
-                    self.padding,
-                    self.dilation,
-                    self.ceil_mode,
-                    return_indices=True,
-                )
+            # in order to use the pooling indices computed for the norms to retrieve the fields, they need to be
+            # expanded in the inner field dimension
+            indx = indx.view(b, -1, 1, ho * wo).expand(-1, -1, s, -1)
 
-                # in order to use the pooling indices computed for the norms to retrieve the fields, they need to be
-                # expanded in the inner field dimension
-                indx = indx.view(b, -1, 1, ho * wo).expand(-1, -1, s, -1)
+            out = torch.empty(b, (indices[1] - indices[0]), ho, wo, device=input.device)
 
-                out = torch.empty(
-                    b, (indices[1] - indices[0]), ho, wo, device=input.device
-                )
-
-                # retrieve the fields from the input tensor using the pooling indeces
-                out = (
-                    input[:, indices[0] : indices[1], :]
-                    .view(b, -1, s, hi * wi)
-                    .gather(3, indx)
-                    .view(b, -1, ho, wo)
-                )
-                if output is None:
-                    output = out
-                else:
-                    output = torch.cat([output, out], axis=1)
-
+            # retrieve the fields from the input tensor using the pooling indeces
+            out = (
+                input[:, indices[0] : indices[1], :]
+                .view(b, -1, s, hi * wi)
+                .gather(3, indx)
+                .view(b, -1, ho, wo)
+            )
+            if output is None:
+                output = out
             else:
-                # otherwise we have to use indexing
-
-                # compute the norms
-                norms = n[:, indices, :, :].view(b, -1, s, hi, wi).sum(dim=2).sqrt()
-
-                # run max-pooling on the norms-tensor
-                _, indx = F.max_pool2d(
-                    norms,
-                    self.kernel_size,
-                    self.stride,
-                    self.padding,
-                    self.dilation,
-                    self.ceil_mode,
-                    return_indices=True,
-                )
-
-                # in order to use the pooling indices computed for the norms to retrieve the fields, they need to be
-                # expanded in the inner field dimension
-                indx = indx.view(b, -1, 1, ho * wo).expand(-1, -1, s, -1)
-
-                # retrieve the fields from the input tensor using the pooling indeces
-                output[:, indices, :, :] = (
-                    input[:, indices, :]
-                    .view(b, -1, s, hi * wi)
-                    .gather(3, indx)
-                    .view(b, -1, ho, wo)
-                )
+                output = torch.cat([output, out], axis=1)
 
         # wrap the result in a GroupTensor
         return GroupTensor(output, self.out_type, coords=None)
@@ -256,6 +200,5 @@ class NormMaxPool(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         # this kind of pooling is not really equivariant so we can not test equivariance
         pass

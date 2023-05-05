@@ -11,6 +11,7 @@ import numpy as np
 import scipy as sp
 from scipy import linalg, sparse
 from scipy.sparse.csgraph import connected_components
+from functools import partial
 
 
 __all__ = [
@@ -194,7 +195,7 @@ class Representation:
                 )
         elif isinstance(representation, dict):
             assert set(representation.keys()) == set(
-                self.group.elements
+                self.group._elements
             ), "Error! Keys don't match group's elements"
 
             self._stored_representations = representation
@@ -209,7 +210,7 @@ class Representation:
 
         if isinstance(character, dict):
             assert set(character.keys()) == set(
-                self.group.elements
+                self.group._elements
             ), "Error! Keys don't match group's elements"
 
             self._characters = character
@@ -573,7 +574,6 @@ def disentangle(repr: Representation) -> Tuple[np.ndarray, List[Representation]]
     representations = []
     current_position = 0
     for block, (irreps_indices, row_indices) in enumerate(blocks):
-
         irreps_indices = sorted(irreps_indices)
         row_indices = sorted(row_indices)
 
@@ -672,20 +672,20 @@ def build_regular_representation(group: Group):
         the regular representation
 
     """
-    assert group.rotation_order > 0
-    assert group.elements is not None and len(group.elements) > 0
+    assert group.order() > 0
+    assert group._elements is not None and len(group._elements) > 0
 
-    size = group.order()  # TODO: Use len(group.elements()) and drop order()?
+    size = group.order()
 
-    index = {e: i for i, e in enumerate(group.elements)}
+    index = {e: i for i, e in enumerate(group._elements)}
 
     representation = {}
     character = {}
 
-    for e in group.elements:
+    for e in group._elements:
         r = np.zeros((size, size), dtype=np.float)
 
-        for g in group.elements:
+        for g in group._elements:
             eg = e @ g
             i = index[g]
             j = index[eg]
@@ -734,9 +734,7 @@ def build_regular_representation(group: Group):
 
     change_of_basis = np.zeros((size, size))
 
-    # np.set_printoptions(precision=4, threshold=10*size**2, suppress=False, linewidth=25*size + 5)
-
-    for e in group.elements:
+    for e in group._elements:
         ev = P(e) @ v
         change_of_basis[index[e], :] = ev.T
 
@@ -786,22 +784,22 @@ def build_induced_representation(
         repr.irreducible
     ), "Induction from general representations is not supported yet"
 
-    subgroup, parent, child = group.subgroup(subgroup_id)
+    subgroup, _, _ = group.subgroup(subgroup_id)
 
     assert repr.group == subgroup
     homspace = group.homspace(subgroup_id)
 
-    if group.rotation_order > 0:
-        quotient_size = int(group.rotation_order / subgroup.rotation_order)
+    if group.order() > 0:
+        quotient_size = int(group.order() / subgroup.order())
 
         if representatives is None:
             representatives = []
             # the coset each element belongs to
             cosets = {}
-            for e in group.elements:
+            for e in group._elements:
                 if e not in cosets:
                     representatives.append(e)
-                    for g in subgroup.elements:
+                    for g in subgroup._elements:
                         eg = e @ homspace._inclusion(g)
                         cosets[eg] = e
 
@@ -878,8 +876,8 @@ def direct_sum_factory(
         change_of_basis_inv: the inverse of the change of basis matrix
 
     Returns:
-        function taking an input accepted by the irreps and returning the direct sum of the irreps evaluated
-        on that input
+        unique_irreps (list):
+        irreps_ids (list):
     """
     size = sum(irr.size for irr in irreps)
 
@@ -902,30 +900,34 @@ def direct_sum_factory(
                 change_of_basis_inv @ change_of_basis, np.eye(change_of_basis.shape[0])
             )
 
-    unique_irreps = list({irr.id: irr for irr in irreps}.items())
-    irreps_ids = [irr.id for irr in irreps]
+    return partial(
+        direct_sum,
+        [irr.id for irr in irreps],
+        change_of_basis,
+        change_of_basis_inv,
+        list({irr.id: irr for irr in irreps}.items()),
+    )
 
-    def direct_sum(
-        element: GroupElement,
-        irreps_ids=irreps_ids,
-        change_of_basis=change_of_basis,
-        change_of_basis_inv=change_of_basis_inv,
-        unique_irreps=unique_irreps,
-    ):
-        reprs = {}
-        for n, irr in unique_irreps:
-            reprs[n] = irr(element)
 
-        blocks = []
-        for irrep_id in irreps_ids:
-            repr = reprs[irrep_id]
-            blocks.append(repr)
+def direct_sum(
+    irreps_ids,
+    change_of_basis,
+    change_of_basis_inv,
+    unique_irreps,
+    element: GroupElement,
+):
+    reprs = {}
+    for n, irr in unique_irreps:
+        reprs[n] = irr(element)
 
-        P = sparse.block_diag(blocks, format="csc")
+    blocks = []
+    for irrep_id in irreps_ids:
+        repr = reprs[irrep_id]
+        blocks.append(repr)
 
-        if change_of_basis is None:
-            return np.asarray(P.todense())
-        else:
-            return change_of_basis @ P @ change_of_basis_inv
+    P = sparse.block_diag(blocks, format="csc")
 
-    return direct_sum
+    if change_of_basis is None:
+        return np.asarray(P.todense())
+    else:
+        return change_of_basis @ P @ change_of_basis_inv

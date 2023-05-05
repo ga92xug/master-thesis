@@ -97,13 +97,14 @@ class EquivariantModule(Module, ABC):
         errors = []
 
         for el in self.out_type.testing_elements:
-            print(el)
             out1 = self(x).transform(el).tensor.detach().cpu().numpy()
             out2 = self(x.transform(el)).tensor.detach().cpu().numpy()
 
             errs = out1 - out2
             errs = np.abs(errs).reshape(-1)
-            print(el, errs.max(), errs.mean(), errs.var())
+            print(
+                f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
+            )
 
             assert np.allclose(
                 out1, out2, atol=atol, rtol=rtol

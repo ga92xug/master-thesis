@@ -39,8 +39,7 @@ class MultipleModule(EquivariantModule):
 
         In this way, fields that need to be retrieved together are contiguous and it is possible
         to exploit slicing to split the tensor.
-        By default, ``reshuffle = 0`` which means that no sorting is performed and, so, if input
-        fields are not contiguous this layer will use indexing to retrieve sub-tensors.
+        By default, ``reshuffle = 0`` which means that no sorting is performed.
 
         This modules wraps a :class:`~nn.BranchingModule` followed by a :class:`~nn.MergeModule`.
 
@@ -104,19 +103,11 @@ class MultipleModule(EquivariantModule):
                 for s in modules[i][1]:
                     assert isinstance(s, str)
 
-        # Check which non-linearity has all its fields consecutive
-        self._contiguous = {}
-        for l in self._labels:
-            if not l in self._contiguous:
-                self._contiguous[l] = True
-            else:
-                self._contiguous[l] = False
-
         # For each label, compute:
         #   - the set of indices on the fiber of its fields and
         #   - the the indices of the fields belonging to it
         last_position = 0
-        _input_indices = defaultdict(lambda: [])
+        _input_indices = defaultdict(list)
         for c, l in enumerate(labels):
             # Append indices of the current field
             _input_indices[l] += list(
@@ -126,16 +117,11 @@ class MultipleModule(EquivariantModule):
             last_position += in_type.representations[c].size
 
         self.indices = {}
-        for l, contiguous in self._contiguous.items():
-            if contiguous:
-                # for labels with contiguous fields, only the first and the last indices are preserved
-                _input_indices[l] = torch.LongTensor(
-                    [min(_input_indices[l]), max(_input_indices[l]) + 1]
-                )
-
-            else:
-                # for the others, the indices list is trasformed into a PyTorch's Tensor
-                _input_indices[l] = torch.LongTensor(_input_indices[l])
+        for l in self._labels:
+            # Only the first and the last indices are preserved
+            _input_indices[l] = torch.LongTensor(
+                [min(_input_indices[l]), max(_input_indices[l]) + 1]
+            )
 
             # register the indices tensors as parameters of this module
             self.indices[l] = _input_indices[l]
@@ -158,13 +144,7 @@ class MultipleModule(EquivariantModule):
 
         """
         indices = self.indices[l]
-
-        if self._contiguous[l]:
-            # if the fields are contiguous, use slicing
-            data = input.tensor[:, indices[0] : indices[1], ...].clone()
-        else:
-            # otherwise, use indexing
-            data = input.tensor[:, indices, ...].clone()
+        data = input.tensor[:, indices[0] : indices[1], ...].clone()
 
         # wrap the result in a GroupTensor
         return GroupTensor(data, self._label_out_types[l], input.coords)
@@ -202,7 +182,6 @@ class MultipleModule(EquivariantModule):
         return GroupTensor(output, self.out_type, out.coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) > 1
         assert input_shape[1] == self.in_type.size
 
@@ -236,9 +215,7 @@ class MultipleModule(EquivariantModule):
         rtol: float = 1e-5,
         full_space_action: bool = True,
     ) -> List[Tuple[Any, float]]:
-
         if full_space_action:
-
             return super(MultipleModule, self).check_equivariance(
                 x=x, atol=atol, rtol=rtol
             )

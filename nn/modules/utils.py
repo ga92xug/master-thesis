@@ -7,7 +7,6 @@ __all__ = ["check_consecutive_numbers", "indexes_from_labels"]
 
 
 def check_consecutive_numbers(list: List[int]) -> bool:
-
     m = M = list[0]
     s = 0
 
@@ -38,8 +37,8 @@ def indexes_from_labels(
     """
     assert len(labels) == len(in_type)
 
-    indeces = defaultdict(lambda: [])
-    fields = defaultdict(lambda: [])
+    indeces = defaultdict(list)
+    fields = defaultdict(list)
 
     current_position = 0
     for c, (l, r) in enumerate(zip(labels, in_type.representations)):
@@ -51,7 +50,6 @@ def indexes_from_labels(
     groups = {}
 
     for l in labels:
-        contiguous = check_consecutive_numbers(indeces[l])
-        groups[l] = contiguous, fields[l], indeces[l]
+        groups[l] = fields[l], indeces[l]
 
     return groups

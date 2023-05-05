@@ -51,32 +51,20 @@ class GroupPooling(EquivariantModule):
         self.out_type = FieldType(self.space, [self.space.trivial_repr] * len(in_type))
 
         # indices of the channels corresponding to fields belonging to each group in the input representation
-        _in_indices = defaultdict(lambda: [])
+        _in_indices = defaultdict(list)
         # indices of the channels corresponding to fields belonging to each group in the output representation
-        _out_indices = defaultdict(lambda: [])
+        _out_indices = defaultdict(list)
 
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
-
-        # group fields by their size and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
+        # group fields by their size and retrieve the indices of the fields
         indeces = indexes_from_labels(
             in_type, [r.size for r in in_type.representations]
         )
 
         self.in_indices = {}
         self.out_indices = {}
-        for s, (contiguous, fields, idxs) in indeces.items():
-            self._contiguous[s] = contiguous
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _in_indices[s] = torch.LongTensor([min(idxs), max(idxs) + 1])
-                _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _in_indices[s] = torch.LongTensor(idxs)
-                _out_indices[s] = torch.LongTensor(fields)
+        for s, (fields, idxs) in indeces.items():
+            _in_indices[s] = torch.LongTensor([min(idxs), max(idxs) + 1])
+            _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
 
             # register the indices tensors as parameters of this module
             self.in_indices[s] = _in_indices[s].to(
@@ -112,35 +100,18 @@ class GroupPooling(EquivariantModule):
             dtype=torch.float,
         )
 
-        for s, contiguous in self._contiguous.items():
-
+        for s in list(self.in_indices.keys()):
             in_indices = self.in_indices[s]
-            out_indices = self.out_indices[s]
-
-            if contiguous:
-                fm = input[:, in_indices[0] : in_indices[1], ...]
-            else:
-                fm = input[:, in_indices, ...]
-
+            fm = input[:, in_indices[0] : in_indices[1], ...]
             # split the channel dimension in 2 dimensions, separating fields
             fm = fm.view(b, -1, s, *spatial_shape)
 
-            max_activations, _ = torch.max(fm, 2)
-
-            if contiguous:
-                # output[:, out_indices[0] : out_indices[1], ...] = max_activations
-                output = torch.max(fm, 2)[0]
-            else:
-                # output[:, out_indices, ...] = max_activations
-                output = torch.max(fm, 2)[0]
-
-            output = output
+            output = torch.max(fm, 2)[0]
 
         # wrap the result in a GroupTensor
         return GroupTensor(output, self.out_type, coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -152,7 +123,6 @@ class GroupPooling(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = self.in_type.size
 
         x = torch.randn(3, c, 10, 10)
@@ -167,7 +137,9 @@ class GroupPooling(EquivariantModule):
 
             errs = (out1.tensor - out2.tensor).detach().numpy()
             errs = np.abs(errs).reshape(-1)
-            print(el, errs.max(), errs.mean(), errs.var())
+            print(
+                f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
+            )
 
             assert torch.allclose(
                 out1.tensor, out2.tensor, atol=atol, rtol=rtol
@@ -206,7 +178,7 @@ class GroupPooling(EquivariantModule):
 
         """
 
-        if len(self._contiguous) > 1:
+        if len(self.in_indices) > 1:
             raise NotImplementedError(
                 """
                 Group pooling with feature types containing representations of different sizes is not supported yet.
@@ -215,7 +187,7 @@ class GroupPooling(EquivariantModule):
 
         self.eval()
 
-        size = int(list(self._contiguous.keys())[0])
+        size = int(list(self.in_indices.keys())[0])
         gpool = MaxPoolChannels(size)
 
         return gpool.eval()
@@ -238,7 +210,6 @@ class MaxPoolChannels(nn.Module):
         self.kernel_size = kernel_size
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-
         assert (
             input.shape[1] % self.kernel_size == 0
         ), """
