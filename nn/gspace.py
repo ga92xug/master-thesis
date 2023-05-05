@@ -7,13 +7,6 @@ from group_theory import (
     Representation,
     IrreducibleRepresentation,
     KernelBasis,
-    O2,
-    Representation,
-    KernelBasis,
-    kernel2d_so2,
-    kernel2d_o2,
-    kernel2d_o2_subgroup,
-    kernel2d_so2_subgroup,
 )
 
 from .utils import linear_transform_array_nd
@@ -26,22 +19,12 @@ from collections import defaultdict
 import numpy as np
 
 
-__all__ = [
-    "GSpace2D",
-    #################
-    #"rot2dOnR2",
-    #"flipRot2dOnR2",
-    #"flip2dOnR2",
-    #"trivialOnR2",
-]
+__all__ = ["GSpace"]
 
 
-class GSpace2D(ABC):
-    def __init__(self, sg_id: Tuple, maximum_frequency: int = 6):
-    #def __init__(self, fibergroup: Group, dimensionality: int, name: str):
+class GSpace(ABC):
+    def __init__(self, fibergroup: Group, dimensionality: int, name: str):
         r"""
-        Stefan: GSpace description
-        
         Abstract class for G-spaces.
 
         A ``GSpace`` describes the space where a signal lives (e.g. :math:`\R^2` for planar images) and its symmetries
@@ -80,40 +63,7 @@ class GSpace2D(ABC):
             ~.name (str): an identification name
             ~.basespace (str): the name of the space whose symmetries are modeled. It is an Euclidean space :math:`\R^D`.
 
-        -----------------
-        Stefan: GSpace2D description
-
-        Describes reflectional and rotational symmetries of the plane :math:`\R^2`.
-
-        .. note ::
-            A point :math:`\bold{v} \in \R^2` is parametrized using an :math:`(X, Y)` convention,
-            i.e. :math:`\bold{v} = (x, y)^T`.
-            The representation :attr:`GSpace2D.basespace_action` also assumes this convention.
-
-            However, when working with data on a pixel grid, the usual :math:`(-Y, X)` convention is used.
-            That means that, in a 4-dimensional feature tensor of shape ``(B, C, D1, D2)``, the last dimension
-            is the X axis while the second last is the (inverted) Y axis.
-            Note that this is consistent with 2D images, where a :math:`(-Y, X)` convention is used.
-
-
-
         """
-
-        o2 = O2(maximum_frequency)
-        _sg_id = o2._process_subgroup_id(sg_id)
-        fibergroup, inclusion, restriction = o2.subgroup(_sg_id)
-
-        # TODO - catch sg_id and build a dictionary of more meaningful names
-        # use the input sg_id instead of the processed one to avoid adding the adjoint parameter unless specified
-        name = f"{fibergroup}_on_R2[{sg_id}]"
-
-        self._sg_id = _sg_id
-        self._inclusion = inclusion
-        self._restriction = restriction
-        self._base_action = o2.irrep(1, 1).restrict(_sg_id)
-
-        dimensionality = 2
-        # Stefan: from here on original GSpace code
 
         # TODO move this sub-package to PyTorch
 
@@ -124,11 +74,6 @@ class GSpace2D(ABC):
 
         # To not recompute the basis for the same intertwiner as many times as it appears,
         # the basis is stored in these dictionaries the first time we compute it
-
-        # Store the computed intertwiners between irreps
-        # - key = (filter size, sigma, rings)
-        # - value = dictionary mapping (input_irrep, output_irrep) pairs to the corresponding basis
-        self._irreps_intertwiners_basis_memory = defaultdict(lambda: dict())
 
         # Store the computed intertwiners between general representations
         # - key = (filter size, sigma, rings)
@@ -147,8 +92,8 @@ class GSpace2D(ABC):
         """
         return nn.FieldType(self, representations)
 
-    
-    def restrict(self, id: Tuple) -> Tuple[GSpace2D, Callable, Callable]:
+    @abstractmethod
+    def restrict(self, id) -> Tuple[GSpace, Callable, Callable]:
         r"""
 
         Build the :class:`~GSpace` associated with the subgroup of the current fiber group identified by
@@ -170,31 +115,11 @@ class GSpace2D(ABC):
 
                 - **subgroup_map**: a function mapping an element of the fiber group of the original space to itself in the subgroup (returns ``None`` if the element is not in the subgroup)
 
-        ----
-        Stefan: GSpace2D description
-
-        Build the :class:`~group.GSpace` associated with the subgroup of the current fiber group identified by
-        the input ``id``.
-
-        Args:
-            id (tuple): the id of the subgroup
-
-        Returns:
-            A tuple containing:
-                - **gspace**: the restricted gspace
-                - **back_map**: a function mapping an element of the subgroup to itself in the fiber group of the original space
-                - **subgroup_map**: a function mapping an element of the fiber group of the original space to itself in the
-                  subgroup (returns ``None`` if the element is not in the subgroup)
-        
         """
-
-        o2 = O2()
-        sg_id = o2._combine_subgroups(self._sg_id, id)
-        sg, inclusion, restriction = self.fibergroup.subgroup(id)
-
-        return GSpace2D(sg_id), inclusion, restriction
+        pass
 
     @property
+    @abstractmethod
     def basespace_action(self) -> Representation:
         r"""
 
@@ -205,7 +130,7 @@ class GSpace2D(ABC):
         This action is defined as a :math:`d`-dimensional linear :class:`~Representation` of :math:`G`.
 
         """
-        return self._base_action
+        pass
 
     def _interpolate_transform_basespace(
         self,
@@ -412,7 +337,7 @@ class GSpace2D(ABC):
             (in_repr.name, out_repr.name)
         ]
 
-    
+    @abstractmethod
     def _basis_generator(
         self,
         in_repr: Representation,
@@ -420,92 +345,8 @@ class GSpace2D(ABC):
         rings: List[float],
         sigma: List[float],
         **kwargs,
-    ) -> KernelBasis:
-        r"""
-        Method that builds the analytical basis that spans the space of equivariant filters which
-        are intertwiners between the representations induced from the representation ``in_repr`` and ``out_repr``.
-
-        `kwargs` can be used to specify `maximum_frequency`
-
-        Args:
-            in_repr (Representation): the input representation
-            out_repr (Representation): the output representation
-            rings (list): radii of the rings where to sample the bases
-            sigma (list): parameters controlling the width of each ring where the bases are sampled.
-
-        Returns:
-            the basis built
-
-        """
-
-        # TODO - add max_offset for cyclic and dihedral groups!
-
-        if "maximum_frequency" in kwargs:
-            maximum_frequency = kwargs["maximum_frequency"]
-        else:
-            maximum_frequency = None
-
-        if self._sg_id[0] is not None and self._sg_id[1] == -1:
-            return kernel2d_o2(
-                in_repr,
-                out_repr,
-                rings,
-                sigma,
-                axis=self._sg_id[0] / 2,
-                maximum_frequency=maximum_frequency,
-                filter=None,
-            )
-        elif self._sg_id == (None, -1):
-            return kernel2d_so2(
-                in_repr,
-                out_repr,
-                rings,
-                sigma,
-                maximum_frequency=maximum_frequency,
-                filter=None,
-            )
-        elif self._sg_id[0] is None:
-            sg_id = self._sg_id[1]
-            return kernel2d_so2_subgroup(
-                in_repr,
-                out_repr,
-                sg_id,
-                rings,
-                sigma,
-                adjoint=None,
-                maximum_frequency=maximum_frequency,
-                filter=None,
-            )
-        else:
-            return kernel2d_o2_subgroup(
-                in_repr,
-                out_repr,
-                self._sg_id,
-                rings,
-                sigma,
-                axis=0.0,
-                adjoint=None,
-                maximum_frequency=maximum_frequency,
-                filter=None,
-            )
+    ):
+        pass
 
     def __repr__(self):
         return self.name
-    
-    @property
-    def rotations_order(self):
-        return self._sg_id[1]
-    
-    @property
-    def flips_order(self):
-        return 1 if self._sg_id[0] is not None else 0
-    
-    def __eq__(self, other):
-        if isinstance(other, GSpace2D):
-            return self._sg_id == other._sg_id
-        else:
-            return False
-
-    def __hash__(self):
-        return 1000 * hash(self.name) + hash(self._sg_id)
-

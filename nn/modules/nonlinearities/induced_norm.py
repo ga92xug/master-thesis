@@ -62,23 +62,15 @@ class InducedNormNonLinearity(EquivariantModule):
         else:
             raise ValueError('Function "{}" not recognized!'.format(function))
 
-        # group fields by their size and the size of the subfields and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
-
+        # Group fields by size and the size of the subfields and retrieve the indices of the fields
         # number of fields of each size
         self._nfields = defaultdict(int)
 
         # indices of the channels corresponding to fields belonging to each group
-        _indices = defaultdict(lambda: [])
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
+        _indices = defaultdict(list)
 
         position = 0
-        last_id = None
         for i, r in enumerate(self.in_type.representations):
-
             subfield_size = None
             for nl in r.supported_nonlinearities:
                 if nl.startswith("induced_norm"):
@@ -91,25 +83,13 @@ class InducedNormNonLinearity(EquivariantModule):
 
             id = (r.size, subfield_size)
 
-            if id != last_id:
-                self._contiguous[id] = not id in self._contiguous
-
-            last_id = id
-
             _indices[id] += list(range(position, position + r.size))
             self._nfields[id] += 1
             position += r.size
 
         self.indices = {}
-        for id, contiguous in self._contiguous.items():
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _indices[id] = torch.LongTensor(
-                    [min(_indices[id]), max(_indices[id]) + 1]
-                )
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _indices[id] = torch.LongTensor(_indices[id])
+        for id in list(self._nfields.keys()):
+            _indices[id] = torch.LongTensor([min(_indices[id]), max(_indices[id]) + 1])
 
             # register the indices tensors as parameters of this module
             self.indices[id] = _indices[id].to(f"cuda:{torch.cuda.current_device()}")
@@ -123,7 +103,7 @@ class InducedNormNonLinearity(EquivariantModule):
             self.log_bias = None
 
         # build a sorted list of the fields groups, such that every time they are iterated through in the same order
-        self._order = sorted(self._contiguous.keys())
+        self._order = sorted(self._nfields.keys())
 
         self.eps = Parameter(torch.tensor(1e-10), requires_grad=False)
 
@@ -166,15 +146,7 @@ class InducedNormNonLinearity(EquivariantModule):
 
             # retrieve the corresponding fiber indices
             indices = self.indices[id]
-
-            if self._contiguous[id]:
-                # if the fields were contiguous, we can use slicing
-                # retrieve the fields
-                fm = input[:, indices[0] : indices[1], ...]
-            else:
-                # otherwise we have to use indexing
-                # retrieve the fields
-                fm = input[:, indices, ...]
+            fm = input[:, indices[0] : indices[1], ...]
 
             # compute the norm of each field
             norms = fm.view(b, -1, subfield_size, *spatial_dims).norm(
@@ -204,17 +176,9 @@ class InducedNormNonLinearity(EquivariantModule):
             m = new_norms / torch.max(norms, self.eps)
             m[norms <= self.eps] = 0.0
 
-            if self._contiguous[id]:
-                # expand the multipliers tensor to all channels for each field
-                multipliers[:, indices[0] : indices[1], ...] = m.expand(
-                    b, -1, subfield_size, *spatial_dims
-                ).reshape(b, -1, *spatial_dims)
-
-            else:
-                # expand the multipliers tensor to all channels for each field
-                multipliers[:, indices, ...] = m.expand(
-                    b, -1, subfield_size, *spatial_dims
-                ).reshape(b, -1, *spatial_dims)
+            multipliers[:, indices[0] : indices[1], ...] = m.expand(
+                b, -1, subfield_size, *spatial_dims
+            ).reshape(b, -1, *spatial_dims)
 
             # shift the position on the bias tensor
             next_bias += self._nfields[id]
@@ -223,7 +187,6 @@ class InducedNormNonLinearity(EquivariantModule):
         return GroupTensor(input * multipliers, self.out_type, coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -235,7 +198,6 @@ class InducedNormNonLinearity(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = self.in_type.size
 
         x = torch.randn(3, c, 10, 10)

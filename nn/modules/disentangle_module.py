@@ -65,20 +65,15 @@ class DisentangleModule(EquivariantModule):
         )
 
         self._order = []
-        self._contiguous = {}
         self.fiber_indices = {}
         for repr_name, (
-            contiguous,
             fields_indices,
             fiber_indices,
         ) in grouped_indices.items():
             self._order.append(repr_name)
-            self._contiguous[repr_name] = contiguous
-
-            if contiguous:
-                fiber_indices = (min(fiber_indices), max(fiber_indices) + 1)
-
-            fiber_indices = torch.LongTensor(fiber_indices)
+            fiber_indices = torch.LongTensor(
+                (min(fiber_indices), max(fiber_indices) + 1)
+            )
             self.fiber_indices[repr_name] = fiber_indices.cuda()
 
     def forward(self, input: GroupTensor) -> GroupTensor:
@@ -94,18 +89,13 @@ class DisentangleModule(EquivariantModule):
 
         # for each different representation in the fiber
         for repr_name in self._order:
-
-            contiguous = self._contiguous[repr_name]
             fiber_indices = self.fiber_indices[repr_name]
 
             # retrieve the associated change of basis
             cob = self.change_of_basis[repr_name]
 
             # retrieve the associated fields from the input tensor
-            if contiguous:
-                input_fields = input[:, fiber_indices[0] : fiber_indices[1], ...]
-            else:
-                input_fields = input[:, fiber_indices, ...]
+            input_fields = input[:, fiber_indices[0] : fiber_indices[1], ...]
 
             # reshape to align all the fields in order to exploit broadcasting
             input_fields = input_fields.view(
@@ -119,10 +109,7 @@ class DisentangleModule(EquivariantModule):
             ).reshape(b, -1, *spatial_shape)
 
             # insert the transformed fields in the output tensor
-            if contiguous:
-                output[:, fiber_indices[0] : fiber_indices[1], ...] = transformed_fields
-            else:
-                output[:, fiber_indices, ...] = transformed_fields
+            output[:, fiber_indices[0] : fiber_indices[1], ...] = transformed_fields
 
         return GroupTensor(output, self.out_type, coords)
 
@@ -132,7 +119,6 @@ class DisentangleModule(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-7, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = self.in_type.size
 
         x = torch.randn(3, c, 10, 10)

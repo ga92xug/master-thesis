@@ -68,7 +68,6 @@ class Mish(EquivariantModule):
         )
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -80,7 +79,6 @@ class Mish(EquivariantModule):
     def check_equivariance(
         self, x: torch.Tensor = None, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         if x is None:
             c = self.in_type.size
             x = torch.randn(3, c, 10, 10)
@@ -92,9 +90,11 @@ class Mish(EquivariantModule):
             out1 = self(x).transform_fibers(el)
             out2 = self(x.transform_fibers(el))
 
-            errs = (out1.tensor - out2.tensor).detach().numpy()
+            errs = (out1.tensor - out2.tensor).cpu().detach().numpy()
             errs = np.abs(errs).reshape(-1)
-            print(el, errs.max(), errs.mean(), errs.var())
+            print(
+                f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
+            )
 
             assert torch.allclose(
                 out1.tensor, out2.tensor, atol=atol, rtol=rtol

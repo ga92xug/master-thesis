@@ -1,4 +1,4 @@
-from nn.modules.basisexpansion import BasisExpansion
+from .basisexpansion import BasisExpansion
 
 from collections import defaultdict
 
@@ -69,7 +69,6 @@ def generalized_he_init(
 
     """
     # Initialization
-
     assert tensor.shape == (basisexpansion.dimension(),)
 
     if cache and basisexpansion not in cached_he_vars:
@@ -97,12 +96,11 @@ def deltaorthonormal_init(tensor: torch.Tensor, basisexpansion: BasisExpansion):
 
     """
     # Initialization
-
     assert tensor.shape == (basisexpansion.dimension(),)
 
     tensor.fill_(0.0)
 
-    counts = defaultdict(lambda: defaultdict(lambda: []))
+    counts = defaultdict(lambda: defaultdict(list))
 
     for p, attr in enumerate(basisexpansion.get_basis_info()):
         i = attr["in_irrep"]
@@ -141,19 +139,12 @@ def deltaorthonormal_init(tensor: torch.Tensor, basisexpansion: BasisExpansion):
         i = len(in_c.keys())
         o = len(out_c.keys())
 
-        # assert i <= o, (i, o, s, irrep, self._input_size, self._output_size)
-        # if i > o:
-        #     print("Warning: using delta orthogonal initialization to map to a larger number of channels")
-
         if max(o, i) > 1:
             W = stats.ortho_group.rvs(max(i, o))[:o, :i]
-            # W = np.eye(o, i)
         else:
             W = 2 * torch.randint(0, 1, size=(1, 1)) - 1
-            # W = np.array([[1]])
 
         w = torch.randn((o, s))
-        # w = torch.ones((o, s))
         w *= 5.0
         w /= (w**2).sum(dim=1, keepdim=True).sqrt()
 

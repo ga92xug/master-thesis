@@ -65,7 +65,6 @@ def null(
 def build_sylvester_constraint(
     rho_1: List[np.ndarray], rho_2: List[np.ndarray]
 ) -> sparse.linalg.LinearOperator:
-
     assert len(rho_1) == len(rho_2)
     assert len(rho_1) > 0
 
@@ -74,7 +73,6 @@ def build_sylvester_constraint(
 
     constraints = []
     for rho_1_g, rho_2_g in zip(rho_1, rho_2):
-
         assert rho_1_g.shape == (d1, d1)
         assert rho_2_g.shape == (d2, d2)
 
@@ -89,7 +87,6 @@ def build_sylvester_constraint(
 def find_intertwiner_basis_sylvester(
     rho_1: List[np.ndarray], rho_2: List[np.ndarray], eps: float = 1e-12
 ) -> np.ndarray:
-
     constraint = build_sylvester_constraint(rho_1, rho_2)
     # Kernel space of this matrix contains the solutions of our problem
     if constraint.shape[1] == 1:
@@ -132,7 +129,6 @@ class InsufficientIrrepsException(Exception):
 
 def find_tensor_decomposition(J: Tuple, l: Tuple, G: Group) -> List[Tuple[Tuple, int]]:
     """Check if subgroup irreps are part of group?"""
-    G = G.__class__(6 if not bool(G._keys) else G._keys["N"])
     psi_J = G.irrep(*J)
     psi_l = G.irrep(*l)
 

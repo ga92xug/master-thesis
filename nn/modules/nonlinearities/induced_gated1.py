@@ -56,10 +56,8 @@ class InducedGatedNonLinearity(EquivariantModule):
         self.in_type = in_type
 
         self.drop_gates = drop_gates
-
-        self._contiguous = {}
-        _input_indices = defaultdict(lambda: [])
-        _output_indices = defaultdict(lambda: [])
+        _input_indices = defaultdict(list)
+        _output_indices = defaultdict(list)
 
         self._nfields = defaultdict(int)
 
@@ -130,8 +128,8 @@ class InducedGatedNonLinearity(EquivariantModule):
         out_last_position = 0
         last_type = None
 
-        # group fields by their type (gated or gate) and their size, check if fields of the same type are
-        # contiguous and retrieve the indices of the fields
+        # group fields by type (gated or gate) and their size and retrieve the indices of the fields
+        self._types = []
         for g, r in zip(gates, in_type.representations):
             if g == GATES_ID:
                 type = g
@@ -140,10 +138,8 @@ class InducedGatedNonLinearity(EquivariantModule):
                 self._nfields[type] += 1
 
             if type != last_type:
-                if not type in self._contiguous:
-                    self._contiguous[type] = True
-                else:
-                    self._contiguous[type] = False
+                if not type in self._types:
+                    self._types.append(type)
             last_type = type
 
             _input_indices[type] += list(
@@ -167,22 +163,14 @@ class InducedGatedNonLinearity(EquivariantModule):
 
         self.input_indices = {}
         self.output_indices = {}
-        for t, contiguous in self._contiguous.items():
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _input_indices[t] = torch.LongTensor(
-                    [min(_input_indices[t]), max(_input_indices[t]) + 1]
+        for t in self._types:
+            _input_indices[t] = torch.LongTensor(
+                [min(_input_indices[t]), max(_input_indices[t]) + 1]
+            )
+            if t != GATES_ID or not self.drop_gates:
+                _output_indices[t] = torch.LongTensor(
+                    [min(_output_indices[t]), max(_output_indices[t]) + 1]
                 )
-                if t != GATES_ID or not self.drop_gates:
-                    _output_indices[t] = torch.LongTensor(
-                        [min(_output_indices[t]), max(_output_indices[t]) + 1]
-                    )
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _input_indices[t] = torch.LongTensor(_input_indices[t])
-
-                if t != GATES_ID or not self.drop_gates:
-                    _output_indices[t] = torch.LongTensor(_output_indices[t])
 
             # register the indices tensors as parameters of this module
             self.input_indices[t] = _input_indices[t].to(
@@ -221,12 +209,8 @@ class InducedGatedNonLinearity(EquivariantModule):
         assert isinstance(input, GroupTensor)
         assert input.type == self.in_type
 
-        # retrieve the gates
-        if self._contiguous[GATES_ID]:
-            gates = input.tensor[:, self.gates_indices[0] : self.gates_indices[1], ...]
-        else:
-            gates = input.tensor[:, self.gates_indices, ...]
-
+        # Retrieve the gates
+        gates = input.tensor[:, self.gates_indices[0] : self.gates_indices[1], ...]
         coords = input.coords
 
         # retrieving only gated fields from the joint tensor is worthless
@@ -260,23 +244,12 @@ class InducedGatedNonLinearity(EquivariantModule):
                 [b, (output_indices[1] - output_indices[0]), *spatial_dims]
             )
 
-            if self._contiguous[type]:
-                # if the fields were contiguous, we can use slicing
-                output = (
-                    input[:, input_indices[0] : input_indices[1], ...].view(
-                        b, -1, subfield_size, *spatial_dims
-                    )
-                    * g
-                ).view(b, -1, *spatial_dims)
-
-            else:
-                # otherwise we have to use indexing
-                output = (
-                    input[:, input_indices, ...].view(
-                        b, -1, subfield_size, *spatial_dims
-                    )
-                    * g
-                ).view(b, -1, *spatial_dims)
+            output = (
+                input[:, input_indices[0] : input_indices[1], ...].view(
+                    b, -1, subfield_size, *spatial_dims
+                )
+                * g
+            ).view(b, -1, *spatial_dims)
 
             # shift the position on the gates fiber
             next_gate += self._nfields[type]
@@ -289,7 +262,6 @@ class InducedGatedNonLinearity(EquivariantModule):
         return GroupTensor(output, self.out_type, coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -301,7 +273,6 @@ class InducedGatedNonLinearity(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = self.in_type.size
 
         x = torch.randn(3, c, 10, 10)

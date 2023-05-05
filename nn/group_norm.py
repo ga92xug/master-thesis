@@ -181,13 +181,9 @@ class InducedNormGroupNorm(EquivariantModule):
         self._nfields = defaultdict(int)
 
         # indices of the channales corresponding to fields belonging to each group
-        _indices = defaultdict(lambda: [])
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
+        _indices = defaultdict(list)
 
         position = 0
-        last_id = None
         for r in self.in_type.representations:
             subfield_size = None
             for nl in r.supported_nonlinearities:
@@ -200,10 +196,6 @@ class InducedNormGroupNorm(EquivariantModule):
                     assert r.size % subfield_size == 0
 
             id = (r.size, subfield_size)
-
-            if id != last_id:
-                self._contiguous[id] = not id in self._contiguous
-            last_id = id
 
             _indices[id] += list(range(position, position + r.size))
             self._nfields[id] += 1
@@ -262,7 +254,6 @@ class InducedNormGroupNorm(EquivariantModule):
         return GroupTensor(output, self.out_type, input.coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -352,13 +343,9 @@ class GroupStandardization(EquivariantModule):
         self._nfields = defaultdict(int)
 
         # indices of the channales corresponding to fields belonging to each group
-        _indices = defaultdict(lambda: [])
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
+        _indices = defaultdict(list)
 
         position = 0
-        last_id = None
         for r in self.in_type.representations:
             subfield_size = None
             for nl in r.supported_nonlinearities:
@@ -371,10 +358,6 @@ class GroupStandardization(EquivariantModule):
                     assert r.size % subfield_size == 0
 
             id = (r.size, subfield_size)
-
-            if id != last_id:
-                self._contiguous[id] = not id in self._contiguous
-            last_id = id
 
             _indices[id] += list(range(position, position + r.size))
             self._nfields[id] += 1
@@ -413,7 +396,6 @@ class GroupStandardization(EquivariantModule):
         return GroupTensor(output, self.out_type, input.coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 

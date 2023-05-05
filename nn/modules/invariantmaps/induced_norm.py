@@ -43,26 +43,18 @@ class InducedNormPool(EquivariantModule):
         # build the output representation substituting each input field with a trivial representation
         self.out_type = FieldType(self.space, [self.space.trivial_repr] * len(in_type))
 
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
-
-        # group fields by their size and the size of the subfields and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
-
+        # Group fields by their size and the size of the subfields and retrieve the indices of the fields
         # indices of the channels corresponding to fields belonging to each group in the input representation
-        _in_indices = defaultdict(lambda: [])
+        _in_indices = defaultdict(list)
         # indices of the channels corresponding to fields belonging to each group in the output representation
-        _out_indices = defaultdict(lambda: [])
+        _out_indices = defaultdict(list)
 
         # number of fields of each size
         self._nfields = defaultdict(int)
 
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
-
         position = 0
         last_id = None
+        self.ids = []
         for i, r in enumerate(self.in_type.representations):
             subfield_size = None
             for nl in r.supported_nonlinearities:
@@ -77,7 +69,7 @@ class InducedNormPool(EquivariantModule):
             id = (r.size, subfield_size)
 
             if id != last_id:
-                self._contiguous[id] = not id in self._contiguous
+                self.ids.append(id)
 
             last_id = id
 
@@ -88,19 +80,13 @@ class InducedNormPool(EquivariantModule):
 
         self.in_indices = {}
         self.out_indices = {}
-        for id, contiguous in self._contiguous.items():
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _in_indices[id] = torch.LongTensor(
-                    [min(_in_indices[id]), max(_in_indices[id]) + 1]
-                )
-                _out_indices[id] = torch.LongTensor(
-                    [min(_out_indices[id]), max(_out_indices[id]) + 1]
-                )
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _in_indices[id] = torch.LongTensor(_in_indices[id])
-                _out_indices[id] = torch.LongTensor(_out_indices[id])
+        for id in self.ids:
+            _in_indices[id] = torch.LongTensor(
+                [min(_in_indices[id]), max(_in_indices[id]) + 1]
+            )
+            _out_indices[id] = torch.LongTensor(
+                [min(_out_indices[id]), max(_out_indices[id]) + 1]
+            )
 
             # register the indices tensors as parameters of this module
             self.in_indices[id] = _in_indices[id].to(
@@ -136,17 +122,13 @@ class InducedNormPool(EquivariantModule):
             dtype=torch.float,
         )
 
-        for id, contiguous in self._contiguous.items():
+        for id in self.ids:
             size, subfield_size = id
             n_subfields = size // subfield_size
 
             in_indices = self.in_indices[id]
-            out_indices = self.out_indices[id]
 
-            if contiguous:
-                fm = input[:, in_indices[0] : in_indices[1], ...]
-            else:
-                fm = input[:, in_indices, ...]
+            fm = input[:, in_indices[0] : in_indices[1], ...]
 
             # split the channel dimension in 2 dimensions, separating fields
             fm, _ = (
@@ -155,17 +137,10 @@ class InducedNormPool(EquivariantModule):
                 .max(dim=2)
             )
 
-            if contiguous:
-                # output[:, out_indices[0] : out_indices[1], ...] = fm
-                output = fm
-            else:
-                output[:, out_indices, ...] = fm
-
         # wrap the result in a GroupTensor
-        return GroupTensor(output, self.out_type, coords)
+        return GroupTensor(fm, self.out_type, coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
-
         assert len(input_shape) >= 2
         assert input_shape[1] == self.in_type.size
 
@@ -177,7 +152,6 @@ class InducedNormPool(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = self.in_type.size
 
         x = torch.randn(3, c, 10, 10)

@@ -14,7 +14,6 @@ __all__ = ["FieldDropout"]
 
 
 def dropout_field(input: torch.Tensor, p: float, training: bool, inplace: bool):
-
     if training:
         shape = list(input.size())
         shape[2] = 1
@@ -68,49 +67,29 @@ class FieldDropout(EquivariantModule):
         self.p = p
         self.inplace = inplace
 
-        self._nfields = None
-
-        # group fields by their size and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
-
         # number of fields of each size
         self._nfields = defaultdict(int)
 
         # indices of the channels corresponding to fields belonging to each group
-        _indices = defaultdict(lambda: [])
-
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
-
+        _indices = defaultdict(list)
         position = 0
-        last_size = None
-        for i, r in enumerate(self.in_type.representations):
-
-            if r.size != last_size:
-                if not r.size in self._contiguous:
-                    self._contiguous[r.size] = True
-                else:
-                    self._contiguous[r.size] = False
-            last_size = r.size
-
+        for r in self.in_type.representations:
             _indices[r.size] += list(range(position, position + r.size))
             self._nfields[r.size] += 1
             position += r.size
 
         self.indices = {}
-        for s, contiguous in self._contiguous.items():
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _indices[s] = torch.LongTensor([min(_indices[s]), max(_indices[s]) + 1])
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _indices[s] = torch.LongTensor(_indices[s])
+        for s in self.in_type.representations:
+            _indices[s.size] = torch.LongTensor(
+                [min(_indices[s.size]), max(_indices[s.size]) + 1]
+            )
 
             # register the indices tensors as parameters of this module
-            self.indices[s] = _indices[s].to(f"cuda:{torch.cuda.current_device()}")
+            self.indices[s.size] = _indices[s.size].to(
+                f"cuda:{torch.cuda.current_device()}"
+            )
 
-        self._order = list(self._contiguous.keys())
+        self._order = list(self.indices.keys())
 
     def forward(self, input: GroupTensor) -> GroupTensor:
         r"""
@@ -136,33 +115,18 @@ class FieldDropout(EquivariantModule):
 
         # iterate through all field sizes
         for s in self._order:
-
             indices = self.indices[s]
-
             shape = input.shape[:1] + (self._nfields[s], s) + input.shape[2:]
 
-            if self._contiguous[s]:
-                # if the fields are contiguous, we can use slicing
-                out = dropout_field(
-                    input[:, indices[0] : indices[1], ...].view(shape),
-                    self.p,
-                    self.training,
-                    self.inplace,
-                )
-                if not self.inplace:
-                    shape = input.shape[:1] + (self._nfields[s] * s,) + input.shape[2:]
-                    output[:, indices[0] : indices[1], ...] = out.view(shape)
-            else:
-                # otherwise we have to use indexing
-                out = dropout_field(
-                    input[:, indices, ...].view(shape),
-                    self.p,
-                    self.training,
-                    self.inplace,
-                )
-                if not self.inplace:
-                    shape = input.shape[:1] + (self._nfields[s] * s,) + input.shape[2:]
-                    output[:, indices, ...] = out.view(shape)
+            out = dropout_field(
+                input[:, indices[0] : indices[1], ...].view(shape),
+                self.p,
+                self.training,
+                self.inplace,
+            )
+            if not self.inplace:
+                shape = input.shape[:1] + (self._nfields[s] * s,) + input.shape[2:]
+                output[:, indices[0] : indices[1], ...] = out.view(shape)
 
         if self.inplace:
             output = input

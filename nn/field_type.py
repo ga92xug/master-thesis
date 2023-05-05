@@ -508,7 +508,7 @@ class FieldType:
         """
         assert len(labels) == len(self)
 
-        fields = defaultdict(lambda: [])
+        fields = defaultdict(list)
 
         for c, l in enumerate(labels):
             # append the index of the current field to the list of fields belonging to this label

@@ -35,32 +35,20 @@ class NormPool(EquivariantModule):
         self.out_type = FieldType(self.space, [self.space.trivial_repr] * len(in_type))
 
         # indices of the channels corresponding to fields belonging to each group in the input representation
-        _in_indices = defaultdict(lambda: [])
+        _in_indices = defaultdict(list)
         # indices of the channels corresponding to fields belonging to each group in the output representation
-        _out_indices = defaultdict(lambda: [])
+        _out_indices = defaultdict(list)
 
-        # whether each group of fields is contiguous or not
-        self._contiguous = {}
-
-        # group fields by their size and
-        #   - check if fields of the same size are contiguous
-        #   - retrieve the indices of the fields
+        # group fields by their size and retrieve the indices of the fields
         indeces = indexes_from_labels(
             in_type, [r.size for r in in_type.representations]
         )
 
         self.in_indices = {}
         self.out_indices = {}
-        for s, (contiguous, fields, idxs) in indeces.items():
-            self._contiguous[s] = contiguous
-            if contiguous:
-                # for contiguous fields, only the first and last indices are kept
-                _in_indices[s] = torch.LongTensor([min(idxs), max(idxs) + 1])
-                _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _in_indices[s] = torch.LongTensor(idxs)
-                _out_indices[s] = torch.LongTensor(fields)
+        for s, (fields, idxs) in indeces.items():
+            _in_indices[s] = torch.LongTensor([min(idxs), max(idxs) + 1])
+            _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
 
             # register the indices tensors as parameters of this module
             self.in_indices[s] = _in_indices[s].to(
@@ -96,27 +84,17 @@ class NormPool(EquivariantModule):
             dtype=torch.float,
         )
 
-        for s, contiguous in self._contiguous.items():
-
+        for s in list(self.in_indices.keys()):
             in_indices = self.in_indices[s]
             out_indices = self.out_indices[s]
 
-            if contiguous:
-                fm = input[:, in_indices[0] : in_indices[1], ...]
-            else:
-                fm = input[:, in_indices, ...]
+            fm = input[:, in_indices[0] : in_indices[1], ...]
 
             # split the channel dimension in 2 dimensions, separating fields
             fm = fm.view(b, -1, s, *spatial_shape)
 
-            if contiguous:
-                # output[:, out_indices[0] : out_indices[1], ...] = fm.norm(dim=2)
-                output = fm.norm(dim=2)
-            else:
-                output[:, out_indices, ...] = fm.norm(dim=2)
-
         # wrap the result in a GroupTensor
-        return GroupTensor(output, self.out_type, coords)
+        return GroupTensor(fm.norm(dim=2), self.out_type, coords)
 
     def evaluate_output_shape(self, input_shape: Tuple[int, ...]) -> Tuple[int, ...]:
         assert len(input_shape) > 1
@@ -130,7 +108,6 @@ class NormPool(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = self.in_type.size
 
         x = torch.randn(3, c, *[10] * self.in_type.gspace.dimensionality)

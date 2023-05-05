@@ -78,8 +78,7 @@ class GatedNonLinearity2(EquivariantModule):
 
         self.space = in_type[0].gspace
 
-        self._contiguous = {}
-        _input_indices = defaultdict(lambda: [])
+        _input_indices = defaultdict(list)
 
         self._nfields = defaultdict(int)
 
@@ -93,31 +92,17 @@ class GatedNonLinearity2(EquivariantModule):
         # group fields by their size, check if fields with the same size are consecutive
         # and retrieve the indices of the fields
         last_position = 0
-        last_size = None
         for r in in_type[1].representations:
-
-            if r.size != last_size:
-                if not r.size in self._contiguous:
-                    self._contiguous[r.size] = True
-                else:
-                    self._contiguous[r.size] = False
-            last_size = r.size
-
             self._nfields[r.size] += 1
             _input_indices[r.size] += list(range(last_position, last_position + r.size))
             last_position += r.size
 
         _input_indices = dict(_input_indices)
 
-        for s, contiguous in self._contiguous.items():
-            if contiguous:
-                # if the fields are contiguous, only the first and last indices are kept
-                _input_indices[s] = torch.LongTensor(
-                    [min(_input_indices[s]), max(_input_indices[s]) + 1]
-                )
-            else:
-                # otherwise, transform the list of indices into a tensor
-                _input_indices[s] = torch.LongTensor(_input_indices[s])
+        for s in list(self._nfields.keys()):
+            _input_indices[s] = torch.LongTensor(
+                [min(_input_indices[s]), max(_input_indices[s]) + 1]
+            )
 
             # register the indices tensors as parameters of this module
             self.register_buffer("indices_{}".format(s), _input_indices[s])
@@ -181,7 +166,6 @@ class GatedNonLinearity2(EquivariantModule):
 
         # for each field size
         for size in self._order:
-
             indices = getattr(self, f"indices_{size}")
 
             # retrieve the needed gates
@@ -189,20 +173,10 @@ class GatedNonLinearity2(EquivariantModule):
                 b, -1, 1, *spatial_dims
             )
 
-            if self._contiguous[size]:
-                # if the fields were contiguous, we can use slicing
-                output[:, indices[0] : indices[1], ...] = (
-                    input[:, indices[0] : indices[1], ...].view(
-                        b, -1, size, *spatial_dims
-                    )
-                    * g
-                ).view(b, -1, *spatial_dims)
-
-            else:
-                # otherwise we have to use indexing
-                output[:, indices, ...] = (
-                    input[:, indices, ...].view(b, -1, size, *spatial_dims) * g
-                ).view(b, -1, *spatial_dims)
+            output[:, indices[0] : indices[1], ...] = (
+                input[:, indices[0] : indices[1], ...].view(b, -1, size, *spatial_dims)
+                * g
+            ).view(b, -1, *spatial_dims)
 
             # shift the position on the gates fiber
             next_gate += self._nfields[size]
@@ -232,7 +206,6 @@ class GatedNonLinearity2(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-
         c = [self.in_type[i].size for i in range(2)]
 
         x = [torch.randn(3, c[i], 10, 10) for i in range(2)]
@@ -242,7 +215,6 @@ class GatedNonLinearity2(EquivariantModule):
         errors = []
 
         for el in self.space.testing_elements:
-
             out1 = self(*x).transform_fibers(el)
             out2 = self(*[x[i].transform_fibers(el) for i in range(2)])
 

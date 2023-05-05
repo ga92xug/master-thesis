@@ -1,19 +1,16 @@
-from abc import ABC
 from torch.nn.functional import conv2d, pad
 
-from nn import FieldType
-from nn import GroupTensor
-import nn
+from nn import FieldType, GroupTensor
 
 from group_theory import Representation, KernelBasis
 from nn import GSpace2D
-from nn.modules.equivariant_module import EquivariantModule
-from nn.modules.basisexpansion import BasisExpansion
 
-from typing import Callable, Tuple, Union, List
+from .rd_convolution import _RdConv
+from .initialization import generalized_he_init
+
+from typing import Callable, Union, List
 
 import torch
-from torch.nn import Parameter
 import numpy as np
 import math
 
@@ -24,8 +21,7 @@ from skimage.transform import resize
 __all__ = ["R2Conv"]
 
 
-# class R2Conv(_RdConv):
-class R2Conv(EquivariantModule, ABC):
+class R2Conv(_RdConv):
     def __init__(
         self,
         in_type: FieldType,
@@ -149,12 +145,6 @@ class R2Conv(EquivariantModule, ABC):
         assert isinstance(in_type.gspace, GSpace2D)
         assert isinstance(out_type.gspace, GSpace2D)
 
-        # assertions of RdConv
-        assert in_type.gspace == out_type.gspace
-        # assert isinstance(in_type.gspace, GSpace)
-        assert 2 >= in_type.gspace.dimensionality
-
-        super(R2Conv, self).__init__()
 
         (
             basis_filter,
@@ -165,144 +155,6 @@ class R2Conv(EquivariantModule, ABC):
             kernel_size, frequencies_cutoff, rings, sigma, dilation, basis_filter
         )
 
-        self.d = 2
-        self.space = in_type.gspace
-        self.in_type = in_type
-        self.out_type = out_type
-
-        self.kernel_size = kernel_size
-        self.stride = stride
-        self.dilation = dilation
-        self.padding = padding
-        self.padding_mode = padding_mode
-        self.groups = groups
-
-        if isinstance(padding, tuple) and len(padding) == self.d:
-            _padding = padding
-        elif isinstance(padding, int):
-            _padding = (padding,) * self.d
-        else:
-            raise ValueError(
-                "padding needs to be either an integer or a tuple containing {} integers but {} found".format(
-                    self.d, padding
-                )
-            )
-
-        padding_modes = {"zeros", "reflect", "replicate", "circular"}
-        if padding_mode not in padding_modes:
-            raise ValueError(
-                "padding_mode must be one of [{}], but got padding_mode='{}'".format(
-                    padding_modes, padding_mode
-                )
-            )
-        self._reversed_padding_repeated_twice = tuple(
-            x for x in reversed(_padding) for _ in range(self.d)
-        )
-
-        if groups > 1:
-            # Check the input and output classes can be split in `groups` groups, all equal to each other
-            # first, check that the number of fields is divisible by `groups`
-            assert len(in_type) % groups == 0
-            assert len(out_type) % groups == 0
-            in_size = len(in_type) // groups
-            out_size = len(out_type) // groups
-
-            # then, check that all groups are equal to each other, i.e. have the same types in the same order
-            assert all(
-                in_type.representations[i] == in_type.representations[i % in_size]
-                for i in range(len(in_type))
-            )
-            assert all(
-                out_type.representations[i] == out_type.representations[i % out_size]
-                for i in range(len(out_type))
-            )
-
-            # finally, retrieve the type associated to a single group in input.
-            # this type will be used to build a smaller kernel basis and a smaller filter
-            # as in PyTorch, to build a filter for grouped convolution, we build a filter which maps from one input
-            # group to all output groups. Then, PyTorch's standard convolution routine interpret this filter as `groups`
-            # different filters, each mapping an input group to an output group.
-            in_type = in_type.index_select(list(range(in_size)))
-
-        if bias:
-            # bias can be applied only to trivial irreps inside the representation
-            # to apply bias to a field we learn a bias for each trivial irreps it contains
-            # and, then, we transform it with the change of basis matrix to be able to apply it to the whole field
-            # this is equivalent to transform the field to its irreps through the inverse change of basis,
-            # sum the bias only to the trivial irrep and then map it back with the change of basis
-
-            # count the number of trivial irreps
-            trivials = 0
-            for r in self.out_type:
-                for irr in r.irreps:
-                    if self.out_type.fibergroup.irrep(*irr).is_trivial():
-                        trivials += 1
-
-            # if there is at least 1 trivial irrep
-            if trivials > 0:
-                # matrix containing the columns of the change of basis which map from the trivial irreps to the
-                # field representations. This matrix allows us to map the bias defined only over the trivial irreps
-                # to a bias for the whole field more efficiently
-                bias_expansion = torch.zeros(self.out_type.size, trivials)
-
-                p, c = 0, 0
-                for r in self.out_type:
-                    pi = 0
-                    for irr in r.irreps:
-                        irr = self.out_type.fibergroup.irrep(*irr)
-                        if irr.is_trivial():
-                            bias_expansion[p : p + r.size, c] = torch.tensor(
-                                r.change_of_basis[:, pi]
-                            )
-                            c += 1
-                        pi += irr.size
-                    p += r.size
-
-                # CPU training
-                self.bias_expansion = bias_expansion.to(
-                    f"cuda:{torch.cuda.current_device()}"
-                )
-                self.bias = Parameter(torch.zeros(trivials), requires_grad=True)
-                self.expanded_bias = torch.zeros(out_type.size)
-            else:
-                self.bias = None
-                self.expanded_bias = None
-        else:
-            self.bias = None
-            self.expanded_bias = None
-
-        # compute the coordinates of the centers of the cells in the grid where the filter is sampled
-        grid = get_grid_coords(self.d, kernel_size, dilation)
-
-        # note that `in_type` is used instead of `self.in_type` such that it works also when `groups > 1`
-
-        # BasisExpansion: submodule which takes care of building the filter
-        self._basisexpansion = BasisExpansion(
-            in_type.representations, 
-            out_type.representations,
-            self._build_kernel_basis,
-            grid,
-            basis_filter=basis_filter, # None
-        )
-
-        if self._basisexpansion.dimension() == 0:
-            raise ValueError(
-                """
-                The basis for the steerable filter is empty!
-                Tune the `frequencies_cutoff`, `kernel_size`, `rings`, `sigma` or `basis_filter` parameters to allow
-                for a larger basis.
-            """
-            )
-
-        #print("dim basis expansion", self._basisexpansion.dimension())
-        self.weights = Parameter(
-            torch.zeros(self._basisexpansion.dimension()), requires_grad=True
-        )
-
-        filter_size = (out_type.size, in_type.size) + (kernel_size,) * self.d
-        self.filter = torch.zeros(*filter_size)
-
-        """
         super(R2Conv, self).__init__(
             in_type,
             out_type,
@@ -316,25 +168,10 @@ class R2Conv(EquivariantModule, ABC):
             bias,
             basis_filter,
         )
-        """
         
         if initialize:
             # by default, the weights are initialized with a generalized form of He's weight initialization
-            nn.generalized_he_init(self.weights.data, self._basisexpansion)
-
-    @property
-    def basisexpansion(self) -> BasisExpansion:
-        r"""
-        Submodule which takes care of building the filter.
-
-        It uses the learnt ``weights`` to expand a basis and returns a filter in the usual form used by conventional
-        convolutional modules.
-        It uses the learned ``weights`` to expand the kernel in the G-steerable basis and returns it in the shape
-        :math:`(c_\text{out}, c_\text{in}, s^d)`, where :math:`s` is the ``kernel_size`` and :math:`d` is the
-        dimensionality of the base space.
-
-        """
-        return self._basisexpansion
+            generalized_he_init(self.weights.data, self.basisexpansion)
 
     def _build_kernel_basis(
         self, in_repr: Representation, out_repr: Representation
@@ -346,32 +183,6 @@ class R2Conv(EquivariantModule, ABC):
             self._rings, # None
             maximum_frequency=self._maximum_frequency, # lambda r: 3 * r
         )
-    
-    def expand_parameters(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        r"""
-        Expand the filter in terms of the :attr:`~nn._RdConv.weights` and the
-        expanded bias in terms of :class:`~nn._RdConv.bias`.
-
-        Returns:
-            the expanded filter and bias
-
-        """
-        # CPU training
-        # self.weights = Parameter(self.weights.to(torch.device("cpu")))
-        _filter = self.basisexpansion(self.weights)
-        _filter = _filter.reshape(
-            _filter.shape[0], _filter.shape[1], *(self.kernel_size,) * self.d
-        )
-
-        if self.bias is None:
-            _bias = None
-        else:
-            # CPU training
-            # self.bias_expansion = self.bias_expansion.cpu()
-            # self.bias = Parameter(self.bias.cpu())
-            _bias = self.bias_expansion @ self.bias # .cuda()
-
-        return _filter, _bias
 
     def forward(self, input: GroupTensor):
         r"""
@@ -387,24 +198,12 @@ class R2Conv(EquivariantModule, ABC):
 
         assert input.type == self.in_type
 
-        # Stefan TODO 
-        #print('input device', input.tensor.device)
-        #print('weights device', self.weights.device)
-        # input.tensor = input.tensor.cuda()
-
         if not self.training:
             _filter = self.filter
             _bias = self.expanded_bias
         else:
             # Retrieve filter and bias
             _filter, _bias = self.expand_parameters()
-
-        # Weight standardization
-        std, mean = torch.std_mean(_filter, dim=(1, 2, 3), unbiased=False, keepdim=True)
-        _filter = (_filter - mean) / (std.expand_as(_filter - mean) + 1e-5)
-
-        # CPU training
-        #input.tensor = input.tensor.to(torch.device("cpu"))
 
         # Use filter for convolution and return result
         if self.padding_mode == "zeros":
@@ -433,97 +232,11 @@ class R2Conv(EquivariantModule, ABC):
 
         return GroupTensor(output, self.out_type, coords=None)
 
-    def train(self, mode=True):
-        r"""
-
-        If ``mode=True``, the method sets the module in training mode and discards the :attr:`~nn._RdConv.filter`
-        and :attr:`~nn._RdConv.expanded_bias` attributes.
-
-        If ``mode=False``, it sets the module in evaluation mode. Moreover, the method builds the filter and the bias
-        using the current values of the trainable parameters and store them in :attr:`~nn._RdConv.filter` and
-        :attr:`~nn._RdConv.expanded_bias` such that they are not recomputed at each forward pass.
-
-        .. warning ::
-
-            This behaviour can cause problems when storing the :meth:`~torch.nn.Module.state_dict` of a model while in
-            a mode and lately loading it in a model with a different mode, as the attributes of this class change.
-            To avoid this issue, we recommend converting the model to eval mode before storing or loading the state
-            dictionary.
-
-        Args:
-            mode (bool, optional): whether to set training mode (``True``) or evaluation mode (``False``).
-                                   Default: ``True``.
-
-        """
-
-        if mode:
-            # TODO thoroughly check this is not causing problems
-            if hasattr(self, "filter"):
-                del self.filter
-            if hasattr(self, "expanded_bias"):
-                del self.expanded_bias
-        elif self.training:
-            # avoid re-computation of the filter and the bias on multiple consecutive calls of `.eval()`
-
-            _filter, _bias = self.expand_parameters()
-
-            self.filter = _filter
-            if _bias is not None:
-                self.expanded_bias = _bias
-            else:
-                self.expanded_bias = None
-
-        return super(R2Conv, self).train(mode)
-    
-    def evaluate_output_shape(self, input_shape: Tuple) -> Tuple:
-        assert len(input_shape) == 2 + self.d
-        assert input_shape[1] == self.in_type.size
-
-        b, c = input_shape[:2]
-        w = input_shape[2:]
-
-        wo = [None] * self.d
-        for i in range(self.d):
-            wo[i] = math.floor(
-                (w[i] + 2 * self.padding - self.dilation * (self.kernel_size - 1) - 1)
-                / self.stride
-                + 1
-            )
-
-        return (b, self.out_type.size) + tuple(wo)
-    
-    def __repr__(self):
-        extra_lines = []
-        extra_repr = self.extra_repr()
-        if extra_repr:
-            extra_lines = extra_repr.split("\n")
-
-        main_str = self._get_name() + "("
-        if len(extra_lines) == 1:
-            main_str += extra_lines[0]
-        else:
-            main_str += "\n  " + "\n  ".join(extra_lines) + "\n"
-
-        main_str += ")"
-        return main_str
-    
-    def extra_repr(self):
-        s = "{in_type}, {out_type}, kernel_size={kernel_size}, stride={stride}"
-        if self.padding != 0 and self.padding != (0,) * self.d:
-            s += ", padding={padding}"
-        if self.dilation != 1 and self.dilation != (1,) * self.d:
-            s += ", dilation={dilation}"
-        if self.groups != 1:
-            s += ", groups={groups}"
-        if self.bias is None:
-            s += ", bias=False"
-        return s.format(**self.__dict__)
-
     def check_equivariance(
         self,
         x: torch.Tensor = None,
-        atol: float = 0.1,
-        rtol: float = 0.1,
+        atol: float = 1e-6,
+        rtol: float = 1e-5,
         assertion: bool = True,
         verbose: bool = True,
     ):
@@ -538,7 +251,7 @@ class R2Conv(EquivariantModule, ABC):
         if x is None:
             c = self.in_type.size
 
-            x = torch.rand(3, 32, 32)[np.newaxis, 0:c, :, :]
+            x = np.random.rand(3, 768, 1024)[np.newaxis, 0:c, :, :]
             x = resize(
                 x,
                 (x.shape[0], x.shape[1], initial_size, initial_size),
@@ -558,8 +271,8 @@ class R2Conv(EquivariantModule, ABC):
         def shrink(t: GroupTensor, s) -> GroupTensor:
             return GroupTensor(
                 torch.FloatTensor(
-                    block_reduce(t.tensor.detach().cpu().numpy(), s, func=np.mean)
-                ),#.cuda(),
+                    block_reduce(t.tensor.detach().numpy(), s, func=np.mean)
+                ).cuda(),
                 t.type,
             )
 
@@ -608,29 +321,15 @@ class R2Conv(EquivariantModule, ABC):
 
             if verbose:
                 print(
-                    el,
-                    relerr.max(),
-                    relerr.mean(),
-                    relerr.var(),
-                    errs.max(),
-                    errs.mean(),
-                    errs.var(),
+                    f"Group {el}: - relerr max: {relerr.max()} - relerr mean: {relerr.mean()} - relerr var: "
+                    f"{relerr.var()}; err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
                 )
 
-            tol = rtol * esum + atol
-
-            if np.any(errs > tol) and verbose:
-                print("Errors:")
-                print(out1[errs > tol])
-                print(out2[errs > tol])
-                print(tol[errs > tol])
-
-            if assertion:
-                assert np.all(
-                    errs < tol
-                ), 'The error found during equivariance check with element "{}" is too high: max = {}, mean = {} var ={}'.format(
-                    el, errs.max(), errs.mean(), errs.var()
-                )
+            assert np.allclose(
+                out1, out2, atol=atol, rtol=rtol
+            ), 'The error found during equivariance check with element "{}" is too high: max = {}, mean = {} var ={}'.format(
+                el, errs.max(), errs.mean(), errs.var()
+            )
 
             errors.append((el, errs.mean()))
 
@@ -827,25 +526,3 @@ def _manual_fco1(max_radius: float) -> Callable[[float], float]:
         return max_freq
 
     return bl_filter
-
-def get_grid_coords(d: int, kernel_size: int, dilation: int = 1) -> np.ndarray:
-    actual_size = dilation * (kernel_size - 1) + 1
-
-    origin = actual_size / 2 - 0.5
-
-    points = np.empty((kernel_size**d, d))
-
-    for i in range(kernel_size**d):
-        for j in range(d):
-            points[i, j] = (i // (kernel_size**j)) % kernel_size
-            points[i, j] *= dilation
-
-            # center the origin
-            points[i, j] -= origin
-
-            if j >= 1:
-                # invert Y and Z coordinates
-                # TODO : should this hold also for other coordinates in R^d, d > 3?
-                points[i, j] *= -1
-
-    return points

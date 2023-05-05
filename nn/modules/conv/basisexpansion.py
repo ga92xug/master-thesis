@@ -1,5 +1,4 @@
 from group_theory import Representation, KernelBasis, EmptyBasisException
-from nn.modules import utils
 
 from collections import defaultdict
 import operator
@@ -88,70 +87,45 @@ class BasisExpansion(torch.nn.Module):
             print("WARNING! The basis for the block expansion of the filter is empty!")
 
         # List of all pairs of input/output representations which don't have an empty basis
+        # NOTE: For discrete groups, this is only always one pair made out of i_repr.name and o_repr.name
         self._representations_pairs = sorted(
             [io[0] + "->" + io[1] for io in self._bases.keys()]
         )
 
         # retrieve for each representation in both input and output fields:
         # - the number of its occurrences,
-        # - the indices where it occurs and
-        # - whether its occurrences are contiguous or not
-        self._in_count, _in_indices, _in_contiguous = self._retrieve_indices(in_reprs)
-        self._out_count, _out_indices, _out_contiguous = self._retrieve_indices(
-            out_reprs
-        )
+        # - the indices where it occurs
+        self._in_count, _in_indices = self._retrieve_indices(in_reprs)
+        self._out_count, _out_indices = self._retrieve_indices(out_reprs)
 
         self._weights_ranges = {}
 
         last_weight_position = 0
-
-        self._contiguous = {}
 
         # iterate through the different group of blocks
         # i.e., through all input/output pairs
         self.in_indices = {}
         self.out_indices = {}
         for io_pair in self._representations_pairs:
-            self._contiguous[io_pair] = (
-                _in_contiguous[io_pair.split("->")[0]]
-                and _out_contiguous[io_pair.split("->")[1]]
+            in_indices = torch.LongTensor(
+                [
+                    _in_indices[io_pair.split("->")[0]].min(),
+                    _in_indices[io_pair.split("->")[0]].max() + 1,
+                    (_in_indices[io_pair.split("->")[0]].max() + 1)
+                    - _in_indices[io_pair.split("->")[0]].min(),
+                ]
+            )
+            out_indices = torch.LongTensor(
+                [
+                    _out_indices[io_pair.split("->")[1]].min(),
+                    _out_indices[io_pair.split("->")[1]].max() + 1,
+                    (_out_indices[io_pair.split("->")[1]].max() + 1)
+                    - _out_indices[io_pair.split("->")[1]].min(),
+                ]
             )
 
-            # build the indices tensors
-            if self._contiguous[io_pair]:
-                in_indices = torch.LongTensor(
-                    [
-                        _in_indices[io_pair.split("->")[0]].min(),
-                        _in_indices[io_pair.split("->")[0]].max() + 1,
-                        (_in_indices[io_pair.split("->")[0]].max() + 1)
-                        - _in_indices[io_pair.split("->")[0]].min(),
-                    ]
-                )
-                out_indices = torch.LongTensor(
-                    [
-                        _out_indices[io_pair.split("->")[1]].min(),
-                        _out_indices[io_pair.split("->")[1]].max() + 1,
-                        (_out_indices[io_pair.split("->")[1]].max() + 1)
-                        - _out_indices[io_pair.split("->")[1]].min(),
-                    ]
-                )
-
-                self.in_indices[io_pair] = in_indices
-                self.out_indices[io_pair] = out_indices
-
-            else:
-                out_indices, in_indices = torch.meshgrid(
-                    [
-                        _out_indices[io_pair.split("->")[1]],
-                        _in_indices[io_pair.split("->")[0]],
-                    ]
-                )
-                in_indices = in_indices.reshape(-1)
-                out_indices = out_indices.reshape(-1)
-
-                # register the indices tensors and the bases tensors as parameters of this module
-                self.in_indices[io_pair] = in_indices
-                self.out_indices[io_pair] = out_indices
+            self.in_indices[io_pair] = in_indices
+            self.out_indices[io_pair] = out_indices
 
             # number of occurrences of the input/output pair `io_pair`
             n_pairs = (
@@ -234,7 +208,6 @@ class BasisExpansion(torch.nn.Module):
         fiber_position = 0
         _indices = defaultdict(list)
         _count = defaultdict(int)
-        _contiguous = {}
 
         for repr in reprs:
             _indices[repr.name] += list(
@@ -244,11 +217,9 @@ class BasisExpansion(torch.nn.Module):
             _count[repr.name] += 1
 
         for name, indices in _indices.items():
-            # _contiguous[o_name] = indices == list(range(indices[0], indices[0]+len(indices)))
-            _contiguous[name] = utils.check_consecutive_numbers(indices)
             _indices[name] = torch.LongTensor(indices)
 
-        return _count, _indices, _contiguous
+        return _count, _indices
 
     def _normalize_basis(
         self, basis: torch.Tensor, sizes: torch.Tensor
@@ -317,7 +288,6 @@ class BasisExpansion(torch.nn.Module):
             sizes.append(attr["shape"][0])
 
         # sample the basis on the grid
-        # sampled_basis = torch.Tensor(basis.sample(points)).permute(2, 0, 1, 3)
         sampled_basis = basis.sample(torch.tensor(points, dtype=torch.float32)).permute(
             1, 2, 3, 0
         )
@@ -334,8 +304,70 @@ class BasisExpansion(torch.nn.Module):
         sampled_basis = sampled_basis[mask, ...]
 
         # register the bases tensors as parameters of this module
-        # CPU training
-        return sampled_basis#.to(f"cuda:{torch.cuda.current_device()}")
+        return sampled_basis.to(f"cuda:{torch.cuda.current_device()}")
+
+    def _expand_blocks(
+        self,
+        weights: torch.Tensor,
+        reprs_pairs: List[str],
+        sampled_bases: Dict[str, torch.Tensor],
+        output_size: int,
+        input_size: int,
+        out_count: Dict[str, int],
+        in_count: Dict[str, int],
+        out_indices: Dict[str, torch.Tensor],
+        in_indices: Dict[str, torch.Tensor],
+        weights_ranges: Dict[str, Tuple[int, int]],
+        kernel_size: int,
+    ):
+        # Build tensor which will contain the filter
+        _filter = torch.zeros(
+            output_size,
+            input_size,
+            kernel_size,
+            device=weights.device,
+            dtype=torch.float32,
+        )
+
+        # Iterate through all input-output field representations pairs
+        for io_pair in reprs_pairs:
+            coefficients = weights[
+                weights_ranges[io_pair][0] : weights_ranges[io_pair][1]
+            ]
+            # Reshape coefficients for the batch matrix multiplication
+            coefficients = coefficients.view(-1, sampled_bases[io_pair].shape[0])
+
+            assert len(coefficients.shape) == 2 and (
+                coefficients.shape[1] == sampled_bases[io_pair].shape[0]
+            )
+
+            # Expand current subset of basis vectors and set result in the appropriate place in the filter
+            _filter_block = torch.einsum(
+                "boi...,kb->koi...",
+                sampled_bases[io_pair],
+                coefficients,
+            )
+
+            _filter_block = _filter_block.view(
+                out_count[io_pair.split("->")[1]],
+                in_count[io_pair.split("->")[0]],
+                _filter_block.shape[1],
+                _filter_block.shape[2],
+                kernel_size,
+            )
+            _filter_block = _filter_block.transpose(1, 2).float()
+
+            _filter[
+                out_indices[io_pair][0] : out_indices[io_pair][1],
+                in_indices[io_pair][0] : in_indices[io_pair][1],
+                :,
+            ] = _filter_block.reshape(
+                out_indices[io_pair][2],
+                in_indices[io_pair][2],
+                kernel_size,
+            )
+
+        return _filter
 
     def forward(self, weights: torch.Tensor) -> torch.Tensor:
         """
@@ -351,9 +383,6 @@ class BasisExpansion(torch.nn.Module):
         assert weights.shape[0] == self.dimension()
         assert len(weights.shape) == 1
 
-        # Stefan TODO
-        # weights = weights.cuda()
-
         _filter = self._expand_blocks(
             weights,
             self._representations_pairs,
@@ -366,7 +395,6 @@ class BasisExpansion(torch.nn.Module):
             self.in_indices,
             self._weights_ranges,
             self.S,
-            self._contiguous,
         )
 
         return _filter
@@ -392,96 +420,15 @@ class BasisExpansion(torch.nn.Module):
             return False
 
         for io in self._representations_pairs:
-            if self._contiguous[io] != other._contiguous[io]:
-                return False
-
             if self._weights_ranges[io] != other._weights_ranges[io]:
                 return False
 
-            if self._contiguous[io]:
-                if torch.any(self.in_indices[io] != other.in_indices[io]):
-                    return False
-                if torch.any(self.out_indices[io] != other.out_indices[io]):
-                    return False
-            else:
-                if torch.any(self.in_indices[io] != other.in_indices[io]):
-                    return False
-                if torch.any(self.out_indices[io] != other.out_indices[io]):
-                    return False
+            if torch.any(self.in_indices[io] != other.in_indices[io]):
+                return False
+            if torch.any(self.out_indices[io] != other.out_indices[io]):
+                return False
 
             if not torch.any(self.sampled_bases[io] != other.sampled_bases[io]):
                 return False
 
         return True
-    
-    # NOTE: Put back into class and vectorize kernel constraint with vmap
-    # @torch.jit.script
-    def _expand_blocks(
-        self,
-        weights: torch.Tensor,
-        reprs_pairs: List[str],
-        sampled_bases: Dict[str, torch.Tensor],
-        output_size: int,
-        input_size: int,
-        out_count: Dict[str, int],
-        in_count: Dict[str, int],
-        out_indices: Dict[str, torch.Tensor],
-        in_indices: Dict[str, torch.Tensor],
-        weights_ranges: Dict[str, Tuple[int, int]],
-        kernel_size: int,
-        contiguous: Dict[str, bool],
-    ):
-        # Build tensor which will contain the filter
-        _filter = torch.zeros(
-            output_size, input_size, kernel_size, device=weights.device, dtype=torch.float32
-        )
-
-        # Iterate through all input-output field representations pairs
-        for io_pair in reprs_pairs:
-            coefficients = weights[weights_ranges[io_pair][0] : weights_ranges[io_pair][1]]
-            # Reshape coefficients for the batch matrix multiplication
-            coefficients = coefficients.view(-1, sampled_bases[io_pair].shape[0])
-
-            assert len(coefficients.shape) == 2 and (
-                coefficients.shape[1] == sampled_bases[io_pair].shape[0]
-            )
-            # CPU training
-            sampled_bases[io_pair] = sampled_bases[io_pair] # .cpu()
-            # Fail of e2_wide_resnet
-            sampled_bases[io_pair] = sampled_bases[io_pair].cuda()
-
-            # Expand current subset of basis vectors and set result in the appropriate place in the filter
-            # devices 
-            _filter_block = torch.einsum(
-                "boi...,kb->koi...",
-                sampled_bases[io_pair],
-                coefficients,
-            )
-
-            _filter_block = _filter_block.view(
-                out_count[io_pair.split("->")[1]],
-                in_count[io_pair.split("->")[0]],
-                _filter_block.shape[1],
-                _filter_block.shape[2],
-                kernel_size,
-            )
-            _filter_block = _filter_block.transpose(1, 2).float()
-
-            if contiguous[io_pair]:
-                _filter[
-                    out_indices[io_pair][0] : out_indices[io_pair][1],
-                    in_indices[io_pair][0] : in_indices[io_pair][1],
-                    :,
-                ] = _filter_block.reshape(
-                    out_indices[io_pair][2],
-                    in_indices[io_pair][2],
-                    kernel_size,
-                )
-            else:
-                _filter[
-                    out_indices[io_pair],
-                    in_indices[io_pair],
-                    :,
-                ] = _filter_block.reshape(-1, kernel_size)
-
-        return _filter
