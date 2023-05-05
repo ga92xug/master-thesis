@@ -3,7 +3,7 @@ defaults:
 - dataset: cifar10
 - model: eq_wrn
 - other: default
-- optimizer: Adam
+- optimizer: SGD
 - training: default
 
 # Dataset parameters        

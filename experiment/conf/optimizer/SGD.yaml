@@ -2,5 +2,6 @@ name: SGD
 momentum: 0.9                 # Momentum for SGD optimizer (if used)
 nesterov: True                # Use Nesterov momentum for SGD optimizer (if used)
 dampening: 0                  # Dampening for momentum (if used)
+lr: 0.1                       # Learning rate for SGD optimizer (if used)
 
 params: self.model.parameters()

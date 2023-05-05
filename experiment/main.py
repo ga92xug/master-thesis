@@ -487,7 +487,7 @@ def cuda_memory_usage():
     print(f"Free:         {f / 1024 ** 3:.1f} GB")
 
 
-@hydra.main(config_path="conf", config_name="train_e2", version_base="1.2")
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     exp = Experiment(cfg)
     exp.run()

@@ -4,7 +4,7 @@ depth: 16
 widen_factor: 4
 group: cyclic  # "dihedral" "orthogonal"
 rotation: 8  # discrete number or frequency
-fix_params_mode: "heuristic" # "iter", "heuristic", "all", "no"
+fix_params_mode: "iter" # "iter", "heuristic", "all", "no"
 restrict: [halved, invariant]  # "invariant", "reflection", "halved"
 layout: [16, 16, 32, 64]
 kernel_size: 5

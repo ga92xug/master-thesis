@@ -79,11 +79,17 @@ class EquivariantWideResNet(nn.Module):
         self.input_channels = input_channels
         self.layout = layout
         self.kernel_size = kernel_size
-        self.padding = padding
+        # self.padding = padding
         self.kernel_layout = kernel_layout
-        if self.rotation > 4 and self.kernel_layout == [3,3]:
-            self.kernel_layout = [5,5]
+        if kernel_layout == [3,3]:
+            self.padding = 1
+        elif kernel_layout == [5,5]:
             self.padding = 2
+        elif kernel_layout == [7,7]:
+            self.padding = 3
+        if self.rotation > 4 and self.kernel_layout[0] == 3:
+            warnings.warn(f"Discretization artifacts are expected for rotation > 4 and \
+                    kernel_layout = {self.kernel_layout}.")
         self.num_classes = num_classes
         self.drop_out = drop_out
         self.bias = bias
@@ -203,7 +209,7 @@ class EquivariantWideResNet(nn.Module):
         self.relu = getattr(nonlinearities, act_func)(self.bn1.out_type)
 
         self.invariant_map = EquivariantPool(self.relu.out_type, invariant_map=True)
-        image_size = int(image_size[0] / 4) 
+        image_size = int(image_size[0] / 2) 
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
             self.invariant_map.out_type.size * image_size * image_size, self.num_classes
@@ -277,7 +283,7 @@ class EquivariantWideResNet(nn.Module):
         x = self.relu(self.bn1(x))
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
-        x = F.avg_pool2d(x, 4) if x.shape[-1] > 1 else x
+        x = F.avg_pool2d(x, 2) if x.shape[-1] > 1 else x
         x = self.flatten(x)
         x = self.classifier(x)
         return x

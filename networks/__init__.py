@@ -34,6 +34,8 @@ from .eq_efficientnet_util import (
     BlockDecoder,
 )
 
+#from network_instantiation import instantiate_model_forward_pass
+
 from .e2_wide_resnet import e2wrn28_7R
 
 from .util import (

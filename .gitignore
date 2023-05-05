@@ -177,3 +177,5 @@ test_equivalence.py
 examples/
 
 multirun/*
+
+start_training_once_gpu_free.py

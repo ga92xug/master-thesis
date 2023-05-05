@@ -82,7 +82,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
         param_equi_block = get_param_count(equi_block)
         if abs(param_equi_block - param_normal_block) < 0.01:
             last_ratio = param_equi_block / param_normal_block
-            print(f'Ratio for block: {last_ratio:.3f}')
+            #print(f'Ratio for block: {last_ratio:.3f}')
             return equi_block
         if param_equi_block < param_normal_block:
             # prediction is too small
@@ -100,7 +100,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
             equi_block = old_equi_conv_block
         
     last_ratio = param_equi_block / param_normal_block
-    print(f'Ratio for block: {last_ratio:.3f}')
+    # print(f'Ratio for block: {last_ratio:.3f}')
     return equi_block
 
 def get_param_count(model_name):
