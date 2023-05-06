@@ -1,5 +1,6 @@
 import timeit
 import hydra
+from hydra import compose, initialize
 import numpy as np
 from omegaconf import DictConfig
 import torch
@@ -11,21 +12,14 @@ sys.path.append('../scaling-laws-ecnn') # add parent directory
 #     e2wrn28_7R,
 # )
 from networks.util import (
+    cuda_memory_usage,
     get_param_count
 )
 
 
-@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
-def instantiate_model_forward_pass(cfg: DictConfig) -> None:    
-    input_image_size = 224
-    n_outputs = 10
-
-    input_tensor = torch.rand(128, 3, input_image_size, input_image_size)
-    n_inputs = input_tensor.shape[1]
-    image_size=input_tensor.shape[2]
-
+def instantiate_model(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=32):
     start = timeit.default_timer()
-    net = hydra.utils.instantiate(
+    model = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,
             num_classes=n_outputs,
@@ -33,30 +27,70 @@ def instantiate_model_forward_pass(cfg: DictConfig) -> None:
         )
     stop = timeit.default_timer()
     model_building_time = stop - start
-    print(f"Model building time: {model_building_time}")
-    param_count = get_param_count(net)
-    print(f'Total number of parameters: {param_count}')
-    # print(net) 
+    param_count = get_param_count(model, in_mb=True, verbose=verbose)
+    if verbose == 1:
+        print(f"Model building time: {model_building_time}")
+    if verbose == 2:
+        print(model)
+
+    return model, param_count, model_building_time
     
-    # time forward pass
+def forward_pass(model, cfg, verbose, instantiate_dataset, 
+                 n_inputs, image_size, n_runs=100, batch_size=128):
     start = timeit.default_timer()
-    net.train()
-    for i in range(100):
+    model.train()
+    if instantiate_dataset:
+        dataset = hydra.utils.instantiate(cfg.dataset)
+        input_tensor = dataset[0][0].unsqueeze(0)
+
+    else:
+        input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size)
+        model.cuda()
         input_tensor = input_tensor.cuda()
-        net.cuda()
-        net(input_tensor)
+        cuda_memory_usage()
+        for i in range(n_runs):
+            out = model(input_tensor)
+            del out
+            cuda_memory_usage()
 
     stop = timeit.default_timer()
     train_time = stop - start
-    print(f"Train time elapsed: {train_time}")
+    if verbose == 1:
+        print(f"Train time elapsed: {train_time}")
 
-    return param_count, model_building_time, train_time
+    return train_time
 
+
+def main(
+        overrides=[],
+        instantiate_dataset = False,
+        do_forward_pass = True,
+        verbose = 1,
+        n_inputs=3, 
+        n_outputs=10, 
+        image_size=124
+):  
+    initialize(config_path="../conf", version_base="1.2")  
+    cfg = compose("config.yaml", overrides=overrides)
+
+    # instantiate model
+    model, param_count, model_building_time = instantiate_model(cfg, verbose=verbose, 
+                            n_inputs=n_inputs, n_outputs=n_outputs, image_size=image_size)
+
+    if do_forward_pass:
+        train_time = forward_pass(model, cfg, verbose=verbose, 
+                            instantiate_dataset=instantiate_dataset,
+                            n_inputs=n_inputs, image_size=image_size)
+        return param_count, model_building_time, train_time
+    else:
+        return param_count, model_building_time
 
 if __name__ == "__main__":
-    instantiate_model_forward_pass()
-    #for rotation in range(2, 16, 2):
-    #    param_count, model_building_time, train_time = instantiate_model_forward_pass()
-    #    # f"model.rotation={rotation}"
-
-    
+    # get arguments 
+    import argparse
+    import ast
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--overrides', type=str)
+    args = parser.parse_args()
+    overrides = ast.literal_eval(args.overrides)
+    main(overrides=overrides)

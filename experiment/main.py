@@ -475,19 +475,9 @@ class Experiment:
         for param_group in self._optimizer.param_groups:
             param_group['lr'] = lr
         return self._optimizer, lr
+    
 
-
-def cuda_memory_usage():
-    t = torch.cuda.get_device_properties(0).total_memory
-    r = torch.cuda.memory_reserved(0)
-    a = torch.cuda.memory_allocated(0)
-    f = r-a  # free inside reserved
-    print(f"Allocated: {r / 1024 ** 3:.1f} GB")
-    print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
-    print(f"Free:         {f / 1024 ** 3:.1f} GB")
-
-
-@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     exp = Experiment(cfg)
     exp.run()

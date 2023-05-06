@@ -177,4 +177,5 @@ test_equivalence.py
 # examples
 examples/
 
-multirun/*
+multirun
+

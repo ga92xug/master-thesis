@@ -1,37 +1,45 @@
 import sys
 sys.path.append('../run_files') # add parent directory
-from run_command import run_command
+from run_command import run_command, run_command_test
 
 # experiment 1: efficientnet scaling laws
 
 # global arguments
-global_args = ["model=eq_wrn", "dataset=imagenette"]
+global_args = ["model=eq_wrn", 
+               "dataset=imagenette",
+               "model.fix_params_mode=heuristic",
+               "model.restrict=[halved,invariant]",
+               "model.kernel_layout=[3,3]", 
+               "model.padding=1",
+               "wandb.tags=[eff_exp_1]",
+               "wandb.mode=disabled",
+               "training.epochs=1"
+               ]
 
 # normal run
 # depth-width-resolution
-# 52-1-224 => 1.259.194
-args = ["model.restrict=[halved, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=1", "wandb.tags=[eff_exp_1]", "wandb.notes=eq_wrn_baseline"]
-run_command(args, global_args)
-
+# 52-1-160 => 1.024.069
+args = ["model.depth=202", "model.widen_factor=1", "wandb.notes=eq_wrn_baseline"]
+run_command_test(args, global_args)
+"""
 # Scale WRN-52 by depth 
-# 124= 2.425.786
-# 160= 3.009.082 
-args = ["model.restrict=[halved, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=160,124", "model.widen_factor=1", "wandb.tags=[eff_exp_1]", "wandb.notes=depth_scaling"]
-run_command(args, global_args)
+# 130= 2.045.509
+# 210 = 3.066.949 
+args = ["model.depth=130,202", "model.widen_factor=1", "wandb.notes=depth_scaling"]
+run_command_test(args, global_args)
 
 # Scale WRN-52 by width
-# 1.5= 2.452.602
-# 2  = 3.080.634
-args = ["model.restrict=[halved, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=2,1.5", "wandb.tags=[eff_exp_1]", "wandb.notes=width_scaling"]
-run_command(args, global_args)
+# 1.47= 2.000.949
+# 1.85= 3.000.069
+args = ["model.depth=58", "model.widen_factor=1.85", "wandb.notes=width_scaling"]
+run_command_test(args, global_args)
 
-"""
+
 # Scale WRN-52 by Resolution 
-# x = F.avg_pool2d(x, 8) if x.shape[-1] > 1 else x change code
-# 1.83= 2.422.074
-# 2.14= 3.061.434
-args = ["model.restrict=[null, invariant]", "model.kernel_layout=[3,3]", "model.padding=1", "model.depth=52", "model.widen_factor=1", "dataset.resolution_scaling=2.14,1.83", "wandb.tags=[eff_exp_1]", "wandb.notes=resolution_scaling"]
-run_command(args, global_args)
+# 360= 1.978.949 -> 2.25
+# 480= 2.986.949 -> 3
+args = ["model.depth=52", "model.widen_factor=1", "dataset.resolution_scaling=2.25,3", "wandb.notes=resolution_scaling"]
+run_command_test(args, global_args)
 
 
 # eq_mobilenetv2

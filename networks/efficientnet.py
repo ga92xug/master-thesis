@@ -411,7 +411,7 @@ class EfficientNet(nn.Module):
             self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
 
 
-@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
+@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     inp = torch.rand(1, 3, 32, 32)
     image_size = [inp.shape[2], inp.shape[3]]

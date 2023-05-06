@@ -36,11 +36,12 @@ from .eq_efficientnet_util import (
 
 #from network_instantiation import instantiate_model_forward_pass
 
-from .e2_wide_resnet import e2wrn28_7R
+# from .e2_wide_resnet import e2wrn28_7R
 
 from .util import (
     get_width_and_height_from_size,
     calculate_output_image_size,
+    cuda_memory_usage,
 )
 
 __all__ = [
@@ -63,15 +64,11 @@ __all__ = [
     "EquivariantWideResNet",
     "EquivariantMobileNetV2",
     "RandomNet",
-    # "calculate_fixed_params",
-    #"wide_layer",
-    #"NetworkBlock",
     "WideResNet",
     "EquivariantEfficientNet",
     "EfficientNet",    
 ] + [
     "get_width_and_height_from_size",
     "calculate_output_image_size",
-] + [
-    "e2wrn28_7R",
+    "cuda_memory_usage",
 ]

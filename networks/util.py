@@ -3,6 +3,7 @@ import math
 import warnings
 import numpy as np
 import sys
+import torch
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (
@@ -11,6 +12,15 @@ from nn import (
 )
 
 CHANNELS_CONSTANT = 1
+
+def cuda_memory_usage():
+    t = torch.cuda.get_device_properties(0).total_memory
+    r = torch.cuda.memory_reserved(0)
+    a = torch.cuda.memory_allocated(0)
+    f = r-a  # free inside reserved
+    print(f"Allocated: {r / 1024 ** 3:.1f} GB")
+    print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
+    print(f"Free:         {f / 1024 ** 3:.1f} GB")
 
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.
@@ -103,14 +113,32 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     # print(f'Ratio for block: {last_ratio:.3f}')
     return equi_block
 
-def get_param_count(model_name):
+def get_param_count(model_name, in_mb=False, verbose=False):
         """Get the number of parameters of a given model.
         Args:
             params (tensor): Input tensor.
         Returns:
             Number of parameters of a given model.
         """
-        return sum(p.numel() for p in model_name.parameters() if p.requires_grad)
+        if in_mb:
+            param_size = 0
+            for param in model_name.parameters():
+                param_size += param.nelement() * param.element_size()
+            buffer_size = 0
+            for buffer in model_name.buffers():
+                buffer_size += buffer.nelement() * buffer.element_size()
+
+            size_all_mb = (param_size + buffer_size) / 1024**2
+            if verbose:
+                print(f'Total size: {size_all_mb:.2f} MB')
+            return size_all_mb
+        else:
+            total_params = sum(p.numel() for p in model_name.parameters())
+            if verbose:
+                print(f'Total params: {total_params}')
+            return total_params
+
+
 
 def get_gspace(group, rotation):
         """Get group space for a given group and rotation.

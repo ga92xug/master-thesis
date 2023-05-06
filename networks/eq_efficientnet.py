@@ -475,33 +475,3 @@ class EquivariantEfficientNet(nn.Module):
         _, _, res, _ = efficientnet_params(model_name)
         return res
 
-
-@hydra.main(config_path="../experiment/conf", config_name="config", version_base="1.2")
-def main(cfg: DictConfig) -> None:
-    input_image_size = 400
-    inp = torch.rand(1, 1, input_image_size, input_image_size)
-    image_size = [inp.shape[2], inp.shape[3]]
-    n_inputs = inp.shape[1]
-    n_outputs = 10
-    # depth, num_classes, widen_factor=1, dropRate=0.0
-    #net = EquivariantWideResNet()
-    net = hydra.utils.instantiate(
-            cfg.model,
-            image_size=image_size,
-            input_channels=n_inputs,
-            num_classes=n_outputs,
-        )
-    tot_param = sum([p.numel() for p in net.parameters()  if p.requires_grad])
-    print(f'Total number of parameters: {tot_param}')
-    # print(net)
-    return
-    inp = inp.cuda()
-    net.cuda()
-    print(net(inp).size())
-
-    #y = net(torch.randn(1,3,32,32))
-    #print(y.size())
-
-
-if __name__ == "__main__":
-    main()

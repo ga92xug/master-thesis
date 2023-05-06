@@ -56,14 +56,16 @@ def build_imagenette_loaders(batch_size,
                           resolution_scaling=1.0,
                           resolution_test=True
                           ):
-    image_size = int(224 * resolution_scaling)
+    image_size = int(160 * resolution_scaling)
 
     # download_data(DATA_DIR)
     # Define training and validation data paths
     if image_size > 320:
         DATA_DIR = ROOT_DIR + "imagenette/imagenette2/"
-    else:
+    elif image_size > 160:
         DATA_DIR = ROOT_DIR + "imagenette/imagenette2-320/"
+    else:
+        DATA_DIR = ROOT_DIR + "imagenette/imagenette2-160/"
 
     TRAIN_DIR = os.path.join(DATA_DIR, 'train') 
     VAL_DIR = os.path.join(DATA_DIR, 'val')
