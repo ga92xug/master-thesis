@@ -1,6 +1,7 @@
 import timeit
 import hydra
 from hydra import compose, initialize
+from hydra.core.global_hydra import GlobalHydra
 import numpy as np
 from omegaconf import DictConfig
 import torch
@@ -17,7 +18,7 @@ from networks.util import (
 )
 
 
-def instantiate_model(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=32):
+def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=32):
     start = timeit.default_timer()
     model = hydra.utils.instantiate(
             cfg.model,
@@ -27,7 +28,7 @@ def instantiate_model(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, imag
         )
     stop = timeit.default_timer()
     model_building_time = stop - start
-    param_count = get_param_count(model, in_mb=True, verbose=verbose)
+    param_count = get_param_count(model, in_mb=False, verbose=verbose)
     if verbose == 1:
         print(f"Model building time: {model_building_time}")
     if verbose == 2:
@@ -61,30 +62,34 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
     return train_time
 
 
-def main(
+def run(
         overrides=[],
         instantiate_dataset = False,
         do_forward_pass = True,
         verbose = 1,
         n_inputs=3, 
         n_outputs=10, 
-        image_size=124
+        image_size=108
 ):  
-    initialize(config_path="../conf", version_base="1.2")  
-    cfg = compose("config.yaml", overrides=overrides)
+    if GlobalHydra.instance().is_initialized():
+        GlobalHydra.instance().clear()
+    with initialize(version_base="1.2", config_path="../conf"):
+        cfg = compose(config_name="config", overrides=overrides)
 
     # instantiate model
-    model, param_count, model_building_time = instantiate_model(cfg, verbose=verbose, 
+    model, param_count, model_building_time = model_instantiate(cfg, verbose=verbose, 
                             n_inputs=n_inputs, n_outputs=n_outputs, image_size=image_size)
 
     if do_forward_pass:
         train_time = forward_pass(model, cfg, verbose=verbose, 
                             instantiate_dataset=instantiate_dataset,
                             n_inputs=n_inputs, image_size=image_size)
-        return param_count, model_building_time, train_time
     else:
-        return param_count, model_building_time
+        train_time = 0
+    return param_count, model_building_time, train_time
 
+
+"""
 if __name__ == "__main__":
     # get arguments 
     import argparse
@@ -93,4 +98,5 @@ if __name__ == "__main__":
     parser.add_argument('--overrides', type=str)
     args = parser.parse_args()
     overrides = ast.literal_eval(args.overrides)
-    main(overrides=overrides)
+    run(overrides=overrides)
+"""

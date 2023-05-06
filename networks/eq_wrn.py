@@ -223,7 +223,7 @@ class EquivariantWideResNet(nn.Module):
             equi_param = get_param_count(self)
             current_ratio = equi_param / norm_para
             print(f"Equivariant_WRN / WRN parameter ratio: {current_ratio:.3f}")
-        elif self.fix_params_mode == "no":
+        elif self.fix_params_mode in ["no", "heuristic"]:
             equi_param = get_param_count(self)
             print(f"Equivariant_WRN params: {equi_param}")
             

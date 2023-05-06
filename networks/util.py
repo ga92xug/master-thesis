@@ -1,6 +1,7 @@
 from copy import deepcopy
 import math
 import warnings
+from matplotlib import pyplot as plt
 import numpy as np
 import sys
 import torch
@@ -18,9 +19,9 @@ def cuda_memory_usage():
     r = torch.cuda.memory_reserved(0)
     a = torch.cuda.memory_allocated(0)
     f = r-a  # free inside reserved
-    print(f"Allocated: {r / 1024 ** 3:.1f} GB")
-    print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
-    print(f"Free:         {f / 1024 ** 3:.1f} GB")
+    print(f"Used: {r / 1024 ** 3:.1f}/{t / 1024 ** 3:.1f} GB")
+    # print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
+    # print(f"Free:         {f / 1024 ** 3:.1f} GB")
 
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.
@@ -182,6 +183,39 @@ def calculate_fixed_params(num_c, gspace, restrict):
 
     
     return np.array(num_channels).astype(int)
+
+
+def plot_model_data(model_data, vs_param):
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+    fig.suptitle(f'Model Performance vs {vs_param}', fontsize=14, fontweight='bold')
+    
+    for model_name, data in model_data.items():
+        vs = data[:, 0]
+        param_count = data[:, 1]
+        model_building_time = data[:, 2]
+        train_time = data[:, 3]
+        
+        ax[0].plot(vs, param_count, label=model_name)
+        ax[1].plot(vs, model_building_time, label=model_name)
+        ax[2].plot(vs, train_time, label=model_name)
+    
+    ax[0].set_xlabel(f'{vs_param}')
+    ax[0].set_ylabel('Parameter Count')
+    ax[0].set_title('Parameter Count vs {vs_param}')
+    ax[0].legend()
+
+    ax[1].set_xlabel(f'{vs_param}')
+    ax[1].set_ylabel('Model Building Time')
+    ax[1].set_title(f'Model Building Time vs {vs_param}')
+    ax[1].legend()
+
+    ax[2].set_xlabel(f'{vs_param}')
+    ax[2].set_ylabel('Train Time')
+    ax[2].set_title(f'Train Time vs {vs_param}')
+    ax[2].legend()
+
+    plt.tight_layout()
+    plt.show()
 
 
 if __name__ == "__main__":

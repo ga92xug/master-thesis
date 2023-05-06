@@ -2,7 +2,7 @@ from typing import Tuple, List
 from torch import nn
 import numpy as np
 import sys
-from networks.util import get_fixed_params
+from networks.util import cuda_memory_usage, get_fixed_params
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 import nn as nn_eq
 
@@ -392,15 +392,32 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
 
     def forward(self, x):
         # bn -> relu -> conv
+        # print("\nBlock")
+        # print("norm1")
+        # cuda_memory_usage()
         out = self.norm1(x)
+        #cuda_memory_usage()
+        #print("act_func1")
         out = self.act_func1(out)
+        #cuda_memory_usage()
+        #print("conv1")
         out = self.conv1(out)
         
+        
+        #print("norm2")
+        #cuda_memory_usage()
         out = self.norm2(out)
+        #cuda_memory_usage()
+        #print("act_func2")
         out = self.act_func2(out)
+        #cuda_memory_usage()
         out = self.drop_out(out)
+        #cuda_memory_usage()
         out = self.conv2(out)
+        #cuda_memory_usage()
         out += self.shortcut(x)
+        #cuda_memory_usage()
+        #print("\n")
         return out
 
     def evaluate_output_shape(self, input_shape: Tuple):

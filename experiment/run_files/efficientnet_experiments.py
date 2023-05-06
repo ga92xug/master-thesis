@@ -13,27 +13,29 @@ global_args = ["model=eq_wrn",
                "model.padding=1",
                "wandb.tags=[eff_exp_1]",
                "wandb.mode=disabled",
-               "training.epochs=1"
+               "training.epochs=1",
+               "model.rotation=8"
                ]
 
 # normal run
 # depth-width-resolution
-# 52-1-160 => 1.024.069
-args = ["model.depth=202", "model.widen_factor=1", "wandb.notes=eq_wrn_baseline"]
+# 108 is max resolution
+# 58-1-108 => 1.024.069
+args = ["model.depth=58", "model.widen_factor=1", "wandb.notes=eq_wrn_baseline"]
 run_command_test(args, global_args)
-"""
+
 # Scale WRN-52 by depth 
 # 130= 2.045.509
-# 210 = 3.066.949 
+# 202 = 3.066.949 
 args = ["model.depth=130,202", "model.widen_factor=1", "wandb.notes=depth_scaling"]
 run_command_test(args, global_args)
 
 # Scale WRN-52 by width
-# 1.47= 2.000.949
+# 1.47= 2.000.949 
 # 1.85= 3.000.069
-args = ["model.depth=58", "model.widen_factor=1.85", "wandb.notes=width_scaling"]
+args = ["model.depth=58", "model.widen_factor=1.9", "wandb.notes=width_scaling"]
 run_command_test(args, global_args)
-
+"""
 
 # Scale WRN-52 by Resolution 
 # 360= 1.978.949 -> 2.25
