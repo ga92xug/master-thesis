@@ -148,7 +148,9 @@ class Experiment:
         self._lr_exp_steps = 0
         
         # no hydra instantiation for optimizer since it is tricky to pass the model parameters
-        self._optimizer = optimizer.build_optimizer(self.model, cfg)
+        self._optimizer = hydra.utils.instantiate(cfg.optimizer, params=self.model.parameters(), 
+                                                  )
+        # self._optimizer = optimizer.build_optimizer(self.model, cfg)
 
         # adapt learning rate
         self._adapt_lr_type = cfg.training.adapt_lr

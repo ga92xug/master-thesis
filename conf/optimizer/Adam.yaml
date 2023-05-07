@@ -1,1 +1,4 @@
-name: Adam
+_target_: torch.optim.Adam
+lr: 8e-3
+betas: [0.95,0.99]
+eps: 1e-6
