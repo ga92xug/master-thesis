@@ -6,7 +6,19 @@ from run_command import run_command, run_command_test
 # python networks/eq_wrn.py -m model.kernel_layout=[3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
 # kernel_layout = [3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
 
-python experiment/run_files/wideresnet_paper_experiments.py
+# global arguments
+global_args = [
+        "model=eq_wrn", 
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        "model.fix_params_mode=heuristic",
+        "model.restrict=[halved,invariant]",
+        "model.kernel_layout=[3,3]", 
+        "model.padding=1",
+        "wandb.tags=[rotation_exp_2]",
+        "model.rotation=8",
+    ]
 
 """
 # experiment 1 Type of convolutions in residual block

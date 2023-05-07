@@ -130,7 +130,7 @@ class EquivariantWideResNet(nn.Module):
                 bias=self.bias,
             )
 
-        print(f"Eq_WRN_{self.depth}_{k:.3f}")
+        print(f"Eq_WRN_{self.depth}_{k:.2f}_B({kernel_layout[0]},{kernel_layout[1]})")
         gspace = get_gspace(group, rotation)
         self.gspace = gspace
 
