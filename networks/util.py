@@ -7,6 +7,7 @@ import sys
 import torch
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
+from networks.network_instantiation import run
 from nn import (
     rot2dOnR2,
     flipRot2dOnR2,
@@ -55,10 +56,24 @@ def calculate_output_image_size(input_image_size, stride):
     image_width = int(math.ceil(image_width / stride))
     return [image_height, image_width]
 
+
 def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
-                   channel_name="out_channels", **kwargs):
+                     channel_name="out_channels", max_iterations=50, **kwargs):
     """
-    TODO
+    Find an equivariant convolutional block with a parameter count similar to a normal
+    convolutional block using binary search or a heuristic approach.
+
+    Args:
+        type_equi_block (type): The type of the equivariant convolutional block.
+        fix_params_mode (str): The mode to use for fixing parameters ('heuristic', 'all', or 'no').
+        normal_block (type, optional): The type of the normal convolutional block.
+        gspace (object, optional): The symmetry group for the equivariant block.
+        channel_name (str, optional): The name of the channel parameter. Default is 'out_channels'.
+        **kwargs: Additional keyword arguments for the equivariant convolutional block.
+
+    Returns:
+        equi_block: An equivariant convolutional block with a parameter count similar to
+                    the normal convolutional block.
     """
     N = gspace.fibergroup.order()
     kwargs["out_channels"] = int(kwargs["out_channels"] / N)
@@ -68,51 +83,57 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     equi_block = type_equi_block(**kwargs)
     if fix_params_mode in ["heuristic", "no"]:
         return equi_block
-    
-    # fix param iter search
+
     param_normal_block = get_param_count(normal_block)
-    param_equi_block = get_param_count(equi_block)
+    if param_normal_block == 0:
+        return equi_block
+
+    equi_block = binary_search_fixed_params(type_equi_block, param_normal_block, channel_name, **kwargs)
+    return equi_block
+
+
+def binary_search_fixed_params(type_equi_block, param_normal_block, channel_name, max_iterations, **kwargs):
+    """
+    Perform a binary search to find the optimal number of channels for the equivariant block
+    to have a parameter count similar to the normal convolutional block.
+    """
+    param_equi_block = get_param_count(type_equi_block(**kwargs))
     out_channels = kwargs[channel_name]
-    old_equi_param = None
-    # initialize search range
+
+    # Initialize search range
     if param_equi_block > param_normal_block:
         lower_bound = max(out_channels - 400, 1)
         upper_bound = out_channels
     else:
         lower_bound = out_channels
-        # the upper bound search is expensive so we gradually increase it
         upper_bound = int(round(out_channels // 0.5) + 100)
-    # binary search
-    while lower_bound <= upper_bound:
-        # print(f'lower bound: {lower_bound}, upper bound: {upper_bound}, prediction: {kwargs[channel_name]}')
+
+    old_equi_param, old_equi_conv_block = None, None
+    iteration = 0
+
+    # Binary search
+    while lower_bound <= upper_bound and iteration < max_iterations:
         kwargs[channel_name] = (lower_bound + upper_bound) // 2
-        # save the old one since we might not be in 1% range
-        old_equi_param, old_equi_conv_block = param_equi_block, equi_block 
-        # get new equi_block
-        equi_block = type_equi_block(**kwargs)
-        param_equi_block = get_param_count(equi_block)
+        old_equi_param, old_equi_conv_block = param_equi_block, type_equi_block(**kwargs)
+        param_equi_block = get_param_count(old_equi_conv_block)
+
         if abs(param_equi_block - param_normal_block) < 0.01:
-            last_ratio = param_equi_block / param_normal_block
-            #print(f'Ratio for block: {last_ratio:.3f}')
-            return equi_block
+            return old_equi_conv_block
+
         if param_equi_block < param_normal_block:
-            # prediction is too small
             lower_bound = kwargs[channel_name] + 1
-            # if lower_bound >= upper_bound:
-            #      # we increase to upper bound slowly to avoid expensive search
-            #      upper_bound *= 2
-                 
+            if lower_bound >= upper_bound:
+                upper_bound = int(upper_bound * 1.2)
         else:
             upper_bound = kwargs[channel_name] - 1
-                
-    # if no solution found, return closest channel size
-    if old_equi_param is not None:
-        if abs(old_equi_param - param_normal_block) < abs(param_equi_block - param_normal_block):
-            equi_block = old_equi_conv_block
-        
-    last_ratio = param_equi_block / param_normal_block
-    # print(f'Ratio for block: {last_ratio:.3f}')
-    return equi_block
+
+        iteration += 1
+
+    # Return closest channel size if no solution found
+    if old_equi_param is not None and abs(old_equi_param - param_normal_block) < abs(param_equi_block - param_normal_block):
+        return old_equi_conv_block
+    return type_equi_block(**kwargs)
+
 
 def get_param_count(model_name, in_mb=False, verbose=False):
         """Get the number of parameters of a given model.
@@ -183,39 +204,6 @@ def calculate_fixed_params(num_c, gspace, restrict):
 
     
     return np.array(num_channels).astype(int)
-
-
-def plot_model_data(model_data, vs_param):
-    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-    fig.suptitle(f'Model Performance vs {vs_param}', fontsize=14, fontweight='bold')
-    
-    for model_name, data in model_data.items():
-        vs = data[:, 0]
-        param_count = data[:, 1]
-        model_building_time = data[:, 2]
-        train_time = data[:, 3]
-        
-        ax[0].plot(vs, param_count, label=model_name)
-        ax[1].plot(vs, model_building_time, label=model_name)
-        ax[2].plot(vs, train_time, label=model_name)
-    
-    ax[0].set_xlabel(f'{vs_param}')
-    ax[0].set_ylabel('Parameter Count')
-    ax[0].set_title('Parameter Count vs {vs_param}')
-    ax[0].legend()
-
-    ax[1].set_xlabel(f'{vs_param}')
-    ax[1].set_ylabel('Model Building Time')
-    ax[1].set_title(f'Model Building Time vs {vs_param}')
-    ax[1].legend()
-
-    ax[2].set_xlabel(f'{vs_param}')
-    ax[2].set_ylabel('Train Time')
-    ax[2].set_title(f'Train Time vs {vs_param}')
-    ax[2].legend()
-
-    plt.tight_layout()
-    plt.show()
 
 
 if __name__ == "__main__":

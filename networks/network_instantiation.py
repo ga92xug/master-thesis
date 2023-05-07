@@ -7,6 +7,8 @@ from omegaconf import DictConfig
 import torch
 import sys
 
+from scaling.util import dict_to_hydra_list
+
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 # from networks import (
@@ -45,6 +47,10 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         input_tensor = dataset[0][0].unsqueeze(0)
 
     else:
+        try:
+            image_size = cfg.dataset.resolution
+        except:
+            pass
         input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size)
         model.cuda()
         input_tensor = input_tensor.cuda()
@@ -71,6 +77,9 @@ def run(
         n_outputs=10, 
         image_size=108
 ):  
+    if isinstance(overrides, dict):
+        overrides = dict_to_hydra_list(overrides)
+
     if GlobalHydra.instance().is_initialized():
         GlobalHydra.instance().clear()
     with initialize(version_base="1.2", config_path="../conf"):
@@ -89,7 +98,7 @@ def run(
     return param_count, model_building_time, train_time
 
 
-"""
+
 if __name__ == "__main__":
     # get arguments 
     import argparse
@@ -98,5 +107,6 @@ if __name__ == "__main__":
     parser.add_argument('--overrides', type=str)
     args = parser.parse_args()
     overrides = ast.literal_eval(args.overrides)
-    run(overrides=overrides)
-"""
+    image_size = overrides[-2].split('=')[-1]
+    run(overrides=overrides, image_size=image_size)
+

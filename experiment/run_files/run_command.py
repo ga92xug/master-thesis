@@ -13,6 +13,6 @@ def run_command(args, global_args):
 
 def run_command_test(args, global_args):
     command = ["python", "networks/network_instantiation.py"]
-    args.extend(global_args)
-    command.extend([f"--overrides={args}"])
+    global_args.extend(args)
+    command.extend([f"--overrides={global_args}"])
     subprocess.run(command)
