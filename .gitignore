@@ -171,7 +171,8 @@ plots
 data
 .vscode
 norm_torch
-*.ipynb
+introduction_scaling_laws.ipynb
+parameter-test.ipynb
 test_equivalence.py
 
 # examples

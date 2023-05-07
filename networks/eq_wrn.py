@@ -245,7 +245,6 @@ class EquivariantWideResNet(nn.Module):
         # how many layers each block has
         strides = [stride] + [1] * (int(num_blocks) - 1)
         layers = []
-
         
         for i, stride in enumerate(strides):
             if normal_blocks is not None:
