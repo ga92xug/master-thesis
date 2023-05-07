@@ -73,7 +73,7 @@ class EquivariantWideResNet(nn.Module):
         self.widen_factor = widen_factor
         self.group = group
         self.rotation = rotation
-        self.restrict = [None, restrict] if isinstance(restrict, str) or restrict is None else restrict
+        self.restrict = [None, restrict] if isinstance(restrict, str) else restrict
         self.restrict = list(self.restrict)
         assert len(self.restrict) == 2, "restrict must be a string or a list of two strings"
         self.input_channels = input_channels
@@ -88,8 +88,9 @@ class EquivariantWideResNet(nn.Module):
         elif kernel_layout == [7,7]:
             self.padding = 3
         if self.rotation > 4 and self.kernel_layout[0] == 3:
-            warnings.warn(f"Discretization artifacts are expected for rotation > 4 and \
-                    kernel_layout = {self.kernel_layout}.")
+            pass
+            # warnings.warn(f"Discretization artifacts are expected for rotation > 4 and \
+            #         kernel_layout = {self.kernel_layout}.")
         self.num_classes = num_classes
         self.drop_out = drop_out
         self.bias = bias
@@ -129,7 +130,7 @@ class EquivariantWideResNet(nn.Module):
                 bias=self.bias,
             )
 
-        print("Eq_WRN_%d_%d" % (self.depth, k))
+        print(f"Eq_WRN_{self.depth}_{k:.3f}")
         gspace = get_gspace(group, rotation)
         self.gspace = gspace
 

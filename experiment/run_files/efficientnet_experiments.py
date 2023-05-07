@@ -5,7 +5,7 @@ from run_command import run_command, run_command_test
 # experiment 1: efficientnet scaling laws
 
 # global arguments
-global_args = [
+global_args_test = [
         "model=eq_wrn", 
         "dataset=imagenette",
         "model.fix_params_mode=heuristic",
@@ -14,34 +14,52 @@ global_args = [
         "model.padding=1",
         "wandb.tags=[eff_exp_1]",
         "wandb.mode=disabled",
+        "training.steps_per_epoch=10",
         "training.epochs=1",
+        "model.rotation=8",
+    ]
+
+global_args = [
+        "model=eq_wrn", 
+        "dataset=imagenette",
+        "model.fix_params_mode=heuristic",
+        "model.restrict=[halved,invariant]",
+        "model.kernel_layout=[3,3]", 
+        "model.padding=1",
+        "wandb.tags=[eff_exp_1]",
         "model.rotation=8",
     ]
 
 # normal run
 # depth-width-resolution
 # 108 is max resolution
-# 58-1-108 => 1.024.069
+# 58-1-108 => 876.229, train time: 3.96
 args = ["model.depth=58", "model.widen_factor=1", "dataset.resolution=108", "wandb.notes=eq_wrn_baseline"]
-run_command_test(args, global_args)
+run_command(args, global_args)
 
 # Scale WRN-52 by depth 
-# 130= 2.045.509
-# 202 = 3.066.949 
-args = ["model.depth=130,202", "model.widen_factor=1", "dataset.resolution=108", "wandb.notes=depth_scaling"]
-run_command_test(args, global_args)
+# 94= 1.386.949, train time: 6.098 
+# 130 = 1897669, train time: 8.23
+args = ["model.depth=94", "model.widen_factor=1", "dataset.resolution=108", "wandb.notes=depth_scaling"]
+run_command(args, global_args)
+# args = ["model.depth=130", "model.widen_factor=1", "dataset.resolution=108", "wandb.notes=depth_scaling"]
+# run_command(args, global_args)
 
 # Scale WRN-52 by width
-# 1.47= 2.000.949 
-# 1.85= 3.000.069
-args = ["model.depth=58", "model.widen_factor=1.9", "dataset.resolution=108", "wandb.notes=width_scaling"]
-run_command_test(args, global_args)
+# 2.0= 3.310.333, train time: 5.92 
+# 3.0= 7.263.045, train time: 7.97
+args = ["model.depth=58", "model.widen_factor=2.0", "dataset.resolution=108", "wandb.notes=width_scaling"]
+run_command(args, global_args)
+# args = ["model.depth=58", "model.widen_factor=3.0", "dataset.resolution=108", "wandb.notes=width_scaling"]
+# run_command(args, global_args)
 
 # Scale WRN-52 by Resolution 
-# 360= 1.978.949 -> 2.25
-# 480= 2.986.949 -> 3
-args = ["model.depth=52", "model.widen_factor=1", "dataset.resolution=108", "wandb.notes=resolution_scaling"]
-run_command_test(args, global_args)
+# 138= 953.029, train time: 6.10
+# 160= 1.024.069, train time: 7.93
+args = ["model.depth=58", "model.widen_factor=1", "dataset.resolution=138", "wandb.notes=resolution_scaling"]
+run_command(args, global_args)
+# args = ["model.depth=58", "model.widen_factor=1", "dataset.resolution=160", "wandb.notes=resolution_scaling"]
+# run_command(args, global_args)
 
 """
 # eq_mobilenetv2

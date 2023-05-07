@@ -34,6 +34,8 @@ def get_width_and_height_from_size(x):
         return x, x
     if isinstance(x, list) or isinstance(x, tuple):
         return x
+    if isinstance(x, str):
+        return int(x), int(x)
     else:
         raise TypeError()
 

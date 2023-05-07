@@ -6,8 +6,8 @@ import numpy as np
 from omegaconf import DictConfig
 import torch
 import sys
-
-sys.path.append('..') # add parent directory
+sys.path.append('..')
+sys.path.append('../scaling-laws-ecnn') # add parent directory
 # from networks import (
 #     e2wrn28_7R,
 # )
@@ -36,7 +36,7 @@ def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, imag
     return model, param_count, model_building_time
     
 def forward_pass(model, cfg, verbose, instantiate_dataset, 
-                 n_inputs, image_size, n_runs=100, batch_size=128):
+                 n_inputs, image_size, n_runs=10, batch_size=128):
     start = timeit.default_timer()
     model.train()
     if instantiate_dataset:
@@ -99,10 +99,7 @@ def dict_to_hydra_list(dict_obj):
     """
     string_list = []
     for key, value in dict_obj.items():
-        if isinstance(value, list):
-            value_str = ",".join(str(v) for v in value)
-        else:
-            value_str = str(value)
+        value_str = str(value)
         string_list.append(f"{key}={value_str}")
     return string_list
 

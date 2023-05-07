@@ -29,8 +29,15 @@ def binary_search_over_model_scaling(
     Raises:
         ValueError: If the search_param or scale_param is not valid or supported.
     """
+    scale_indices = {
+        "param_count": 0,
+        "model_building_time": 1,
+        "train_time": 2
+    }
+    
     search_key = list(search_param.keys())[0]
     scale_key = list(scale_param.keys())[0]
+    scale_index = scale_indices[scale_key]
 
     initial_value = search_param[search_key]
     local_overrides = {**overrides, **search_param}
@@ -59,9 +66,9 @@ def binary_search_over_model_scaling(
             upper_bound = mid * 0.9
             continue
 
-        if abs(stats[scale_key] - base_stats[scale_key] * scaling_factor) <= tolerance:
+        if abs(stats[scale_index] - base_stats[scale_index] * scaling_factor) <= tolerance:
             break
-        elif stats[scale_key] > base_stats[scale_key] * scaling_factor:
+        elif stats[scale_index] > base_stats[scale_index] * scaling_factor:
             upper_bound = mid * 0.9
         else:
             lower_bound = mid * 1.1

@@ -6,7 +6,7 @@ import io
 
 from typing import List
 
-from models import *
+#from models import *
 from networks import *
 
 # the values of these command line arguments are used to define the name of the experiments
@@ -383,7 +383,7 @@ def build_dataloaders(cfg):
             reshuffle=reshuffle
         )
     elif dataset == "imagenette":
-        resolution_scaling = cfg.dataset.resolution_scaling or None
+        resolution = cfg.dataset.resolution or None
         resolution_test = cfg.dataset.resolution_test or None
         train_loader, valid_loader, test_loader, n_inputs, n_outputs = data_loader_imagenette.build_imagenette_loaders(
             batch_size,
@@ -391,7 +391,7 @@ def build_dataloaders(cfg):
             augment=augment,
             num_workers=num_workers,
             drop_last=drop_last_train,
-            resolution_scaling=resolution_scaling,
+            resolution=resolution,
             resolution_test = resolution_test,
         )    
     else:

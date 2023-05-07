@@ -53,10 +53,11 @@ def build_imagenette_loaders(batch_size,
                           num_workers=8,
                           augment=False,
                           drop_last=False,
-                          resolution_scaling=1.0,
+                          resolution=108,
+                          #resolution_scaling=1.0,
                           resolution_test=True
                           ):
-    image_size = int(160 * resolution_scaling)
+    image_size = resolution # int(160 * resolution_scaling)
 
     # download_data(DATA_DIR)
     # Define training and validation data paths

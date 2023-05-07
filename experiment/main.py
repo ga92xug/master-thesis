@@ -20,10 +20,10 @@ import argparse
 import os
 import datetime
 
-import plot_exps
+# import plot_exps
 import utils
 import optimizer
-import optimizers_L1L2
+#import optimizers_L1L2
 
 from sklearn.metrics import confusion_matrix
 
@@ -34,7 +34,7 @@ if "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
-os.environ['HYDRA_FULL_ERROR'] = '1'
+#os.environ['HYDRA_FULL_ERROR'] = '1'
 
 def compute_confusion_matrix(predictions, targets, labels):
     if predictions.shape[1] > 1:
@@ -106,6 +106,7 @@ class Experiment:
             cfg.model,
             input_channels=n_inputs,
             num_classes=n_outputs,
+            image_size=cfg.dataset.resolution,
         ).to(self.device)
         if self.device != torch.device("cpu"):
             self.model = nn.DataParallel(self.model)
