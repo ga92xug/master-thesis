@@ -7,3 +7,5 @@ datasets/*/*
 !datasets/*.py
 
 outputs/
+
+models/

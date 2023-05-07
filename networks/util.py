@@ -7,7 +7,6 @@ import sys
 import torch
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from networks.network_instantiation import run
 from nn import (
     rot2dOnR2,
     flipRot2dOnR2,

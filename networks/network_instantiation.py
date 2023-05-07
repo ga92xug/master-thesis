@@ -7,10 +7,7 @@ from omegaconf import DictConfig
 import torch
 import sys
 
-from scaling.util import dict_to_hydra_list
-
-sys.path.append('../scaling-laws-ecnn') # add parent directory
-
+sys.path.append('..') # add parent directory
 # from networks import (
 #     e2wrn28_7R,
 # )
@@ -54,11 +51,9 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size)
         model.cuda()
         input_tensor = input_tensor.cuda()
-        cuda_memory_usage()
         for i in range(n_runs):
             out = model(input_tensor)
             del out
-            cuda_memory_usage()
 
     stop = timeit.default_timer()
     train_time = stop - start
@@ -98,6 +93,18 @@ def run(
     return param_count, model_building_time, train_time
 
 
+def dict_to_hydra_list(dict_obj):
+    """
+    Converts the overrides dict into a list of strings that hydra likes.
+    """
+    string_list = []
+    for key, value in dict_obj.items():
+        if isinstance(value, list):
+            value_str = ",".join(str(v) for v in value)
+        else:
+            value_str = str(value)
+        string_list.append(f"{key}={value_str}")
+    return string_list
 
 if __name__ == "__main__":
     # get arguments 

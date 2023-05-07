@@ -105,15 +105,3 @@ def plot_model_data(model_data, vs_param):
     plt.show()
 
 
-def dict_to_hydra_list(dict_obj):
-    """
-    Converts the overrides dict into a list of strings that hydra likes.
-    """
-    string_list = []
-    for key, value in dict_obj.items():
-        if isinstance(value, list):
-            value_str = ",".join(str(v) for v in value)
-        else:
-            value_str = str(value)
-        string_list.append(f"{key}={value_str}")
-    return string_list
