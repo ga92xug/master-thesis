@@ -44,10 +44,6 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         input_tensor = dataset[0][0].unsqueeze(0)
 
     else:
-        try:
-            image_size = cfg.dataset.resolution
-        except:
-            pass
         input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size)
         model.cuda()
         input_tensor = input_tensor.cuda()
@@ -75,10 +71,16 @@ def run(
     if isinstance(overrides, dict):
         overrides = dict_to_hydra_list(overrides)
 
+    print(f"Overrides: {overrides}")
     if GlobalHydra.instance().is_initialized():
         GlobalHydra.instance().clear()
     with initialize(version_base="1.2", config_path="../conf"):
         cfg = compose(config_name="config", overrides=overrides)
+
+    try:
+        image_size = cfg.dataset.resolution
+    except:
+        pass
 
     # instantiate model
     model, param_count, model_building_time = model_instantiate(cfg, verbose=verbose, 
