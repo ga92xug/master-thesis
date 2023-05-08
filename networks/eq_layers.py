@@ -70,6 +70,7 @@ class Restriction(EquivariantModule):
         self.in_type = in_type
 
         if not restrict:
+            print("No restriction applied.")
             self.restrict = nn.Identity()
             self.out_type = self.in_type
         else:
@@ -88,6 +89,7 @@ class Restriction(EquivariantModule):
                 # restrict to invariant case
                 subgroup_id = (None, 1) if group != "cyclic" else 1
 
+            print("Should at least one no restriction be applied.")
             layers.append(RestrictionModule(self.in_type, subgroup_id))
             layers.append(DisentangleModule(layers[-1].out_type))
             self.restrict = SequentialModule(*layers)

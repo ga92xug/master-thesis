@@ -17,7 +17,7 @@ from networks.util import (
 )
 
 
-def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=32):
+def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=None):
     start = timeit.default_timer()
     model = hydra.utils.instantiate(
             cfg.model,
@@ -66,12 +66,11 @@ def run(
         verbose = 1,
         n_inputs=3, 
         n_outputs=10, 
-        image_size=108
 ):  
     if isinstance(overrides, dict):
         overrides = dict_to_hydra_list(overrides)
 
-    print(f"Overrides: {overrides}")
+    # print(f"Overrides: {overrides}")
     if GlobalHydra.instance().is_initialized():
         GlobalHydra.instance().clear()
     with initialize(version_base="1.2", config_path="../conf"):
@@ -80,7 +79,7 @@ def run(
     try:
         image_size = cfg.dataset.resolution
     except:
-        pass
+        image_size = 32
 
     # instantiate model
     model, param_count, model_building_time = model_instantiate(cfg, verbose=verbose, 
@@ -113,6 +112,5 @@ if __name__ == "__main__":
     parser.add_argument('--overrides', type=str)
     args = parser.parse_args()
     overrides = ast.literal_eval(args.overrides)
-    image_size = overrides[-2].split('=')[-1]
-    run(overrides=overrides, image_size=image_size)
+    run(overrides=overrides)
 

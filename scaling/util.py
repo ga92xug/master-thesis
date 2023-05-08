@@ -95,7 +95,7 @@ def plot_model_data(model_data, vs_param):
     
     ax[0].set_xlabel(f'{vs_param}')
     ax[0].set_ylabel('Parameter Count')
-    ax[0].set_title('Parameter Count vs {vs_param}')
+    ax[0].set_title(f'Parameter Count vs {vs_param}')
     ax[0].legend()
 
     ax[1].set_xlabel(f'{vs_param}')

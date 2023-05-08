@@ -1,8 +1,8 @@
 # Model parameters          
 _target_: networks.EquivariantMobileNetV2            # The name of the model to use
 group: cyclic  # "dihedral" "orthogonal"
-rotation: 4  # discrete number or frequency
-fix_params: False
+rotation: 8  # discrete number or frequency
+fix_params_mode: heuristic  # "heuristic", "no"
 restrict: [null,null,null]  # "invariant", "reflection", "halved"
 channel_layout: [32, 16, 24, 32, 64, 96, 160, 320, 1280]
 kernel_size: 3

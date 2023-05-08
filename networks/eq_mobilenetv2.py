@@ -19,7 +19,8 @@ from nn import (
 )
 from networks.util import (
     calculate_fixed_params, 
-    calculate_output_image_size, 
+    calculate_output_image_size,
+    get_fixed_params, 
     get_gspace, 
     get_param_count
 )
@@ -40,7 +41,7 @@ class EquivariantMobileNetV2(nn.Module):
         self,
         group: str = "cyclic",  # "dihedral", "orthogonal"
         rotation: int = 4,  # discrete number or frequency
-        fix_params: bool = False,
+        fix_params_mode: str = "heuristic",
         restrict: List[str] = [None, None, None],  # "invariant", "reflection", "halved"
         input_channels: int = 3,
         channel_layout: List[int] = [32, 16, 24, 32, 64, 96, 160, 320, 1280],
@@ -52,7 +53,6 @@ class EquivariantMobileNetV2(nn.Module):
         image_size: int = 32,
         depth_multiplier: int = 1,
         width_multiplier: int = 1,
-
     ):
         super().__init__()
         self.restrict = list(restrict)
@@ -61,122 +61,135 @@ class EquivariantMobileNetV2(nn.Module):
         self.num_channels = (np.round((np.array(channel_layout) * width_multiplier) / gspace.fibergroup.order())).astype(int)
         self.bottleneck_layout = (np.round(np.array(bottleneck_layout) * depth_multiplier)).astype(int) 
         
-        # Normalize channel layout by group order
-        if fix_params:
-            self.num_channels = calculate_fixed_params(self.num_channels,
-                                                       gspace, restrict)
- 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(gspace, [gspace.trivial_repr] * input_channels)
 
         # conv 1
-        self.conv1 = EquivariantConvBlock_Conv_BN_actF(
-            in_type=self.input_field_type,
-            out_channels=self.num_channels[0],
-            kernel_size=kernel_size,
-            padding=padding,
-            act_func="ReLU",
-            stride=2,
-        )
+        kwargs = {"in_type": self.input_field_type, "out_channels": self.num_channels[0],
+            "kernel_size": kernel_size, "padding": padding, "act_func": "ReLU",
+            "stride": 2}
+        self.conv1 = get_fixed_params(EquivariantConvBlock_Conv_BN_actF, fix_params_mode, 
+                        gspace=self.input_field_type.gspace, **kwargs)
         image_size = calculate_output_image_size(image_size, stride=2)
 
         # block 0
-        self.bottleneck_block_0 = EquivariantBottleneckBlock(
-            in_type=self.conv1.out_type,
-            out_channels=self.num_channels[1],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=1,
-            act_func="ReLU",
-            expand_ratio=1,
-            num_blocks=self.bottleneck_layout[0],
-        )
+        kwargs = {
+            "in_type": self.conv1.out_type,
+            "out_channels": self.num_channels[1],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 1,
+            "act_func": "ReLU",
+            "expand_ratio": 1,
+            "num_blocks": self.bottleneck_layout[0],
+        }
+        self.bottleneck_block_0 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.conv1.out_type.gspace, **kwargs)
         image_size = calculate_output_image_size(image_size, stride=1)
         # block 1
-        self.bottleneck_block_1 = EquivariantBottleneckBlock(
-            in_type=self.bottleneck_block_0.out_type,
-            out_channels=self.num_channels[2],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=2,
-            act_func="ReLU",
-            expand_ratio=expand_ratio,
-            num_blocks=self.bottleneck_layout[1],
-        )
+        kwargs = {
+            "in_type": self.bottleneck_block_0.out_type,
+            "out_channels": self.num_channels[2],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 2,
+            "act_func": "ReLU",
+            "expand_ratio": expand_ratio,
+            "num_blocks": self.bottleneck_layout[1],
+        }
+        self.bottleneck_block_1 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.bottleneck_block_0.out_type.gspace, **kwargs)
         image_size = calculate_output_image_size(image_size, stride=2)
+
         # block 2
-        self.bottleneck_block_2 = EquivariantBottleneckBlock(
-            in_type=self.bottleneck_block_1.out_type,
-            out_channels=self.num_channels[3],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=2,
-            act_func="ReLU",
-            expand_ratio=expand_ratio,
-            num_blocks=self.bottleneck_layout[2],
-        )
+        kwargs = {
+            "in_type": self.bottleneck_block_1.out_type,
+            "out_channels": self.num_channels[3],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 2,
+            "act_func": "ReLU",
+            "expand_ratio": expand_ratio,
+            "num_blocks": self.bottleneck_layout[2],
+        }
+        self.bottleneck_block_2 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.bottleneck_block_1.out_type.gspace, **kwargs)
         image_size = calculate_output_image_size(image_size, stride=2)
+
         # block 3
-        self.bottleneck_block_3 = EquivariantBottleneckBlock(
-            in_type=self.bottleneck_block_2.out_type,
-            out_channels=self.num_channels[4],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=2,
-            act_func="ReLU",
-            expand_ratio=expand_ratio,
-            num_blocks=self.bottleneck_layout[3],
-        )
+        kwargs = {
+            "in_type": self.bottleneck_block_2.out_type,
+            "out_channels": self.num_channels[4],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 2,
+            "act_func": "ReLU",
+            "expand_ratio": expand_ratio,
+            "num_blocks": self.bottleneck_layout[3],
+        }
+        self.bottleneck_block_3 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.bottleneck_block_2.out_type.gspace, **kwargs)
         image_size = calculate_output_image_size(image_size, stride=2)
         # block 4
-        self.bottleneck_block_4 = EquivariantBottleneckBlock(
-            in_type=self.bottleneck_block_3.out_type,
-            out_channels=self.num_channels[5],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=1,
-            act_func="ReLU",
-            expand_ratio=expand_ratio,
-            num_blocks=self.bottleneck_layout[4],
-        )
+        kwargs = {
+            "in_type": self.bottleneck_block_3.out_type,
+            "out_channels": self.num_channels[5],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 1,
+            "act_func": "ReLU",
+            "expand_ratio": expand_ratio,
+            "num_blocks": self.bottleneck_layout[4],
+        }
+        self.bottleneck_block_4 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.bottleneck_block_3.out_type.gspace, **kwargs)
         self.restrict_4 = Restriction(self.bottleneck_block_4.out_type, group, rotation, self.restrict[-3])
         image_size = calculate_output_image_size(image_size, stride=1)
         # block 5
-        self.bottleneck_block_5 = EquivariantBottleneckBlock(
-            in_type=self.restrict_4.out_type,
-            out_channels=self.num_channels[6],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=2,
-            act_func="ReLU",
-            expand_ratio=expand_ratio,
-            num_blocks=self.bottleneck_layout[5],
-        )
+        kwargs = {
+            "in_type": self.restrict_4.out_type,
+            "out_channels": self.num_channels[6],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 2,
+            "act_func": "ReLU",
+            "expand_ratio": expand_ratio,
+            "num_blocks": self.bottleneck_layout[5],
+        }
+        self.bottleneck_block_5 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.restrict_4.out_type.gspace, **kwargs)
         self.restrict_5 = Restriction(self.bottleneck_block_5.out_type, group, rotation, self.restrict[-2])
         image_size = calculate_output_image_size(image_size, stride=2)
         # block 6
-        self.bottleneck_block_6 = EquivariantBottleneckBlock(
-            in_type=self.restrict_5.out_type,
-            out_channels=self.num_channels[7],
-            kernel_size=kernel_size,
-            padding=padding,
-            stride=1,
-            act_func="ReLU",
-            expand_ratio=expand_ratio,
-            num_blocks=self.bottleneck_layout[6],
-        )
+        kwargs = {
+            "in_type": self.restrict_5.out_type,
+            "out_channels": self.num_channels[7],
+            "kernel_size": kernel_size,
+            "padding": padding,
+            "stride": 1,
+            "act_func": "ReLU",
+            "expand_ratio": expand_ratio,
+            "num_blocks": self.bottleneck_layout[6],
+        }
+        self.bottleneck_block_6 = get_fixed_params(EquivariantBottleneckBlock, fix_params_mode,
+                        gspace=self.restrict_5.out_type.gspace, **kwargs)
+        self.restrict_6 = Restriction(self.bottleneck_block_6.out_type, group, rotation, self.restrict[-1])
         image_size = calculate_output_image_size(image_size, stride=1)
         # conv 2
-        self.restrict_6 = Restriction(self.bottleneck_block_6.out_type, group, rotation, self.restrict[-1])
-        self.conv2 = EquivariantConvBlock_Conv_BN_actF(
-            in_type=self.restrict_6.out_type,
-            out_channels=self.num_channels[8],
-            kernel_size=1,
-            padding=0,
-        )
+        kwargs = {
+            "in_type": self.restrict_6.out_type,
+            "out_channels": self.num_channels[8],
+            "kernel_size": 1,
+            "padding": 0,
+            "stride": 1,
+            "act_func": "ReLU",
+        }
+        self.conv2 = get_fixed_params(EquivariantConvBlock, fix_params_mode,
+                        gspace=self.restrict_6.out_type.gspace, **kwargs)
+        
         self.invariant_map = EquivariantPool(self.conv2.out_type, invariant_map=True)
         image_size = max(int(image_size[0] / 2), 1)
-        self.global_pool = nn.AdaptiveAvgPool2d(2) if image_size > 1 else nn.Identity()
+        #self.global_pool = nn.AdaptiveAvgPool2d(2) if image_size > 1 else nn.Identity()
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
             self.invariant_map.out_type.size  * image_size * image_size, num_classes
