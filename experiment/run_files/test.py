@@ -13,22 +13,22 @@ global_args = [
         "optimizer=SGD",
         "model.fix_params_mode=heuristic",
         "model.restrict=[halved,invariant]",
-        "model.kernel_size=3", 
+        "model.kernel_layout=[3,3]", 
         "model.padding=1",
-        "wandb.tags=[rotation_exp_2]",
+        #"wandb.tags=[rotation_exp_2]",
         "model.rotation=8",
     ]
 
 global_args_test = global_args + [
-        "wandb.mode=disabled",
+        #"wandb.mode=disabled",
         "training.steps_per_epoch=10",
-        "training.epochs=1",
+        "training.epochs=10",
     ]
 
 # 3x3
 # 2.799.413
-args = ["model.depth=10", "model.widen_factor=1.5", 
-        "wandb.notes=kernel3x3",
+args = ["model.depth=4", "model.widen_factor=1", 
+        "wandb.notes=check_if_train_time_log",
         "dataset.resolution=32"]
-run_command_test(args, global_args_test)
-#run_command(args, global_args)
+#run_command_test(args, global_args_test)
+run_command(args, global_args_test)

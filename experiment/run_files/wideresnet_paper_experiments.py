@@ -60,12 +60,12 @@ subprocess.run(["python", "../main.py", "-m", args_all[0], args_all[1], args[0],
 # d=40, k=1,2,4,8, [3,3]
 args = ["model.depth=40", "model.widen_factor=1,2,4,8", "wandb.notes=rot8"]
 #run_command(args, global_args)
-# d=28, k=10, [3,3]
-args = ["model.kernel_layout=[3,3]", "model.depth=28", "model.widen_factor=10,12", "wandb.notes=rot8"]
+# d=28, k=10,12 [3,3]
+args = ["model.kernel_layout=[3,3]", "model.depth=28", "model.widen_factor=12", "wandb.notes=rot8"]
 #run_command(args, global_args)
 # d=16,22, k=8, [3,3]
 args = ["model.kernel_layout=[3,3]", "model.depth=22", "model.widen_factor=8,10", "wandb.notes=rot8"]
-run_command(args, global_args)
+#run_command(args, global_args)
 """
 # experiment 4 Dropout in residual blocks
 # d=16 k=4, [3,3], drop_out=0.0,0.3

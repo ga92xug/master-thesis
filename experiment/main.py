@@ -5,7 +5,9 @@ import torch.nn as nn
 from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 import pprint
 import sys
+
 sys.path.append('../scaling-laws-ecnn') # add parent directory
+from networks.util import get_param_count
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -114,11 +116,10 @@ class Experiment:
 
         self._global_start_time = datetime.datetime.now()
         self._verbose = cfg.other.verbose
-        total_param = sum([p.numel() for p in self.model.parameters() if p.requires_grad])
-        assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
-        wandb.log({"total_parameters": total_param})
+        total_param = get_param_count(self.model, in_mb=False, verbose=self._verbose)
+        # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
+        wandb.log({"total_parameters": total_param}, step=0, commit=True)
         if self._verbose > 1:
-            print("Total number of parameters:", total_param)
             print(f"Starting: {self._global_start_time}")
         
         # backup model parameters
@@ -273,7 +274,7 @@ class Experiment:
         # log the training loss, accuracy, and duration
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
-        wandb.log({"train": {"duration": duration}}, step=self.global_step)
+        wandb.log({"train": {"duration": duration}}, step=self.global_step, commit=True)
         if self._verbose > 1:
             print(f"-"*100)
             print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
