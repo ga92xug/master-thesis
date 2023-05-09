@@ -273,11 +273,11 @@ class Experiment:
         # log the training loss, accuracy, and duration
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
+        wandb.log({"train": {"duration": duration}}, step=self.global_step)
         if self._verbose > 1:
             print(f"-"*100)
             print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
             print(f'Accuracy: {train_acc_epoch / n_samples:.3f}; Loss: {(train_loss_epoch / n_samples):.3f}\n')
-        wandb.log({"train": {"duration": duration}}, step=self.global_step)
         return
 
     def test(self):
@@ -290,7 +290,6 @@ class Experiment:
             self.model.load_state_dict(self.best_state_dict)
         
         acc, loss, duration, conf_matrix = self.evaluate("test", confusion=True)
-        # wandb.log({"train": {"acc": 0.9}, "val": {"acc": 0.8}})
         wandb.log({"test": {"loss": loss, "acc": acc, "duration": duration}})
 
         self.conf_matrix = conf_matrix

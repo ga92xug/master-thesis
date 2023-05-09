@@ -102,7 +102,7 @@ def exp_name(cfg):
     elif cfg.model._target_ == "networks.EquivariantResNet9":
         values.append("res9")
     elif cfg.model._target_ == "networks.EquivariantMobileNetV2":
-        values.append("mobv2")
+        values.append("eq_mobv2")
     elif cfg.model._target_ == "networks.RandomNet":
         values.append("rand")
     elif cfg.model._target_ == "networks.WideResNet":
@@ -113,10 +113,14 @@ def exp_name(cfg):
     # depth
     if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
         values.append(f"{cfg.model.depth}")
+    elif cfg.model._target_ in ["networks.EquivariantMobileNetV2"]:
+        values.append(f"{cfg.model.depth_multiplier}")
     
     # width
     if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
         values.append(f"{cfg.model.widen_factor}")
+    elif cfg.model._target_ in ["networks.EquivariantMobileNetV2"]:
+        values.append(f"{cfg.model.width_multiplier}")
     
     # kernel size
     if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:

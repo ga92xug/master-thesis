@@ -44,11 +44,12 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         input_tensor = dataset[0][0].unsqueeze(0)
 
     else:
-        input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size)
         model.cuda()
-        input_tensor = input_tensor.cuda()
         for i in range(n_runs):
+            input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size).cuda()
             out = model(input_tensor)
+            if cfg.other.verbose > 2:
+                print(f"Run {i}: {out.shape}, {out.sum()}")
             del out
 
     stop = timeit.default_timer()

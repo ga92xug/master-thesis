@@ -81,6 +81,10 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     if fix_params_mode in ["heuristic", "all"]:
         kwargs["out_channels"] = int(kwargs["out_channels"] * math.sqrt(N * CHANNELS_CONSTANT))
 
+    if kwargs["out_channels"] < 1:
+        # warnings.warn("The number of channels is too small. Setting it to 1.")
+        kwargs["out_channels"] = 1
+
     equi_block = type_equi_block(**kwargs)
     if fix_params_mode in ["heuristic", "no"]:
         return equi_block
