@@ -6,11 +6,13 @@ import numpy as np
 from omegaconf import DictConfig
 import torch
 import sys
+
 sys.path.append('..')
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 # from networks import (
 #     e2wrn28_7R,
 # )
+from experiment.utils import allowed_usage_time
 from networks.util import (
     cuda_memory_usage,
     get_param_count
@@ -36,18 +38,25 @@ def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, imag
     return model, param_count, model_building_time
     
 def forward_pass(model, cfg, verbose, instantiate_dataset, 
-                 n_inputs, image_size, n_runs=10, batch_size=128):
+                 n_inputs, image_size, batch_size=128):
     start = timeit.default_timer()
     model.train()
+
+    if cfg.training.steps_per_epoch > 0:
+        n_runs = cfg.training.steps_per_epoch
+    else:
+        n_runs = 10
+
     if instantiate_dataset:
         dataset = hydra.utils.instantiate(cfg.dataset)
-        input_tensor = dataset[0][0].unsqueeze(0)
+        
 
     else:
         model.cuda()
         for i in range(n_runs):
             input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size).cuda()
             out = model(input_tensor)
+            #cuda_memory_usage()
             if cfg.other.verbose > 2:
                 print(f"Run {i}: {out.shape}, {out.sum()}")
             del out
@@ -68,6 +77,9 @@ def run(
         n_inputs=3, 
         n_outputs=10, 
 ):  
+    # check if we are allowed to run
+    allowed_usage_time()
+
     if isinstance(overrides, dict):
         overrides = dict_to_hydra_list(overrides)
 

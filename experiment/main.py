@@ -118,7 +118,7 @@ class Experiment:
         self._verbose = cfg.other.verbose
         total_param = get_param_count(self.model, in_mb=False, verbose=self._verbose)
         # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
-        wandb.log({"total_parameters": total_param}, step=0, commit=True)
+        wandb.log({"total_parameters": total_param}, step=0)
         if self._verbose > 1:
             print(f"Starting: {self._global_start_time}")
         
@@ -274,7 +274,8 @@ class Experiment:
         # log the training loss, accuracy, and duration
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
-        wandb.log({"train": {"duration": duration}}, step=self.global_step, commit=True)
+        wandb.log({"train": {"duration": duration}}, step=self.global_step)
+        self.global_step += 1
         if self._verbose > 1:
             print(f"-"*100)
             print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
@@ -291,7 +292,6 @@ class Experiment:
             self.model.load_state_dict(self.best_state_dict)
         
         acc, loss, duration, conf_matrix = self.evaluate("test", confusion=True)
-        wandb.log({"test": {"loss": loss, "acc": acc, "duration": duration}})
 
         self.conf_matrix = conf_matrix
         
@@ -375,10 +375,10 @@ class Experiment:
             del y_test
             del t_test
         
-        acc = cumulative_acc / n_samples
-        loss = cumulative_loss / n_samples        
+        acc = float(cumulative_acc / n_samples)
+        loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()
-        duration = endtime - starttime
+        duration = float(endtime - starttime)
 
         if log:
             wandb.log({f"{split}": {"loss": loss, "acc": acc, "duration": duration}}\
@@ -407,6 +407,8 @@ class Experiment:
         self._iteration = 0
         
         while self._epoch < self.max_epochs:
+            # check if we are allowed to run
+            utils.allowed_usage_time()
             
             if self._time_limit is not None:
                 if (datetime.datetime.now().timestamp() - self._global_start_time.timestamp()) / 60. > self._time_limit:
@@ -482,6 +484,8 @@ class Experiment:
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
+    # check if we are allowed to run
+    utils.allowed_usage_time()
     exp = Experiment(cfg)
     exp.run()
  

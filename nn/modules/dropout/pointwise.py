@@ -25,7 +25,7 @@ class PointwiseDropout(EquivariantModule):
             inplace (bool, optional): can optionally do the operation in-place. Default: ``False``
 
         """
-
+        
         assert isinstance(in_type.gspace, GSpace2D)
         if p < 0 or p > 1:
             raise ValueError(

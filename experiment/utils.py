@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 import numpy as np
 import io
+import datetime
 
 from typing import List
 
@@ -12,6 +13,21 @@ from networks import *
 # the values of these command line arguments are used to define the name of the experiments
 # you can add more names in this list
 EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
+
+
+def allowed_usage_time(
+    start_time: datetime.time = datetime.time(hour=8),
+    end_time: datetime.time = datetime.time(hour=20),
+):
+    """
+    GPU sharing. Check if the current time is within the allowed usage time.
+    """
+    # Get the current time in GMT+2
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
+
+    # Check if the current time is within the range
+    if start_time <= now <= end_time:
+        raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
 
 
 ########################################################################################################################

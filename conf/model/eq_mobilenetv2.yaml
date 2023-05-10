@@ -12,3 +12,4 @@ expand_ratio: 6
 depth_multiplier: 1
 width_multiplier: 1
 min_feature_map_size: 5
+drop_out: 0.3

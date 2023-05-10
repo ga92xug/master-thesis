@@ -81,7 +81,7 @@ def binary_search_over_model_scaling(
 
 def plot_model_data(model_data, vs_param):
     fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-    fig.suptitle(f'Model Performance vs {vs_param}', fontsize=14, fontweight='bold')
+    fig.suptitle(f'Scaling {vs_param}', fontsize=14, fontweight='bold')
     
     for model_name, data in model_data.items():
         vs = data[:, 0]
@@ -95,17 +95,17 @@ def plot_model_data(model_data, vs_param):
     
     ax[0].set_xlabel(f'{vs_param}')
     ax[0].set_ylabel('Parameter Count')
-    ax[0].set_title(f'Parameter Count vs {vs_param}')
+    ax[0].set_title(f'Parameter Count {vs_param} scaling')
     ax[0].legend()
 
     ax[1].set_xlabel(f'{vs_param}')
     ax[1].set_ylabel('Model Building Time')
-    ax[1].set_title(f'Model Building Time vs {vs_param}')
+    ax[1].set_title(f'Model Building Time {vs_param} scaling')
     ax[1].legend()
 
     ax[2].set_xlabel(f'{vs_param}')
     ax[2].set_ylabel('Train Time')
-    ax[2].set_title(f'Train Time vs {vs_param}')
+    ax[2].set_title(f'Train Time {vs_param} scaling')
     ax[2].legend()
 
     plt.tight_layout()

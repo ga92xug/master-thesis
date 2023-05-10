@@ -151,7 +151,7 @@ class EquivariantWideResNet(nn.Module):
         self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, 
                         normal_block=normal_conv, gspace=self.input_field_type.gspace, 
                         **kwargs)
-        image_size = calculate_output_image_size(image_size, stride=1)
+        image_size = calculate_output_image_size(image_size, stride=1) # 32
         
         self.field_type = self.conv1.out_type
         normal_blocks = self.wrn.layer1 if fix_params_mode in ["all", "iter"] else None
@@ -165,9 +165,10 @@ class EquivariantWideResNet(nn.Module):
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
-            normal_blocks=normal_blocks
+            normal_blocks=normal_blocks,
+            drop_out=self.drop_out,
         )
-        image_size = calculate_output_image_size(image_size, stride=1)
+        image_size = calculate_output_image_size(image_size, stride=1) # 32
         
         self.restrict1 = Restriction(self.layer1.out_type, self.group, self.rotation, self.restrict[0])
         self.field_type = self.restrict1.out_type
@@ -183,9 +184,10 @@ class EquivariantWideResNet(nn.Module):
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
-            normal_blocks=normal_blocks
+            normal_blocks=normal_blocks,
+            drop_out=self.drop_out,
         )
-        image_size = calculate_output_image_size(image_size, stride=2)
+        image_size = calculate_output_image_size(image_size, stride=2) # 16
 
         # Restrict last conv and res layers
         self.restrict2 = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict[1])
@@ -202,9 +204,10 @@ class EquivariantWideResNet(nn.Module):
             bias=self.bias,
             act_func=self.act_func,
             kernel_layout=self.kernel_layout,
-            normal_blocks=normal_blocks
+            normal_blocks=normal_blocks,
+            drop_out=self.drop_out,
         )
-        image_size = calculate_output_image_size(image_size, stride=2)
+        image_size = calculate_output_image_size(image_size, stride=2) # 8
 
         self.bn1 = EquivariantNorm(self.layer3.out_type, affine=False)
         self.relu = getattr(nonlinearities, act_func)(self.bn1.out_type)
@@ -241,6 +244,7 @@ class EquivariantWideResNet(nn.Module):
         kernel_layout: List[int],
         act_func: str,
         normal_blocks = None,
+        drop_out: float = 0.0,
     ):
         # num_blocks is n in wide resnet paper
         # how many layers each block has
@@ -265,6 +269,7 @@ class EquivariantWideResNet(nn.Module):
                     act_func=act_func,
                     normal_block=normal_block,
                     fix_params_mode=self.fix_params_mode,
+                    drop_out=drop_out,
                 )
             )
             self.field_type = layers[-1].out_type

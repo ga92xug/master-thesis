@@ -54,9 +54,11 @@ class EquivariantMobileNetV2(nn.Module):
         depth_multiplier: int = 1,
         width_multiplier: int = 1,
         min_feature_map_size: int = 5,
+        drop_out: float = 0.0,
     ):
         super().__init__()
         print(f"Eq_MobileNetV2_{depth_multiplier}_{width_multiplier}_{group}_{rotation}")
+        self.drop_out = drop_out
         self.restrict = list(restrict)
         gspace = get_gspace(group, rotation)
 
