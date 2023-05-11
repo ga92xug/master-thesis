@@ -15,7 +15,6 @@ global_args = [
         "model.restrict=[halved,invariant]",
         "model.kernel_layout=[3,3]", 
         "model.padding=1",
-        #"wandb.tags=[rotation_exp_2]",
         "model.rotation=8",
     ]
 

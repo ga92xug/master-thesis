@@ -427,26 +427,6 @@ def build_dataloaders(cfg):
 
 import argparse
 
-SHOW_PLOT = False
-SAVE_PLOT = True
-
-RESHUFFLE = False
-AUGMENT_TRAIN = False
-
-LEARNING_RATE = 1e-4
-BATCH_SIZE = 64
-EPOCHS = 40
-
-PLOT_FREQ = 100
-
-EVAL_FREQ = 100
-
-BACKUP = False
-BACKUP_FREQ = -1
-
-ADAPT_LR = False
-
-
 def none_or_float(value):
     if value == 'None':
         return None

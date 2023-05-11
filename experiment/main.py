@@ -408,7 +408,7 @@ class Experiment:
         
         while self._epoch < self.max_epochs:
             # check if we are allowed to run
-            utils.allowed_usage_time()
+            #utils.allowed_usage_time()
             
             if self._time_limit is not None:
                 if (datetime.datetime.now().timestamp() - self._global_start_time.timestamp()) / 60. > self._time_limit:
@@ -485,7 +485,7 @@ class Experiment:
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     # check if we are allowed to run
-    utils.allowed_usage_time()
+    #utils.allowed_usage_time()
     exp = Experiment(cfg)
     exp.run()
  

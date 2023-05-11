@@ -12,7 +12,7 @@ sys.path.append('../scaling-laws-ecnn') # add parent directory
 # from networks import (
 #     e2wrn28_7R,
 # )
-from experiment.utils import allowed_usage_time
+from experiment.utils import allowed_usage_time, build_dataloaders
 from networks.util import (
     cuda_memory_usage,
     get_param_count
@@ -48,9 +48,21 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         n_runs = 10
 
     if instantiate_dataset:
-        dataset = hydra.utils.instantiate(cfg.dataset)
-        
+        dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
+        for batch_idx, (x, t) in enumerate(dataloaders["train"]):
+            if batch_idx >= n_runs:
+                break
 
+            input_tensor = x.cuda()
+            if cfg.other.verbose > 2:
+                print(f"Run {i}: {input_tensor.shape}, {input_tensor.sum()}")
+            
+            out = model(input_tensor)
+            # cuda memory usage
+            if cfg.other.verbose > 3:
+                cuda_memory_usage()
+            
+            del out
     else:
         model.cuda()
         for i in range(n_runs):

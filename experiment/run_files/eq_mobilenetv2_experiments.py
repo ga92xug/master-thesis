@@ -16,7 +16,7 @@ global_args = [
         "model.min_feature_map_size=5",
         "model.kernel_size=3", 
         "model.padding=1",
-        "wandb.tags=[rotation_exp_2]",
+        "wandb.tags=[eq_mobilenetv2]",
         "model.rotation=8",
         "wandb.mode=disabled",
     ]

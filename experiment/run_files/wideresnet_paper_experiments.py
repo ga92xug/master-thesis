@@ -61,7 +61,7 @@ subprocess.run(["python", "../main.py", "-m", args_all[0], args_all[1], args[0],
 args = ["model.depth=40", "model.widen_factor=1,2,4,8", "wandb.notes=rot8"]
 #run_command(args, global_args)
 # d=28, k=10,12 [3,3]
-args = ["model.depth=28", "model.widen_factor=12", "wandb.notes=exp_3_eq_wrn"]
+args = ["model.depth=28", "model.widen_factor=10,12", "wandb.notes=exp_3_eq_wrn"]
 #run_command(args, global_args)
 # d=16,22, k=8, [3,3]
 args = ["model.depth=22", "model.widen_factor=8,10", "wandb.notes=rot8"]

@@ -16,7 +16,6 @@ global_args = [
         "model.padding=1",
         "wandb.tags=[eff_exp_1]",
         "model.rotation=8",
-        "model.drop_out=0.3"
     ]
 
 global_args_test = global_args + [
@@ -29,8 +28,9 @@ global_args_test = global_args + [
 # depth-width-resolution
 # 108 is max resolution
 # 58-1-108 => 876.229, train time: 3.96
-args = ["model.depth=58", "model.widen_factor=1", "dataset.resolution=108", "wandb.notes=eq_wrn_baseline"]
-run_command(args, global_args)
+args = ["model.depth=58", "model.drop_out=0.3", "model.widen_factor=1", "dataset.resolution=224", "wandb.notes=eq_wrn_baseline"]
+#run_command(args, global_args)
+run_command_test(args, global_args_test)
 """
 # Scale WRN by depth 
 # 94= 1.386.949, train time: 6.098 
@@ -57,14 +57,14 @@ run_command(args, global_args)
 # args = ["model.depth=58", "model.widen_factor=1", "dataset.resolution=160", "wandb.notes=resolution_scaling"]
 # run_command(args, global_args)
 """
-"""
+
 # eq_mobilenetv2
 global_args = [
         "model=eq_mobilenetv2", 
         "dataset=imagenette",
         "training=imagenette",
         "model.fix_params_mode=heuristic",
-        "model.restrict=[none,none,none,none,none,halved,invariant]",
+        "model.restrict=[none,none,none,none,halved,halved,invariant]",
         "model.kernel_size=3", 
         "model.padding=1",
         "wandb.tags=[eff_exp_1]",
@@ -81,7 +81,7 @@ global_args_test = global_args + [
 args = ["model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution=224", "wandb.notes=eq_mobilenetv2_baseline"]
 run_command(args, global_args)
 #run_command_test(args, global_args_test)
-
+"""
 # Scale eq_mobilenetv2 by depth 
 # d = 2 -> 1.380.554
 # d = 4 -> 2.898.346

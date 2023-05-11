@@ -1,6 +1,7 @@
 import sys
 sys.path.append('../run_files') # add parent directory
 from run_command import run_command, run_command_test
+import subprocess
 
 # experiment 1: depth or width scaling laws
 
@@ -15,6 +16,7 @@ global_args = [
         "model.kernel_layout=[3,3]", 
         "model.padding=1",
         "wandb.tags=[depth_width_scaling]",
+        "wandb.group=depth_width_scaling",
         "model.rotation=8",
     ]
 
@@ -29,24 +31,24 @@ global_args_test = global_args + [
 # 3.6s per 100 steps
 args = ["model.depth=16", "model.widen_factor=4", "dataset.resolution=32", "wandb.notes=eq_wrn_baseline"]
 #run_command(args, global_args)
-# run_command_test(args, global_args_test)
+#run_command_test(args, global_args_test)
 
 # Depth 
 # 5.9s per 100 steps
 args = ["model.depth=28", "model.widen_factor=4", "dataset.resolution=32", "wandb.notes=depth_scaling"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 # Width
 # 5.6s per 100 steps
 args = ["model.depth=16", "model.widen_factor=6.5", "dataset.resolution=32", "wandb.notes=width_scaling"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 # combound scaling
 # 6.0s per 100 steps
 args = ["model.depth=22", "model.widen_factor=5", "dataset.resolution=32", "wandb.notes=width_scaling"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 """
