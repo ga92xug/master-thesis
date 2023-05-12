@@ -55,8 +55,10 @@ class EquivariantWideConvBlock(EquivariantModule):
         act_func: str = "ReLU", # ReLU
         normal_block = None, 
         fix_params_mode: str = "no",
+        drop_out: float = 0.0,
     ):
         super(EquivariantWideConvBlock, self).__init__()
+        assert drop_out == 0.0, "Dropout not implemented for this block"
         self.in_type = in_type
         self.kernel_layout = kernel_layout
 
@@ -202,8 +204,10 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         act_func: str = "ReLU", # ReLU
         normal_block = None, 
         fix_params_mode: str = "no",
+        drop_out: float = 0.0,
     ):
         super(EquivariantWideConvBlock_vary_l, self).__init__()
+        assert drop_out == 0.0, "Dropout not implemented for this block"
         self.in_type = in_type
         self.kernel_layout = kernel_layout
 
@@ -228,15 +232,7 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         normal_conv = normal_block.conv1 if fix_params_mode in ["all", "iter"] else None        
         self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
                                       gspace=self.in_type.gspace, **kwargs)
-        # self.conv1 = EquivariantConv(
-        #     self.act_func1.out_type,
-        #     out_channels,
-        #     kernel_size=kernel_layout[0],
-        #     padding=paddings[0],
-        #     stride=strides[0],
-        #     dilation=dilation,
-        #     bias=bias,
-        # )
+        conv = self.conv1
         current_out_type = self.conv1.out_type
         
         self.layer = []
@@ -249,15 +245,6 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
             normal_conv = normal_block.conv2 if fix_params_mode in ["all", "iter"] else None
             conv = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv,
                                             gspace=act.out_type, **kwargs)
-            # conv = EquivariantConv(
-            #         act.out_type,
-            #         out_channels,
-            #         kernel_size=kernel_layout[i],
-            #         padding=paddings[i],
-            #         stride=strides[i],
-            #         dilation=dilation,
-            #         bias=bias,
-            #     )
             current_out_type = conv.out_type
             self.layer.extend([norm, act, conv])
         

@@ -1,7 +1,6 @@
 import sys
 sys.path.append('../run_files') # add parent directory
 from run_command import run_command, run_command_test
-import subprocess
 
 # experiment 1: depth or width scaling laws
 

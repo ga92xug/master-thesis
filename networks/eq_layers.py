@@ -69,7 +69,6 @@ class Restriction(EquivariantModule):
         super().__init__()
         self.in_type = in_type
 
-        #if restrict == "none":
         if not restrict:
             self.restrict = nn.Identity()
             self.out_type = self.in_type

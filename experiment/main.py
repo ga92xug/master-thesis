@@ -71,6 +71,7 @@ class Experiment:
         self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
         run = wandb.init(project=cfg.wandb.project, config=wandb.config, mode=cfg.wandb.mode, \
                          name=self.expname, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+        wandb.run.log_code(".")
         
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg

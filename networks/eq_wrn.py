@@ -81,7 +81,7 @@ class EquivariantWideResNet(nn.Module):
         self.kernel_size = kernel_size
         # self.padding = padding
         self.kernel_layout = kernel_layout
-        if kernel_layout == [3,3]:
+        if len(kernel_layout) != 2 or kernel_layout[0] == 3 or kernel_layout[1] == 3:
             self.padding = 1
         elif kernel_layout == [5,5]:
             self.padding = 2
@@ -106,7 +106,7 @@ class EquivariantWideResNet(nn.Module):
             n = int(n / 2)
         k = self.widen_factor
 
-        if drop_out >= 0.0:
+        if drop_out > 0.0:
             assert len(kernel_layout) == 2, "Dropout only implemented for kernel_layout = [3,3]"
             wide_conv_block = EquivariantWideConvBlock_drop_out
         elif len(kernel_layout) == 3 and not kernel_layout == [3,3,3] or len(kernel_layout) == 2:
@@ -129,8 +129,13 @@ class EquivariantWideResNet(nn.Module):
                 drop_out=self.drop_out,
                 bias=self.bias,
             )
+        value = ""
+        for i, element in enumerate(kernel_layout):
+            value += str(element) 
+            if i != len(kernel_layout) - 1:
+                value += ","
 
-        print(f"Eq_WRN_{self.depth}_{k:.2f}_B({kernel_layout[0]},{kernel_layout[1]})")
+        print(f"Eq_WRN_{self.depth}_{k:.2f}_B({value})")
         gspace = get_gspace(group, rotation)
         self.gspace = gspace
 
