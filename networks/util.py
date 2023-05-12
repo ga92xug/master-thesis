@@ -59,6 +59,65 @@ def calculate_output_image_size(input_image_size, stride):
 
 
 def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
+                   channel_name="out_channels", **kwargs):
+    """
+    TODO
+    """
+    N = gspace.fibergroup.order()
+    kwargs["out_channels"] = int(kwargs["out_channels"] / N)
+    if fix_params_mode in ["heuristic", "all"]:
+        kwargs["out_channels"] = int(kwargs["out_channels"] * math.sqrt(N * CHANNELS_CONSTANT))
+
+    equi_block = type_equi_block(**kwargs)
+    if fix_params_mode in ["heuristic", "no"]:
+        return equi_block
+    
+    # fix param iter search
+    param_normal_block = get_param_count(normal_block)
+    param_equi_block = get_param_count(equi_block)
+    out_channels = kwargs[channel_name]
+    old_equi_param = None
+    # initialize search range
+    if param_equi_block > param_normal_block:
+        lower_bound = max(out_channels - 400, 1)
+        upper_bound = out_channels
+    else:
+        lower_bound = out_channels
+        # the upper bound search is expensive so we gradually increase it
+        upper_bound = int(round(out_channels // 0.5) + 100)
+    # binary search
+    while lower_bound <= upper_bound:
+        # print(f'lower bound: {lower_bound}, upper bound: {upper_bound}, prediction: {kwargs[channel_name]}')
+        kwargs[channel_name] = (lower_bound + upper_bound) // 2
+        # save the old one since we might not be in 1% range
+        old_equi_param, old_equi_conv_block = param_equi_block, equi_block 
+        # get new equi_block
+        equi_block = type_equi_block(**kwargs)
+        param_equi_block = get_param_count(equi_block)
+        if abs(param_equi_block - param_normal_block) < 0.01:
+            last_ratio = param_equi_block / param_normal_block
+            print(f'Ratio for block: {last_ratio:.3f}')
+            return equi_block
+        if param_equi_block < param_normal_block:
+            # prediction is too small
+            lower_bound = kwargs[channel_name] + 1
+            # if lower_bound >= upper_bound:
+            #      # we increase to upper bound slowly to avoid expensive search
+            #      upper_bound *= 2
+                 
+        else:
+            upper_bound = kwargs[channel_name] - 1
+                
+    # if no solution found, return closest channel size
+    if old_equi_param is not None:
+        if abs(old_equi_param - param_normal_block) < abs(param_equi_block - param_normal_block):
+            equi_block = old_equi_conv_block
+        
+    last_ratio = param_equi_block / param_normal_block
+    print(f'Ratio for block: {last_ratio:.3f}')
+    return equi_block
+
+def get_fixed_params2(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
                      channel_name="out_channels", max_iterations=50, **kwargs):
     """
     Find an equivariant convolutional block with a parameter count similar to a normal
@@ -93,7 +152,8 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     if param_normal_block == 0:
         return equi_block
 
-    equi_block = binary_search_fixed_params(type_equi_block, param_normal_block, channel_name, **kwargs)
+    equi_block = binary_search_fixed_params(type_equi_block, param_normal_block, 
+                                            channel_name, max_iterations, **kwargs)
     return equi_block
 
 

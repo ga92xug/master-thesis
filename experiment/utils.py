@@ -149,6 +149,7 @@ def exp_name(cfg):
         elif len(cfg.model.kernel_layout) == 4:
             values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]},{cfg.model.kernel_layout[3]})")
 
+    values.append(f"rot{cfg.model.rotation}")
     # assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
 
     return "_".join(values)
@@ -215,31 +216,18 @@ def build_model(config, n_inputs, n_outputs):
     
     return model
 
-
-def build_model(cfg):
-    if cfg.model.name == 'EquivariantResNet9' or 'ResNet9':
-        model = EquivariantResNet9(cfg.model)
-    elif cfg.model.name == 'EquivariantWideResNet' or 'WideResNet':
-        model = EquivariantWideResNet(cfg.model)
-    elif cfg.model.name == 'EquivariantMobileNetV2' or 'MobileNetV2':
-        model = EquivariantMobileNetV2(cfg.model)
-    elif cfg.model.name == 'RandomNet':
-        model = RandomNet(cfg.model)
-    else:
-        raise ValueError("Model selected ({}) not recognized!".format(cfg.model.name))
-
 ########################################################################################################################
 # utilites to build dataloaders
 ########################################################################################################################
 
-from datasets.mnist_rot import data_loader_mnist_rot
-from datasets.mnist_fliprot import data_loader_mnist_fliprot
-from datasets.mnist12k import data_loader_mnist12k
-from datasets.cifar10 import data_loader_cifar10
-from datasets.cifar100 import data_loader_cifar100
-from datasets.STL10 import data_loader_stl10
-from datasets.STL10 import data_loader_stl10frac
-from datasets.imagenette import data_loader_imagenette
+from experiment.datasets.mnist_rot import data_loader_mnist_rot
+from experiment.datasets.mnist_fliprot import data_loader_mnist_fliprot
+from experiment.datasets.mnist12k import data_loader_mnist12k
+from experiment.datasets.cifar10 import data_loader_cifar10
+from experiment.datasets.cifar100 import data_loader_cifar100
+from experiment.datasets.STL10 import data_loader_stl10
+from experiment.datasets.STL10 import data_loader_stl10frac
+from experiment.datasets.imagenette import data_loader_imagenette
 
 
 def build_dataloaders(cfg):

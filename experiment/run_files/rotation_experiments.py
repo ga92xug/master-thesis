@@ -37,18 +37,15 @@ args = ["model.kernel_layout=[3,3]", "model.padding=1",
 args = ["model.kernel_layout=[5,5]", "model.padding=2", 
         "model.depth=16", "model.widen_factor=2.5,4.0", "wandb.notes=kernel5x5_rot8"]
 #run_command_test(args, global_args_test)
-#run_command(args, global_args)
+run_command(args, global_args)
 
 # 7x7
 # 4.0= 13.521.205
 # 1.85= 2.756.293
 args = ["model.kernel_layout=[7,7]", "model.padding=3", 
-        "model.depth=16", "model.widen_factor=1.85", "wandb.notes=kernel7x7_rot8"]
+        "model.depth=16", "model.widen_factor=1.85,4.0", "wandb.notes=kernel7x7_rot8"]
 #run_command_test(args, global_args_test)
-#run_command(args, global_args)
-
-# args = ["model.restrict=[halved, halved]", "model.kernel_layout=[5,5]", "model.padding=2", "model.depth=28", "model.widen_factor=7", "wandb.tags=[rotation_exp_1]", "wandb.notes=28_7rot8"]
-# run_command(args, global_args)
+run_command(args, global_args)
 
 global_args = [
         "model=eq_wrn", 

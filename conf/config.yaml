@@ -4,7 +4,7 @@ defaults:
 - model: eq_wrn
 - other: default
 - optimizer: SGD
-- training: default
+- training: train_e2_100epochs
 
 # Dataset parameters        
 dataset:

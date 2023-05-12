@@ -90,7 +90,7 @@ def run(
         n_outputs=10, 
 ):  
     # check if we are allowed to run
-    allowed_usage_time()
+    #allowed_usage_time()
 
     if isinstance(overrides, dict):
         overrides = dict_to_hydra_list(overrides)
