@@ -41,7 +41,7 @@ class ImageNet(Dataset):
                 data_dict = unpickle(root / f"train_data_batch_{i+1}")
                 img_data = data_dict["data"]
                 label_data = data_dict["labels"]
-                img_data = img_data / np.float32(255)
+                img_data = img_data / float32(255)
                 label_data = [i - 1 for i in label_data]
                 img_data = np.dstack(
                     (
@@ -60,7 +60,7 @@ class ImageNet(Dataset):
             data_dict = unpickle(root / "val_data")
             img_data = data_dict["data"]
             label_data = data_dict["labels"]
-            img_data = img_data / np.float32(255)
+            img_data = img_data / float32(255)
             label_data = [i - 1 for i in label_data]
             img_data = np.dstack(
                 (

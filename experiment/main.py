@@ -37,6 +37,7 @@ import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
 #os.environ['HYDRA_FULL_ERROR'] = '1'
+#torch.dynamo.config.verbose=True
 
 def compute_confusion_matrix(predictions, targets, labels):
     if predictions.shape[1] > 1:
@@ -113,6 +114,8 @@ class Experiment:
         ).to(self.device)
         if self.device != torch.device("cpu"):
             self.model = nn.DataParallel(self.model)
+        if cfg.training.compile:
+            self.model = torch.compile(self.model)
         print("Stage 2: model built")
 
         self._global_start_time = datetime.datetime.now()
@@ -409,7 +412,8 @@ class Experiment:
         
         while self._epoch < self.max_epochs:
             # check if we are allowed to run
-            #utils.allowed_usage_time()
+            if self.cfg.other.gpu_time_limit:
+                utils.allowed_usage_time()
             
             if self._time_limit is not None:
                 if (datetime.datetime.now().timestamp() - self._global_start_time.timestamp()) / 60. > self._time_limit:
@@ -486,7 +490,8 @@ class Experiment:
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     # check if we are allowed to run
-    #utils.allowed_usage_time()
+    if cfg.other.gpu_time_limit:
+        utils.allowed_usage_time()
     exp = Experiment(cfg)
     exp.run()
  

@@ -82,7 +82,7 @@ class HomSpace:
         p = 0
         j = 0
 
-        column_mask = np.zeros(rho.size, dtype=np.bool)
+        column_mask = np.zeros(rho.size, dtype=bool)
 
         for irrep in rho_H.irreps:
             irrep = self.H.irrep(*irrep)
@@ -138,7 +138,7 @@ class HomSpace:
                 psi,
             )
 
-            mask = np.zeros((ortho.shape[0]), dtype=np.bool)
+            mask = np.zeros((ortho.shape[0]), dtype=bool)
 
             for i in range(n):
                 columns = np.nonzero(dependencies == i)[0]

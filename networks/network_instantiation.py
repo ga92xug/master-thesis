@@ -5,6 +5,8 @@ from hydra.core.global_hydra import GlobalHydra
 import numpy as np
 from omegaconf import DictConfig
 import torch
+#from ptflops import get_model_complexity_info
+from fvcore.nn import FlopCountAnalysis
 import sys
 
 sys.path.append('..')
@@ -30,9 +32,9 @@ def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, imag
     stop = timeit.default_timer()
     model_building_time = stop - start
     param_count = get_param_count(model, in_mb=False, verbose=verbose)
-    if verbose == 1:
+    if verbose >= 1:
         print(f"Model building time: {model_building_time}")
-    if verbose == 2:
+    if verbose >= 3:
         print(model)
 
     return model, param_count, model_building_time
@@ -54,29 +56,40 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
                 break
 
             input_tensor = x.cuda()
-            if cfg.other.verbose > 2:
+            if cfg.other.verbose >= 2:
                 print(f"Run {i}: {input_tensor.shape}, {input_tensor.sum()}")
             
             out = model(input_tensor)
             # cuda memory usage
-            if cfg.other.verbose > 3:
+            if cfg.other.verbose >= 3:
                 cuda_memory_usage()
             
             del out
     else:
         model.cuda()
         for i in range(n_runs):
+            input_dim = (n_inputs, image_size, image_size)
             input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size).cuda()
             out = model(input_tensor)
             #cuda_memory_usage()
-            if cfg.other.verbose > 2:
+            if cfg.other.verbose >= 3:
                 print(f"Run {i}: {out.shape}, {out.sum()}")
             del out
 
     stop = timeit.default_timer()
     train_time = stop - start
-    if verbose == 1:
+    if verbose >= 1:
         print(f"Train time elapsed: {train_time}")
+
+    if verbose >= 2:
+        flops = FlopCountAnalysis(model, (input_tensor,))
+        print(flops.total())
+        flops.by_operator()
+        flops.by_module_and_operator()
+    #     macs, params = get_model_complexity_info(model, input_dim, as_strings=True,
+    #                                        print_per_layer_stat=True, verbose=True)
+    #     print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+    #     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
     return train_time
 
@@ -85,7 +98,6 @@ def run(
         overrides=[],
         instantiate_dataset = False,
         do_forward_pass = True,
-        verbose = 1,
         n_inputs=3, 
         n_outputs=10, 
 ):  
@@ -107,11 +119,11 @@ def run(
         image_size = 32
 
     # instantiate model
-    model, param_count, model_building_time = model_instantiate(cfg, verbose=verbose, 
+    model, param_count, model_building_time = model_instantiate(cfg, verbose=cfg.other.verbose, 
                             n_inputs=n_inputs, n_outputs=n_outputs, image_size=image_size)
 
     if do_forward_pass:
-        train_time = forward_pass(model, cfg, verbose=verbose, 
+        train_time = forward_pass(model, cfg, verbose=cfg.other.verbose, 
                             instantiate_dataset=instantiate_dataset,
                             n_inputs=n_inputs, image_size=image_size)
     else:

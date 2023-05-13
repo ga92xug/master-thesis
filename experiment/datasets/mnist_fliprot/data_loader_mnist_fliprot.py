@@ -58,7 +58,7 @@ class mnist_fliprot_dataset(data.Dataset):
             filename = 'mnist_fliprot/mnist_fliprot_test.npz'
             data = np.load(cfg.dataset.data_dir + filename)
         
-        self.images = data['images'].astype(np.float32)
+        self.images = data['images'].astype(float32)
         self.labels = data['labels'].astype(np.int64)
         self.num_samples = len(self.labels)
     

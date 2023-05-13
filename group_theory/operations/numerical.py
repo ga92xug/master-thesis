@@ -291,7 +291,7 @@ def clebsch_gordan_tensor(J: Tuple, l: Tuple, j: Tuple, G: Group) -> np.ndarray:
         psi_j.sum_of_squares_constituents,
     )
 
-    mask = np.zeros((ortho.shape[0]), dtype=np.bool)
+    mask = np.zeros((ortho.shape[0]), dtype=bool)
     for i in range(n):
         columns = np.nonzero(dependencies == i)[0]
         assert len(columns) == psi_j.sum_of_squares_constituents

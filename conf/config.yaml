@@ -33,7 +33,8 @@ training:
   lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
   lr_decay_epoch: 1             # Period (in epochs) between adaptive learning rate decay
   lr_decay_schedule: null       # List of specific epochs for adaptive learning rate decay (alternative to lr_decay_epoch)
-  augment_train: False          
+  augment_train: False
+  compile: False          
 
 # Regularization params
 optimizer:
@@ -53,6 +54,7 @@ other:
   verbose: 2                    # Verbose Level
   time_limit: null              # Maximum time limit for training (in Minutes)
   should_test: True
+  gpu_time_limit: False
 
 
 

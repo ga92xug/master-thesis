@@ -16,7 +16,7 @@ EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fi
 
 
 def allowed_usage_time(
-    start_time: datetime.time = datetime.time(hour=8),
+    start_time: datetime.time = datetime.time(hour=8, minute=30),
     end_time: datetime.time = datetime.time(hour=20),
 ):
     """

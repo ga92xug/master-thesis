@@ -129,7 +129,7 @@ class Cutout:
         h = img.size(1)
         w = img.size(2)
         
-        mask = np.ones((h, w), np.float32)
+        mask = np.ones((h, w), float32)
         
         y = np.random.randint(h)
         x = np.random.randint(w)

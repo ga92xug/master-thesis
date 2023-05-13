@@ -4,7 +4,7 @@ from run_command import run_command, run_command_test
 
 # python networks/eq_wrn.py -m model.kernel_layout=[3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
 # kernel_layout = [3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
-"""
+
 # global arguments
 global_args = [
         "model=eq_wrn", 
@@ -34,29 +34,29 @@ args = ["model.kernel_layout=[3,3]", "model.depth=16", "model.widen_factor=4", "
 
 # params 2797573
 args = ["model.kernel_layout=[1,3,1]", "model.depth=16", "model.widen_factor=5.2"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 # 
 args = ["model.kernel_layout=[3,1]", "model.depth=16", "model.widen_factor=5"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 
 args = ["model.kernel_layout=[1,3]", "model.depth=16", "model.widen_factor=5"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 # params 2707749
 args = ["model.kernel_layout=[3,1,1]", "model.depth=16", "model.widen_factor=5"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 
 # params 2932597
 args = ["model.kernel_layout=[3,1,3]", "model.depth=16", "model.widen_factor=4"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
-"""
+
 
 # experiment 2 Number of convolutional layers per residual block
 # global arguments
@@ -81,16 +81,16 @@ global_args_test = global_args + [
 
 # kernel_layout = [3]
 args = ["model.kernel_layout=[3]", "model.depth=16", "model.widen_factor=4"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 # kernel_layout = [3,3,3,3]
 args = ["model.kernel_layout=[3,3,3,3]", "model.depth=16", "model.widen_factor=4"]
-run_command(args, global_args)
+#run_command(args, global_args)
 #run_command_test(args, global_args_test)
 # kernel_layout = [3,3,3] 
 args = ["model.kernel_layout=[3,3,3]", "model.depth=16", "model.widen_factor=3.3"]
-#run_command(args, global_args)
-run_command_test(args, global_args_test)
+run_command(args, global_args)
+#run_command_test(args, global_args_test)
 
 
 # experiment 3 Width of residual blocks
