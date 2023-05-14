@@ -6,7 +6,8 @@ import numpy as np
 from omegaconf import DictConfig
 import torch
 #from ptflops import get_model_complexity_info
-from fvcore.nn import FlopCountAnalysis
+from fvcore.nn import FlopCountAnalysis, flop_count_table
+import pprint
 import sys
 
 sys.path.append('..')
@@ -83,16 +84,19 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
 
     if verbose >= 2:
         flops = FlopCountAnalysis(model, (input_tensor,))
-        print(flops.total())
-        flops.by_operator()
-        flops.by_module_and_operator()
+        flops.unsupported_ops_warnings(False)
+        flops.uncalled_modules_warnings(False)
+        print(f"Flops: {flops.total() / 1e9} GFlops")
+        print(flop_count_table(flops))
+        #pprint.pprint(flops.by_operator())
+        # pprint.pprint(flops.by_module())
+        #pprint.pprint(flops.by_module_and_operator())
     #     macs, params = get_model_complexity_info(model, input_dim, as_strings=True,
     #                                        print_per_layer_stat=True, verbose=True)
     #     print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
     #     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
 
     return train_time
-
 
 def run(
         overrides=[],
