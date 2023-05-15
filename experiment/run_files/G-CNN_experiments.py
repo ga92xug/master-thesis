@@ -44,7 +44,7 @@ args = ["model.kernel_layout=[5,5]", "model.padding=2",
 args = ["model.kernel_layout=[7,7]", "model.padding=3", 
         "model.depth=16", "model.widen_factor=4.0"]
 #run_command_test(args, global_args_test)
-run_command(args, global_args)
+#run_command(args, global_args)
 
 
 # global arguments
@@ -71,7 +71,7 @@ global_args_test = global_args + [
 args = ["model.kernel_layout=[3,3]", "model.padding=1",
         "model.depth=16", "model.widen_factor=4"]
 #run_command_test(args, global_args_test)
-run_command(args, global_args)
+#run_command(args, global_args)
 
 # 5x5
 # 4.0= 7.155.141
@@ -79,7 +79,7 @@ run_command(args, global_args)
 args = ["model.kernel_layout=[5,5]", "model.padding=2", 
         "model.depth=16", "model.widen_factor=2.5"]
 #run_command_test(args, global_args_test)
-run_command(args, global_args)
+#run_command(args, global_args)
 
 # 7x7
 # 4.0= 13.521.205
@@ -87,7 +87,7 @@ run_command(args, global_args)
 args = ["model.kernel_layout=[7,7]", "model.padding=3", 
         "model.depth=16", "model.widen_factor=1.85"]
 #run_command_test(args, global_args_test)
-run_command(args, global_args)
+#run_command(args, global_args)
 
 
 # group experiment
@@ -113,11 +113,11 @@ global_args_test = global_args + [
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=group_dihedral"]
 #run_command_test(args, global_args_test)
-run_command(args, global_args)
+run_command(args, global_args, test=False)
 
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
         "model.depth=22", "model.widen_factor=6", "wandb.notes=group_dihedral"]
-run_command(args, global_args)
+run_command(args, global_args, test=False)
 
 
 # rotation experiment
@@ -133,19 +133,14 @@ global_args = [
         "model.rotation=8",
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-    ]
-
 # 3x3
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation", 
         "model.rotation=2,10,16,20"]
 #run_command_test(args, global_args_test)
-run_command(args, global_args)
+run_command(args, global_args, test=False)
 
-args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
-        "model.depth=22", "model.widen_factor=6", "wandb.notes=group_dihedral"]
-run_command(args, global_args)
+args = ["model.kernel_layout=[5,5]", "model.padding=1", "model.group=cyclic",
+        "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation",
+        "model.rotation=2,10,16,20"]
+run_command(args, global_args, test=False)

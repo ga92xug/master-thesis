@@ -34,20 +34,6 @@ DATA_DIR = ROOT_DIR + "imagenette/imagenette2-320/"
 # ==============================================================================
 
 
-def download_data(DATA_DIR):
-    if os.path.exists(DATA_DIR):
-        # download full sized with 'imagenette2'
-        if not os.path.exists(os.path.join(DATA_DIR, 'imagenette2-320')):
-            url = 'https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-320.tgz'
-            wget.download(url)
-            # open file
-            file = tarfile.open('imagenette2-320.tgz')
-            # extracting file
-            file.extractall(DATA_DIR)
-            file.close()
-    else:
-        print("This directory doesn't exist. Create the directory and run again")
-
 def build_imagenette_loaders(batch_size,
                           eval_batchsize,
                           num_workers=8,

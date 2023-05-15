@@ -14,14 +14,15 @@ from nn import (
 
 CHANNELS_CONSTANT = 1
 
-def cuda_memory_usage():
+def cuda_memory_usage(verbose=1):
     t = torch.cuda.get_device_properties(0).total_memory
     r = torch.cuda.memory_reserved(0)
     a = torch.cuda.memory_allocated(0)
     f = r-a  # free inside reserved
-    print(f"Used: {r / 1024 ** 3:.1f}/{t / 1024 ** 3:.1f} GB")
-    print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
-    # print(f"Free:         {f / 1024 ** 3:.1f} GB")
+    if verbose >= 1:
+        print(f"Used: {r / 1024 ** 3:.1f}/{t / 1024 ** 3:.1f} GB")
+        print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
+        # print(f"Free:         {f / 1024 ** 3:.1f} GB")
     return r / t
 
 def get_width_and_height_from_size(x):
@@ -59,10 +60,10 @@ def calculate_output_image_size(input_image_size, stride):
     return [image_height, image_width]
 
 
-def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
+def get_fixed_params_old(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
                    channel_name="out_channels", **kwargs):
     """
-    TODO
+    Legacy function for finding an equivariant convolutional block with a parameter count similar to a normal
     """
     N = gspace.fibergroup.order()
     kwargs[channel_name] = int(kwargs[channel_name] / N)
@@ -118,7 +119,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     print(f'Ratio for block: {last_ratio:.3f}')
     return equi_block
 
-def get_fixed_params2(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
+def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace=None,
                      channel_name="out_channels", max_iterations=50, **kwargs):
     """
     Find an equivariant convolutional block with a parameter count similar to a normal
@@ -137,13 +138,13 @@ def get_fixed_params2(type_equi_block, fix_params_mode, normal_block=None, gspac
                     the normal convolutional block.
     """
     N = gspace.fibergroup.order()
-    kwargs["out_channels"] = int(kwargs["out_channels"] / N)
+    kwargs[channel_name] = int(kwargs[channel_name] / N)
     if fix_params_mode in ["heuristic", "all"]:
-        kwargs["out_channels"] = int(kwargs["out_channels"] * math.sqrt(N * CHANNELS_CONSTANT))
+        kwargs[channel_name] = int(kwargs[channel_name] * math.sqrt(N * CHANNELS_CONSTANT))
 
-    if kwargs["out_channels"] < 1:
-        # warnings.warn("The number of channels is too small. Setting it to 1.")
-        kwargs["out_channels"] = 1
+    if kwargs[channel_name] < 1:
+        warnings.warn("The number of channels is too small. Setting it to 1.")
+        kwargs[channel_name] = 1
 
     equi_block = type_equi_block(**kwargs)
     if fix_params_mode in ["heuristic", "no"]:
@@ -188,8 +189,6 @@ def binary_search_fixed_params(type_equi_block, param_normal_block, channel_name
 
         if param_equi_block < param_normal_block:
             lower_bound = kwargs[channel_name] + 1
-            if lower_bound >= upper_bound:
-                upper_bound = int(upper_bound * 1.2)
         else:
             upper_bound = kwargs[channel_name] - 1
 
@@ -225,7 +224,6 @@ def get_param_count(model_name, in_mb=False, verbose=False):
             if verbose:
                 print(f'Total params: {total_params}')
             return total_params
-
 
 
 def get_gspace(group, rotation):

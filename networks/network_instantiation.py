@@ -89,13 +89,8 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         print(f"Flops: {flops.total() / 1e9} GFlops")
         print(flop_count_table(flops))
         #pprint.pprint(flops.by_operator())
-        # pprint.pprint(flops.by_module())
+        #pprint.pprint(flops.by_module())
         #pprint.pprint(flops.by_module_and_operator())
-    #     macs, params = get_model_complexity_info(model, input_dim, as_strings=True,
-    #                                        print_per_layer_stat=True, verbose=True)
-    #     print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
-    #     print('{:<30}  {:<8}'.format('Number of parameters: ', params))
-
     return train_time
 
 def run(
@@ -106,7 +101,8 @@ def run(
         n_outputs=10, 
 ):  
     # check if we are allowed to run
-    #allowed_usage_time()
+    if cfg.other.gpu_time_limit:
+        allowed_usage_time()
 
     if isinstance(overrides, dict):
         overrides = dict_to_hydra_list(overrides)

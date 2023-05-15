@@ -10,6 +10,8 @@ def binary_search_over_model_scaling(
         search_param, scale_param, scaling_factor, initial_range, constraint_func,
         overrides, global_overrides, max_iterations=50, tolerance=0.01):
     """
+    does not work for now
+
     Perform a binary search to find the best scaling parameter for a given model configuration.
 
     Args:
@@ -29,6 +31,8 @@ def binary_search_over_model_scaling(
     Raises:
         ValueError: If the search_param or scale_param is not valid or supported.
     """
+    assert False, "not supported for now"
+
     scale_indices = {
         "param_count": 0,
         "model_building_time": 1,

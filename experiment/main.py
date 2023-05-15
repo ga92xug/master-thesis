@@ -63,7 +63,6 @@ def accuracy(predictions, targets):
 
 
 class Experiment:
-    
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
         # Wandb
@@ -83,9 +82,7 @@ class Experiment:
         np.random.seed(cfg.other.seed)
         
         # device
-        # CPU training
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-        # self.device = torch.device("cpu")
         print("DEVICE:", self.device)
 
         # outpath
@@ -94,7 +91,6 @@ class Experiment:
                
         # build the datasets and the train, validation and test loaders
         self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
-        #self._dataloaders, n_inputs, n_outputs = hydra.utils.instantiate(cfg.dataset)
         print("Stage 1: datasets built")
         
         # Loss function
@@ -277,7 +273,7 @@ class Experiment:
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
 
-            if cuda_memory_usage() > 0.8:
+            if cuda_memory_usage(verbose=0) > 0.8:
                 torch.cuda.empty_cache()
 
         # log the training loss, accuracy, and duration

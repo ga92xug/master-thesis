@@ -3,7 +3,7 @@ from typing import Tuple
 
 import torch.nn.functional as F
 
-from .utils import *
+from .e2_wrn_utils import *
 
 from typing import Tuple, List
 from torch import nn
