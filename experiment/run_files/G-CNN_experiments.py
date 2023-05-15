@@ -14,7 +14,7 @@ global_args = [
         "model.restrict=[halved,invariant]",
         "wandb.tags=[G_CNN_exp1]",
         "wandb.group=G_CNN_exp1",
-        "model.rotation=8,14",
+        "model.rotation=8",
     ]
 
 global_args_test = global_args + [

@@ -155,8 +155,14 @@ class Experiment:
         self._lr_exp_steps = 0
         
         # no hydra instantiation for optimizer since it is tricky to pass the model parameters
-        self._optimizer = hydra.utils.instantiate(cfg.optimizer, params=self.model.parameters(), 
-                                                  )
+        #self._optimizer = hydra.utils.instantiate(cfg.optimizer, params=self.model.parameters(), 
+        #                                          )
+        if cfg.optimizer._target_ == "optimizer.build_optimizer_sfcnn":
+            self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
+                                            params=self.model)
+        else:
+            self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
+                                            params=self.model.parameters())
         # self._optimizer = optimizer.build_optimizer(self.model, cfg)
 
         # adapt learning rate

@@ -45,6 +45,7 @@ from networks.util import (
     get_fixed_params,
     get_gspace,
     get_param_count,
+    cuda_memory_usage,
 )
 
 CHANNELS_CONSTANT = 1

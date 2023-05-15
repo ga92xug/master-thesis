@@ -131,8 +131,9 @@ class MBConvBlock(EquivariantModule):
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': inp, 'out_channels': len(inp), 'image_size': image_size, 'groups': len(inp), 
                   'kernel_size': k, 'stride': s, 'bias': False}
-        self._depthwise_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode="no", 
-                                                normal_block=None, gspace=inp.gspace, **kwargs)
+        self._depthwise_conv = Eq_Conv2dSamePadding(**kwargs)
+        # self._depthwise_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode="no", 
+        #                                         normal_block=None, gspace=inp.gspace, **kwargs)
         # self._depthwise_conv = Eq_Conv2dSamePadding(
         #     in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
         #     kernel_size=k, stride=s, bias=False
@@ -240,12 +241,15 @@ class EquivariantEfficientNet(nn.Module):
     """
 
     def __init__(
-            self, blocks_args=None, global_params=None, image_size=None, 
-            input_channels=3, num_classes=10, 
+            self, blocks_args, 
+            global_params, 
+            image_size, 
+            input_channels=3, 
+            num_classes=10, 
             group: str = "cyclic",
             rotation: int = 4,
             restrict: str = None,  # "invariant", "reflection", "halved"
-            fix_params_mode: str =  "iter", # "iter", "heuristic", "all"
+            fix_params_mode: str =  "heuristic", # "iter", "heuristic", "all"
     ):
         super().__init__()
         self.fix_params_mode = fix_params_mode

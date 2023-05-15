@@ -64,9 +64,9 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     TODO
     """
     N = gspace.fibergroup.order()
-    kwargs["out_channels"] = int(kwargs["out_channels"] / N)
+    kwargs[channel_name] = int(kwargs[channel_name] / N)
     if fix_params_mode in ["heuristic", "all"]:
-        kwargs["out_channels"] = int(kwargs["out_channels"] * math.sqrt(N * CHANNELS_CONSTANT))
+        kwargs[channel_name] = int(kwargs[channel_name] * math.sqrt(N * CHANNELS_CONSTANT))
 
     equi_block = type_equi_block(**kwargs)
     if fix_params_mode in ["heuristic", "no"]:

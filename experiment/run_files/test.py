@@ -16,18 +16,76 @@ global_args = [
         "model.kernel_layout=[3,3]", 
         "model.padding=1",
         "model.rotation=8",
+        "other.verbose=1"
     ]
 
 global_args_test = global_args + [
         "wandb.mode=disabled",
         "training.steps_per_epoch=10",
-        "training.epochs=1",
+        "training.epochs=1000",
     ]
 
 # 3x3
 # 2.799.413
 args = ["model.depth=16", "model.widen_factor=1", 
         "wandb.notes=check_if_train_time_log",
+        "dataset.resolution=32", "model.drop_out=0.0"]
+#run_command_test(args, global_args_test)
+#run_command(args, global_args_test)
+
+# mobilenet
+
+# global arguments
+global_args = [
+        "model=eq_mobilenetv2", 
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        "model.fix_params_mode=heuristic",
+        #"model.restrict=[halved,invariant]",
+        "model.padding=1",
+        "model.rotation=8",
+        "other.verbose=1"
+    ]
+
+global_args_test = global_args + [
+        "wandb.mode=disabled",
+        "training.steps_per_epoch=10",
+        "training.epochs=1000",
+    ]
+
+
+args = [# "model.depth=16", "model.widen_factor=1", 
+        "wandb.notes=check_if_train_time_log",
         "dataset.resolution=224", "model.drop_out=0.0"]
+#run_command_test(args, global_args_test)
+#run_command(args, global_args_test)
+
+
+
+# mobilenet
+
+# global arguments
+global_args = [
+        "model=eq_efficientnet", 
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        "model.fix_params_mode=heuristic",
+        #"model.restrict=[halved,invariant]",
+        "model.rotation=8",
+        "other.verbose=1"
+    ]
+
+global_args_test = global_args + [
+        "wandb.mode=disabled",
+        "training.steps_per_epoch=10",
+        "training.epochs=1000",
+    ]
+
+
+args = [# "model.depth=16", "model.widen_factor=1", 
+        "wandb.notes=check_if_train_time_log",
+        "dataset.resolution=224", "model.global_params.drop_out=0.0"]
 run_command_test(args, global_args_test)
 #run_command(args, global_args_test)

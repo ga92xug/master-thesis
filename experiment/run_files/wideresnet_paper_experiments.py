@@ -119,10 +119,10 @@ args = ["model.depth=34", "model.widen_factor=1,2,4"]
 #run_command(args, global_args)
 # d=28, k=10,12 [3,3]
 args = ["model.depth=28", "model.widen_factor=4,6", "wandb.notes=exp_3_eq_wrn"]
-run_command(args, global_args)
+#run_command(args, global_args)
 # d=16,22, k=8, [3,3]
 args = ["model.depth=22", "model.widen_factor=6,8", "wandb.notes=rot8"]
-run_command(args, global_args)
+#run_command(args, global_args)
 
 # experiment 4 Dropout in residual blocks
 global_args = [
@@ -148,7 +148,7 @@ args = ["model.depth=16", "model.widen_factor=4", "model.drop_out=0.3", "wandb.n
 #run_command(args, global_args)
 # d=22 k=8, [3,3], drop_out=0.0,0.3
 args = ["model.depth=22", "model.widen_factor=8", "model.drop_out=0.3", "wandb.notes=exp_4_eq_wrn"]
-run_command(args, global_args)
+#run_command(args, global_args)
 # d=28 k=1, [3,3], drop_out=0.0,0.3
-args = ["model.depth=28", "model.widen_factor=1", "model.drop_out=0.0,0.3", "wandb.notes=exp_4_eq_wrn"]
+args = ["model.depth=28", "model.widen_factor=6", "model.drop_out=0.3", "wandb.notes=exp_4_eq_wrn"]
 run_command(args, global_args)

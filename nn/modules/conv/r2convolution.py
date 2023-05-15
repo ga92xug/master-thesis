@@ -204,7 +204,7 @@ class R2Conv(_RdConv):
         else:
             # Retrieve filter and bias
             _filter, _bias = self.expand_parameters()
-
+        
         # Use filter for convolution and return result
         if self.padding_mode == "zeros":
             output = conv2d(

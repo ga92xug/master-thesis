@@ -54,7 +54,7 @@ other:
   verbose: 2                    # Verbose Level
   time_limit: null              # Maximum time limit for training (in Minutes)
   should_test: True
-  gpu_time_limit: False
+  gpu_time_limit: True
 
 
 

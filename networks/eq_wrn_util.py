@@ -65,7 +65,7 @@ class EquivariantWideConvBlock(EquivariantModule):
         strides = np.ones_like(kernel_layout)
         paddings = np.zeros_like(kernel_layout)
         for i in range(len(kernel_layout)):
-            if kernel_layout[i] == 3:
+            if kernel_layout[i] > 1:
                 strides[i] = stride
                 break
         
@@ -157,7 +157,6 @@ class EquivariantWideConvBlock(EquivariantModule):
 
     def forward(self, x):
         # bn -> relu -> conv
-
         """
         x torch.Size([1, 64, 32, 32])
         out torch.Size([1, 256, 30, 30])
@@ -167,7 +166,6 @@ class EquivariantWideConvBlock(EquivariantModule):
         strides [1 1]
         paddings [0, 1]
         """
-        #print("x", x.shape)
         out = self.norm1(x)
         out = self.act_func1(out)
         # print("out", out.shape)
@@ -179,7 +177,6 @@ class EquivariantWideConvBlock(EquivariantModule):
         out = self.norm2(out)
         out = self.act_func2(out)   
         out = self.conv2(out)
-        #print("out", out.shape)
         out += self.shortcut(x)
         return out
 

@@ -71,26 +71,16 @@ def build_imagenette_loaders(batch_size,
     TRAIN_DIR = os.path.join(DATA_DIR, 'train') 
     VAL_DIR = os.path.join(DATA_DIR, 'val')
 
-    #Performing Transformations on the dataset and defining training and validation dataloaders
-    if image_size <= 256 and not resolution_test:
-        image_size_transform = transforms.Compose([
+    valid_transform = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(image_size),
-            ])
-    elif image_size > 256 or resolution_test:
-        image_size_transform = transforms.Compose([
-            transforms.Resize(image_size),
-            transforms.CenterCrop(image_size),
-            ])
-
-    valid_transform = transforms.Compose([
-            image_size_transform,
             transforms.ToTensor(),
             ])
 
     if augment:
         train_transform = transforms.Compose([
-                image_size_transform,
+                transforms.Resize(256),
+                transforms.AutoAugment(),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 ])
