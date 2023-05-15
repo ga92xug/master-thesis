@@ -20,18 +20,12 @@ global_args = [
         #"training.augment_train=True"
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-    ]
-
 # normal run
 # depth-width-resolution
 # 108 is max resolution
 # 58-1-108 => 876.229, train time: 3.96
 args = ["model.depth=16", "model.drop_out=0.0", "model.widen_factor=4", "dataset.resolution=224", "wandb.notes=eq_wrn_baseline"]
-run_command(args, global_args, test=True)
+run_command(args, global_args, test="instantiation")
 #run_command_test(args, global_args_test)
 """
 # Scale WRN by depth 

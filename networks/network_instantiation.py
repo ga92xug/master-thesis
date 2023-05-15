@@ -93,30 +93,20 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         #pprint.pprint(flops.by_module_and_operator())
     return train_time
 
-def run(
-        overrides=[],
-        instantiate_dataset = False,
-        do_forward_pass = True,
-        n_inputs=3, 
-        n_outputs=10, 
-):  
+@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    n_inputs = 3
+    n_outputs = 10
+    do_forward_pass = True
+    instantiate_dataset = False
+
     # check if we are allowed to run
     if cfg.other.gpu_time_limit:
         allowed_usage_time()
 
-    if isinstance(overrides, dict):
-        overrides = dict_to_hydra_list(overrides)
-
-    # print(f"Overrides: {overrides}")
-    if GlobalHydra.instance().is_initialized():
-        GlobalHydra.instance().clear()
-    with initialize(version_base="1.2", config_path="../conf"):
-        cfg = compose(config_name="config", overrides=overrides)
-
-    try:
-        image_size = cfg.dataset.resolution
-    except:
-        image_size = 32
+    try: image_size = cfg.dataset.resolution
+    except: image_size = 32
+    
 
     # instantiate model
     model, param_count, model_building_time = model_instantiate(cfg, verbose=cfg.other.verbose, 
@@ -131,23 +121,7 @@ def run(
     return param_count, model_building_time, train_time
 
 
-def dict_to_hydra_list(dict_obj):
-    """
-    Converts the overrides dict into a list of strings that hydra likes.
-    """
-    string_list = []
-    for key, value in dict_obj.items():
-        value_str = str(value)
-        string_list.append(f"{key}={value_str}")
-    return string_list
-
 if __name__ == "__main__":
-    # get arguments 
-    import argparse
-    import ast
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--overrides', type=str)
-    args = parser.parse_args()
-    overrides = ast.literal_eval(args.overrides)
-    run(overrides=overrides)
+    main()
+
 

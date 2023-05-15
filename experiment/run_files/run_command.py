@@ -12,15 +12,23 @@ def run_command(args, global_args):
     subprocess.run(command)
 
 def run_command(args, global_args, test):
+    global_args_test = global_args + [
+        "wandb.mode=disabled",
+        "training.steps_per_epoch=10",
+        "training.epochs=1",
+    ]
+
     if test == "instantiation":
-        command = ["python", "networks/network_instantiation.py"]
+        command = ["python", "networks/network_instantiation.py", "-m"]
+
     else:
         command = ["python", "experiment/main.py", "-m"]
+
     if test:
-        global_args.extend(["wandb.mode=disabled"])
-        if test == "quick":
-            global_args.extend(["training.steps_per_epoch=10", "training.epochs=1"])
-    command.extend(global_args)
+        command.extend(global_args_test)
+    else:
+        command.extend(global_args)
+
     command.extend(args)
     subprocess.run(command)
 
