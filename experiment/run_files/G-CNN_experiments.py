@@ -118,3 +118,34 @@ run_command(args, global_args)
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
         "model.depth=22", "model.widen_factor=6", "wandb.notes=group_dihedral"]
 run_command(args, global_args)
+
+
+# rotation experiment
+global_args = [
+        "model=eq_wrn", 
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        "model.fix_params_mode=heuristic",
+        "model.restrict=[halved,invariant]",
+        "wandb.tags=[G_CNN_exp3]",
+        "wandb.group=G_CNN_exp3",
+        "model.rotation=8",
+    ]
+
+global_args_test = global_args + [
+        "wandb.mode=disabled",
+        "training.steps_per_epoch=10",
+        "training.epochs=1",
+    ]
+
+# 3x3
+args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
+        "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation", 
+        "model.rotation=2,10,16,20"]
+#run_command_test(args, global_args_test)
+run_command(args, global_args)
+
+args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
+        "model.depth=22", "model.widen_factor=6", "wandb.notes=group_dihedral"]
+run_command(args, global_args)

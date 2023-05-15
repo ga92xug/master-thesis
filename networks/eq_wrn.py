@@ -195,6 +195,7 @@ class EquivariantWideResNet(nn.Module):
         image_size = calculate_output_image_size(image_size, stride=2) # 16
 
         # Restrict last conv and res layers
+        #print(f"Restricting {self.layer2.out_type} to {self.restrict[1]}, {self.group}, {self.rotation}")
         self.restrict2 = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict[1])
         self.field_type = self.restrict2.out_type
 

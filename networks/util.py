@@ -20,8 +20,9 @@ def cuda_memory_usage():
     a = torch.cuda.memory_allocated(0)
     f = r-a  # free inside reserved
     print(f"Used: {r / 1024 ** 3:.1f}/{t / 1024 ** 3:.1f} GB")
-    # print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
+    print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
     # print(f"Free:         {f / 1024 ** 3:.1f} GB")
+    return r / t
 
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.

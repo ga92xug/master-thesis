@@ -7,7 +7,7 @@ import pprint
 import sys
 
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-from networks.util import get_param_count
+from networks.util import get_param_count, cuda_memory_usage
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -245,7 +245,6 @@ class Experiment:
             x = x.to(self.device)
             t = t.to(self.device)
             y = self.model(x)
-
             loss = self._loss_function(y, t)
             acc = accuracy(y.detach(), t.detach())
                         
@@ -258,13 +257,8 @@ class Experiment:
                     print(f"Epoch {self._epoch} | {epoch_iterations}/{self.n_batches};\
                            loss: {loss.item():.3f}; acc: {acc:.3f}")
 
-            loss.backward(retain_graph=True)
+            loss.backward(retain_graph=False)
             self.global_step += x.shape[0]
-            
-            del loss
-            del y
-            del x
-            del t
 
             # accumulate gradients
             if (batch_idx + 1) % self.accumulate == 0 or batch_idx == self.train_n_batches_len - 1:                
@@ -282,7 +276,10 @@ class Experiment:
 
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
-        
+
+            if cuda_memory_usage() > 0.8:
+                torch.cuda.empty_cache()
+
         # log the training loss, accuracy, and duration
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
