@@ -1,5 +1,6 @@
 import hydra
 import torch
+from torch import nn
 
 import nn as enn
 import optimizers_L1L2
@@ -15,15 +16,16 @@ def build_optimizer_sfcnn(params, l1, lamb_conv_L1, lamb_conv_L2,
     # split up parameters into groups, named_parameters() returns tuples ('name', parameter)
     # each group gets its own regularization gain
     batchnormLayers = [m for m in params.modules() if isinstance(m,
-                                                                     (enn.modules.batchnorm.BatchNorm1d,
-                                                                      enn.modules.batchnorm.BatchNorm2d,
-                                                                      enn.modules.batchnorm.BatchNorm3d,
-                                                                      enn.NormBatchNorm,
-                                                                      enn.GNormBatchNorm,
+                                                                     (
+                                                                    enn.BatchNorm,
+                                                                    enn.InducedNormBatchNorm,
+                                                                    enn.GroupStandardization,
+                                                                    enn.GroupNorm,
+                                                                    enn.InducedNormGroupNorm,
                                                                       )
                                                                 )]
-    linearLayers = [m for m in params.modules() if isinstance(m, enn.modules.linear.Linear)]
-    convlayers = [m for m in params.modules() if isinstance(m, (enn.Conv2d, enn.R2Conv))]
+    linearLayers = [m for m in params.modules() if isinstance(m, nn.Linear)]
+    convlayers = [m for m in params.modules() if isinstance(m, (nn.Conv2d, enn.R2Conv))]
     weights_conv = [p for m in convlayers for n, p in m.named_parameters() if n.endswith('weights') or n.endswith("weight")]
     biases = [p for n, p in params.named_parameters() if n.endswith('bias')]
     weights_bn = [p for m in batchnormLayers for n, p in m.named_parameters()

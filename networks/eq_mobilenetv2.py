@@ -18,7 +18,6 @@ from nn import (
     GroupTensor,
 )
 from networks.util import (
-    calculate_fixed_params, 
     calculate_output_image_size,
     get_fixed_params, 
     get_gspace, 

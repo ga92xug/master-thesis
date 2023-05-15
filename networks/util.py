@@ -246,37 +246,3 @@ def get_gspace(group, rotation):
                 f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
             )
         return gspace
-
-def calculate_fixed_params(num_c, gspace, restrict):
-    CHANNELS_CONSTANT = 1
-    # deepcopy to avoid changing the original list
-    num_channels = deepcopy(num_c)
-    diff = len(num_channels) - len(restrict)
-
-    current_order = gspace.fibergroup.order()
-    for l in range(len(num_channels)):
-        
-        if l >= diff and restrict[l-diff] is not None:
-            if restrict[l-diff] == "halved":
-                current_order = current_order // 2
-                num_channels[l] = int(num_channels[l] * 2)
-            elif restrict[l-diff] == "reflection":
-                pass
-            elif restrict[l-diff] == "invariant":
-                current_order = 1
-            
-        num_channels[l] *= math.sqrt(current_order * CHANNELS_CONSTANT)
-
-    
-    return np.array(num_channels).astype(int)
-
-
-if __name__ == "__main__":
-    rotation = 4
-    gspace = get_gspace("cyclic", rotation)
-
-    num_c = np.array([32, 16, 24, 32, 64, 96, 160, 320, 1280])
-    restrict = ["invariant", None]
-    out = calculate_fixed_params(num_c, gspace, restrict)
-    print(num_c)
-    print(out)

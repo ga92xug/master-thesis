@@ -40,7 +40,6 @@ from networks.eq_wrn_util import (
 )
 
 from networks.util import (
-    calculate_fixed_params,
     calculate_output_image_size,
     get_fixed_params,
     get_gspace,
