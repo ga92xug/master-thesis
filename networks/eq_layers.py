@@ -69,7 +69,6 @@ class Restriction(EquivariantModule):
         super().__init__()
         self.in_type = in_type
         if restrict == "none":
-            print("No restriction applied.")
             self.restrict = nn.Identity()
             self.out_type = self.in_type
         else:
@@ -84,9 +83,11 @@ class Restriction(EquivariantModule):
                 assert rotation % 2 == 0, f"Number of rotations ({rotation}) is not divisible by 2."
                 subgroup_id = (0, rotation // 2) if group == "dihedral" else (rotation // 2)
                 
-            else:  
+            elif restrict == "invariant":  
                 # restrict to invariant case
                 subgroup_id = (None, 1) if group != "cyclic" else 1
+            else:
+                raise ValueError(f"Restriction {restrict} not implemented.")
 
             layers.append(RestrictionModule(self.in_type, subgroup_id))
             layers.append(DisentangleModule(layers[-1].out_type))

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import MaxNLocator
 import sys
+import re
 sys.path.append('..') # add parent directory
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from networks.network_instantiation import main
@@ -17,7 +18,6 @@ from scaling.util import plot_model_data, binary_search_over_model_scaling
 from experiment.run_files.run_command import run_command
 
 def extract_info(output):
-    import re
     # Define the regex patterns to extract the information
     param_count_pattern = r"Total params: (\d+)"
     model_building_time_pattern = r"Model building time: ([\d.]+)"
@@ -38,46 +38,49 @@ def extract_info(output):
     return param_count, model_building_time, train_time, flops
 
 
-global_args = [
-    "model=wrn", 
-    #"model.restrict=[halved,invariant]",
-    #"model.kernel_layout=[3,3]", 
-    #"model.padding=1",
-    "wandb.mode=disabled",
-    "training.epochs=1",
-    #"model.rotation=8",
-    #"model.fix_params_mode=heuristic",
-    "training.steps_per_epoch=5000",
-]
+def main():
+    global_args = [
+        "model=wrn", 
+        #"model.restrict=[halved,invariant]",
+        #"model.kernel_layout=[3,3]", 
+        #"model.padding=1",
+        "wandb.mode=disabled",
+        "training.epochs=1",
+        #"model.rotation=8",
+        #"model.fix_params_mode=heuristic",
+        "training.steps_per_epoch=5000",
+    ]
 
-image_size = 32
+    image_size = 32
 
-stats = {}
-mode_stats = []
-for depth in range(6, 48, 6):
-    args=[f"model.depth={depth+4}",
-        f"model.widen_factor={1}",
-        f"dataset.resolution={image_size}"]
-    output = run_command(args, global_args, test="instantiation")
-    param_count, model_building_time, train_time, gflops = extract_info(output)
-    #run_command(args, global_args, test="instantiation")
-    mode_stats.append([depth, param_count, model_building_time, train_time, gflops])
+    stats = {}
+    mode_stats = []
+    for depth in range(6, 48, 6):
+        args=[f"model.depth={depth+4}",
+            f"model.widen_factor={1}",
+            f"dataset.resolution={image_size}"]
+        output = run_command(args, global_args, test="instantiation")
+        param_count, model_building_time, train_time, gflops = extract_info(output)
+        #run_command(args, global_args, test="instantiation")
+        mode_stats.append([depth, param_count, model_building_time, train_time, gflops])
 
-stats[f"wrn_X_1"] = np.array(mode_stats)
+    stats[f"wrn_X_1"] = np.array(mode_stats)
 
-# width
-mode_stats = []
-for width in range(10, 40, 5):
-    width = width / 10.0
-    args=[f"model.depth={10}",
-                f"model.widen_factor={width}",
-                f"dataset.resolution={image_size}"]
-    output = run_command(args, global_args, test="instantiation")
-    param_count, model_building_time, train_time, gflops = extract_info(output)
-    #run_command(args, global_args, test="instantiation")
-    mode_stats.append([width, param_count, model_building_time, train_time, gflops])
-    
-stats[f"wrn_10_X"] = np.array(mode_stats)
-plot_model_data(stats, vs_param="depth or width")
+    # width
+    mode_stats = []
+    for width in range(10, 40, 5):
+        width = width / 10.0
+        args=[f"model.depth={10}",
+                    f"model.widen_factor={width}",
+                    f"dataset.resolution={image_size}"]
+        output = run_command(args, global_args, test="instantiation")
+        param_count, model_building_time, train_time, gflops = extract_info(output)
+        #run_command(args, global_args, test="instantiation")
+        mode_stats.append([width, param_count, model_building_time, train_time, gflops])
+        
+    stats[f"wrn_10_X"] = np.array(mode_stats)
+    plot_model_data(stats, vs_param="depth or width")
 
 
+if __name__ == "__main__":
+    main()

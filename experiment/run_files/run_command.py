@@ -1,16 +1,5 @@
 import subprocess
 
-def run_command(args):
-    command = ["python", "experiment/main.py", "-m"]
-    command.extend(args)
-    subprocess.run(command)
-
-def run_command(args, global_args):
-    command = ["python", "experiment/main.py", "-m"]
-    command.extend(args)
-    command.extend(global_args)
-    subprocess.run(command)
-
 def run_command(args, global_args, test):
     global_args_test = global_args + [
         "wandb.mode=disabled",
@@ -18,24 +7,20 @@ def run_command(args, global_args, test):
         "training.epochs=1",
     ]
     if test == "instantiation":
+        # only instantiate and test network
         command = ["python", "networks/network_instantiation.py", "-m"]
         command.extend(global_args_test)
         command.extend(args)
         output = subprocess.check_output(command, text=True)
+        return output
     else:
+        # we run through the main training loop
         command = ["python", "experiment/main.py", "-m"]
+        if test:
+            command.extend(global_args_test)
+        else:
+            command.extend(global_args)
 
-    if test:
-        command.extend(global_args_test)
-    else:
-        command.extend(global_args)
-
-    command.extend(args)
-    subprocess.run(command)
+        command.extend(args)
+        subprocess.run(command)
     
-
-def run_command_test(args, global_args):
-    command = ["python", "networks/network_instantiation.py"]
-    global_args.extend(args)
-    command.extend([f"--overrides={global_args}"])
-    subprocess.run(command)
