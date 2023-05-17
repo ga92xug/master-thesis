@@ -17,15 +17,15 @@ global_args = [
         #"model.rotation=8",
         #"model.group=cyclic",
         "wandb.tags=[eff_exp_1]",
-        #"training.augment_train=True"
+        #"training.augment_train=True",
     ]
 
 # normal run
 # depth-width-resolution
 # 108 is max resolution
 # 58-1-108 => 876.229, train time: 3.96
-args = ["model.depth=16", "model.drop_out=0.0", "model.widen_factor=4", "dataset.resolution=224", "wandb.notes=eq_wrn_baseline"]
-run_command(args, global_args, test="instantiation")
+args = ["model.depth=16", "model.drop_out=0.3", "model.widen_factor=2", "dataset.resolution=224", "wandb.notes=eq_wrn_baseline"]
+#run_command(args, global_args, test="instantiation")
 #run_command_test(args, global_args_test)
 """
 # Scale WRN by depth 
@@ -68,16 +68,11 @@ global_args = [
         "model.rotation=8", 
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-    ]
 # normal run
 # depth-width-resolution
 # 1-1-224 => 621.658
 args = ["model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution=108", "wandb.notes=eq_mobilenetv2_baseline"]
-#run_command(args, global_args, test=True)
+#run_command(args, global_args, test="instantiation")
 #run_command_test(args, global_args_test)
 """
 # Scale eq_mobilenetv2 by depth 
@@ -101,15 +96,27 @@ run_command(args, global_args)
 args = ["model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution=224", "wandb.notes=resolution_scaling"]
 #run_command_test(args, global_args_test)
 """
-"""
+
 # eq_efficientnet
-global_args = ["model=eq_efficientnet", "dataset=imagenette"]
+global_args = [
+        "model=eq_efficientnet", 
+        "dataset=imagenette",
+        "training=imagenette",
+        "optimizer=Adam",
+        #"model.fix_params_mode=heuristic",
+        #"model.restrict=[null,null,null,null,null,halved,invariant,null]",
+        "wandb.tags=[eff_exp_1]",
+        
+        #"model.rotation=8", 
+    ]
 
 # normal run
 # depth-width-resolution
 # 1-1-224 => 5.787.953
-args = ["model.restrict=[null, invariant]", "model.padding=1", "model.depth_multiplier=1", "model.width_multiplier=1", "wandb.tags=[eff_exp_1]", "wandb.notes=eq_efficientnet_baseline"]
-run_command_test(args, global_args)
+args = ["model.global_params.depth_coefficient=0.7", "model.global_params.width_coefficient=0.7",
+        "dataset.resolution=224", 
+        "wandb.tags=[eff_exp_1]", "wandb.notes=eq_efficientnet_baseline"]
+run_command(args, global_args, test="instantiation")
 
 # Scale eq_efficientnet by depth
 # d = 1.1 -> 9.359.204
@@ -118,4 +125,3 @@ run_command_test(args, global_args)
 # w = 1.275 -> 9.447.196
 
 # Scale eq_efficientnet by Resolution
-"""

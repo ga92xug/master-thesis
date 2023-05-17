@@ -69,7 +69,6 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
     else:
         model.cuda()
         for i in range(n_runs):
-            input_dim = (n_inputs, image_size, image_size)
             input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size).cuda()
             out = model(input_tensor)
             #cuda_memory_usage()
@@ -87,7 +86,7 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         flops.unsupported_ops_warnings(False)
         flops.uncalled_modules_warnings(False)
         print(f"Flops: {flops.total() / 1e9} GFlops")
-        print(flop_count_table(flops))
+        #print(flop_count_table(flops))
         #pprint.pprint(flops.by_operator())
         #pprint.pprint(flops.by_module())
         #pprint.pprint(flops.by_module_and_operator())
@@ -95,6 +94,7 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
+    print(cfg)
     n_inputs = 3
     n_outputs = 10
     do_forward_pass = True
@@ -107,7 +107,6 @@ def main(cfg: DictConfig) -> None:
     try: image_size = cfg.dataset.resolution
     except: image_size = 32
     
-
     # instantiate model
     model, param_count, model_building_time = model_instantiate(cfg, verbose=cfg.other.verbose, 
                             n_inputs=n_inputs, n_outputs=n_outputs, image_size=image_size)

@@ -32,7 +32,7 @@ from networks.eq_efficientnet_util import (
     Conv2dSamePadding
 )
 from networks.efficientnet import EfficientNet
-from networks.eq_layers import EquivariantPool, EquivariantSqueezeExcitation, Restriction
+from networks.eq_layers import EquivariantConv, EquivariantPool, EquivariantSqueezeExcitation, Restriction
 from networks.util import calculate_output_image_size, get_fixed_params, get_gspace, get_param_count
 
 from nn import (
@@ -106,80 +106,69 @@ class MBConvBlock(EquivariantModule):
         self.id_skip = block_args.id_skip  # whether to use skip connection and drop connect
 
         # Expansion phase (Inverted Bottleneck)
-        # inp = self._block_args.input_filters  # number of input channels
         inp = in_type
-        # oup = self._block_args.input_filters * self._block_args.expand_ratio  # number of output channels
-        oup = int((self._block_args.input_filters * self._block_args.expand_ratio))
-        # oup = len(in_type) * self._block_args.expand_ratio
+        self._block_args._replace(
+            expand_ratio=1,
+        )
+        #oup = int((self._block_args.input_filters * self._block_args.expand_ratio))
+        self.image_sizes = [image_size]
+        
+        oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
             kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
             self._expand_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, 
                                                  normal_block._expand_conv, 
                                                  gspace=in_type.gspace, **kwargs)
-            # self._expand_conv = Eq_Conv2dSamePadding(in_type=inp, out_channels=oup, 
-            #                     image_size=image_size, kernel_size=1, bias=False)
-
-            # self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
             self._bn0 = BatchNorm(in_type=self._expand_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
             self._swish0 = Swish(in_type=self._bn0.out_type)
             inp = self._swish0.out_type
-            # image_size = calculate_output_image_size(image_size, 1) <-- this wouldn't modify image_size
 
         # Depthwise convolution phase
         k = self._block_args.kernel_size
         s = self._block_args.stride
-        # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': inp, 'out_channels': len(inp), 'image_size': image_size, 'groups': len(inp), 
                   'kernel_size': k, 'stride': s, 'bias': False}
         self._depthwise_conv = Eq_Conv2dSamePadding(**kwargs)
-        # self._depthwise_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode="no", 
-        #                                         normal_block=None, gspace=inp.gspace, **kwargs)
-        # self._depthwise_conv = Eq_Conv2dSamePadding(
-        #     in_type=inp, out_channels=oup, image_size=image_size, groups=oup,  # groups makes it depthwise
-        #     kernel_size=k, stride=s, bias=False
-        # )
         self._bn1 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
         self._swish1 = Swish(in_type=self._bn1.out_type)
         out_type = self._swish1.out_type
-        # self._depthwise_conv = Conv2d(
-        #     in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
-        #     kernel_size=k, stride=s, bias=False)
-        #self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
         image_size = calculate_output_image_size(image_size, s)
+        self.image_sizes.append(image_size)
 
         # Squeeze and Excitation layer, if desired
         if self.has_se:
             # we don't need same padding as it is a 1x1 conv
-            # Conv2d = get_same_padding_conv2d(image_size=(1, 1))
-            input_channels_squeeze = len(in_type)
+            input_channels_squeeze = len(out_type)
             num_squeezed_channels = max(1, int(input_channels_squeeze * self._block_args.se_ratio))
-            kwargs = {'in_type': out_type, 'in_channels': input_channels_squeeze, 
-                      'squeeze_channels': num_squeezed_channels, 'act_func': "Swish"}
-            
+            kwargs = {'in_type': out_type, 'squeeze_channels': num_squeezed_channels,
+                      'in_channels': input_channels_squeeze}
             self.squeeze = get_fixed_params(EquivariantSqueezeExcitation, fix_params_mode,
                                           nn.Sequential(*[normal_block._se_reduce, 
                                                           normal_block._se_expand]), 
                                           gspace=out_type.gspace, channel_name='in_channels', **kwargs)
-            # self.squeeze = EquivariantSqueezeExcitation(in_type=out_type, 
-            #                 in_channels=input_channels_squeeze, squeeze_channels=num_squeezed_channels, 
-            #                 act_func="Swish")
             out_type = self.squeeze.out_type
 
         # Pointwise convolution phase
         final_oup = self._block_args.output_filters
-        # Conv2d = get_same_padding_conv2d(image_size=image_size)
         kwargs = {'in_type': out_type, 'out_channels': final_oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
         self._project_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, 
                                               normal_block._project_conv, 
                                               gspace=out_type.gspace, **kwargs)
-        # self._project_conv = Eq_Conv2dSamePadding(in_type=out_type, out_channels=final_oup, image_size=image_size, kernel_size=1, bias=False)
-        
-        #self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
-        self._bn2 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
-
+        self._bn2 = BatchNorm(in_type=self._project_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
         self.out_type = self._bn2.out_type
-        # self._swish = MemoryEfficientSwish()
-        # self._swish = Swish()
+
+        
+        self.residual_connection = (s == 1 and in_type.size == final_oup)
+        self.shortcut = nn.Identity()
+        if s != 1 or self.in_type != self.out_type:
+            self.shortcut = EquivariantConv(
+                self.in_type,
+                len(self._bn2.out_type),
+                kernel_size=1,
+                padding=0,
+                stride=s,
+                bias=False,
+            )
 
     def forward(self, inputs, drop_connect_rate=None):
         """MBConvBlock's forward function.
@@ -192,8 +181,10 @@ class MBConvBlock(EquivariantModule):
 
         # Expansion and Depthwise Convolution
         x = inputs
+        if self.id_skip:
+            shortcut_result = self.shortcut(inputs) 
         if self._block_args.expand_ratio != 1:
-            x = self._expand_conv(inputs)
+            x = self._expand_conv(x)
             x = self._bn0(x)
             x = self._swish0(x)
 
@@ -208,14 +199,12 @@ class MBConvBlock(EquivariantModule):
         # Pointwise Convolution
         x = self._project_conv(x)
         x = self._bn2(x)
-
+        
         # Skip connection and drop connect
-        input_filters, output_filters = self._block_args.input_filters, self._block_args.output_filters
-        if self.id_skip and self._block_args.stride == 1 and len(self.in_type) == output_filters:
-            # The combination of skip connection and drop connect brings about stochastic depth.
-            if drop_connect_rate:
+        if self.id_skip :
+            x = x + shortcut_result # skip connection
+            if drop_connect_rate and self.residual_connection:
                 x = eq_drop_connect(x, p=drop_connect_rate, training=self.training)
-            x = x + inputs  # skip connection
         return x
 
     def evaluate_output_shape(self, input_shape: Tuple):
@@ -248,9 +237,10 @@ class EquivariantEfficientNet(nn.Module):
             num_classes=10, 
             group: str = "cyclic",
             rotation: int = 4,
-            restrict: str = None,  # "invariant", "reflection", "halved"
+            restrict: List[str] = [None] * 8,  # "invariant", "reflection", "halved"
             fix_params_mode: str =  "heuristic", # "iter", "heuristic", "all"
     ):
+        print("EquivariantEfficientNet")
         super().__init__()
         self.fix_params_mode = fix_params_mode
         self.restrict = restrict
@@ -290,10 +280,8 @@ class EquivariantEfficientNet(nn.Module):
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * self.input_channels
         )
-
         # Stem
         out_channels = eq_round_filters(32, self._global_params, rotation=1)
-        # self._conv_stem = Eq_Conv2dSamePadding()
         kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
             'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
         self._conv_stem = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, self.efficientnet._conv_stem,
@@ -308,22 +296,24 @@ class EquivariantEfficientNet(nn.Module):
 
         # Build blocks
         # self._blocks = nn.ModuleList([])
-        self._blocks = []
-        counter = 0
+        self._blocks = nn.ModuleList([])
+        self.block_number = 0
         for i, block_args in enumerate(self._blocks_args):
             print(f"Building block: {i}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=eq_round_filters(block_args.input_filters, self._global_params, rotation=self.rotation),
-                output_filters=eq_round_filters(block_args.output_filters, self._global_params, rotation=self.rotation),
+                input_filters=eq_round_filters(block_args.input_filters, self._global_params),
+                output_filters=eq_round_filters(block_args.output_filters, self._global_params),
                 num_repeat=round_repeats(block_args.num_repeat, self._global_params)
             )
-
+            restrict = Restriction(self.field_type, self.group, self.rotation, self.restrict[i])
+            self._blocks.append(restrict)
+            self.field_type = restrict.out_type
             # The first block needs to take care of stride and filter size increase.
             self._blocks.append(MBConvBlock(self.field_type, self.fix_params_mode, block_args, 
                                             self._global_params, image_size=image_size, 
-                                            normal_block=self.efficientnet._blocks[counter]))
-            counter += 1
+                                            normal_block=self.efficientnet._blocks[self.block_number]))
+            self.block_number += 1
             self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
@@ -331,16 +321,15 @@ class EquivariantEfficientNet(nn.Module):
             for _ in range(block_args.num_repeat - 1):
                 self._blocks.append(MBConvBlock(self.field_type, self.fix_params_mode, block_args, 
                                                 self._global_params, image_size=image_size, 
-                                                normal_block=self.efficientnet._blocks[counter]))
-                counter += 1
+                                                normal_block=self.efficientnet._blocks[self.block_number]))
+                self.block_number += 1
                 self.field_type = self._blocks[-1].out_type
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
-        #self._blocks = SequentialModule(*self._blocks)
 
         # Restrict
-        self.restriction = Restriction(self.field_type, self.group, self.rotation, self.restrict)
-        self.field_type = self.restriction.out_type
+        self.restrict_last = Restriction(self.field_type, self.group, self.rotation, self.restrict[-1])
+        self.field_type = self.restrict_last.out_type
 
         # Head
         input_channels = block_args.output_filters  # output of final block
@@ -361,68 +350,14 @@ class EquivariantEfficientNet(nn.Module):
             self._dropout = nn.Dropout(self._global_params.drop_out)
             self._fc = nn.Linear(out_channels, self.num_classes)
 
-        # set activation to memory efficient swish by default
-        # self._swish = Swish()
-        # self._swish = MemoryEfficientSwish()
-
-        # print stats
-        if self.fix_params_mode in ["all", "iter"]:
-            # size of wrn total and size of equivariant part
-            norm_para = get_param_count(self.efficientnet)
-            del self.efficientnet
-            equi_param = get_param_count(self)
-            current_ratio = equi_param / norm_para
-            print(f"Equivariant_WRN / WRN parameter ratio: {current_ratio:.3f}")
-        elif self.fix_params_mode == "no":
-            equi_param = get_param_count(self)
-            print(f"Equivariant_WRN params: {equi_param}")
+        # size of wrn total and size of equivariant part
+        norm_para = get_param_count(self.efficientnet)
+        del self.efficientnet
+        equi_param = get_param_count(self)
+        current_ratio = equi_param / norm_para
+        print(f"Equivariant_WRN / WRN parameter ratio: {current_ratio:.3f}")
+        
     
-    def extract_endpoints(self, inputs):
-        """Use convolution layer to extract features
-        from reduction levels i in [1, 2, 3, 4, 5].
-        Args:
-            inputs (tensor): Input tensor.
-        Returns:
-            Dictionary of last intermediate features
-            with reduction levels i in [1, 2, 3, 4, 5].
-            Example:
-                >>> import torch
-                >>> from efficientnet.model import EfficientNet
-                >>> inputs = torch.rand(1, 3, 224, 224)
-                >>> model = EfficientNet.from_pretrained('efficientnet-b0')
-                >>> endpoints = model.extract_endpoints(inputs)
-                >>> print(endpoints['reduction_1'].shape)  # torch.Size([1, 16, 112, 112])
-                >>> print(endpoints['reduction_2'].shape)  # torch.Size([1, 24, 56, 56])
-                >>> print(endpoints['reduction_3'].shape)  # torch.Size([1, 40, 28, 28])
-                >>> print(endpoints['reduction_4'].shape)  # torch.Size([1, 112, 14, 14])
-                >>> print(endpoints['reduction_5'].shape)  # torch.Size([1, 320, 7, 7])
-                >>> print(endpoints['reduction_6'].shape)  # torch.Size([1, 1280, 7, 7])
-        """
-        endpoints = dict()
-
-        # Stem
-        x = GroupTensor(inputs, self.input_field_type)
-        x = self._swish0(self._bn0(self._conv_stem(x)))
-        prev_x = x
-
-        # Blocks
-        for idx, block in enumerate(self._blocks):
-            drop_connect_rate = self._global_params.drop_connect_rate
-            if drop_connect_rate:
-                drop_connect_rate *= float(idx) / len(self._blocks)  # scale drop connect_rate
-            x = block(x, drop_connect_rate=drop_connect_rate)
-            if prev_x.size(2) > x.size(2):
-                endpoints['reduction_{}'.format(len(endpoints) + 1)] = prev_x
-            elif idx == len(self._blocks) - 1:
-                endpoints['reduction_{}'.format(len(endpoints) + 1)] = x
-            prev_x = x
-
-        # Head
-        x = self._swish1(self._bn1(self._conv_head(x)))
-        endpoints['reduction_{}'.format(len(endpoints) + 1)] = x
-
-        return endpoints
-
     def extract_features(self, inputs):
         """use convolution layer to extract feature .
         Args:
@@ -435,13 +370,21 @@ class EquivariantEfficientNet(nn.Module):
         x = self._swish0(self._bn0(self._conv_stem(inputs)))
 
         # Blocks
-        for idx, block in enumerate(self._blocks):
-            drop_connect_rate = self._global_params.drop_connect_rate
-            if drop_connect_rate:
-                drop_connect_rate *= float(idx) / len(self._blocks)  # scale drop connect_rate
-            x = block(x, drop_connect_rate=drop_connect_rate)
+        counter = 0
+        for idx, restrict_or_MBBlock in enumerate(self._blocks):
+            if isinstance(restrict_or_MBBlock, Restriction):
+                x = restrict_or_MBBlock(x)
+                continue
+            else:
+                drop_connect_rate = self._global_params.drop_connect_rate
+                if drop_connect_rate:
+                    drop_connect_rate *= float(counter) / self.block_number  # scale drop connect_rate
+                
+                x = restrict_or_MBBlock(x, drop_connect_rate=drop_connect_rate)
+                counter += 1
 
         # Head
+        x = self.restrict_last(x)
         x = self._swish1(self._bn1(self._conv_head(x)))
 
         return x

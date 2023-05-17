@@ -330,7 +330,8 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         self.stride = [stride] * 2 if isinstance(stride, int) else stride
         self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
         self.dilation = [dilation] * 2
-        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, stride=self.stride, groups=groups, bias=bias)
+        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, padding=0,
+                                      stride=self.stride, groups=groups, bias=bias)
         self.out_type = self.conv2d.out_type
         
 
@@ -342,20 +343,14 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         sh, sw = self.stride[0], self.stride[1]
         # types of ih, sh, iw and sw
         oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)
-        pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
-        pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
-        if pad_h > 0 or pad_w > 0:
-            self.static_padding = nn.ZeroPad2d((pad_w // 2, pad_w - pad_w // 2,
-                                                pad_h // 2, pad_h - pad_h // 2))
-        else:
-            self.static_padding = nn.Identity()
-
+        self.pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
+        self.pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
         
-        #self.conv2d = nn.Conv2d(in_channels, out_channels, kernel_size, stride=self.stride, **kwargs)
-
     def forward(self, x):
-        x.tensor = self.static_padding(x.tensor)
-        # x = self.static_padding(x.tensor)
+        if self.pad_h > 0 or self.pad_w > 0:
+            x.tensor = torch.nn.functional.pad(x.tensor, 
+                            pad=(self.pad_w // 2, self.pad_w - self.pad_w // 2, 
+                            self.pad_h // 2, self.pad_h - self.pad_h // 2))
         x = self.conv2d(x)
         return x
 

@@ -73,8 +73,12 @@ def exp_name(cfg):
         elif len(cfg.model.kernel_layout) == 4:
             values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]},{cfg.model.kernel_layout[3]})")
 
-    if cfg.model._target_.startswith("eq_"):
-        values.append(f"rot{cfg.model.rotation}")
+    if "equivariant" in cfg.model._target_:
+        if cfg.model.group == "cyclic":
+            group = "C"
+        elif cfg.model.group == "dihedral":
+            group = "D"
+        values.append(f"{group}{cfg.model.rotation}")
     # assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
 
     return "_".join(values)

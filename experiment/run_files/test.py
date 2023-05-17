@@ -7,32 +7,27 @@ from run_command import run_command, run_command_test
 
 # global arguments
 global_args = [
-        "model=eq_wrn", 
+        "model=eq_mobilenetv2", 
         "dataset=cifar10",
         "training=train_e2_100epochs",
         "optimizer=SGD",
         "model.fix_params_mode=heuristic",
-        "model.restrict=[reflection,invariant]",
-        "model.kernel_layout=[3,3]", 
-        "model.group=dihedral",
-        "model.padding=1",
-        "model.rotation=4",
-        "other.verbose=1"
+        #"model.restrict=[reflection,invariant]",
+        #"model.kernel_layout=[3,3]", 
+        #"model.group=dihedral",
+        #"model.padding=1",
+        #"model.rotation=4",
+        #"model.bias=True",
+        #"other.verbose=1",
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-    ]
 
 # 3x3
 # 2.799.413
-args = ["model.depth=16", "model.widen_factor=1", 
+args = [#"model.depth=16", "model.widen_factor=1", 
         "wandb.notes=check_if_train_time_log",
         "dataset.resolution=32", "model.drop_out=0.0"]
-run_command_test(args, global_args_test)
-#run_command(args, global_args_test, test="instantiation")
+run_command(args, global_args, test="instantiation")
 
 # mobilenet
 

@@ -17,10 +17,11 @@ def run_command(args, global_args, test):
         "training.steps_per_epoch=10",
         "training.epochs=1",
     ]
-
     if test == "instantiation":
         command = ["python", "networks/network_instantiation.py", "-m"]
-
+        command.extend(global_args_test)
+        command.extend(args)
+        output = subprocess.check_output(command, text=True)
     else:
         command = ["python", "experiment/main.py", "-m"]
 
@@ -31,6 +32,7 @@ def run_command(args, global_args, test):
 
     command.extend(args)
     subprocess.run(command)
+    
 
 def run_command_test(args, global_args):
     command = ["python", "networks/network_instantiation.py"]

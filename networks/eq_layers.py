@@ -68,8 +68,8 @@ class Restriction(EquivariantModule):
     ):
         super().__init__()
         self.in_type = in_type
-
-        if not restrict:
+        if restrict == "none":
+            print("No restriction applied.")
             self.restrict = nn.Identity()
             self.out_type = self.in_type
         else:
@@ -306,45 +306,30 @@ class EquivariantSqueezeExcitation(EquivariantModule):
         in_type: FieldType,
         in_channels: int,
         squeeze_channels: int,
-        act_func: str = "Swish",
     ):
         super(EquivariantSqueezeExcitation, self).__init__()
         self.in_type = in_type
 
-        self.avgpool = PointwiseAdaptiveAvgPool(self.in_type, 1)
         self.fc1 = EquivariantConv(
-            self.avgpool.out_type, squeeze_channels, kernel_size=1, padding=0
+            self.in_type, squeeze_channels, kernel_size=1, padding=0
         )
-
-        self.act_func = getattr(nonlinearities, act_func)(self.fc1.out_type)
 
         self.fc2 = EquivariantConv(
-            self.act_func.out_type, in_channels, kernel_size=1, padding=0
+            self.fc1.out_type, in_channels, kernel_size=1, padding=0
         )
 
-        # TODO: Check if trivial, regular and induced reps support norm non-linearity
-        self.scale_activation = NormNonLinearity(
-            self.fc2.out_type, function="n_sigmoid"
-        )
-
-        self.out_type = self.scale_activation.out_type
-
-    def _scale(self, input: GroupTensor):
-        scale = self.avgpool(input)
-        scale = self.fc1(scale)
-        scale = self.act_func(scale)
-        scale = self.fc2(scale)
-        return self.scale_activation(scale)
+        self.out_type = self.fc2.out_type
 
     def forward(self, input: GroupTensor):
-        scale = self._scale(input)
-        return GroupTensor(scale.tensor * input.tensor, self.out_type)
+        x = self.fc1(input)
+        x = self.fc2(x)
+        return x
 
     def evaluate_output_shape(self, input_shape: Tuple):
         assert len(input_shape) == 4
         assert input_shape[1] == self.in_type.size
         return input_shape
-
+    
 
 class EquivariantBottleneck(EquivariantModule):
     def __init__(
@@ -362,8 +347,6 @@ class EquivariantBottleneck(EquivariantModule):
         super(EquivariantBottleneck, self).__init__()
         self.in_type = in_type
 
-        #print('size in_type: ', self.in_type.size)
-        #print('out_channels: ', out_channels)
         # we only have a residual connection 
         # if stride is 1 and the channel number does not change 
         self.residual_connection = (stride == 1 and len(in_type) == out_channels)
@@ -407,11 +390,23 @@ class EquivariantBottleneck(EquivariantModule):
         )
         self.out_type = self.conv3.out_type
 
+        self.shortcut = nn.Identity()
+        if stride != 1 or self.in_type != self.out_type:
+            self.shortcut = EquivariantConv(
+                self.in_type,
+                len(self.conv3.out_type),
+                kernel_size=1,
+                padding=0,
+                stride=stride,
+                bias=False,
+            )
+
     def forward(self, input: GroupTensor) -> GroupTensor:
         x = self.conv1(input)
         x = self.conv2(x)
         x = self.conv3(x)
-        return x + input if self.residual_connection else x
+        x = self.shortcut(input) + x 
+        return x 
 
     def evaluate_output_shape(self, input_shape: Tuple):
         assert len(input_shape) == 4

@@ -1,0 +1,6 @@
+data_dir: '../Data/frischs/datasets/Galaxy10_DECals/Galaxy10_DECals.h5'  # Path to the datasets        
+name: "Galaxy10_DECals"             # The name of the dataset to use
+augment: False                 # Augment the training set with rotated images
+workers: 8                    # Number of jobs to load the dataset
+drop_last_train: False       # Drop the last batch if it is smaller than the batch size
+resolution: 32

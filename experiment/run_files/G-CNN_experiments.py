@@ -112,12 +112,11 @@ global_args_test = global_args + [
 # 3x3
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=group_dihedral"]
-#run_command_test(args, global_args_test)
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
         "model.depth=22", "model.widen_factor=6", "wandb.notes=group_dihedral"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 
 # rotation experiment
@@ -137,8 +136,7 @@ global_args = [
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation", 
         "model.rotation=2,10,16,20"]
-#run_command_test(args, global_args_test)
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 args = ["model.kernel_layout=[5,5]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation",

@@ -18,14 +18,30 @@ global_args = [
         "model.padding=1",
         "wandb.tags=[eq_mobilenetv2]",
         "model.rotation=8",
-        "wandb.mode=disabled",
     ]
 
-global_args_test = global_args + [
+# baseline
+args = ["model.depth_multiplier=6", "model.width_multiplier=2.5", 
+        "wandb.notes=eq_mobilenetv2_baseline",
+        "dataset.resolution=32"]
+run_command(args, global_args, test=False)
+
+
+# efficientnet
+# global arguments
+global_args = [
+        "model=eq_efficientnet", 
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        "model.fix_params_mode=no",
+        "model.restrict=[none,halved,invariant,none,none,none,none]",
+        "model.min_feature_map_size=5",
+        "model.kernel_size=3", 
+        "model.padding=1",
+        "wandb.tags=[eq_mobilenetv2]",
+        "model.rotation=8",
         "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-        "other.verbose=2"
     ]
 
 # baseline
@@ -33,8 +49,7 @@ global_args_test = global_args + [
 args = ["model.depth_multiplier=7", "model.width_multiplier=3.5", 
         "wandb.notes=eq_mobilenetv2_baseline",
         "dataset.resolution=32"]
-#run_command_test(args, global_args_test)
-run_command(args, global_args)
+#run_command(args, global_args, test="instantiation")
 """
 # depth 
 # x10 => 8.8 param = 422.366; train time = 13.04

@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import sys
 import torch
+from networks.eq_efficientnet_util import Eq_Conv2dSamePadding
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (
@@ -138,14 +139,16 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
                     the normal convolutional block.
     """
     N = gspace.fibergroup.order()
-    kwargs[channel_name] = int(kwargs[channel_name] / N)
+    kwargs[channel_name] = kwargs[channel_name] / N
     if fix_params_mode in ["heuristic", "all"]:
-        kwargs[channel_name] = int(kwargs[channel_name] * math.sqrt(N * CHANNELS_CONSTANT))
+        kwargs[channel_name] = kwargs[channel_name] * math.sqrt(N * CHANNELS_CONSTANT)
 
+    kwargs[channel_name] = int(round(kwargs[channel_name]))
     if kwargs[channel_name] < 1:
         warnings.warn("The number of channels is too small. Setting it to 1.")
         kwargs[channel_name] = 1
 
+    #print(f'Number of channels: {kwargs[channel_name]}')
     equi_block = type_equi_block(**kwargs)
     if fix_params_mode in ["heuristic", "no"]:
         return equi_block
