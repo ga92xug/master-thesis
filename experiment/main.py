@@ -351,13 +351,17 @@ class Experiment:
             # earlystop part
             if self._valid_metric == "accuracy":
                 _last_valid_metric = acc
-                if self.cfg.training.earlystop and _last_valid_metric > self.best_valid_accuracy:
+                if self.cfg.training.earlystop and \
+                    _last_valid_metric > self.best_valid_accuracy:
+                    
                     self.best_valid_accuracy = _last_valid_metric
                     self.best_valid_iteration = self._epoch
                     self.best_state_dict = self.model.state_dict()
             elif self._valid_metric == "loss":
                 _last_valid_metric = loss
-                if self.cfg.training.earlystop and _last_valid_metric < self.best_valid_loss:
+                if self.cfg.training.earlystop and \
+                    _last_valid_metric < self.best_valid_loss:
+
                     self.best_valid_loss = _last_valid_metric
                     self.best_valid_iteration = self._epoch
                     self.best_state_dict = self.model.state_dict()
@@ -407,22 +411,26 @@ class Experiment:
         duration = float(endtime - starttime)
 
         if log:
-            wandb.log({f"{split}": {"loss": loss, "acc": acc, "duration": duration}}\
-                          , step=self.global_step)
+            wandb.log({f"{split}": {"loss": loss, "acc": acc, \
+                            "duration": duration}}, step=self.global_step)
 
         if confusion:
             y_test_all = np.concatenate(y_test_all, axis=0)
             t_test_all = np.concatenate(t_test_all, axis=0)
-            conf_matrix += compute_confusion_matrix(y_test_all, t_test_all, list(range(self.n_outputs)))
-            wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_test_all, \
-                            y_true=t_test_all, preds=None, class_names=list(range(self.n_outputs)))})
+            conf_matrix += compute_confusion_matrix(y_test_all, t_test_all, \
+                                                    list(range(self.n_outputs)))
+            wandb.log({"confusion_matrix": \
+                        wandb.plot.confusion_matrix(probs=y_test_all,
+                        y_true=t_test_all, preds=None, \
+                        class_names=list(range(self.n_outputs)))})
             return acc, loss, duration, conf_matrix
         else:
             return acc, loss, duration
     
     def print_results(self, acc, loss, duration, mode):
         print('-'*100)
-        print(f'{mode} Epoch: {self._epoch} lasted {duration:.3f} seconds\nAccuracy: {acc:.3f}; Loss: {loss:.3f}\n')
+        print(f'{mode} Epoch: {self._epoch} lasted {duration:.3f} seconds')
+        print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
     
     
     def run(self):
@@ -438,7 +446,9 @@ class Experiment:
                 utils.allowed_usage_time()
             
             if self._time_limit is not None:
-                if (datetime.datetime.now().timestamp() - self._global_start_time.timestamp()) / 60. > self._time_limit:
+                if (datetime.datetime.now().timestamp() - \
+                    self._global_start_time.timestamp()) / 60. \
+                    > self._time_limit:
                     print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self._epoch}.")
                     print(f"Best validation accuracy: {self.best_valid_accuracy:.3f}")
                     print(f"Best validation loss: {self.best_valid_loss:.3f}")
@@ -469,7 +479,6 @@ class Experiment:
         wandb.finish(exit_code=0)
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
-        #optimizer, epoch, epoch_start, init_lr, base_factor=.8, lr_decay_epoch=1, verbose=False):
         """
         Decay initial learning rate exponentially starting after epoch_start epochs
         The learning rate is multiplied with base_factor every lr_decay_epoch epochs
@@ -479,13 +488,13 @@ class Experiment:
             if self._epoch in self._lr_decay_schedule:
                 self._lr_decay_schedule.remove(self._epoch)
                 self._lr *= self._lr_decay_factor
-            # count = len([e for e in self._lr_decay_schedule if e <= self._epoch])
-            # lr = self._lr * (self._lr_decay_factor ** count)
         else:
             if self._epoch <= self._lr_decay_start:
                 lr = self._lr
             else:
-                lr = self._lr * (self._lr_decay_factor ** ((self._epoch - self._lr_decay_start) // self._lr_decay_epoch))
+                lr = self._lr * (self._lr_decay_factor ** \
+                                 ((self._epoch - self._lr_decay_start) // \
+                                  self._lr_decay_epoch))
         if verbose:
             print('learning rate = {:6f}'.format(lr))
         for param_group in self._optimizer.param_groups:

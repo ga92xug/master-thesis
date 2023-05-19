@@ -2,8 +2,9 @@ import sys
 sys.path.append('../run_files') # add parent directory
 from run_command import run_command
 
-# experiment rotation
-# experiment 2 discretization artifacts
+"""
+This file is solely used for quickly testing the networks
+"""
 
 # global arguments
 global_args = [

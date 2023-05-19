@@ -6,16 +6,12 @@ from hydra.core.global_hydra import GlobalHydra
 import numpy as np
 from omegaconf import DictConfig
 import torch
-#from ptflops import get_model_complexity_info
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 import pprint
 import sys
 
 sys.path.append('..')
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-# from networks import (
-#     e2wrn28_7R,
-# )
 from experiment.utils import allowed_usage_time, build_dataloaders
 from networks.util import (
     cuda_memory_usage,
@@ -41,7 +37,8 @@ def extract_info_instantiate_network(output, verbose=False):
 
     # Extracted values
     param_count = int(param_count_match.group(1)) if param_count_match else None
-    model_building_time = float(model_building_time_match.group(1)) if model_building_time_match else None
+    model_building_time = float(model_building_time_match.group(1)) \
+        if model_building_time_match else None
     train_time = float(train_time_match.group(1)) if train_time_match else None
     flops = float(flops_match.group(1)) if flops_match else None
 
@@ -54,7 +51,15 @@ def extract_info_instantiate_network(output, verbose=False):
     return param_count, model_building_time, train_time, flops
 
 
-def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=None):
+def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, 
+                      image_size=None):
+    """
+    Instantiate the model and return:
+    - number of parameters
+    - model building time
+    - train time
+    - GFLOPs
+    """
     start = timeit.default_timer()
     model = hydra.utils.instantiate(
             cfg.model,
@@ -101,7 +106,8 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
     else:
         model.cuda()
         for i in range(n_runs):
-            input_tensor = torch.randn(batch_size, n_inputs, image_size, image_size).cuda()
+            input_tensor = torch.randn(batch_size, n_inputs, image_size, \
+                                       image_size).cuda()
             out = model(input_tensor)
             #cuda_memory_usage()
             if cfg.other.verbose >= 3:
@@ -113,16 +119,19 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
     if verbose >= 1:
         print(f"Train time elapsed: {train_time}")
 
+    # FLOPs
+    flops = FlopCountAnalysis(model, (input_tensor,))
+    flops.unsupported_ops_warnings(False)
+    flops.uncalled_modules_warnings(False)
+    gflops = flops.total() / 1e9
+
     if verbose >= 2:
-        flops = FlopCountAnalysis(model, (input_tensor,))
-        flops.unsupported_ops_warnings(False)
-        flops.uncalled_modules_warnings(False)
-        print(f"Flops: {flops.total() / 1e9} GFlops")
+        print(f"Flops: {gflops} GFlops")
         #print(flop_count_table(flops))
         #pprint.pprint(flops.by_operator())
         #pprint.pprint(flops.by_module())
         #pprint.pprint(flops.by_module_and_operator())
-    return train_time
+    return train_time, gflops
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
@@ -140,16 +149,18 @@ def main(cfg: DictConfig) -> None:
     except: image_size = 32
     
     # instantiate model
-    model, param_count, model_building_time = model_instantiate(cfg, verbose=cfg.other.verbose, 
-                            n_inputs=n_inputs, n_outputs=n_outputs, image_size=image_size)
+    model, param_count, model_building_time = model_instantiate(cfg, \
+                            verbose=cfg.other.verbose, 
+                            n_inputs=n_inputs, n_outputs=n_outputs, \
+                            image_size=image_size)
 
     if do_forward_pass:
-        train_time = forward_pass(model, cfg, verbose=cfg.other.verbose, 
+        train_time, gflops = forward_pass(model, cfg, verbose=cfg.other.verbose, 
                             instantiate_dataset=instantiate_dataset,
                             n_inputs=n_inputs, image_size=image_size)
     else:
         train_time = 0
-    return param_count, model_building_time, train_time
+    return param_count, model_building_time, train_time, gflops
 
 
 if __name__ == "__main__":
