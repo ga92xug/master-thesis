@@ -109,6 +109,8 @@ from experiment.datasets.cifar100 import data_loader_cifar100
 from experiment.datasets.STL10 import data_loader_stl10
 from experiment.datasets.STL10 import data_loader_stl10frac
 from experiment.datasets.imagenette import data_loader_imagenette
+from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
+
 
 
 def build_dataloaders(cfg):
@@ -282,7 +284,19 @@ def build_dataloaders(cfg):
             drop_last=drop_last_train,
             resolution=resolution,
             resolution_test = resolution_test,
-        )    
+        ) 
+    elif dataset == "Galaxy10_DECals":
+        resolution = cfg.dataset.resolution
+        dir = cfg.dataset.data_dir
+        train_loader, valid_loader, test_loader, n_inputs, n_outputs = data_loader_Galaxy10_DECals.build_galaxy10_loaders(
+            batch_size,
+            eval_batch_size,
+            dir=dir,
+            augment=augment,
+            num_workers=num_workers,
+            resolution=resolution,
+        ) 
+
     else:
         raise ValueError("Dataset '{}' not recognized!".format(dataset))
     

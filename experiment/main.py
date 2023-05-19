@@ -241,6 +241,9 @@ class Experiment:
             x = x.to(self.device)
             t = t.to(self.device)
             y = self.model(x)
+            #print("y", y.shape, y.dtype)
+            #print("t", t.shape, t.dtype)
+            #print("x", x.shape, x.dtype)
             loss = self._loss_function(y, t)
             acc = accuracy(y.detach(), t.detach())
                         

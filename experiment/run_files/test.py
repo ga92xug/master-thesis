@@ -1,13 +1,13 @@
 import sys
 sys.path.append('../run_files') # add parent directory
-from run_command import run_command, run_command_test
+from run_command import run_command
 
 # experiment rotation
 # experiment 2 discretization artifacts
 
 # global arguments
 global_args = [
-        "model=eq_mobilenetv2", 
+        "model=eq_wrn", 
         "dataset=cifar10",
         "training=train_e2_100epochs",
         "optimizer=SGD",
@@ -27,7 +27,7 @@ global_args = [
 args = [#"model.depth=16", "model.widen_factor=1", 
         "wandb.notes=check_if_train_time_log",
         "dataset.resolution=32", "model.drop_out=0.0"]
-run_command(args, global_args, test="instantiation")
+run_command(args, global_args, test=True)
 
 # mobilenet
 

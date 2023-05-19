@@ -8,7 +8,7 @@ def run_command(args, global_args, test):
     ]
     if test == "instantiation":
         # only instantiate and test network
-        command = ["python", "networks/network_instantiation.py", "-m"]
+        command = ["python", "experiment/network_instantiation.py", "-m"]
         command.extend(global_args_test)
         command.extend(args)
         output = subprocess.check_output(command, text=True)
