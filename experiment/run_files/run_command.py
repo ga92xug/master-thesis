@@ -1,4 +1,9 @@
 import subprocess
+import sys
+import pathlib
+sys.path.append('experiment')
+#print("Add path", pathlib.Path(sys.path[-1]).absolute())
+from network_instantiation import extract_info_instantiate_network
 
 def run_command(args, global_args, test):
     global_args_test = global_args + [
@@ -12,6 +17,7 @@ def run_command(args, global_args, test):
         command.extend(global_args_test)
         command.extend(args)
         output = subprocess.check_output(command, text=True)
+        extract_info_instantiate_network(output, verbose=True)
         return output
     else:
         # we run through the main training loop

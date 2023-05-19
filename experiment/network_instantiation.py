@@ -1,3 +1,4 @@
+import re
 import timeit
 import hydra
 from hydra import compose, initialize
@@ -20,6 +21,37 @@ from networks.util import (
     cuda_memory_usage,
     get_param_count
 )
+
+def extract_info_instantiate_network(output, verbose=False):
+    """
+    Extracts [param_count, model_building_time, train_time, flops] 
+    from the output of the network instantiation script.
+    """
+
+    # Define the regex patterns to extract the information
+    param_count_pattern = r"Total params: (\d+)"
+    model_building_time_pattern = r"Model building time: ([\d.]+)"
+    train_time_pattern = r"Train time elapsed: ([\d.]+)"
+    flops_pattern = r"Flops: ([\d.]+)"
+    # Extract the information using regex
+    param_count_match = re.search(param_count_pattern, output)
+    model_building_time_match = re.search(model_building_time_pattern, output)
+    train_time_match = re.search(train_time_pattern, output)
+    flops_match = re.search(flops_pattern, output)
+
+    # Extracted values
+    param_count = int(param_count_match.group(1)) if param_count_match else None
+    model_building_time = float(model_building_time_match.group(1)) if model_building_time_match else None
+    train_time = float(train_time_match.group(1)) if train_time_match else None
+    flops = float(flops_match.group(1)) if flops_match else None
+
+    if verbose:
+        print(f"param_count: {param_count / 1e6}M")
+        print(f"model_building_time: {model_building_time}")
+        print(f"train_time: {train_time}")
+        print(f"FLOPs: {flops}G\n")
+
+    return param_count, model_building_time, train_time, flops
 
 
 def model_instantiate(cfg: DictConfig, verbose=1, n_inputs=3, n_outputs=10, image_size=None):

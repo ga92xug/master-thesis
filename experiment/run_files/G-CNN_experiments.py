@@ -135,10 +135,37 @@ global_args = [
 # 3x3
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation", 
-        "model.rotation=2,10,16,20"]
-#run_command(args, global_args, test=False)
+        "model.rotation=4,6"]
+run_command(args, global_args, test=False)
 
 args = ["model.kernel_layout=[5,5]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation",
-        "model.rotation=2,10,16,20"]
+        "model.rotation=4,6"]
+run_command(args, global_args, test=False)
+
+
+# restriction experiment
+global_args = [
+        # model
+        "model=eq_wrn", 
+        "model.fix_params_mode=heuristic",
+        "model.rotation=8",
+        # training
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        # wandb
+        "wandb.tags=[G_CNN_exp4]",
+        "wandb.group=G_CNN_exp4",
+    ]
+
+# 16_4
+args = ["model.depth=16", "model.widen_factor=4", 
+        "wandb.notes=16_4_restriction_exp", 
+        "model.restrict=[invariant,invariant],[none,none],[halved,halved]"]
+run_command(args, global_args, test=False)
+# 28_6
+args = ["model.depth=28", "model.widen_factor=6", 
+        "wandb.notes=28_6_restriction_exp", 
+        "model.restrict=[invariant,invariant],[none,none],[halved,halved]"]
 run_command(args, global_args, test=False)

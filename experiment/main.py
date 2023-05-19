@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from fvcore.nn import FlopCountAnalysis, flop_count_table
 import pprint
 import sys
 
@@ -71,8 +72,9 @@ class Experiment:
         )
         # experiment name
         self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
-        run = wandb.init(project=cfg.wandb.project, config=wandb.config, mode=cfg.wandb.mode, \
-                         name=self.expname, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+        run = wandb.init(project=cfg.wandb.project, config=wandb.config, \
+                        mode=cfg.wandb.mode, name=self.expname, \
+                        notes=cfg.wandb.notes, tags=cfg.wandb.tags)
         wandb.run.log_code(".")
         
         print(OmegaConf.to_yaml(cfg))
@@ -82,7 +84,8 @@ class Experiment:
         np.random.seed(cfg.other.seed)
         
         # device
-        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        self.device = torch.device('cuda' if torch.cuda.is_available() \
+                                   else "cpu")
         print("DEVICE:", self.device)
 
         # outpath
@@ -101,7 +104,9 @@ class Experiment:
             self._loss_function = torch.nn.CrossEntropyLoss()
         self.n_outputs = n_outputs
         
-        self.train_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device) if self.n_outputs > 1 else BinaryAccuracy().to(self.device)
+        self.train_accuracy = MulticlassAccuracy(self.n_outputs)\
+            .to(self.device) if self.n_outputs > 1 \
+            else BinaryAccuracy().to(self.device)
 
         # build the model
         self.model = hydra.utils.instantiate(
@@ -118,9 +123,22 @@ class Experiment:
 
         self._global_start_time = datetime.datetime.now()
         self._verbose = cfg.other.verbose
-        total_param = get_param_count(self.model, in_mb=False, verbose=self._verbose)
-        # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
+
+        # compute number of parameters
+        total_param = get_param_count(self.model, in_mb=False, \
+                                      verbose=self._verbose)
         wandb.log({"total_parameters": total_param}, step=0)
+
+        # compute flops
+        input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
+            cfg.dataset.resolution, cfg.dataset.resolution).to(self.device)
+        flops = FlopCountAnalysis(self.model, (input_tensor,))
+        flops.unsupported_ops_warnings(False)
+        flops.uncalled_modules_warnings(False)
+        gflops = flops.total() / 1e9
+        wandb.log({"GFLOPs": gflops}, step=0)
+        # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
+        
         if self._verbose > 1:
             print(f"Starting: {self._global_start_time}")
         

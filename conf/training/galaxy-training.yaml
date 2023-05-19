@@ -1,0 +1,9 @@
+batch_size: 128                # Number of examples to process in a batch during training
+eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+epochs: 50                    # Number of training epochs
+adapt_lr: exponential                # Adaptive learning rate scheduler to use (exponential, validation, or Null)
+lr_decay_start: 0            # Epoch to start adaptive learning rate decay
+lr_decay_factor: 0.02          # Factor to multiply learning rate by during adaptive decay
+lr_decay_epoch: 25             # Period (in epochs) between adaptive learning rate decay
+lr_decay_schedule: null       # List of specific epochs for adaptive learning rate decay (alternative to lr_decay_epoch)
+augment_train: False     
