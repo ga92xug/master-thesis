@@ -17,34 +17,25 @@ global_args = [
         "model.rotation=8",
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-    ]
-
 # 3x3
 # 2.799.413
 args = ["model.kernel_layout=[3,3]", "model.padding=1",
         "model.depth=16", "model.widen_factor=4"]
-#run_command_test(args, global_args_test)
-#run_command(args, global_args)
+#run_command(args, global_args, test=False)
 
 # 5x5
 # 4.0= 7.155.141
 # 2.5= 2.814.789
 args = ["model.kernel_layout=[5,5]", "model.padding=2", 
         "model.depth=16", "model.widen_factor=2.5,4.0"]
-#run_command_test(args, global_args_test)
-#run_command(args, global_args)
+#run_command(args, global_args, test=False)
 
 # 7x7
 # 4.0= 13.521.205
 # 1.85= 2.756.293
 args = ["model.kernel_layout=[7,7]", "model.padding=3", 
         "model.depth=16", "model.widen_factor=4.0"]
-#run_command_test(args, global_args_test)
-#run_command(args, global_args)
+#run_command(args, global_args, test=False)
 
 
 # global arguments
@@ -60,34 +51,27 @@ global_args = [
         "model.rotation=14",
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
-    ]
-
 # 3x3
 # 2.799.413
 args = ["model.kernel_layout=[3,3]", "model.padding=1",
         "model.depth=16", "model.widen_factor=4"]
-#run_command_test(args, global_args_test)
-#run_command(args, global_args)
+
+#run_command(args, global_args, test=False)
 
 # 5x5
 # 4.0= 7.155.141
 # 2.5= 2.814.789
 args = ["model.kernel_layout=[5,5]", "model.padding=2", 
         "model.depth=16", "model.widen_factor=2.5"]
-#run_command_test(args, global_args_test)
-#run_command(args, global_args)
+
+#run_command(args, global_args, test=False)
 
 # 7x7
 # 4.0= 13.521.205
 # 1.85= 2.756.293
 args = ["model.kernel_layout=[7,7]", "model.padding=3", 
         "model.depth=16", "model.widen_factor=1.85"]
-#run_command_test(args, global_args_test)
-#run_command(args, global_args)
+#run_command(args, global_args, test=False)
 
 
 # group experiment
@@ -101,12 +85,6 @@ global_args = [
         "wandb.tags=[G_CNN_exp2]",
         "wandb.group=G_CNN_exp2",
         "model.rotation=8",
-    ]
-
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=10",
-        "training.epochs=1",
     ]
 
 # 3x3

@@ -62,9 +62,9 @@ class mnist_dataset(data.Dataset):
             data = np.load(cfg.dataset.data_dir + filename)
 
         self.images = np.array(data['images'], dtype=float32)
-        self.labels = np.array(data['labels'], dtype=np.int64)
+        self.labels = np.array(data['labels'], dtype=int64)
         #print("Writable images/lables:", self.images.flags.writeable, self.labels.flags.writeable)
-        #self.labels = data['labels'].astype(np.int64)
+        #self.labels = data['labels'].astype(int64)
         self.num_samples = len(self.labels)
     
     def __getitem__(self, index):

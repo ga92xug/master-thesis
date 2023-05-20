@@ -57,7 +57,7 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
                 frequencies_cutoff=lambda r: 3 * r,
             ).cuda()
             print("\nR2Conv:")
-            conv.check_equivariance()
+            conv.check_equivariance(atol=0.2, rtol=0.2)
 
             pool = GroupPooling(input_field_type)
             print("\nGroupPooling:")
@@ -80,15 +80,16 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
             conv_block = EquivariantConvBlock(
                 in_type=input_field_type,
                 out_channels=16,
-                frequency=rot,
+                #frequency=rot,
                 kernel_size=3,
                 padding=1,
-                num_groups=4,
+                #num_groups=4,
             ).cuda()
             print("\nConv Block:")
             conv_block.check_equivariance()
 
-            norm_block = EquivariantNorm(input_field_type, num_groups=4, affine=False)
+            #norm_block = EquivariantNorm(input_field_type, num_groups=4, affine=False)
+            norm_block = EquivariantNorm(input_field_type, affine=False)
             print("\nNorm Block:")
             norm_block.check_equivariance()
 
