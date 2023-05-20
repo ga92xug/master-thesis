@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../run_files') # add parent directory
-from run_command import run_command, run_command_test
+from run_command import run_command
 
 # python networks/eq_wrn.py -m model.kernel_layout=[3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
 # kernel_layout = [3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
