@@ -77,6 +77,8 @@ class Experiment:
                         notes=cfg.wandb.notes, tags=cfg.wandb.tags)
         wandb.run.log_code(".")
         
+        run.config["trial_index"] = cfg.nas.trial_index
+
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
         # seed
