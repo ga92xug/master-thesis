@@ -85,8 +85,8 @@ class Experiment:
             run.name = cfg.wandb.name
             run.notes = cfg.wandb.notes
             run.tags = cfg.wandb.tags
-            
-        wandb.run.log_code(".")
+
+        run.log_code(".")
         
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg

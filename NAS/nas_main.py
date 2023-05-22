@@ -75,79 +75,9 @@ hydra_wandb_runner = HydraWandbRunner(script_path, project_name)
 #runner.run(trial)
 
 
-
-######################################################################
-# Setting up the ``SearchSpace``
-# ------------------------------
-#
-# First, we define our search space. Ax supports both range parameters
-# of type integer and float as well as choice parameters which can have
-# non-numerical types such as strings.
-# We will tune the hidden sizes, learning rate, dropout, and number of
-# epochs as range parameters and tune the batch size as an ordered choice
-# parameter to enforce it to be a power of 2.
-#
-
-from ax.core import (
-    ChoiceParameter,
-    ParameterType,
-    RangeParameter,
-    SearchSpace,
-)
-
-parameters = [
-    # NOTE: In a real-world setting, hidden_size_1 and hidden_size_2
-    # should probably be powers of 2, but in our simple example this
-    # would mean that ``num_params`` can't take on that many values, which
-    # in turn makes the Pareto frontier look pretty weird.
-    RangeParameter(
-        name="hidden_size_1",
-        lower=16,
-        upper=128,
-        parameter_type=ParameterType.INT,
-        log_scale=True,
-    ),
-    RangeParameter(
-        name="hidden_size_2",
-        lower=16,
-        upper=128,
-        parameter_type=ParameterType.INT,
-        log_scale=True,
-    ),
-    RangeParameter(
-        name="learning_rate",
-        lower=1e-4,
-        upper=1e-2,
-        parameter_type=ParameterType.FLOAT,
-        log_scale=True,
-    ),
-    RangeParameter(
-        name="epochs",
-        lower=1,
-        upper=4,
-        parameter_type=ParameterType.INT,
-    ),
-    RangeParameter(
-        name="dropout",
-        lower=0.0,
-        upper=0.5,
-        parameter_type=ParameterType.FLOAT,
-    ),
-    ChoiceParameter(  # NOTE: ``ChoiceParameters`` don't require log-scale
-        name="batch_size",
-        values=[32, 64, 128, 256],
-        parameter_type=ParameterType.INT,
-        is_ordered=True,
-        sort_values=True,
-    ),
-]
-
-search_space = SearchSpace(
-    parameters=parameters,
-    # NOTE: In practice, it may make sense to add a constraint
-    # hidden_size_2 <= hidden_size_1
-    parameter_constraints=[],
-)
+import Eq_Search_Space
+eq_search_space = Eq_Search_Space.Eq_Search_Space()
+search_space = eq_search_space.get_search_space()
 
 
 from metric import WandbMetric
