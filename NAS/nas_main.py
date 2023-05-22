@@ -63,81 +63,18 @@ from pathlib import Path
 
 """
 ToDo:
-- Log via wandb
-- wandb.run.id
+- objective_thresholds
+- search space
 
 """
 
-def trainer(
-    log_path: str,
-    hidden_size_1: int,
-    hidden_size_2: int,
-    learning_rate: float,
-    epochs: int,
-    dropout: float,
-    batch_size: int,
-    trial_idx: int = -1,
-) -> specs.AppDef:
-
-    # define the log path so we can pass it to the TorchX ``AppDef``
-    if trial_idx >= 0:
-        log_path = Path(log_path).joinpath(str(trial_idx)).absolute().as_posix()
-
-    return utils.python(
-        # command line arguments to the training script
-        "--log_path",
-        log_path,
-        "--hidden_size_1",
-        str(hidden_size_1),
-        "--hidden_size_2",
-        str(hidden_size_2),
-        "--learning_rate",
-        str(learning_rate),
-        "--epochs",
-        str(epochs),
-        "--dropout",
-        str(dropout),
-        "--batch_size",
-        str(batch_size),
-        # other config options
-        name="trainer",
-        script="mnist_train_nas.py",
-        image=torchx.version.TORCHX_IMAGE,
-    )
+import HydraWandbRunner
+project_name = "scaling-laws-eq"
+script_path = "experiment/main.py"  
+hydra_wandb_runner = HydraWandbRunner(script_path, project_name)
+#runner.run(trial)
 
 
-######################################################################
-# Setting up the Runner
-# ---------------------
-#
-# Ax’s `Runner <https://ax.dev/api/core.html#ax.core.runner.Runner>`__
-# abstraction allows writing interfaces to various backends.
-# Ax already comes with Runner for TorchX, and so we just need to
-# configure it. For the purpose of this tutorial we run jobs locally
-# in a fully asynchronous fashion.
-#
-# In order to launch them on a cluster, you can instead specify a
-# different TorchX scheduler and adjust the configuration appropriately.
-# For example, if you have a Kubernetes cluster, you just need to change the
-# scheduler from ``local_cwd`` to ``kubernetes``).
-#
-
-
-import tempfile
-from ax.runners.torchx import TorchXRunner
-
-# Make a temporary dir to log our results into
-log_dir = tempfile.mkdtemp()
-
-ax_runner = TorchXRunner(
-    tracker_base="/tmp/",
-    component=trainer,
-    # NOTE: To launch this job on a cluster instead of locally you can
-    # specify a different scheduler and adjust arguments appropriately.
-    scheduler="local_cwd",
-    component_const_params={"log_path": log_dir},
-    cfg={},
-)
 
 ######################################################################
 # Setting up the ``SearchSpace``
@@ -213,32 +150,6 @@ search_space = SearchSpace(
 )
 
 
-######################################################################
-# Setting up Metrics
-# ------------------
-#
-# Ax has the concept of a `Metric <https://ax.dev/api/core.html#metric>`__
-# that defines properties of outcomes and how observations are obtained
-# for these outcomes. This allows e.g. encoding how data is fetched from
-# some distributed execution backend and post-processed before being
-# passed as input to Ax.
-#
-# In this tutorial we will use
-# `multi-objective optimization <https://ax.dev/tutorials/multiobjective_optimization.html>`__
-# with the goal of maximizing the validation accuracy and minimizing
-# the number of model parameters. The latter represents a simple proxy
-# of model latency, which is hard to estimate accurately for small ML
-# models (in an actual application we would benchmark the latency while
-# running the model on-device).
-#
-# In our example TorchX will run the training jobs in a fully asynchronous
-# fashion locally and write the results to the ``log_dir`` based on the trial
-# index (see the ``trainer()`` function above). We will define a metric
-# class that is aware of that logging directory. By subclassing
-# `TensorboardCurveMetric <https://ax.dev/api/metrics.html?highlight=tensorboardcurvemetric#ax.metrics.tensorboard.TensorboardCurveMetric>`__
-# we get the logic to read and parse the TensorBoard logs for free.
-#
-
 from metric import WandbMetric
 val_acc = WandbMetric(
     name="valid.acc",
@@ -274,12 +185,12 @@ opt_config = MultiObjectiveOptimizationConfig(
     objective=MultiObjective(
         objectives=[
             Objective(metric=val_acc, minimize=False),
-            Objective(metric=model_num_params, minimize=True),
+            Objective(metric=gflops, minimize=True),
         ],
     ),
     objective_thresholds=[
         ObjectiveThreshold(metric=val_acc, bound=0.94, relative=False),
-        ObjectiveThreshold(metric=model_num_params, bound=80_000, relative=False),
+        ObjectiveThreshold(metric=gflops, bound=80_000, relative=False),
     ],
 )
 
@@ -305,7 +216,7 @@ experiment = Experiment(
     name="torchx_mnist",
     search_space=search_space,
     optimization_config=opt_config,
-    runner=ax_runner,
+    runner=hydra_wandb_runner,
 )
 
 ######################################################################

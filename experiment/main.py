@@ -72,13 +72,22 @@ class Experiment:
         )
         # experiment name
         self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
-        run = wandb.init(project=cfg.wandb.project, config=wandb.config, \
-                        mode=cfg.wandb.mode, name=self.expname, \
-                        notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+        if wandb.run is None:
+            # normal training mode
+            run = wandb.init(project=cfg.wandb.project, config=wandb.config, \
+                            mode=cfg.wandb.mode, name=self.expname, \
+                            notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+        else:
+            # during NAS we init the run HydraWandbRunner to have access to the
+            # run id
+            run = wandb.run
+            run.config.update(cfg.wandb.config)
+            run.name = cfg.wandb.name
+            run.notes = cfg.wandb.notes
+            run.tags = cfg.wandb.tags
+            
         wandb.run.log_code(".")
         
-        run.config["trial_index"] = cfg.nas.trial_index
-
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
         # seed

@@ -67,7 +67,3 @@ wandb:
   give_name: True
   tags: null
   group: null
-
-# NAS
-nas:
-  trial_index: -1 # no NAS
