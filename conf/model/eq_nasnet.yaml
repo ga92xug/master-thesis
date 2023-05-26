@@ -1,4 +1,4 @@
-_target_: networks.eq_nasnet.EquivariantNASNet
+_target_: networks.eq_nasnet.eq_nasnet.EquivariantNASNet
 # global args
 width_coefficient: 1
 depth_coefficient: 1

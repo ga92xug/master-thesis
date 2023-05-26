@@ -11,7 +11,7 @@ def run_command(args, global_args, test):
         "training.steps_per_epoch=10",
         "training.epochs=1",
     ]
-    if test == "instantiation":
+    if test == "instantiation_capture":
         # only instantiate and test network
         command = ["python", "experiment/network_instantiation.py", "-m"]
         command.extend(global_args_test)
@@ -19,6 +19,11 @@ def run_command(args, global_args, test):
         output = subprocess.check_output(command, text=True)
         extract_info_instantiate_network(output, verbose=True)
         return output
+    elif test == "instantiation":
+        command = ["python", "experiment/network_instantiation.py", "-m"]
+        command.extend(global_args_test)
+        command.extend(args)
+        subprocess.run(command)
     else:
         # we run through the main training loop
         command = ["python", "experiment/main.py", "-m"]

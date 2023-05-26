@@ -4,42 +4,17 @@ import numpy as np
 import sys
 from networks.util import cuda_memory_usage, get_fixed_params
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-import nn as nn_eq
 
 from nn import (
-    GroupTensor,
     FieldType,
     EquivariantModule,
     SequentialModule,
-    R2Conv,
-    GroupNorm,
-    InducedNormGroupNorm,
-    GroupStandardization,
-    BatchNorm,
-    InducedNormBatchNorm,
-    Mish,
-    ReLU,
-    NormNonLinearity,
-    InducedGatedNonLinearity,
-    GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormAvgPool,
-    NormMaxPool,
-    PointwiseAvgPool,
-    PointwiseAdaptiveAvgPool,
-    PointwiseMaxPool,
-    DisentangleModule,
-    RestrictionModule,
-    MultipleModule,
     PointwiseDropout,
 )
-from group_theory import Representation
 from nn.modules import nonlinearities
-from networks.eq_layers import EquivariantNorm, EquivariantConv
+from networks.eq_other import EquivariantNorm
+from networks.eq_convs import EquivariantConv
 
-
-# TODO check equivariantnorm
 
 class EquivariantWideConvBlock(EquivariantModule):
     def __init__(

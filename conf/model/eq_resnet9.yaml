@@ -1,5 +1,5 @@
 # Model parameters          
-_target_: networks.eq_resnet.EquivariantResNet9            # The name of the model to use
+_target_: networks.eq_resnet.eq_resnet9.EquivariantResNet9            # The name of the model to use
 group: "cyclic"  # "dihedral" "orthogonal"
 rotation: 4  # discrete number or frequency
 fix_params: False

@@ -3,38 +3,15 @@ from torch import nn
 import numpy as np
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-import nn as nn_eq
 
 from nn import (
     GroupTensor,
     FieldType,
     EquivariantModule,
     SequentialModule,
-    R2Conv,
-    GroupNorm,
-    InducedNormGroupNorm,
-    GroupStandardization,
-    BatchNorm,
-    InducedNormBatchNorm,
-    Mish,
-    ReLU,
-    NormNonLinearity,
-    InducedGatedNonLinearity,
-    GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormAvgPool,
-    NormMaxPool,
-    PointwiseAvgPool,
-    PointwiseAdaptiveAvgPool,
-    PointwiseMaxPool,
-    DisentangleModule,
-    RestrictionModule,
-    MultipleModule,
+
 )
-from group_theory import Representation
-from nn.modules import nonlinearities
-from networks.eq_pool_and_norm import Equivariant_Conv_BN_actF, EquivariantConv
+from networks.eq_convs import Equivariant_Conv_BN_actF, EquivariantConv
 
 
 class EquivariantBottleneck(EquivariantModule):

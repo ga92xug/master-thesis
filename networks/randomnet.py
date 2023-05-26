@@ -5,7 +5,7 @@ import torch
 from torch import nn
 import sys
 
-from networks.eq_pool_and_norm import EquivariantConvBlock
+from networks.eq_other import EquivariantConvBlock
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 

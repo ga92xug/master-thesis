@@ -1,5 +1,5 @@
 # Model parameters          
-_target_: networks.eq_resnet.EquivariantWideResNet            # The name of the model to use
+_target_: networks.eq_resnet.eq_wrn.EquivariantWideResNet           
 depth: 16
 widen_factor: 4
 group: cyclic  # "dihedral" "orthogonal"

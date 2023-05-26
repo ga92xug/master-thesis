@@ -26,7 +26,6 @@ global_args = [
 # 58-1-108 => 876.229, train time: 3.96
 args = ["model.depth=16", "model.drop_out=0.3", "model.widen_factor=2", "dataset.resolution=224", "wandb.notes=eq_wrn_baseline"]
 #run_command(args, global_args, test="instantiation")
-#run_command_test(args, global_args_test)
 """
 # Scale WRN by depth 
 # 94= 1.386.949, train time: 6.098 
@@ -73,20 +72,17 @@ global_args = [
 # 1-1-224 => 621.658
 args = ["model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution=108", "wandb.notes=eq_mobilenetv2_baseline"]
 #run_command(args, global_args, test="instantiation")
-#run_command_test(args, global_args_test)
 """
 # Scale eq_mobilenetv2 by depth 
 # d = 2 -> 1.380.554
 # d = 4 -> 2.898.346
 args = ["model.depth_multiplier=1.8", "model.width_multiplier=1", "dataset.resolution=224", "wandb.notes=depth_scaling"]
-#run_command_test(args, global_args_test)
 run_command(args, global_args)
 
 # Scale eq_mobilenetv2 by width
 # width_multiplier 2: 1.331.050
 # width_multiplier 3: 
 args = ["model.depth_multiplier=1", "model.width_multiplier=1.4", "dataset.resolution=224", "wandb.notes=width_scaling"]
-#run_command_test(args, global_args_test)
 run_command(args, global_args)
 
 # Scale eq_mobilenetv2 by Resolution 
@@ -94,7 +90,6 @@ run_command(args, global_args)
 # 224: r:1 = 621.658 
 # 480: r:2.147 = 749.658
 args = ["model.depth_multiplier=1", "model.width_multiplier=1", "dataset.resolution=224", "wandb.notes=resolution_scaling"]
-#run_command_test(args, global_args_test)
 """
 
 # eq_efficientnet

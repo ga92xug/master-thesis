@@ -1,51 +1,19 @@
 import re
 import math
 import collections
-from functools import partial
 from typing import Tuple
 import torch
 from torch import nn
 from torch.nn import functional as F
-from torch.utils import model_zoo
-
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
-import nn as nn_eq
+sys.path.append('../networks') # add parent directory
 
 from nn import (
-    GroupTensor,
     FieldType,
     EquivariantModule,
-    SequentialModule,
-    R2Conv,
-    GroupNorm,
-    InducedNormGroupNorm,
-    GroupStandardization,
-    BatchNorm,
-    InducedNormBatchNorm,
-    Mish,
-    ReLU,
-    NormNonLinearity,
-    InducedGatedNonLinearity,
-    GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormAvgPool,
-    NormMaxPool,
-    PointwiseAvgPool,
-    PointwiseAdaptiveAvgPool,
-    PointwiseMaxPool,
-    DisentangleModule,
-    RestrictionModule,
-    MultipleModule,
 )
-from group_theory import Representation
-from nn.modules import nonlinearities
 
-from networks import (
-    Restriction,
-    EquivariantPool,
-    EquivariantConvBlock,
+from networks.eq_convs import (
     EquivariantConv,
 )
 
@@ -70,7 +38,8 @@ BlockArgs = collections.namedtuple('BlockArgs', [
 GlobalParams.__new__.__defaults__ = (None,) * len(GlobalParams._fields)
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
-def eq_round_filters(filters, global_params, rotation=1):
+
+def eq_round_filters(filters, width_coefficient, depth_divisor, min_depth):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
     Args:
@@ -79,19 +48,19 @@ def eq_round_filters(filters, global_params, rotation=1):
     Returns:
         new_filters: New filters number after calculating.
     """
-    multiplier = global_params.width_coefficient
+    multiplier = width_coefficient
     if not multiplier:
         return filters
     # TODO: modify the params names.
     #       maybe the names (width_divisor,min_width)
     #       are more suitable than (depth_divisor,min_depth).
-    divisor = global_params.depth_divisor
-    min_depth = global_params.min_depth
+    divisor = depth_divisor
+    min_depth = min_depth
     filters *= multiplier
     min_depth = min_depth or divisor  # pay attention to this line when using min_depth
     # follow the formula transferred from official TensorFlow implementation
     new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
-    if new_filters < 0.9 * filters and rotation == 1:  # prevent rounding by more than 10%
+    if new_filters < 0.9 * filters:  # prevent rounding by more than 10%
          new_filters += divisor
     # new_filters /= rotation
     return int(round(new_filters))

@@ -1,4 +1,4 @@
-_target_: networks.eq_efficientnet.EquivariantEfficientNet
+_target_: networks.eq_efficientnet.eq_efficientnet.EquivariantEfficientNet
 group: cyclic
 rotation: 8
 restrict: [null,null,null,null,null,halved,invariant,null]

@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,7 +5,7 @@ import torch.nn.functional as F
 import hydra
 from omegaconf import DictConfig
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+sys.path.append('../networks') # add parent directory
 
 from networks.util import (
     calculate_output_image_size,

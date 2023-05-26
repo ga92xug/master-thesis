@@ -117,11 +117,6 @@ global_args = [
         "model.rotation=8",
     ]
 
-global_args_test = global_args + [
-        "wandb.mode=disabled",
-        "training.steps_per_epoch=1",
-        "training.epochs=1",
-    ]
 # d=16 k=4, [3,3], drop_out=0.3
 args = ["model.depth=16", "model.widen_factor=4", "model.drop_out=0.3", "wandb.notes=exp_4_eq_wrn"]
 #run_command(args, global_args, test=False)

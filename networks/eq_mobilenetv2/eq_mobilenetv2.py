@@ -1,33 +1,27 @@
-import timeit
-import warnings
-import hydra
 import numpy as np
 from typing import List, Tuple
 from omegaconf import DictConfig
-import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (
-    rot2dOnR2,
-    flipRot2dOnR2,
     FieldType,
-    SequentialModule,
     GroupTensor,
 )
 from networks.util import (
     calculate_output_image_size,
     get_fixed_params, 
     get_gspace_from_name, 
-    get_param_count
 )
 from networks import (
     Restriction,
     EquivariantPool,
     EquivariantConvBlock,
     Equivariant_Conv_BN_actF,
+)
+
+from .util_eq_mobilenetv2 import (
     EquivariantBottleneck,
     EquivariantBottleneckBlock,
 )

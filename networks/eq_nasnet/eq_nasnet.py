@@ -1,22 +1,25 @@
-import math
 from typing import List, Tuple
-import hydra
+from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
+sys.path.append('../networks') # add parent directory
 
-sys.path.append('../scaling-laws-ecnn') # add parent directory
-import torch
-from torch import nn
-from torch.nn import functional as F
-from networks.eq_nasnet_util import (
+from eq_nasnet_util import (
     BlockDecoder,
     eq_round_filters,
     round_repeats,
     Swish,
     Eq_Conv2dSamePadding,
 )
-from networks.efficientnet import EfficientNet
-from networks.eq_pool_and_norm import EquivariantConv, EquivariantPool, EquivariantSqueezeExcitation, Restriction
+from networks.eq_other import (
+    EquivariantPool, 
+    Restriction
+)
+from networks.eq_convs import (
+    EquivariantConv,
+    EquivariantSqueezeExcitation,
+)
+
 from networks.util import (
     calculate_output_image_size, 
     get_fixed_params, 
@@ -30,32 +33,12 @@ from nn import (
     GroupTensor,
     FieldType,
     EquivariantModule,
-    SequentialModule,
-    R2Conv,
-    GroupNorm,
-    InducedNormGroupNorm,
-    GroupStandardization,
     BatchNorm,
     InducedNormBatchNorm,
     Mish,
     ReLU,
     Swish,
-    NormNonLinearity,
-    InducedGatedNonLinearity,
-    GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormAvgPool,
-    NormMaxPool,
-    PointwiseAvgPool,
-    PointwiseAdaptiveAvgPool,
-    PointwiseMaxPool,
-    DisentangleModule,
-    RestrictionModule,
-    MultipleModule,
 )
-from group_theory import Representation
-from nn.modules import nonlinearities
 
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'

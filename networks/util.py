@@ -1,11 +1,8 @@
 from copy import deepcopy
 import math
 import warnings
-from matplotlib import pyplot as plt
-import numpy as np
 import sys
 import torch
-from networks.eq_efficientnet_util import Eq_Conv2dSamePadding
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (

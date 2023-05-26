@@ -6,3 +6,4 @@ reshuffle: True               # Reshuffle train and valid splits instead of usin
 workers: 8                    # Number of jobs to load the dataset
 drop_last_train: False       # Drop the last batch if it is smaller than the batch size
 resolution: 32
+resolution_frozen: True      # Freeze the resolution of the dataset since rescaling it is not wanted

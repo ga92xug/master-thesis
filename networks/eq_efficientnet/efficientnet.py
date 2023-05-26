@@ -8,12 +8,12 @@
 import hydra
 from omegaconf import DictConfig
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+sys.path.append('../networks') # add parent directory
 
 import torch
 from torch import nn
 from torch.nn import functional as F
-from networks.eq_efficientnet_util import (
+from .eq_efficientnet_util import (
     BlockDecoder,
     eq_round_filters,
     round_repeats,

@@ -58,7 +58,6 @@ args = ["model.depth_multiplier=7", "model.width_multiplier=3.5",
 args = ["model.depth_multiplier=8.8,40", "model.width_multiplier=1", 
         "wandb.notes=eq_mobilenetv2 baseline",
         "dataset.resolution=32"]
-#run_command_test(args, global_args_test)
 run_command(args, global_args)
 
 # width 
@@ -67,7 +66,6 @@ run_command(args, global_args)
 args = ["model.depth_multiplier=1", "model.width_multiplier=3.3,9.5", 
         "wandb.notes=eq_mobilenetv2 baseline",
         "dataset.resolution=32"]
-# run_command_test(args, global_args_test)
 run_command(args, global_args)
 
 
@@ -76,7 +74,6 @@ run_command(args, global_args)
 args = ["model.depth_multiplier=4.2", "model.width_multiplier=1.5",
         "wandb.notes=eq_mobilenetv2 baseline",
         "dataset.resolution=32"]
-#run_command_test(args, global_args_test)
 run_command(args, global_args)
 
 # scale to 3.5 million params => 9.5 = 3.472.333; train time = 3.27
@@ -84,6 +81,5 @@ run_command(args, global_args)
 args = ["model.depth_multiplier=8.5", "model.width_multiplier=3.1",
         "wandb.notes=eq_mobilenetv2 baseline",
         "dataset.resolution=32"]
-#run_command_test(args, global_args_test)
 run_command(args, global_args)
 """

@@ -1,25 +1,15 @@
-from datetime import time
-import math
-import timeit
-import warnings
+import copy
 from typing import Tuple, List
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
-import hydra
 from omegaconf import DictConfig
 import sys
-import copy
-sys.path.append('../scaling-laws-ecnn') # add parent directory
-import os
-#os.environ['HYDRA_FULL_ERROR'] = '1'
+
+sys.path.append('../networks') # add parent directory
 
 import numpy as np
 
 from nn import (
-    rot2dOnR2,
-    flipRot2dOnR2,
     FieldType,
     SequentialModule,
     GroupTensor,
@@ -27,13 +17,12 @@ from nn import (
 from networks import (
     Restriction,
     EquivariantPool,
-    EquivariantConvBlock,
     EquivariantConv,
 )
 from nn.modules import nonlinearities
-from networks.eq_layers import EquivariantNorm
-from networks.eq_wrn.wrn import WideResNet
-from networks.eq_wrn_util import (
+from networks.eq_other import EquivariantNorm
+from networks.eq_resnet.wrn import WideResNet
+from networks.eq_resnet.eq_wrn_util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 
     EquivariantWideConvBlock_drop_out,

@@ -37,7 +37,7 @@ if "DISPLAY" not in os.environ:
 import matplotlib.pyplot as plt
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
-#os.environ['HYDRA_FULL_ERROR'] = '1'
+os.environ['HYDRA_FULL_ERROR'] = '1'
 #os.environ['TORCHDYNAMO_VERBOSE'] = '0'
 #import torch._dynamo
 #torch._dynamo.config.suppress_errors = True
