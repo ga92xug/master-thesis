@@ -1,0 +1,11 @@
+_target_: networks.eq_nasnet.EquivariantNASNet
+# global args
+width_coefficient: 1
+depth_coefficient: 1
+drop_out: 0.2
+batch_norm_momentum: 0.99
+batch_norm_epsilon: 1e-3
+depth_divisor: 12
+min_depth: 1
+
+blocks_args: null

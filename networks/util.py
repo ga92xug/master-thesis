@@ -229,7 +229,7 @@ def get_param_count(model_name, in_mb=False, verbose=False):
             return total_params
 
 
-def get_gspace(group, rotation):
+def get_gspace_from_name(group, rotation):
         """Get group space for a given group and rotation.
         Args:
             group (str): Group name.
@@ -246,5 +246,26 @@ def get_gspace(group, rotation):
         else:
             raise ValueError(
                 f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
+            )
+        return gspace
+
+def get_gspace_from_id(id):
+        """Get group space from id.
+        Args:
+            id (tuple): Group id.
+        Returns:
+            gspace: Group space.
+        """
+        reflection, rotation = id
+
+        if reflection == -1:
+            # cyclic
+            gspace = rot2dOnR2(rotation)
+        elif reflection >=0:
+            # dihedral
+            gspace = flipRot2dOnR2(rotation)
+        else:
+            raise ValueError(
+                f'Group id "{id}" is not know.'
             )
         return gspace

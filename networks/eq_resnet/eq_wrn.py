@@ -32,7 +32,7 @@ from networks import (
 )
 from nn.modules import nonlinearities
 from networks.eq_layers import EquivariantNorm
-from networks.wrn import WideResNet
+from networks.eq_wrn.wrn import WideResNet
 from networks.eq_wrn_util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 
@@ -42,7 +42,7 @@ from networks.eq_wrn_util import (
 from networks.util import (
     calculate_output_image_size,
     get_fixed_params,
-    get_gspace,
+    get_gspace_from_name,
     get_param_count,
     cuda_memory_usage,
 )
@@ -136,7 +136,7 @@ class EquivariantWideResNet(nn.Module):
                 value += ","
 
         print(f"Eq_WRN_{self.depth}_{k:.2f}_B({value})")
-        gspace = get_gspace(group, rotation)
+        gspace = get_gspace_from_name(group, rotation)
         self.gspace = gspace
 
         self.num_channels = np.array(self.layout, dtype=float)

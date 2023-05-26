@@ -2,9 +2,6 @@ import sys
 sys.path.append('../run_files') # add parent directory
 from run_command import run_command
 
-# python networks/eq_wrn.py -m model.kernel_layout=[3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
-# kernel_layout = [3,3],[3,1],[1,3],[3,1,3],[1,3,1],[3,1,1]
-
 # global arguments
 global_args = [
         "model=eq_wrn", 
@@ -153,6 +150,30 @@ global_args = [
         "wandb.group=exp_5_eq_wrn",
     ]
 
+
+args = ["model.depth=22", "model.widen_factor=2"]
+#run_command(args, global_args, test=False)
+
+
+# experiment WRN
+
+global_args = [
+        "model=wrn", 
+
+        "dataset=cifar10",
+        "training=train_e2_100epochs",
+        "optimizer=SGD",
+        
+        "wandb.tags=[cifar10_wrn_baseline]",
+        "wandb.group=exp_5_eq_wrn",
+    ]
+
 # 
-args = ["model.depth=40", "model.widen_factor=2"]
+args = ["model.depth=16,22,28", "model.widen_factor=2"]
 run_command(args, global_args, test=False)
+
+args = ["model.depth=34", "model.widen_factor=1,2,4"]
+run_command(args, global_args, test=False)
+
+args = ["model.depth=16", "model.widen_factor=4"]
+#run_command(args, global_args, test=False)

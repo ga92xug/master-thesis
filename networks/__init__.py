@@ -1,22 +1,22 @@
-from .eq_layers import (
+from .eq_pool_and_norm import (
     Restriction,
     EquivariantConv,
     EquivariantNorm,
     EquivariantPool,
     EquivariantConvBlock,
     EquivariantSqueezeExcitation,
-    EquivariantConvBlock_Conv_BN_actF,
+    Equivariant_Conv_BN_actF,
     EquivariantBottleneck,
     EquivariantBottleneckBlock,
 )
-from .eq_resnet9 import EquivariantResNet9
-from .eq_wrn import EquivariantWideResNet
-from .eq_mobilenetv2 import EquivariantMobileNetV2
+from .eq_resnet.eq_resnet9 import EquivariantResNet9
+from .eq_wrn.eq_wrn import EquivariantWideResNet
+from .eq_mobilenet.eq_mobilenetv2 import EquivariantMobileNetV2
 from .randomnet import RandomNet
-from .wrn import WideResNet
+from .eq_wrn.wrn import WideResNet
 from .eq_efficientnet import EquivariantEfficientNet
 from .efficientnet import EfficientNet
-from .eq_wrn_util import (
+from .eq_wrn.eq_wrn_util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 
     EquivariantWideConvBlock_drop_out,

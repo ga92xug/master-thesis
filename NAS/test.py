@@ -1,9 +1,9 @@
 import sys
 #sys.path.append('')
 try:
-    from NAS.run import HydraWandbRunner
+    from NAS.runner import HydraWandbRunner
 except ModuleNotFoundError:
-    from run import HydraWandbRunner
+    from NAS.runner import HydraWandbRunner
 
 
 class DummyTrial:

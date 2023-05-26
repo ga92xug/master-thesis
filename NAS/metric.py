@@ -7,66 +7,77 @@ from ax.core.types import Tuple
 import numpy as np
 import sqlite3
 
+# currently we use an evaluation function instead by we might need the 
+# flexibility of a metric later
 class WandbMetric(Metric):
     """
-    This class is used to fetch data from wandb.
-    The data is stored in a local database to avoid fetching the same data
-    multiple times.
-    For early stopping change that.
+    A metric that fetches data from a wandb run.
+    Implements a database cache to avoid repeated API calls.
     """
+
     def __init__(self, name: str, entity: str, project: str, 
                  db_file: str = "data/wandb_cache.db"):
         super().__init__(name)
-        self.api = wandb.Api()
         self.project = project
         self.entity = entity
-        self.conn = sqlite3.connect(db_file)
-        self.cursor = self.conn.cursor()
-        self.create_table_if_not_exists()
+        self.db_file = db_file
 
-    def create_table_if_not_exists(self):
-        self.cursor.execute('''
+    def connect_to_db(self):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS wandb_run_metrics (
                 run_id TEXT PRIMARY KEY,
                 gflops REAL,
                 acc_last_five TEXT
             )
         ''')
-        self.conn.commit()
+        conn.commit()
+        return conn, cursor
 
     def fetch_trial_data(self, trial) -> Tuple:
-        """
-        Fetch data for a specific trial.
-        """
-        # trial_index = trial.index
+        api = wandb.Api()
         trial_index = trial
-        run_id = trial_index  # Assuming the run id follows this format
-        self.cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', 
-                            (run_id,))
-        result = self.cursor.fetchone()
-        print("result", result)
+        run_id = trial_index
+        conn, cursor = self.connect_to_db()
+        cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', 
+                       (run_id,))
+        result = cursor.fetchone()
 
         if result is not None:
             gflops, mean_acc = float(result[1]), float(result[2])
-            print("gflops", gflops)
-            print("mean_acc", mean_acc)
         else:
-            run = self.api.run(f"{self.entity}/{self.project}/{run_id}")
-            # Fetch metrics
+            run = api.run(f"{self.entity}/{self.project}/{run_id}")
             gflops = run.history(keys=['GFLOPs']).values[:,1][0]
             acc = run.history(keys=['valid.acc']).values[:,1]
-            # mean of last five accuracy values
             mean_acc = np.median(acc[-5:])
-            # Store results into the database
-            self.cursor.execute('INSERT INTO wandb_run_metrics VALUES (?, ?, ?)', 
-                                (run_id, gflops, mean_acc))
-            self.conn.commit()
+            cursor.execute('INSERT INTO wandb_run_metrics VALUES (?, ?, ?)', 
+                           (run_id, gflops, mean_acc))
+            conn.commit()
 
         data = {
             "gflops": gflops,
             "acc": mean_acc
         }
         return self._make_trial_data(trial_index, self.name, data[self.name])
+
+    def to_json(self):
+        return {
+            "name": self.name,
+            "entity": self.entity,
+            "project": self.project,
+            "db_file": self.db_file,
+        }
+
+    @classmethod
+    def from_json(cls, json_repr):
+        return cls(
+            name=json_repr["name"],
+            entity=json_repr["entity"],
+            project=json_repr["project"],
+            db_file=json_repr["db_file"],
+        )
+
 
 
     def _make_trial_data(self, trial_index, metric_name, metric_value):

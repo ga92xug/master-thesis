@@ -113,12 +113,12 @@ global_args = [
 # 3x3
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation", 
-        "model.rotation=4,6"]
+        "model.rotation=12"]
 run_command(args, global_args, test=False)
 
 args = ["model.kernel_layout=[5,5]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation",
-        "model.rotation=4,6"]
+        "model.rotation=12"]
 run_command(args, global_args, test=False)
 
 
@@ -141,9 +141,9 @@ global_args = [
 args = ["model.depth=16", "model.widen_factor=4", 
         "wandb.notes=16_4_restriction_exp", 
         "model.restrict=[invariant,invariant],[none,none],[halved,halved]"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 # 28_6
 args = ["model.depth=28", "model.widen_factor=6", 
         "wandb.notes=28_6_restriction_exp", 
         "model.restrict=[invariant,invariant],[none,none],[halved,halved]"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)

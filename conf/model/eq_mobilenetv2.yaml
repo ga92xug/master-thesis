@@ -1,5 +1,5 @@
 # Model parameters          
-_target_: networks.EquivariantMobileNetV2            # The name of the model to use
+_target_: networks.eq_mobilenetv2.EquivariantMobileNetV2            # The name of the model to use
 group: cyclic  # "dihedral" "orthogonal"
 rotation: 8  # discrete number or frequency
 fix_params_mode: heuristic  # "heuristic", "no"

@@ -13,7 +13,7 @@ dataset:
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
   workers: 8                    # Number of jobs to load the dataset
-  drop_last_train: False       # Drop the last batch if it is smaller than the batch size
+  drop_last_train: False        # Drop the last batch if it is smaller than the batch size
 
 # Model parameters        
 # defined in model/*

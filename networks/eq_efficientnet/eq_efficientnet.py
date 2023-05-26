@@ -33,7 +33,7 @@ from networks.eq_efficientnet_util import (
 )
 from networks.efficientnet import EfficientNet
 from networks.eq_layers import EquivariantConv, EquivariantPool, EquivariantSqueezeExcitation, Restriction
-from networks.util import calculate_output_image_size, get_fixed_params, get_gspace, get_param_count
+from networks.util import calculate_output_image_size, get_fixed_params, get_gspace_from_name, get_param_count
 
 from nn import (
     rot2dOnR2,
@@ -273,7 +273,7 @@ class EquivariantEfficientNet(nn.Module):
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Get group spaces for specified rotations and flips
-        gspace = get_gspace(group, rotation)
+        gspace = get_gspace_from_name(group, rotation)
         self.gspace = gspace
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped

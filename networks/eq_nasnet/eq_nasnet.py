@@ -1,0 +1,335 @@
+import math
+from typing import List, Tuple
+import hydra
+from omegaconf import DictConfig, OmegaConf
+import sys
+
+sys.path.append('../scaling-laws-ecnn') # add parent directory
+import torch
+from torch import nn
+from torch.nn import functional as F
+from networks.eq_nasnet_util import (
+    BlockDecoder,
+    eq_round_filters,
+    round_repeats,
+    Swish,
+    Eq_Conv2dSamePadding,
+)
+from networks.efficientnet import EfficientNet
+from networks.eq_pool_and_norm import EquivariantConv, EquivariantPool, EquivariantSqueezeExcitation, Restriction
+from networks.util import (
+    calculate_output_image_size, 
+    get_fixed_params, 
+    get_gspace_from_id, 
+    get_param_count,
+)
+
+from nn import (
+    rot2dOnR2,
+    flipRot2dOnR2,
+    GroupTensor,
+    FieldType,
+    EquivariantModule,
+    SequentialModule,
+    R2Conv,
+    GroupNorm,
+    InducedNormGroupNorm,
+    GroupStandardization,
+    BatchNorm,
+    InducedNormBatchNorm,
+    Mish,
+    ReLU,
+    Swish,
+    NormNonLinearity,
+    InducedGatedNonLinearity,
+    GroupPooling,
+    NormPool,
+    InducedNormPool,
+    NormAvgPool,
+    NormMaxPool,
+    PointwiseAvgPool,
+    PointwiseAdaptiveAvgPool,
+    PointwiseMaxPool,
+    DisentangleModule,
+    RestrictionModule,
+    MultipleModule,
+)
+from group_theory import Representation
+from nn.modules import nonlinearities
+
+import os
+os.environ['HYDRA_FULL_ERROR'] = '1'
+
+
+class Eq_NAS_Block(EquivariantModule):
+    """
+    Block with variable content based on block_args.
+    """
+    def __init__(self, in_type, block_args, image_size):
+        """
+        Args:
+        block_args (namedtuple): BlockArgs, defined in utils.py.
+        global_params (namedtuple): GlobalParam, defined in utils.py.
+        image_size (tuple or list): [image_height, image_width].
+        """
+        super().__init__()
+        self.block_args = block_args
+        self.in_type = in_type
+        # self._bn_mom = 1 - global_params.batch_norm_momentum  # pytorch's difference from tensorflow
+        # self._bn_eps = global_params.batch_norm_epsilon
+        self.has_se = (block_args.se_ratio is not None) \
+            and (0 < block_args.se_ratio <= 1)
+        
+        inp = in_type
+        oup = len(in_type) * block_args.expand_ratio
+
+        # Expansion phase
+        if block_args.expand_ratio != 1:
+            self._expand_conv = Eq_Conv2dSamePadding(
+                in_type=inp,
+                out_channels=oup,
+                image_size=image_size,
+                bias=False,
+            )
+            self._bn0 = BatchNorm(in_type=self._expand_conv.out_type)
+            self._swish0 = Swish(in_type=self._bn0.out_type)
+            inp = self._swish0.out_type
+
+        # Conv1
+        # potentially depthwise convolution
+        groups = len(inp) if block_args.seperable else 1
+        self.conv1 = Eq_Conv2dSamePadding(
+            in_type=inp,
+            out_channels=len(inp),
+            image_size=image_size,
+            groups=groups,
+            stride=block_args.stride,
+            bias=False,
+        )
+        self.bn1 = BatchNorm(in_type=self.conv1.out_type)
+        self.swish1 = Swish(in_type=self.bn1.out_type)
+        out_type = self.swish1.out_type
+        image_size = calculate_output_image_size(image_size, block_args.stride)
+
+        # Squeeze and Excitation layer
+        if self.has_se:
+            input_channels_squeeze = len(out_type)
+            num_squeezed_channels = max(1, 
+                    int(input_channels_squeeze * block_args.se_ratio))
+            self.squeeze = EquivariantSqueezeExcitation(
+                in_type=out_type,
+                squeeze_channels=num_squeezed_channels,
+                in_channels=input_channels_squeeze,
+            )
+            out_type = self.squeeze.out_type
+
+        # Conv2
+        # potentially pointwise convolution
+        self.conv2 = Eq_Conv2dSamePadding(
+            in_type=out_type,
+            out_channels=block_args.output_filters,
+            image_size=image_size,
+            bias=False,
+        )
+        self.bn2 = BatchNorm(in_type=self.conv2.out_type)
+        self.out_type = self.bn2.out_type
+
+        # Skip connection
+        if block_args.skip_connection == "pool":
+            self.shortcut = EquivariantPool(
+                in_type=self.in_type,
+                stride=block_args.stride,
+            )
+        elif block_args.skip_connection == "conv" or block_args.stride > 1:
+            self.shortcut = EquivariantConv(
+                in_type=self.in_type,
+                out_channels=len(self.bn2.out_type),
+                padding=0,
+                stride=block_args.stride,
+                bias=False,
+            )
+        elif block_args.skip_connection == "identity":
+            self.shortcut = nn.Identity()
+        elif block_args.skip_connection == "no":
+            self.shortcut = None
+        else:
+            raise ValueError(f"Unsupported skip connection type. \
+                             Got: {block_args.skip_connection}")
+
+        
+
+    def forward(self, inputs):
+        if self.shortcut is not None:
+            # we need to calculate the shortcut before the first conv since we
+            # do same padding
+            shortcut_result = self.shortcut(inputs) 
+
+        x = inputs
+        # Expansion
+        if self.block_args.expand_ratio != 1:
+            x = self._expand_conv(x)
+            x = self._bn0(x)
+            x = self._swish0(x)
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.swish1(x)
+
+        # Squeeze and Excitation
+        if self.has_se:
+            x = self.squeeze(x)
+
+        # Pointwise Convolution
+        x = self.conv2(x)
+        x = self.bn2(x)
+        
+        # Skip connection and drop connect
+        if self.shortcut is not None:
+            x = x + shortcut_result # skip connection
+        return x
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
+class EquivariantNASNet(nn.Module):
+    def __init__(
+            self, 
+            blocks_args, 
+            image_size,
+            width_coefficient=1, 
+            depth_coefficient=1,
+            drop_out=0.2,
+            depth_divisor=12,
+            min_depth=1,
+            input_channels=3, 
+            num_classes=10, 
+    ):
+        print("Equivariant_NAS_Net")
+        super().__init__()        
+        blocks_args = list(blocks_args)
+        assert image_size is not None, 'Please provide image size'
+        assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
+        assert len(blocks_args) > 0, 'block args must be greater than 0'
+        #self.global_params = global_params
+        self.restrict = restrict
+        # BlockArgs
+        blocks_args = BlockDecoder.decode(blocks_args)
+        self.blocks_args = blocks_args
+        stem_args = blocks_args[0]
+
+        # Get group spaces for specified rotations and flips
+        self.reflection = stem_args.reflection
+        self.group = stem_args.group
+        group_id = (self.reflection, self.group)
+        gspace = get_gspace_from_id(group_id)
+        self.gspace = gspace
+
+        self.input_channels = input_channels
+        image_size = [image_size]*2 if isinstance(image_size, int) else image_size
+        self.image_size = image_size
+        self.num_classes = num_classes
+        
+
+        self.input_field_type = FieldType(
+            self.gspace, [self.gspace.trivial_repr] * self.input_channels
+        )
+
+        # Stem
+        out_channels = eq_round_filters(stem_args.out_channels, 
+                                        self.width_coefficient, 
+                                        self.depth_divisor, self.min_depth)
+        self._conv_stem = Eq_Conv2dSamePadding(
+            in_type=self.input_field_type,
+            out_channels=out_channels,
+            kernel_size=stem_args.kernel_size,
+            stride=2,
+            image_size=image_size,
+            bias=False,
+        )
+        self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
+        self._swish0 = Swish(in_type=self._bn0.out_type)
+
+        self.field_type = self._swish0.out_type
+        image_size = calculate_output_image_size(image_size, 2)
+
+        # Build blocks
+        self._blocks = nn.ModuleList([])
+        # we start with the first block 
+        # block 0 is the stem
+        for i, block_args in enumerate(self.blocks_args[1:]):
+            print(f"Building block: {i}")
+            # Update block input and output filters based on depth multiplier.
+            block_args = block_args._replace(
+                input_filters=eq_round_filters(block_args.input_filters, 
+                    self.width_coefficient, self.depth_divisor, self.min_depth),
+                output_filters=eq_round_filters(block_args.output_filters, 
+                    self.width_coefficient, self.depth_divisor, self.min_depth),
+                num_repeat=round_repeats(block_args.num_repeat, 
+                                         self.depth_coefficient)
+            )
+            restrict = Restriction(self.field_type, self.group, self.rotation, self.restrict[i])
+            self._blocks.append(restrict)
+            self.field_type = restrict.out_type
+            # The first block needs to take care of stride and filter size increase.
+            self._blocks.append(Eq_NAS_Block(self.field_type, block_args, 
+                                            image_size=image_size))
+            self.field_type = self._blocks[-1].out_type
+            image_size = calculate_output_image_size(image_size, 
+                                                     block_args.stride)
+            if block_args.num_repeat > 1:  # modify block_args to keep same output size
+                block_args = block_args._replace(input_filters=\
+                                        block_args.output_filters, stride=1)
+            for _ in range(block_args.num_repeat - 1):
+                self._blocks.append(Eq_NAS_Block(self.field_type, block_args, 
+                                                image_size=image_size))
+                self.field_type = self._blocks[-1].out_type
+                # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
+
+
+        # Restrict
+        self.restrict_last = Restriction(self.field_type, self.group, self.rotation, self.restrict[-1])
+        self.field_type = self.restrict_last.out_type
+
+        # Head
+        input_channels = block_args.output_filters  # output of final block
+        out_channels = eq_round_filters(1280, self.global_params, rotation=self.rotation)
+        self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
+                                               bias=False)
+        self._bn1 = BatchNorm(in_type=self._conv_head.out_type)
+        self._swish1 = Swish(in_type=self._bn1.out_type)
+
+
+        # Final linear layer
+        self.invariant_map = EquivariantPool(self._swish1.out_type, invariant_map=True)
+        self._avg_pooling = nn.AdaptiveAvgPool2d(1)
+
+        self.dropout = nn.Dropout(self.global_params.drop_out)
+        self.fc = nn.Linear(out_channels, self.num_classes)
+
+
+    def forward(self, inputs):
+        x = GroupTensor(inputs, self.input_field_type)
+
+        # Stem
+        x = self._swish0(self._bn0(self._conv_stem(x)))
+        # Blocks
+        for idx, restrict_or_MBBlock in enumerate(self._blocks):
+            if isinstance(restrict_or_MBBlock, Restriction):
+                x = restrict_or_MBBlock(x)
+                continue
+            else:
+                x = restrict_or_MBBlock(x)
+
+        # Head
+        x = self.restrict_last(x)
+        x = self._swish1(self._bn1(self._conv_head(x)))
+        # Pooling and final linear layer
+        x = self.invariant_map(x)
+        x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
+        x = self._avg_pooling(x)
+        x = x.flatten(start_dim=1)
+        x = self.dropout(x)
+        x = self.fc(x)
+        return x
