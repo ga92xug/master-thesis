@@ -11,6 +11,8 @@ from .eq_convs import (
     EquivariantConvBlock,
     EquivariantSqueezeExcitation,
     Equivariant_Conv_BN_actF,
+    Eq_Conv2dSamePadding,
+    Eq_Conv2dSamePaddingChangeFactor,
 )
 from .util import (
     get_width_and_height_from_size,
@@ -28,7 +30,9 @@ __all__ = [
     "EquivariantConv",
     "EquivariantConvBlock",
     "EquivariantSqueezeExcitation",
-    "Equivariant_Conv_BN_actF",  
+    "Equivariant_Conv_BN_actF",
+    "Eq_Conv2dSamePadding",
+    "Eq_Conv2dSamePaddingChangeFactor",  
     # util
     "get_width_and_height_from_size",
     "calculate_output_image_size",

@@ -1,4 +1,9 @@
+import os
 from pathlib import Path
+import timeit
+import hydra
+import wandb
+from omegaconf import DictConfig, OmegaConf
 from ax.core import Experiment
 # Save and load
 from ax.storage.sqa_store.save import save_experiment 
@@ -24,23 +29,7 @@ from search_space import Eq_Search_Space
 from metric import WandbMetric
 from evaluate import evaluate
 
-EXP_NAME = "mnist_rot"
-TOTAL_TRIALS = 48  # total evaluation budget
-NUM_SOBOL_TRIALS = 5
-NUM_BOTORCH_TRIALS = 15
-ENTITY = "ga92xug"
-PROJECT = "scaling-laws-eq"
 
-# it is not possible to put constraints on the choice parameters currently in ax
-# but we can encode choice parameters as range parameters
-CHOICE_2_RANGE_PARAMS = {
-    "group" : [1, 2, 4, 8, 16],
-    "kernel_size" : [3, 5],
-    "out_channels": [1.,1.25,1.5,1.75],
-    "se_ratio" : [0., 0.25],
-}
-STRIDES = [2, 2, 2]
-NUM_BLOCKS = 2
 
 """
 ToDo:
@@ -48,126 +37,196 @@ ToDo:
 - search space
 """
 
-######################################################################
-# Saving and loading
-init_engine_and_session_factory(url=f'sqlite:////data/{EXP_NAME}.db')
-db_settings = DBSettings(url=f'sqlite:////data/{EXP_NAME}.db')
-# Register metric and runner classes
-register_metric(WandbMetric)
-register_runner(HydraWandbRunner)
+class NAS:
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.init_db()
+        self.register_components()
+        self.initialize_runner()
+        self.init_search_space()
+        self.init_generation_strategy()
+        self.load_experiment()
 
-######################################################################
-# runner
-project_name = "scaling-laws-eq"
-script_path = "experiment/main.py"  
-hydra_wandb_runner = HydraWandbRunner(script_path, project_name, 
-                                      CHOICE_2_RANGE_PARAMS, STRIDES)
-#runner.run(trial)
+        
+    def init_search_space(self):
+        # search space
+        eq_search_space = Eq_Search_Space(
+            choice_2_range_params=self.cfg.choice_2_range_params, 
+            num_blocks=self.cfg.num_blocks
+        )
+        self.search_space = eq_search_space.get_search_space()
 
-######################################################################
-# search space
-eq_search_space = Eq_Search_Space(CHOICE_2_RANGE_PARAMS, num_blocks=NUM_BLOCKS)
-search_space = eq_search_space.get_search_space()
+    def init_db(self):
+        # Saving and loading
+        init_engine_and_session_factory(url=f'sqlite:////data/{self.cfg.exp_name}.db')
+        self.db_settings = DBSettings(url=f'sqlite:////data/{self.cfg.exp_name}.db')
 
-######################################################################
-# metrics
-metric_val_acc = WandbMetric(
-    name="valid.acc",
-    entity=ENTITY,
-    project=PROJECT,
-    lower_is_better=False,
-)
-metric_gflops = WandbMetric(
-    name="gflops",
-    entity=ENTITY,
-    project=PROJECT,
-    lower_is_better=True,
-)
+    def register_components(self):
+        # Register metric and runner classes
+        register_metric(WandbMetric)
+        register_runner(HydraWandbRunner)
 
+    def load_experiment(self):
+        self.run = None
+        self.exp_save_path = self.cfg.other.save_path + self.cfg.exp_name + ".json"
+        if not self.cfg.other.restart and os.path.exists(self.exp_save_path):
+            # To load the experiment
+            self.experiment = load_experiment(self.exp_save_path)
 
-######################################################################
-# Setting up the ``OptimizationConfig``
-# -------------------------------------
-#
-# The way to tell Ax what it should optimize is by means of an
-# `OptimizationConfig <https://ax.dev/api/core.html#module-ax.core.optimization_config>`__.
-# Here we use a ``MultiObjectiveOptimizationConfig`` as we will
-# be performing multi-objective optimization.
-#
-# Additionally, Ax supports placing constraints on the different
-# metrics by specifying objective thresholds, which bound the region
-# of interest in the outcome space that we want to explore. For this
-# example, we will constrain the validation accuracy to be at least
-# 0.94 (94%) and the number of model parameters to be at most 80,000.
-#
+            # TODO: resume run
+            
+        else:
+            # Creating the Experiment
+            self.experiment = Experiment(
+                name=self.cfg.exp_name,
+                search_space=self.search_space,
+                optimization_config=self.opt_config,
+                runner=self.hydra_wandb_runner,
+                generation_strategy=self.generation_strategy,
+            )
 
-opt_config = MultiObjectiveOptimizationConfig(
-    objective=MultiObjective(
-        objectives=[
-            Objective(metric=metric_val_acc, minimize=False),
-            Objective(metric=metric_gflops, minimize=True),
-        ],
-    ),
-    objective_thresholds=[
-        ObjectiveThreshold(metric=metric_val_acc, bound=0.80, relative=False),
-        ObjectiveThreshold(metric=metric_gflops, bound=80_000, relative=False),
-    ],
-)
+            # init wandb run
+            wandb_config = OmegaConf.to_container(
+                    self.cfg, resolve=True, throw_on_missing=True
+                )
 
-######################################################################
-# Creating the Experiment
-experiment = Experiment(
-    name=EXP_NAME,
-    search_space=search_space,
-    optimization_config=opt_config,
-    runner=hydra_wandb_runner,
-)
+            self.run = wandb.init(
+                project=self.cfg.wandb.high_level.project, 
+                entity=self.cfg.wandb.entity, 
+                mode=self.cfg.wandb.high_level.mode,
+                config=wandb_config,
+            )
 
-######################################################################
-# Choosing the Generation Strategy
-# gs = choose_generation_strategy(
-#     search_space=experiment.search_space,
-#     optimization_config=experiment.optimization_config,
-#     num_trials=TOTAL_TRIALS,
-#   )
+    def initialize_runner(self):
+        self.hydra_wandb_runner = HydraWandbRunner(
+            self.cfg.runner.script_path, 
+            self.cfg.wandb.project_name_runs, 
+            self.cfg.choice_2_range_params, 
+            self.cfg.strides
+        )
 
+    def init_metrics(self):
+        # metrics
+        self.metric_val_acc = WandbMetric(
+            name="valid.acc",
+            entity=self.cfg.wandb.entity,
+            project=self.cfg.wandb.project_name_runs,
+            lower_is_better=False,
+        )
+        self.metric_gflops = WandbMetric(
+            name="gflops",
+            entity=self.cfg.wandb.entity,
+            project=self.cfg.wandb.project_name_runs,
+            lower_is_better=True,
+        )
 
-# taken from https://github.com/facebook/Ax/issues/1454
-# how to deal with large search spaces
-generation_strategy=GenerationStrategy(
-    name="SAASBO",
-    steps=[
-        GenerationStep(model=Models.SOBOL, num_trials=TOTAL_TRIALS),
-        GenerationStep(
-            model=Models.FULLYBAYESIAN,
-            num_trials=-1,
-            min_trials_observed=10,
-            max_parallelism=1,
-        ),
-    ],
-)
+    def init_objective(self):
+        ######################################################################
+        # Setting up the ``OptimizationConfig``
+        # -------------------------------------
+        #
+        # The way to tell Ax what it should optimize is by means of an
+        # `OptimizationConfig <https://ax.dev/api/core.html#module-ax.core.optimization_config>`__.
+        # Here we use a ``MultiObjectiveOptimizationConfig`` as we will
+        # be performing multi-objective optimization.
+        #
+        # Additionally, Ax supports placing constraints on the different
+        # metrics by specifying objective thresholds, which bound the region
+        # of interest in the outcome space that we want to explore. For this
+        # example, we will constrain the validation accuracy to be at least
+        # 0.94 (94%) and the number of model parameters to be at most 80,000.
+        #
+        self.opt_config = MultiObjectiveOptimizationConfig(
+            objective=MultiObjective(
+                objectives=[
+                    Objective(metric=self.metric_val_acc, minimize=False),
+                    Objective(metric=self.metric_gflops, minimize=True),
+                ],
+            ),
+            objective_thresholds=[
+                ObjectiveThreshold(
+                    metric=self.metric_val_acc, 
+                    bound=self.cfg.objective.bounds.val_acc, 
+                    relative=False
+                ),
+                ObjectiveThreshold(
+                    metric=self.metric_gflops, 
+                    bound=self.cfg.objective.bounds.gflops, 
+                    relative=False
+                ),
+            ],
+        )
 
-######################################################################
-# Running optimization trials
-LOCATION_PATH = "data/"
-EXP_SAVE_PATH = LOCATION_PATH + EXP_NAME + ".json"
+    def init_generation_strategy(self):
+        ######################################################################
+        # Choosing the Generation Strategy
 
-print(f"Running Sobol initialization trials...")
-sobol = Models.SOBOL(search_space=experiment.search_space)
+        # taken from https://github.com/facebook/Ax/issues/1454
+        # how to deal with large search spaces
+        self.generation_strategy=GenerationStrategy(
+            name="SAASBO",
+            steps=[
+                GenerationStep(
+                    model=Models.SOBOL, 
+                    num_trials=self.cfg.generation.num_sobol_trials
+                ),
+                GenerationStep(
+                    model=Models.FULLYBAYESIAN,
+                    num_trials=self.cfg.generation.num_fullbayesian_trials,
+                    min_trials_observed=self.cfg.generation.num_sobol_trials,
+                    max_parallelism=1,
+                ),
+            ],
+        )
     
-for i in range(NUM_SOBOL_TRIALS):
-    # Produce a GeneratorRun from the model, which contains proposed arm(s) and other metadata
-    generator_run = sobol.gen(n=1)
-    # Add generator run to a trial to make it part of the experiment and evaluate arm(s) in it
-    trial = experiment.new_trial(generator_run=generator_run)
-    # Start trial run to evaluate arm(s) in the trial
-    trial.run()
-    trial.mark_completed()
-    # Save the experiment after each trial
-    save_experiment(experiment, EXP_SAVE_PATH)
 
-# To load the experiment
-#loaded_exp = load_experiment(EXP_SAVE_PATH)
+    def run(self):
+        # Running optimization trials
+        for i in range(self.cfg.generation.num_total_trials):
+            start = timeit.default_timer()
+            trial = self.experiment.new_trial()
+
+            stop = timeit.default_timer()
+            generation_time = stop - start
+            if self.cfg.other.verbose >= 1:
+                print(f"\nTrial generation {i+1} took {generation_time} seconds")
+
+            self.run.log({"generation_time": generation_time}, step=i)
+            # Start trial run to evaluate arm(s) in the trial
+            trial.run()
+            trial.mark_completed()
+            
+            metrics = self.get_metrics(trial)
+            # Log the metrics and run_time to wandb
+            self.run.log({
+                "val_acc": metrics["val_acc"], 
+                "gflops": metrics["gflops"],
+                "run_time": metrics["run_time"],
+            }, step=i)
 
 
-evaluate(experiment, verbose=1)
+            if self.cfg.other.verbose >= 1:
+                print(f"\nTrial run {i+1} took {run_time} seconds")
+
+            self.run.log({"Run time": run_time}, step=i)
+
+            if i % self.cfg.other.save_every == 0:
+                save_experiment(self.experiment, self.exp_save_path)
+
+            if i % self.cfg.other.evaluate_every == 0:
+                evaluate(self.experiment, verbose=1)
+
+    
+
+
+    
+
+
+@hydra.main(config_path="conf", config_name="nas", version_base="1.2")
+def run_NAS(cfg: DictConfig) -> None:
+    nas = NAS(cfg)
+    nas.run()
+
+
+if __name__ == "__main__":
+    run_NAS()

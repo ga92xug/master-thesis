@@ -133,7 +133,7 @@ def forward_pass(model, cfg, verbose, instantiate_dataset,
         #pprint.pprint(flops.by_module_and_operator())
     return train_time, gflops
 
-@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     print(cfg)
     n_inputs = 3

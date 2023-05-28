@@ -67,26 +67,32 @@ class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
         # Wandb
-        wandb.config = OmegaConf.to_container(
-            cfg, resolve=True, throw_on_missing=True
-        )
-        # experiment name
-        self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
-        if wandb.run is None:
+        wandb_config = OmegaConf.to_container(
+                cfg, resolve=True, throw_on_missing=True
+            )
+        
+        if cfg.wandb.run_id is None:
+            # experiment name
+            self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
+            
             # normal training mode
-            run = wandb.init(project=cfg.wandb.project, config=wandb.config, \
+            self.run = wandb.init(
+                project=cfg.wandb.project, config=wandb_config, \
                             mode=cfg.wandb.mode, name=self.expname, \
                             notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+            self.run.log_code(".")
         else:
             # during NAS we init the run HydraWandbRunner to have access to the
             # run id
-            run = wandb.run
-            run.config.update(cfg.wandb.config)
-            run.name = cfg.wandb.name
-            run.notes = cfg.wandb.notes
-            run.tags = cfg.wandb.tags
-
-        run.log_code(".")
+            self.run = wandb.init(
+                id = cfg.wandb.run_id, 
+                resume = "allow", 
+                project = cfg.wandb.project, 
+                entity = cfg.wandb.entity,
+                config = wandb_config,
+                notes = cfg.wandb.notes,
+                tags = cfg.wandb.tags
+            )
         
         print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
@@ -487,7 +493,7 @@ class Experiment:
         if self.cfg.other.should_test:
             self.test()
         
-        wandb.finish(exit_code=0)
+        self.run.finish(exit_code=0)
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
         """
@@ -529,7 +535,7 @@ class Experiment:
         return self._optimizer, lr
     
 
-@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     # check if we are allowed to run
     if cfg.other.gpu_time_limit:

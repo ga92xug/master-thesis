@@ -59,6 +59,7 @@ other:
 
 # WandB
 wandb:
+  entity: "ga92xug"
   project: scaling-laws-eq         # Name of the wandb project
   mode: online                  # For debugging disabled, online, offline
   watch: False                  # For detailed weight analysis
@@ -67,3 +68,4 @@ wandb:
   give_name: True
   tags: null
   group: null
+  run_id: null
