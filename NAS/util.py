@@ -23,27 +23,37 @@ def encode_parameters(params, choice_2_range_params, strides):
         kernel_size = choice_2_range_params['kernel_size'][params['%d_kernel_size' % i]]
         group = choice_2_range_params['group'][params['%d_group' % i]]
         out_channels = choice_2_range_params['out_channels'][params['%d_out_channels' % i]]
-        
-        block_args = [
-            'r%d' % reflection,
-            'k%d' % kernel_size,
-            'g%d' % group,
-            'o%d' % out_channels,
-            's%d' % strides[i],
-        ]
 
-        if i > 0:
-            num_layers = params['%d_num_layers' % i]
-            conv_op = params['%d_conv_op' % i]
-            se_ratio = choice_2_range_params['se_ratio'][params['%d_se_ratio' % i]]
-            skip_op = params['%d_skip_op' % i]
-            
-            block_args.extend([
-                'n%d' % num_layers,
-                'c-%s' % conv_op,
-                'se%s' % se_ratio,
-                'sk-%s' % skip_op,
-            ])
+        if i == blocks - 1:
+            # last block
+            block_args = [
+                'r%d' % reflection,
+                'k%d' % kernel_size,
+                'g%d' % group,
+                'o%d' % out_channels,
+            ]
+        else:
+            # start and middle blocks
+            block_args = [
+                'r%d' % reflection,
+                'k%d' % kernel_size,
+                'g%d' % group,
+                'o%d' % out_channels,
+                's%d' % strides[i],
+            ]
+
+            if i > 0:
+                num_layers = params['%d_num_layers' % i]
+                conv_op = params['%d_conv_op' % i]
+                se_ratio = choice_2_range_params['se_ratio'][params['%d_se_ratio' % i]]
+                skip_op = params['%d_skip_op' % i]
+                
+                block_args.extend([
+                    'n%d' % num_layers,
+                    'c-%s' % conv_op,
+                    'se%s' % se_ratio,
+                    'sk-%s' % skip_op,
+                ])
 
         encoded_blocks.append('_'.join(block_args))
 

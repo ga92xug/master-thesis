@@ -18,7 +18,7 @@ CHANNELS_CONSTANT = 1
 
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple('BlockArgs', [
-        'reflection', 'group', 'kernel_size', 'stride', 'out_channels',
+        'reflection', 'group', 'kernel_size', 'stride', 'channel_increase_factor',
         'num_layers', 'conv_op', 'se_ratio', 'skip'])
 # Set GlobalParams and BlockArgs's defaults
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
@@ -33,7 +33,6 @@ def eq_round_filters(filters, width_coefficient, depth_divisor, min_depth):
     Returns:
         new_filters: New filters number after calculating.
     """
-    print("filters: ", filters)
     multiplier = width_coefficient
     if not multiplier:
         return int(round(filters))
@@ -82,7 +81,7 @@ class BlockDecoder(object):
         reflection,
         kernel_size,
         group,
-        out_channels,
+        channel_increase_factor,
         stride,
         
         num_layers,
@@ -112,42 +111,22 @@ class BlockDecoder(object):
 
         return BlockArgs(
             # all blocks have these params
-            reflection=     int(options['r']),
-            group=          int(options['g']),
+            reflection=                 int(options['r']),
+            group=                      int(options['g']),
             # 0 - k-1 blocks have these params 
-            kernel_size=    int(options['k']) if 'k' in options else None,
-            stride=         int(options['s']) if 's' in options else None,
-            out_channels=   int(options['o']) if 'o' in options else None,
+            kernel_size=                int(options['k']) if 'k' in options else None,
+            stride=                     int(options['s']) if 's' in options else None,
+            channel_increase_factor=    int(options['o']) if 'o' in options else None,
             # only 1 - k-1 middle blocks have these params
-            num_layers=     int(options['n']) if 'n' in options else None,
-            conv_op=        str(options['c']) if 'c' in options else None,
-            se_ratio=       float(options['se']) if 'se' in options else None,
-            skip=           str(options['sk']) if 'c' in options else None,
+            num_layers=                 int(options['n']) if 'n' in options else None,
+            conv_op=                    str(options['c']) if 'c' in options else None,
+            se_ratio=                   float(options['se']) if 'se' in options else None,
+            skip=                       str(options['sk']) if 'c' in options else None,
 
             # not used for now
             #expand_ratio=   int(options['e']),
             #input_filters=  int(options['i']),
             )
-
-    @staticmethod
-    def _encode_block_string(block):
-        """Encode a block to a string.
-        Args:
-            block (namedtuple): A BlockArgs type argument.
-        Returns:
-            block_string: A String form of BlockArgs.
-        """
-        args = [
-            'r%d' % block.num_repeat,
-            'k%d' % block.kernel_size,
-            's%d' % block.stride,
-            'e%s' % block.expand_ratio,
-            'i%d' % block.input_filters,
-            'o%d' % block.output_filters,
-            'se%s' % block.se_ratio,
-            block.skip,
-        ]
-        return '_'.join(args)
 
     @staticmethod
     def decode(string_list):
@@ -187,13 +166,16 @@ class BlockDecoder(object):
         """
         
         for i, block in enumerate(blocks_args):
-            assert isinstance(block.out_channels, int) and block.out_channels > 0
+            assert isinstance(block.channel_increase_factor, int) and block.channel_increase_factor > 0
             assert isinstance(block.kernel_size, int) and block.kernel_size > 0
-            assert isinstance(block.stride, int) and block.stride > 0
             assert isinstance(block.group, int) and block.group > 0
             assert isinstance(block.reflection, int) and block.reflection in [-1,0]
+
+            if i != len(blocks_args) - 1:
+                # The last block has no stride
+                assert isinstance(block.stride, int) and block.stride > 0
             
-            if i > 0:
+            if i > 0 and i < len(blocks_args) - 1:
                 assert isinstance(block.num_layers, int) and block.num_layers > 0
                 assert isinstance(block.conv_op, str) and block.conv_op in ["conv", "dconv", "mbconv"]
                 assert isinstance(block.se_ratio, float) and 0 <= block.se_ratio <= 1

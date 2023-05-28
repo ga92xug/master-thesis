@@ -11,15 +11,15 @@ from ax.core import ParameterConstraint, OrderConstraint
 
 
 class Eq_Search_Space:
-    def __init__(self, choice_2_range_params, blocks=3):
-        self.blocks = blocks
+    def __init__(self, choice_2_range_params, num_blocks=2):
+        self.num_blocks = num_blocks
         self.choice_2_range_params = choice_2_range_params
         self.parameters = {}
 
         # block search space
         # block_id = 0 is the stem block
         # block_id = blocks+1 is the head block
-        for block_id in range(0, self.blocks+1):
+        for block_id in range(0, self.num_blocks+2):
             self.parameters[block_id] = self.per_block_search_space(block_id)
 
 
@@ -58,6 +58,7 @@ class Eq_Search_Space:
         return group_decrease + reflection_decrease 
 
     def per_block_search_space(self, block_id):
+        print(f"block_id: {block_id}")
         block_search_space = {}
 
         if block_id == 0:
@@ -67,7 +68,7 @@ class Eq_Search_Space:
             block_search_space["kernel_size"] = self.get_kernel_size(block_id)
             return block_search_space
         
-        elif block_id == self.blocks+1:
+        elif block_id == self.num_blocks+1:
             block_search_space["reflection"] = self.get_reflection(block_id)
             block_search_space["group"] = self.get_group(block_id)
             block_search_space["out_channels"] = self.get_out_channels(block_id)

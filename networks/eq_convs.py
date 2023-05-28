@@ -59,7 +59,52 @@ class EquivariantConv(EquivariantModule):
         assert input_shape[1] == self.in_type.size
         return input_shape
 
+class EquivariantConvChangeFactor(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        change_factor: int,
+        kernel_size: int = 3,
+        padding: int = 1,
+        stride: int = 1,
+        dilation: int = 1,
+        bias: bool = True,
+        groups: int = 1,
+    ):
+        super().__init__()
+        self.in_type = in_type  # declaration required by base class
 
+        out_channels = int(change_factor * len(in_type))
+
+        # Cyclic and Dihedral Groups
+        out_type = FieldType(
+            self.in_type.gspace,
+            [self.in_type.gspace.regular_repr] * out_channels,
+        )
+        self.conv = R2Conv(
+            self.in_type,
+            out_type,
+            kernel_size=kernel_size,
+            padding=padding,
+            stride=stride,
+            dilation=dilation,
+            groups=groups,
+            bias=bias,
+            sigma=None,
+            frequencies_cutoff=lambda r: 3 * r,
+        )
+        self.trivials, self.gate = None, None
+
+        self.out_type = self.conv.out_type
+        assert int(len(in_type) * change_factor) == len(self.out_type)
+
+    def forward(self, x):
+        return self.conv(x)
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
 
 class EquivariantConvBlock(EquivariantModule):
     def __init__(
@@ -168,25 +213,30 @@ class EquivariantSqueezeExcitation(EquivariantModule):
     def __init__(
         self,
         in_type: FieldType,
-        in_channels: int,
-        squeeze_channels: int,
+        sequeeze_ratio: float = 0.25,
     ):
         super(EquivariantSqueezeExcitation, self).__init__()
         self.in_type = in_type
 
-        self.fc1 = EquivariantConv(
-            self.in_type, squeeze_channels, kernel_size=1, padding=0
+        self.conv1 = EquivariantConvChangeFactor(
+            in_type=self.in_type, 
+            change_factor=sequeeze_ratio, 
+            kernel_size=1, 
+            padding=0
         )
 
-        self.fc2 = EquivariantConv(
-            self.fc1.out_type, in_channels, kernel_size=1, padding=0
+        self.conv2 = EquivariantConvChangeFactor(
+            self.conv1.out_type, 
+            change_factor=1/sequeeze_ratio, 
+            kernel_size=1, 
+            padding=0
         )
 
-        self.out_type = self.fc2.out_type
+        self.out_type = self.conv2.out_type
 
     def forward(self, input: GroupTensor):
-        x = self.fc1(input)
-        x = self.fc2(x)
+        x = self.conv1(input)
+        x = self.conv2(x)
         return x
 
     def evaluate_output_shape(self, input_shape: Tuple):
@@ -197,9 +247,6 @@ class EquivariantSqueezeExcitation(EquivariantModule):
 
     
 class Eq_Conv2dSamePadding(EquivariantModule):
-    """2D Convolutions like TensorFlow's 'SAME' mode, with the given input image size.
-       The padding mudule is calculated in construction function, then used in forward.
-    """
     def __init__(
         self,
         in_type: FieldType,
@@ -213,30 +260,14 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         # kernel_layout: List[int] = None,
     ):
         super().__init__()
-        self.stride = [stride] * 2 if isinstance(stride, int) else stride
-        self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
-        self.dilation = [dilation] * 2
-        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, padding=0,
-                                      stride=self.stride, groups=groups, bias=bias)
+
+        padding = PADDINGS[kernel_size]
+        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, 
+                                      padding=padding,
+                                      stride=stride, groups=groups, bias=bias)
         self.out_type = self.conv2d.out_type
         
-
-        # Calculate padding based on image size and save it
-        assert image_size is not None
-        ih, iw = (image_size, image_size) if isinstance(image_size, int) else image_size
-        # kh, kw = self.weight.size()[-2:]
-        kh, kw = kernel_size, kernel_size # we don't support uneven kernel sizes
-        sh, sw = self.stride[0], self.stride[1]
-        # types of ih, sh, iw and sw
-        oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)
-        self.pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
-        self.pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
-        
     def forward(self, x):
-        if self.pad_h > 0 or self.pad_w > 0:
-            x.tensor = nn.functional.pad(x.tensor, 
-                            pad=(self.pad_w // 2, self.pad_w - self.pad_w // 2, 
-                            self.pad_h // 2, self.pad_h - self.pad_h // 2))
         x = self.conv2d(x)
         return x
 
@@ -244,3 +275,52 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         assert len(input_shape) == 4
         assert input_shape[1] == self.in_type.size
         return input_shape
+
+
+class Eq_Conv2dSamePaddingChangeFactor(EquivariantModule):
+    def __init__(
+        self,
+        in_type: FieldType,
+        change_factor: float,
+        image_size: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = True,
+        # kernel_layout: List[int] = None,
+    ):
+        super().__init__()
+        #print("Eq_Conv2dSamePadding_constant_channel, in_type: ", in_type.size)
+        self.in_type = in_type
+        
+
+        padding = PADDINGS[kernel_size]
+        self.conv2d = EquivariantConvChangeFactor(
+            in_type=in_type, 
+            change_factor=change_factor, 
+            kernel_size=kernel_size, 
+            padding=padding,
+            stride=stride, 
+            dilation=dilation,
+            bias=bias,
+            groups=groups, 
+        )
+        self.out_type = self.conv2d.out_type
+
+    def forward(self, x):
+        x = self.conv2d(x)
+        return x
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
+
+PADDINGS = {
+    1: 0,
+    3: 1,
+    5: 2,
+    7: 3,
+}

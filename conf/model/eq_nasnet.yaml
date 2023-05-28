@@ -5,5 +5,8 @@ depth_coefficient: 1
 dropout_rate: 0.2
 depth_divisor: 8
 min_depth: 1
+stem_channels: 16 # same as wide_resnet 
+expand_ratio: 2
 
-blocks_args: ['r0_k5_g8_o1_s2', 'r-1_k3_g4_o1_s2_n2_c-mbconv_se0.25_sk-identity', 'r-1_k5_g4_o1_s2_n1_c-dconv_se0.25_sk-no', 'r-1_k3_g1_o2_s2_n3_c-conv_se0.0_sk-no']
+#blocks_args: ['r0_k5_g2_o2_s2', 'r0_k3_g2_o2_s2_n1_c-dconv_se0.0_sk-identity', 'r0_k3_g1_o1_s2_n1_c-dconv_se0.25_sk-no', 'r-1_k5_g1_o1_s2_n2_c-mbconv_se0.0_sk-no']
+blocks_args: ['r0_k5_g2_o1_s2', 'r0_k3_g2_o1_s2_n2_c-dconv_se0.0_sk-no', 'r0_k3_g2_o1_s2_n2_c-conv_se0.25_sk-identity', 'r0_k3_g1_o1']

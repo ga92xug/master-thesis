@@ -75,6 +75,7 @@ class Restriction_from_id(EquivariantModule):
     ):
         super().__init__()
         self.in_type = in_type
+        self.restriction_correction_factor = 1
 
         if "C" in self.in_type.fibergroup.name:
             # cyclic group
@@ -82,13 +83,22 @@ class Restriction_from_id(EquivariantModule):
         elif "D" in self.in_type.fibergroup.name:
             # dihedral group
             self.restrict = RestrictionModule(self.in_type, group_id)
+            if group_id[0] is None:
+                # if we change from dihedral to cyclic group
+                self.restriction_correction_factor *= 2
         else:  
             ValueError("Only cyclic and dihedral groups are supported.")
         
+        old_rotation = self.in_type.gspace._sg_id[1]
+        self.restriction_correction_factor *= old_rotation / group_id[1]
         self.out_type = self.restrict.out_type
 
     def forward(self, x):
         return self.restrict(x)
+
+    def get_correction_factor(self):
+        #print(self.restriction_correction_factor)
+        return self.restriction_correction_factor
 
     def evaluate_output_shape(self, input_shape: Tuple):
         assert len(input_shape) == 4

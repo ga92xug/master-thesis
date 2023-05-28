@@ -154,10 +154,10 @@ class Experiment:
             print(f"Starting: {self._global_start_time}")
         
         # backup model parameters
-        self.modelpath = utils.backup_path(cfg)
         if cfg.other.backup_model:
+            self.modelpath = utils.backup_path(cfg)
             os.makedirs(os.path.dirname(self.modelpath), exist_ok=True)
-        print("modelpath", self.modelpath)
+            print("modelpath", self.modelpath)
 
         # training configuration
         self.max_epochs = cfg.training.epochs

@@ -36,10 +36,11 @@ PROJECT = "scaling-laws-eq"
 CHOICE_2_RANGE_PARAMS = {
     "group" : [1, 2, 4, 8, 16],
     "kernel_size" : [3, 5],
-    "out_channels": [1.,1.25,1.5,1.75,2.],
+    "out_channels": [1.,1.25,1.5,1.75],
     "se_ratio" : [0., 0.25],
 }
-STRIDES = [2, 2, 2, 2]
+STRIDES = [2, 2, 2]
+NUM_BLOCKS = 2
 
 """
 ToDo:
@@ -65,7 +66,7 @@ hydra_wandb_runner = HydraWandbRunner(script_path, project_name,
 
 ######################################################################
 # search space
-eq_search_space = Eq_Search_Space(CHOICE_2_RANGE_PARAMS)
+eq_search_space = Eq_Search_Space(CHOICE_2_RANGE_PARAMS, num_blocks=NUM_BLOCKS)
 search_space = eq_search_space.get_search_space()
 
 ######################################################################

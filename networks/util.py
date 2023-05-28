@@ -224,7 +224,7 @@ def get_param_count(model_name, in_mb=False, verbose=False):
                 print(f'Total size: {size_all_mb:.2f} MB')
             return size_all_mb
         else:
-            total_params = sum(p.numel() for p in model_name.parameters())
+            total_params = sum(p.numel() for p in model_name.parameters()) / 1e6
             if verbose:
                 print(f'Total params: {total_params}')
             return total_params
