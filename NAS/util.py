@@ -1,67 +1,54 @@
 ######################################################################
 # Encode the parameters of the search space into block_args structure for Eq_NASNet
 
-def encode_parameters(params):
+def encode_parameters(params, choice_2_range_params, strides):
     """
     Encodes the parameters into a string representation.
 
     Args:
         params (dict): A dictionary containing the parameters.
+        choice_2_range_params (dict): A dictionary containing the discrete 
+            choices for some of the params.
 
     Returns:
         str: The encoded string representation of the parameters.
     """
-    blocks = params['i_num_layers']  # Number of blocks
+    # Number of blocks is determined by the highest numbered block in the keys of params
+    blocks = max(int(key.split('_')[0]) for key in params.keys() if key.split('_')[0].isdigit()) + 1
     encoded_blocks = []
     
     for i in range(blocks):
+        # For each parameter that is in the choice_2_range_params, convert it back to its original value
+        reflection = params['%d_reflection' % i]
+        kernel_size = choice_2_range_params['kernel_size'][params['%d_kernel_size' % i]]
+        group = choice_2_range_params['group'][params['%d_group' % i]]
+        out_channels = choice_2_range_params['out_channels'][params['%d_out_channels' % i]]
+        
         block_args = [
-            'r%d' % params['%d_reflection' % i],
-            'k%d' % params['%d_kernel_size' % i],
-            'i%d' % params['%d_group' % i],
-            'o%d' % params['%d_out_channels' % i],
+            'r%d' % reflection,
+            'k%d' % kernel_size,
+            'g%d' % group,
+            'o%d' % out_channels,
+            's%d' % strides[i],
         ]
 
         if i > 0:
+            num_layers = params['%d_num_layers' % i]
+            conv_op = params['%d_conv_op' % i]
+            se_ratio = choice_2_range_params['se_ratio'][params['%d_se_ratio' % i]]
+            skip_op = params['%d_skip_op' % i]
+            
             block_args.extend([
-                'n%d' % params['%d_num_layers' % i],
-                'c%s' % params['%d_conv_op' % i],
-                'se%s' % params['%d_se_ratio' % i],
-                params['%d_skip_op' % i],
+                'n%d' % num_layers,
+                'c-%s' % conv_op,
+                'se%s' % se_ratio,
+                'sk-%s' % skip_op,
             ])
 
         encoded_blocks.append('_'.join(block_args))
 
+    
     return encoded_blocks
-
-
-def encode_single_block_parameters(params, block_number):
-    """
-    Encodes the parameters of a single block into a string representation.
-
-    Args:
-        params (dict): A dictionary containing the parameters.
-        block_number (int): The number of the block.
-
-    Returns:
-        str: The encoded string representation of the block parameters.
-    """
-    block_args = [
-        'r%d' % params['%d_reflection' % block_number],
-        'k%d' % params['%d_kernel_size' % block_number],
-        'i%d' % params['%d_group' % block_number],
-        'o%d' % params['%d_out_channels' % block_number],
-    ]
-
-    if block_number > 0:
-        block_args.extend([
-            'n%d' % params['%d_num_layers' % block_number],
-            'c%s' % params['%d_conv_op' % block_number],
-            'se%s' % params['%d_se_ratio' % block_number],
-            params['%d_skip_op' % block_number],
-        ])
-
-    return '_'.join(block_args)
 
 
 def decode_single_block_parameters(encoded_params, block_number):

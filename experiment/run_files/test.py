@@ -8,6 +8,24 @@ This file is solely used for quickly testing the networks
 
 # global arguments
 global_args = [
+        # model
+        "model=eq_nasnet", 
+        # dataset
+        "dataset=cifar10",
+        # wandb
+        "wandb.give_name=False",
+
+    ]
+
+# baseline
+# flops = 2575G
+args = []
+run_command(args, global_args, test=True)
+
+
+
+# global arguments
+global_args = [
         "model=eq_wrn", 
         "dataset=cifar10",
         "training=train_e2_100epochs",
@@ -54,7 +72,7 @@ args = [# "model.depth=16", "model.widen_factor=1",
 
 
 
-# mobilenet
+# efficientnet
 
 # global arguments
 global_args = [
@@ -71,4 +89,4 @@ global_args = [
 args = [# "model.depth=16", "model.widen_factor=1", 
         "wandb.notes=check_if_train_time_log",
         "dataset.resolution=224", "model.global_params.drop_out=0.0"]
-run_command(args, global_args, test="instantiation")
+#run_command(args, global_args, test="instantiation")

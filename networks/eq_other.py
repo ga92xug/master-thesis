@@ -25,15 +25,8 @@ from nn.modules import nonlinearities
 
 __all__ = [
     "Restriction",
-    "EquivariantConv",
     "EquivariantNorm",
     "EquivariantPool",
-    "EquivariantConvBlock",
-    "wide_conv_block",
-    # MobileNetV2
-    "Equivariant_Conv_BN_actF",
-    "EquivariantBottleneck",
-    "EquivariantBottleneckBlock",
 ]
 
 
@@ -48,47 +41,6 @@ def only_zero_freq(repr: Representation):
         if repr.group.irreps()[idx[0]].attributes["frequency"] != 0:
             return False
     return True
-
-
-class Restriction(EquivariantModule):
-    def __init__(
-        self, in_type: FieldType, group: str, rotation: int, restrict: str = None
-    ):
-        super().__init__()
-        self.in_type = in_type
-        if restrict == "none" or restrict is None:
-            self.restrict = nn.Identity()
-            self.out_type = self.in_type
-        else:
-            layers = list()
-
-            if restrict == "reflection":
-                assert group != "cyclic", "Cyclic groups can't be restricted to reflection."
-                subgroup_id = (np.pi, 1) if group == "orthogonal" else (0, 1)
-
-            elif restrict == "halved":
-                assert group != "orthogonal", "Orthogonal group can't be restricted by halve."
-                assert rotation % 2 == 0, f"Number of rotations ({rotation}) is not divisible by 2."
-                subgroup_id = (0, rotation // 2) if group == "dihedral" else (rotation // 2)
-                
-            elif restrict == "invariant":  
-                # restrict to invariant case
-                subgroup_id = (None, 1) if group != "cyclic" else 1
-            else:
-                raise ValueError(f"Restriction {restrict} not implemented.")
-
-            layers.append(RestrictionModule(self.in_type, subgroup_id))
-            layers.append(DisentangleModule(layers[-1].out_type))
-            self.restrict = SequentialModule(*layers)
-            self.out_type = self.restrict.out_type
-
-    def forward(self, x):
-        return self.restrict(x)
-
-    def evaluate_output_shape(self, input_shape: Tuple):
-        assert len(input_shape) == 4
-        assert input_shape[1] == self.in_type.size
-        return input_shape
 
 
 class EquivariantNorm(EquivariantModule):

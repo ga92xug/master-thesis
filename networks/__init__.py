@@ -1,7 +1,10 @@
 from .eq_other import (
-    Restriction,
     EquivariantNorm,
     EquivariantPool,
+)
+from .eq_restriction import (
+    Restriction,
+    Restriction_from_id,
 )
 from .eq_convs import (
     EquivariantConv,
@@ -18,6 +21,7 @@ from .util import (
 __all__ = [
     # eq_other
     "Restriction",
+    "Restriction_from_id",
     "EquivariantNorm",
     "EquivariantPool",
     # eq_convs

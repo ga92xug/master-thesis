@@ -1,15 +1,16 @@
 from pathlib import Path
 from ax.core import Experiment
 # Save and load
-from ax.service.utils.instantiation import save_experiment, load_experiment
+from ax.storage.sqa_store.save import save_experiment 
 from ax.modelbridge.registry import Models
 # Storage
-from ax.storage.sqlalchemy_store.db import init_engine_and_session_factory
-from ax.storage.sqlalchemy_store.load import load_experiment
-from ax.storage.sqlalchemy_store.save import save_experiment
+
+from ax.storage.sqa_store.db import init_engine_and_session_factory
+from ax.storage.sqa_store.load import load_experiment
+from ax.storage.sqa_store.save import save_experiment
 from ax.storage.metric_registry import register_metric
 from ax.storage.runner_registry import register_runner
-from ax.storage import DBSettings
+from ax.storage.sqa_store.structs import DBSettings
 # Objective
 from ax.core import MultiObjective, Objective, ObjectiveThreshold
 from ax.core.optimization_config import MultiObjectiveOptimizationConfig
@@ -27,13 +28,23 @@ EXP_NAME = "mnist_rot"
 TOTAL_TRIALS = 48  # total evaluation budget
 NUM_SOBOL_TRIALS = 5
 NUM_BOTORCH_TRIALS = 15
+ENTITY = "ga92xug"
+PROJECT = "scaling-laws-eq"
 
+# it is not possible to put constraints on the choice parameters currently in ax
+# but we can encode choice parameters as range parameters
+CHOICE_2_RANGE_PARAMS = {
+    "group" : [1, 2, 4, 8, 16],
+    "kernel_size" : [3, 5],
+    "out_channels": [1.,1.25,1.5,1.75,2.],
+    "se_ratio" : [0., 0.25],
+}
+STRIDES = [2, 2, 2, 2]
 
 """
 ToDo:
 - objective_thresholds
 - search space
-
 """
 
 ######################################################################
@@ -48,22 +59,27 @@ register_runner(HydraWandbRunner)
 # runner
 project_name = "scaling-laws-eq"
 script_path = "experiment/main.py"  
-hydra_wandb_runner = HydraWandbRunner(script_path, project_name)
+hydra_wandb_runner = HydraWandbRunner(script_path, project_name, 
+                                      CHOICE_2_RANGE_PARAMS, STRIDES)
 #runner.run(trial)
 
 ######################################################################
 # search space
-eq_search_space = Eq_Search_Space.Eq_Search_Space()
+eq_search_space = Eq_Search_Space(CHOICE_2_RANGE_PARAMS)
 search_space = eq_search_space.get_search_space()
 
 ######################################################################
 # metrics
 metric_val_acc = WandbMetric(
     name="valid.acc",
+    entity=ENTITY,
+    project=PROJECT,
     lower_is_better=False,
 )
 metric_gflops = WandbMetric(
     name="gflops",
+    entity=ENTITY,
+    project=PROJECT,
     lower_is_better=True,
 )
 
@@ -92,7 +108,7 @@ opt_config = MultiObjectiveOptimizationConfig(
         ],
     ),
     objective_thresholds=[
-        ObjectiveThreshold(metric=metric_val_acc, bound=0.94, relative=False),
+        ObjectiveThreshold(metric=metric_val_acc, bound=0.80, relative=False),
         ObjectiveThreshold(metric=metric_gflops, bound=80_000, relative=False),
     ],
 )
@@ -108,11 +124,11 @@ experiment = Experiment(
 
 ######################################################################
 # Choosing the Generation Strategy
-gs = choose_generation_strategy(
-    search_space=experiment.search_space,
-    optimization_config=experiment.optimization_config,
-    num_trials=TOTAL_TRIALS,
-  )
+# gs = choose_generation_strategy(
+#     search_space=experiment.search_space,
+#     optimization_config=experiment.optimization_config,
+#     num_trials=TOTAL_TRIALS,
+#   )
 
 
 # taken from https://github.com/facebook/Ax/issues/1454
@@ -120,7 +136,7 @@ gs = choose_generation_strategy(
 generation_strategy=GenerationStrategy(
     name="SAASBO",
     steps=[
-        GenerationStep(model=Models.SOBOL, num_trials=10),
+        GenerationStep(model=Models.SOBOL, num_trials=TOTAL_TRIALS),
         GenerationStep(
             model=Models.FULLYBAYESIAN,
             num_trials=-1,

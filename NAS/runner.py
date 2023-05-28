@@ -7,12 +7,17 @@ from util import encode_parameters
 
 
 class HydraWandbRunner(Runner):
-    def __init__(self, script_path, wandb_project, wandb_mode="disabled"):
+    def __init__(self, script_path, wandb_project, choice_2_range_param, 
+                 strides, wandb_mode="disabled", wandb_give_name=False):
         super().__init__()
         self.command_prefix = "python"
         self.script_path = script_path
         self.wandb_project = wandb_project
         self.wandb_mode = wandb_mode
+        self.wandb_give_name = wandb_give_name
+        self.choice_2_range_param = choice_2_range_param
+        self.strides = strides
+
 
     def run(self, trial):
         # Construct the command
@@ -20,13 +25,24 @@ class HydraWandbRunner(Runner):
 
         # Add the trial parameters
         trial_index = trial.index
-        trial_params = trial.parameters
-        encoded_params = encode_parameters(trial_params)
+        arm = trial.arm
+        trial_params = arm.parameters
+
+        print("trial_params", trial_params)
+
+        #trial_params = trial.parameters
+        encoded_params = encode_parameters(trial_params, 
+                                           self.choice_2_range_param, 
+                                           self.strides)
+        print("encoded_params", encoded_params)
         command.extend([f"model=eq_nasnet"])
-        command.extend([f"model.block_args={encoded_params}"])
+        command.extend([f"model.blocks_args={encoded_params}"])
+        command.extend([f"wandb.give_name={self.wandb_give_name}", 
+                        f"wandb.mode={self.wandb_mode}"])
 
         # Create a new wandb run
-        run = wandb.init(project=self.wandb_project, mode=trial_params["wandb.mode"])
+        run = wandb.init(project=self.wandb_project, 
+                         mode=self.wandb_mode)
         run_id = run.id
         
         # Run the command

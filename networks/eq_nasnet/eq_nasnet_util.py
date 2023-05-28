@@ -8,14 +8,6 @@ from torch.nn import functional as F
 import sys
 sys.path.append('../networks') # add parent directory
 
-from nn import (
-    FieldType,
-    EquivariantModule,
-)
-
-from networks.eq_convs import (
-    EquivariantConv,
-)
 
 CHANNELS_CONSTANT = 1
 
@@ -23,19 +15,12 @@ CHANNELS_CONSTANT = 1
 # Help functions for model architecture
 ################################################################################
 
-# Parameters for the entire model (stem, all blocks, and head)
-GlobalParams = collections.namedtuple('GlobalParams', [
-    'width_coefficient', 'depth_coefficient', 'image_size', 'dropout_rate',
-    'num_classes', 'batch_norm_momentum', 'batch_norm_epsilon',
-    'drop_connect_rate', 'depth_divisor', 'min_depth', 'include_top'])
 
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple('BlockArgs', [
-    'num_repeat', 'kernel_size', 'stride', 'expand_ratio',
-    'input_filters', 'output_filters', 'se_ratio', 'skip'])
-
+        'reflection', 'group', 'kernel_size', 'stride', 'out_channels',
+        'num_layers', 'conv_op', 'se_ratio', 'skip'])
 # Set GlobalParams and BlockArgs's defaults
-GlobalParams.__new__.__defaults__ = (None,) * len(GlobalParams._fields)
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
@@ -48,9 +33,10 @@ def eq_round_filters(filters, width_coefficient, depth_divisor, min_depth):
     Returns:
         new_filters: New filters number after calculating.
     """
+    print("filters: ", filters)
     multiplier = width_coefficient
     if not multiplier:
-        return filters
+        return int(round(filters))
     # TODO: modify the params names.
     #       maybe the names (width_divisor,min_width)
     #       are more suitable than (depth_divisor,min_depth).
@@ -66,7 +52,7 @@ def eq_round_filters(filters, width_coefficient, depth_divisor, min_depth):
     return int(round(new_filters))
 
 
-def round_repeats(repeats, global_params):
+def round_repeats(repeats, depth_coefficient):
     """Calculate module's repeat number of a block based on depth multiplier.
        Use depth_coefficient of global_params.
     Args:
@@ -75,63 +61,10 @@ def round_repeats(repeats, global_params):
     Returns:
         new repeat: New repeat number after calculating.
     """
-    multiplier = global_params.depth_coefficient
+    multiplier = depth_coefficient
     if not multiplier:
         return repeats
     return int(math.ceil(multiplier * repeats))
-
-
-class Eq_Conv2dSamePadding(EquivariantModule):
-    """2D Convolutions like TensorFlow's 'SAME' mode, with the given input image size.
-       The padding mudule is calculated in construction function, then used in forward.
-    """
-
-    # With the same calculation as Conv2dDynamicSamePadding
-
-    def __init__(
-        self,
-        in_type: FieldType,
-        out_channels: int,
-        image_size: int,
-        kernel_size: int = 3,
-        stride: int = 1,
-        dilation: int = 1,
-        groups: int = 1,
-        bias: bool = True,
-        # kernel_layout: List[int] = None,
-    ):
-        super().__init__()
-        self.stride = [stride] * 2 if isinstance(stride, int) else stride
-        self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
-        self.dilation = [dilation] * 2
-        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, padding=0,
-                                      stride=self.stride, groups=groups, bias=bias)
-        self.out_type = self.conv2d.out_type
-        
-
-        # Calculate padding based on image size and save it
-        assert image_size is not None
-        ih, iw = (image_size, image_size) if isinstance(image_size, int) else image_size
-        # kh, kw = self.weight.size()[-2:]
-        kh, kw = kernel_size, kernel_size # we don't support uneven kernel sizes
-        sh, sw = self.stride[0], self.stride[1]
-        # types of ih, sh, iw and sw
-        oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)
-        self.pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
-        self.pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
-        
-    def forward(self, x):
-        if self.pad_h > 0 or self.pad_w > 0:
-            x.tensor = torch.nn.functional.pad(x.tensor, 
-                            pad=(self.pad_w // 2, self.pad_w - self.pad_w // 2, 
-                            self.pad_h // 2, self.pad_h - self.pad_h // 2))
-        x = self.conv2d(x)
-        return x
-
-    def evaluate_output_shape(self, input_shape: Tuple):
-        assert len(input_shape) == 4
-        assert input_shape[1] == self.in_type.size
-        return input_shape
 
 ################################################################################
 # Helper functions for loading model params
@@ -145,8 +78,16 @@ class Eq_Conv2dSamePadding(EquivariantModule):
 # load_pretrained_weights: A function to load pretrained weights
 
 class BlockDecoder(object):
-    """Block Decoder for readability,
-       straight from the official TensorFlow repository.
+    """
+        reflection,
+        kernel_size,
+        group,
+        out_channels,
+        stride,
+        
+        num_layers,
+        conv_op,
+        se_ratio,
     """
 
     @staticmethod
@@ -163,26 +104,29 @@ class BlockDecoder(object):
         ops = block_string.split('_')
         options = {}
         for op in ops:
-            splits = re.split(r'(\d.*)', op)
-            if len(splits) == 2:
-                # all numeric arguments
-                key, value = splits
-                options[key] = value
-            elif len(splits) == 1:
-                # skip operation
-                options["skip"] = splits[0]
-            else:
-                raise ValueError(f'Unknown block string {block_string}')
+            splits = re.split(r'(?<=[a-zA-Z])(?=[^a-zA-Z])', op)
+            splits[1] = re.sub(r'-(?=\D)', '', splits[1])
+            #print(op, splits)
+            key, value = splits
+            options[key] = value
 
         return BlockArgs(
-            num_repeat=     int(options['r']),
-            kernel_size=    int(options['k']),
-            stride=         int(options['s']),
-            expand_ratio=   int(options['e']),
-            input_filters=  int(options['i']),
-            output_filters= int(options['o']),
+            # all blocks have these params
+            reflection=     int(options['r']),
+            group=          int(options['g']),
+            # 0 - k-1 blocks have these params 
+            kernel_size=    int(options['k']) if 'k' in options else None,
+            stride=         int(options['s']) if 's' in options else None,
+            out_channels=   int(options['o']) if 'o' in options else None,
+            # only 1 - k-1 middle blocks have these params
+            num_layers=     int(options['n']) if 'n' in options else None,
+            conv_op=        str(options['c']) if 'c' in options else None,
             se_ratio=       float(options['se']) if 'se' in options else None,
-            skip=           ('noskip' not in block_string)
+            skip=           str(options['sk']) if 'c' in options else None,
+
+            # not used for now
+            #expand_ratio=   int(options['e']),
+            #input_filters=  int(options['i']),
             )
 
     @staticmethod
@@ -217,6 +161,8 @@ class BlockDecoder(object):
         blocks_args = []
         for block_string in string_list:
             blocks_args.append(BlockDecoder._decode_block_string(block_string))
+
+        BlockDecoder._check_valid_blocks_args(blocks_args)
         return blocks_args
 
     @staticmethod
@@ -231,48 +177,34 @@ class BlockDecoder(object):
         for block in blocks_args:
             block_strings.append(BlockDecoder._encode_block_string(block))
         return block_strings
+    
+
+    @staticmethod
+    def _check_valid_blocks_args(blocks_args):
+        """Helper function for checking argument values in blocks_args.
+        Args:
+            blocks_args (list[namedtuples]): A list of BlockArgs namedtuples of block args.
+        """
+        
+        for i, block in enumerate(blocks_args):
+            assert isinstance(block.out_channels, int) and block.out_channels > 0
+            assert isinstance(block.kernel_size, int) and block.kernel_size > 0
+            assert isinstance(block.stride, int) and block.stride > 0
+            assert isinstance(block.group, int) and block.group > 0
+            assert isinstance(block.reflection, int) and block.reflection in [-1,0]
+            
+            if i > 0:
+                assert isinstance(block.num_layers, int) and block.num_layers > 0
+                assert isinstance(block.conv_op, str) and block.conv_op in ["conv", "dconv", "mbconv"]
+                assert isinstance(block.se_ratio, float) and 0 <= block.se_ratio <= 1
+                assert isinstance(block.skip, str) and block.skip in ["identity", "no"]
+
+                assert previous_block.reflection >= block.reflection
+                assert previous_block.group >= block.group
+
+            previous_block = block
 
 
-def efficientnet(width_coefficient=None, depth_coefficient=None, image_size=None,
-                 dropout_rate=0.2, num_classes=1000, include_top=True):
-    """Create BlockArgs and GlobalParams for efficientnet model.
-    Args:
-        width_coefficient (float)
-        depth_coefficient (float)
-        image_size (int)
-        dropout_rate (float)
-        drop_connect_rate (float)
-        num_classes (int)
-        Meaning as the name suggests.
-    Returns:
-        blocks_args, global_params.
-    """
-
-    # Blocks args for the whole model(efficientnet-b0 by default)
-    # It will be modified in the construction of EfficientNet Class according to model
-    blocks_args = [
-        'r1_k3_s11_e1_i32_o16_se0.25',
-        'r2_k3_s22_e6_i16_o24_se0.25',
-        'r2_k5_s22_e6_i24_o40_se0.25',
-        'r3_k3_s22_e6_i40_o80_se0.25',
-        'r3_k5_s11_e6_i80_o112_se0.25',
-        'r4_k5_s22_e6_i112_o192_se0.25',
-        'r1_k3_s11_e6_i192_o320_se0.25',
-    ]
+if __name__ == "__main__":
+    blocks_args = ['r0_k3_g8_o1_s2', 'r0_k3_g2_o1_s2_n1_c-conv_se0.25_sk-identity', 'r0_k3_g2_o1_s2_n1_c-mbconv_se0.25_sk-identity', 'r-1_k3_g1_o1_s2_n2_c-mbconv_se0.25_sk-no']
     blocks_args = BlockDecoder.decode(blocks_args)
-
-    global_params = GlobalParams(
-        width_coefficient=width_coefficient,
-        depth_coefficient=depth_coefficient,
-        image_size=image_size,
-        dropout_rate=dropout_rate,
-
-        num_classes=num_classes,
-        batch_norm_momentum=0.99,
-        batch_norm_epsilon=1e-3,
-        depth_divisor=8,
-        min_depth=None,
-        include_top=include_top,
-    )
-
-    return blocks_args, global_params

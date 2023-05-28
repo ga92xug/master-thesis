@@ -16,8 +16,8 @@ class WandbMetric(Metric):
     """
 
     def __init__(self, name: str, entity: str, project: str, 
-                 db_file: str = "data/wandb_cache.db"):
-        super().__init__(name)
+                lower_is_better: bool, db_file: str = "data/wandb_cache.db"):
+        super().__init__(name, lower_is_better=lower_is_better)
         self.project = project
         self.entity = entity
         self.db_file = db_file

@@ -4,32 +4,30 @@ from omegaconf import DictConfig, OmegaConf
 import sys
 sys.path.append('../networks') # add parent directory
 
-from eq_nasnet_util import (
+from .eq_nasnet_util import (
     BlockDecoder,
     eq_round_filters,
     round_repeats,
-    Swish,
-    Eq_Conv2dSamePadding,
 )
-from networks.eq_other import (
+from networks import (
     EquivariantPool, 
-    Restriction
+    Restriction_from_id,
 )
 from networks.eq_convs import (
     EquivariantConv,
     EquivariantSqueezeExcitation,
+    Eq_Conv2dSamePadding,
 )
 
 from networks.util import (
     calculate_output_image_size, 
-    get_fixed_params, 
+    get_fixed_params,
+    get_group_id, 
     get_gspace_from_id, 
     get_param_count,
 )
 
 from nn import (
-    rot2dOnR2,
-    flipRot2dOnR2,
     GroupTensor,
     FieldType,
     EquivariantModule,
@@ -48,30 +46,29 @@ class Eq_NAS_Block(EquivariantModule):
     """
     Block with variable content based on block_args.
     """
-    def __init__(self, in_type, block_args, image_size):
+    def __init__(self, in_type, block_args, image_size, dropout_rate=0.0):
         """
         Args:
         block_args (namedtuple): BlockArgs, defined in utils.py.
-        global_params (namedtuple): GlobalParam, defined in utils.py.
         image_size (tuple or list): [image_height, image_width].
         """
         super().__init__()
         self.block_args = block_args
         self.in_type = in_type
-        # self._bn_mom = 1 - global_params.batch_norm_momentum  # pytorch's difference from tensorflow
-        # self._bn_eps = global_params.batch_norm_epsilon
-        self.has_se = (block_args.se_ratio is not None) \
-            and (0 < block_args.se_ratio <= 1)
+        self.has_se = 0 < block_args.se_ratio <= 1
+
+        self.expand_ratio = 2 if block_args.conv_op == 'mbconv' else 1
         
         inp = in_type
-        oup = len(in_type) * block_args.expand_ratio
+        oup = len(in_type) * self.expand_ratio
 
         # Expansion phase
-        if block_args.expand_ratio != 1:
+        if self.expand_ratio != 1:
             self._expand_conv = Eq_Conv2dSamePadding(
                 in_type=inp,
                 out_channels=oup,
                 image_size=image_size,
+                kernel_size=1,
                 bias=False,
             )
             self._bn0 = BatchNorm(in_type=self._expand_conv.out_type)
@@ -80,11 +77,12 @@ class Eq_NAS_Block(EquivariantModule):
 
         # Conv1
         # potentially depthwise convolution
-        groups = len(inp) if block_args.seperable else 1
+        groups = len(inp) if block_args.conv_op in ['mbconv', 'dconv'] else 1
         self.conv1 = Eq_Conv2dSamePadding(
             in_type=inp,
             out_channels=len(inp),
             image_size=image_size,
+            kernel_size=block_args.kernel_size,
             groups=groups,
             stride=block_args.stride,
             bias=False,
@@ -108,22 +106,24 @@ class Eq_NAS_Block(EquivariantModule):
 
         # Conv2
         # potentially pointwise convolution
+        kernel_size = 1 if block_args.conv_op in ['mbconv', 'dconv'] else block_args.kernel_size
         self.conv2 = Eq_Conv2dSamePadding(
             in_type=out_type,
-            out_channels=block_args.output_filters,
+            out_channels=block_args.out_channels,
             image_size=image_size,
+            kernel_size=kernel_size,
             bias=False,
         )
         self.bn2 = BatchNorm(in_type=self.conv2.out_type)
         self.out_type = self.bn2.out_type
 
         # Skip connection
-        if block_args.skip_connection == "pool":
+        if block_args.skip == "pool":
             self.shortcut = EquivariantPool(
                 in_type=self.in_type,
                 stride=block_args.stride,
             )
-        elif block_args.skip_connection == "conv" or block_args.stride > 1:
+        elif block_args.skip == "conv" or block_args.stride > 1:
             self.shortcut = EquivariantConv(
                 in_type=self.in_type,
                 out_channels=len(self.bn2.out_type),
@@ -131,13 +131,13 @@ class Eq_NAS_Block(EquivariantModule):
                 stride=block_args.stride,
                 bias=False,
             )
-        elif block_args.skip_connection == "identity":
+        elif block_args.skip == "identity":
             self.shortcut = nn.Identity()
-        elif block_args.skip_connection == "no":
+        elif block_args.skip == "no":
             self.shortcut = None
         else:
             raise ValueError(f"Unsupported skip connection type. \
-                             Got: {block_args.skip_connection}")
+                             Got: {block_args.skip}")
 
         
 
@@ -149,7 +149,7 @@ class Eq_NAS_Block(EquivariantModule):
 
         x = inputs
         # Expansion
-        if self.block_args.expand_ratio != 1:
+        if self.expand_ratio != 1:
             x = self._expand_conv(x)
             x = self._bn0(x)
             x = self._swish0(x)
@@ -166,7 +166,7 @@ class Eq_NAS_Block(EquivariantModule):
         x = self.conv2(x)
         x = self.bn2(x)
         
-        # Skip connection and drop connect
+        # Skip connection
         if self.shortcut is not None:
             x = x + shortcut_result # skip connection
         return x
@@ -183,8 +183,8 @@ class EquivariantNASNet(nn.Module):
             image_size,
             width_coefficient=1, 
             depth_coefficient=1,
-            drop_out=0.2,
-            depth_divisor=12,
+            dropout_rate=0.2,
+            depth_divisor=8,
             min_depth=1,
             input_channels=3, 
             num_classes=10, 
@@ -195,8 +195,11 @@ class EquivariantNASNet(nn.Module):
         assert image_size is not None, 'Please provide image size'
         assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
-        #self.global_params = global_params
-        self.restrict = restrict
+        self.width_coefficient = width_coefficient
+        self.depth_coefficient = depth_coefficient
+        self.dropout_rate = dropout_rate
+        self.depth_divisor = depth_divisor
+        self.min_depth = min_depth
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
         self.blocks_args = blocks_args
@@ -205,7 +208,7 @@ class EquivariantNASNet(nn.Module):
         # Get group spaces for specified rotations and flips
         self.reflection = stem_args.reflection
         self.group = stem_args.group
-        group_id = (self.reflection, self.group)
+        group_id = get_group_id(self.reflection, self.group)
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
 
@@ -220,7 +223,8 @@ class EquivariantNASNet(nn.Module):
         )
 
         # Stem
-        out_channels = eq_round_filters(stem_args.out_channels, 
+        out_channels = (16 / stem_args.group) * stem_args.out_channels
+        out_channels = eq_round_filters(out_channels, 
                                         self.width_coefficient, 
                                         self.depth_divisor, self.min_depth)
         self._conv_stem = Eq_Conv2dSamePadding(
@@ -231,6 +235,7 @@ class EquivariantNASNet(nn.Module):
             image_size=image_size,
             bias=False,
         )
+        print(f"Conv stem out type: {self._conv_stem.out_type}")
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
         self._swish0 = Swish(in_type=self._bn0.out_type)
 
@@ -241,18 +246,18 @@ class EquivariantNASNet(nn.Module):
         self._blocks = nn.ModuleList([])
         # we start with the first block 
         # block 0 is the stem
-        for i, block_args in enumerate(self.blocks_args[1:]):
-            print(f"Building block: {i}")
+        for i, block_args in enumerate(self.blocks_args[1:-1]):
+            print(f"Building block: {i+1}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                input_filters=eq_round_filters(block_args.input_filters, 
+                out_channels=eq_round_filters(block_args.out_channels, 
                     self.width_coefficient, self.depth_divisor, self.min_depth),
-                output_filters=eq_round_filters(block_args.output_filters, 
-                    self.width_coefficient, self.depth_divisor, self.min_depth),
-                num_repeat=round_repeats(block_args.num_repeat, 
+                num_layers=round_repeats(block_args.num_layers, 
                                          self.depth_coefficient)
             )
-            restrict = Restriction(self.field_type, self.group, self.rotation, self.restrict[i])
+            group_id = get_group_id(block_args.reflection, block_args.group)
+            print(f"Group id: {group_id}")
+            restrict = Restriction_from_id(self.field_type, group_id)
             self._blocks.append(restrict)
             self.field_type = restrict.out_type
             # The first block needs to take care of stride and filter size increase.
@@ -261,25 +266,28 @@ class EquivariantNASNet(nn.Module):
             self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, 
                                                      block_args.stride)
-            if block_args.num_repeat > 1:  # modify block_args to keep same output size
-                block_args = block_args._replace(input_filters=\
-                                        block_args.output_filters, stride=1)
-            for _ in range(block_args.num_repeat - 1):
+            if block_args.num_layers > 1:  # modify block_args to keep same output size
+                block_args = block_args._replace(stride=1)
+            for _ in range(block_args.num_layers - 1):
                 self._blocks.append(Eq_NAS_Block(self.field_type, block_args, 
                                                 image_size=image_size))
                 self.field_type = self._blocks[-1].out_type
-                # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
 
+        # Build head
+        last_block_args = self.blocks_args[-1]
         # Restrict
-        self.restrict_last = Restriction(self.field_type, self.group, self.rotation, self.restrict[-1])
+        group_id = get_group_id(last_block_args.reflection, last_block_args.group)
+        self.restrict_last = Restriction_from_id(self.field_type, group_id)
+        # = Restriction(self.field_type, self.group, self.rotation, self.restrict[-1])
         self.field_type = self.restrict_last.out_type
 
         # Head
-        input_channels = block_args.output_filters  # output of final block
-        out_channels = eq_round_filters(1280, self.global_params, rotation=self.rotation)
+        out_channels = eq_round_filters(last_block_args.out_channels, 
+                                        self.width_coefficient,
+                                        self.depth_divisor, self.min_depth)
         self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
-                                               bias=False)
+                                               image_size=image_size, bias=False)
         self._bn1 = BatchNorm(in_type=self._conv_head.out_type)
         self._swish1 = Swish(in_type=self._bn1.out_type)
 
@@ -288,7 +296,7 @@ class EquivariantNASNet(nn.Module):
         self.invariant_map = EquivariantPool(self._swish1.out_type, invariant_map=True)
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
 
-        self.dropout = nn.Dropout(self.global_params.drop_out)
+        self.dropout = nn.Dropout(self.dropout_rate)
         self.fc = nn.Linear(out_channels, self.num_classes)
 
 
@@ -299,11 +307,7 @@ class EquivariantNASNet(nn.Module):
         x = self._swish0(self._bn0(self._conv_stem(x)))
         # Blocks
         for idx, restrict_or_MBBlock in enumerate(self._blocks):
-            if isinstance(restrict_or_MBBlock, Restriction):
-                x = restrict_or_MBBlock(x)
-                continue
-            else:
-                x = restrict_or_MBBlock(x)
+            x = restrict_or_MBBlock(x)
 
         # Head
         x = self.restrict_last(x)

@@ -1,0 +1,97 @@
+from typing import Tuple, List
+from torch import nn
+import numpy as np
+import sys
+sys.path.append('../scaling-laws-ecnn') # add parent directory
+import nn as nn_eq
+
+from nn import (
+    FieldType,
+    EquivariantModule,
+    SequentialModule,
+    BatchNorm,
+    InducedNormBatchNorm,
+    GroupPooling,
+    NormPool,
+    InducedNormPool,
+    NormMaxPool,
+    PointwiseMaxPool,
+    DisentangleModule,
+    RestrictionModule,
+    MultipleModule,
+)
+from group_theory import Representation
+from nn.modules import nonlinearities
+
+
+class Restriction(EquivariantModule):
+    def __init__(
+        self, in_type: FieldType, group: str, rotation: int, restrict: str = None
+    ):
+        super().__init__()
+        self.in_type = in_type
+        if restrict == "none" or restrict is None:
+            self.restrict = nn.Identity()
+            self.out_type = self.in_type
+        else:
+            layers = list()
+
+            if restrict == "reflection":
+                assert group != "cyclic", "Cyclic groups can't be restricted to reflection."
+                subgroup_id = (np.pi, 1) if group == "orthogonal" else (0, 1)
+
+            elif restrict == "halved":
+                assert group != "orthogonal", "Orthogonal group can't be restricted by halve."
+                assert rotation % 2 == 0, f"Number of rotations ({rotation}) is not divisible by 2."
+                subgroup_id = (0, rotation // 2) if group == "dihedral" else (rotation // 2)
+                
+            elif restrict == "invariant":  
+                # restrict to invariant case
+                subgroup_id = (None, 1) if group != "cyclic" else 1
+            else:
+                raise ValueError(f"Restriction {restrict} not implemented.")
+
+            layers.append(RestrictionModule(self.in_type, subgroup_id))
+            layers.append(DisentangleModule(layers[-1].out_type))
+            self.restrict = SequentialModule(*layers)
+            self.out_type = self.restrict.out_type
+
+    def forward(self, x):
+        return self.restrict(x)
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+
+
+class Restriction_from_id(EquivariantModule):
+    """
+    If we restrict the cyclic group further the group_id has to be rotations
+    else it is a tuple of (reflection, rotation).
+    """
+    def __init__(
+        self, in_type: FieldType, group_id: Tuple,
+    ):
+        super().__init__()
+        self.in_type = in_type
+
+        if "C" in self.in_type.fibergroup.name:
+            # cyclic group
+            self.restrict = RestrictionModule(self.in_type, group_id[1])
+        elif "D" in self.in_type.fibergroup.name:
+            # dihedral group
+            self.restrict = RestrictionModule(self.in_type, group_id)
+        else:  
+            ValueError("Only cyclic and dihedral groups are supported.")
+        
+        self.out_type = self.restrict.out_type
+
+    def forward(self, x):
+        return self.restrict(x)
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
+

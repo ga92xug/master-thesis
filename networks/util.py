@@ -1,5 +1,6 @@
 from copy import deepcopy
 import math
+from typing import Tuple
 import warnings
 import sys
 import torch
@@ -22,6 +23,9 @@ def cuda_memory_usage(verbose=1):
         print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
         # print(f"Free:         {f / 1024 ** 3:.1f} GB")
     return r / t
+
+def get_group_id(reflection, group):
+    return (reflection, group) if reflection >= 0 else (None, group)
 
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.
@@ -253,7 +257,14 @@ def get_gspace_from_id(id):
         Returns:
             gspace: Group space.
         """
-        reflection, rotation = id
+        if isinstance(id, Tuple):
+            reflection, rotation = id
+        elif isinstance(id, int):
+            reflection, rotation = -1, id
+        else:
+            raise ValueError(
+                f'Group id "{id}" is not know.'
+            )
 
         if reflection == -1:
             # cyclic
