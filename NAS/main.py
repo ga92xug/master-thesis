@@ -9,7 +9,6 @@ from ax.core import Experiment
 from ax.storage.sqa_store.save import save_experiment 
 from ax.modelbridge.registry import Models
 # Storage
-
 from ax.storage.sqa_store.db import init_engine_and_session_factory
 from ax.storage.sqa_store.load import load_experiment
 from ax.storage.sqa_store.save import save_experiment
@@ -22,6 +21,16 @@ from ax.core.optimization_config import MultiObjectiveOptimizationConfig
 # Generation Strategy
 from ax.modelbridge.dispatch_utils import choose_generation_strategy
 from ax.modelbridge.generation_strategy import GenerationStep, GenerationStrategy
+# Visualize
+from ax.plot.pareto_utils import compute_posterior_pareto_frontier
+from ax.plot.pareto_frontier import plot_pareto_frontier
+from ax.service.utils.report_utils import exp_to_df
+from ax.plot.pareto_frontier import scatter_plot_with_pareto_frontier_plotly
+from ax.plot.contour import interact_contour_plotly
+from ax.modelbridge.cross_validation import compute_diagnostics, cross_validate
+from ax.plot.diagnostic import interact_cross_validation_plotly
+# check difference between the 2
+from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 
 # Local
 from runner import HydraWandbRunner
@@ -180,7 +189,34 @@ class NAS:
         )
     
 
-    def run(self):
+    def evaluate(self):
+        df = exp_to_df(self.experiment)
+        if self.cfg.other.verbose >= 1:
+            print(df)
+
+        # Pareto frontier       
+        pareto_frontier = scatter_plot_with_pareto_frontier_plotly(self.experiment)
+        wandb.log({"pareto_frontier_scatter": pareto_frontier})
+        pareto_frontier = _pareto_frontier_scatter_2d_plotly(self.experiment)
+        wandb.log({"pareto_frontier_scatter": pareto_frontier})
+
+        # Plotting the model fit
+        model = self.generation_strategy.model
+        cv = cross_validate(model=model)  
+        compute_diagnostics(cv)
+        cross_validation = interact_cross_validation_plotly(cv)
+        wandb.log({"cross_validation": cross_validation})
+        
+        # Plotting the optimization goals against the search space
+        val_contour_plot = interact_contour_plotly(model=model, metric_name="val_acc")
+        gflops_contour_plot = interact_contour_plotly(model=model, metric_name="gflops")
+        wandb.log({"val_contour_plot": val_contour_plot,
+                    "gflops_contour_plot": gflops_contour_plot})
+        
+
+    
+
+    def main_optim_loop(self):
         # Running optimization trials
         for i in range(self.cfg.generation.num_total_trials):
             start = timeit.default_timer()
@@ -188,27 +224,13 @@ class NAS:
 
             stop = timeit.default_timer()
             generation_time = stop - start
-            if self.cfg.other.verbose >= 1:
-                print(f"\nTrial generation {i+1} took {generation_time} seconds")
-
-            self.run.log({"generation_time": generation_time}, step=i)
+            
             # Start trial run to evaluate arm(s) in the trial
             trial.run()
             trial.mark_completed()
             
-            metrics = self.get_metrics(trial)
-            # Log the metrics and run_time to wandb
-            self.run.log({
-                "val_acc": metrics["val_acc"], 
-                "gflops": metrics["gflops"],
-                "run_time": metrics["run_time"],
-            }, step=i)
-
-
-            if self.cfg.other.verbose >= 1:
-                print(f"\nTrial run {i+1} took {run_time} seconds")
-
-            self.run.log({"Run time": run_time}, step=i)
+            # log metrics and print
+            self.log(trial, generation_time, i)
 
             if i % self.cfg.other.save_every == 0:
                 save_experiment(self.experiment, self.exp_save_path)
@@ -218,6 +240,23 @@ class NAS:
 
     
 
+    def log(self, trial, generation_time, step):
+        metrics = self.metric_val_acc.get_metrics(trial)
+        train_duration = metrics["train_duration"]
+        valid_duration = metrics["valid_duration"]
+        # Log the metrics and run_time to wandb
+        self.run.log({
+            "generation_time": generation_time,
+            "val_acc": metrics["val_acc"], 
+            "gflops": metrics["gflops"],
+            "train_duration": train_duration,
+            "valid_duration": valid_duration,
+        }, step=step)
+        self.run.log(metrics, step=step)
+
+        if self.cfg.other.verbose >= 1:
+                print(f"\nTrial: {step+1}\nGeneration time: {generation_time:.2f} seconds")
+                print(f"Median train time {train_duration:.2f} seconds")
 
     
 
@@ -225,7 +264,7 @@ class NAS:
 @hydra.main(config_path="conf", config_name="nas", version_base="1.2")
 def run_NAS(cfg: DictConfig) -> None:
     nas = NAS(cfg)
-    nas.run()
+    nas.main_optim_loop()
 
 
 if __name__ == "__main__":

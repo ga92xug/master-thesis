@@ -117,7 +117,7 @@ class GrayToTensor(object):
         :param tensor: image tensor to which channel is added
         """
         # We have to do a copy since Numpy 1.16 see: https://stackoverflow.com/questions/39554660/np-arrays-being-immutable-assignment-destination-is-read-only/54308748#54308748
-        img = np.array(img, float32, copy=True)[np.newaxis, ...]  # add channel dimension
+        img = np.array(img, np.float32, copy=True)[np.newaxis, ...]  # add channel dimension
         return torch.from_numpy(img)
 
 

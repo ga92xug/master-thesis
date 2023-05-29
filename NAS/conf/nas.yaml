@@ -18,8 +18,8 @@ other:
 
 objective:
   bounds:
-    val_acc: 0.80
-    gflops: 10
+    val_acc: 0.862
+    gflops: 77
 
 search_space:
   choice_2_range_params:

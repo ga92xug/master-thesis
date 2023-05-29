@@ -61,8 +61,8 @@ class mnist_rot_dataset(data.Dataset):
             filename = 'mnist_rot/mnist_rot_test.npz'
             data = np.load(cfg.dataset.data_dir + filename)
 
-        self.images = data['images'].astype(float32)
-        self.labels = data['labels'].astype(int64)
+        self.images = data['images'].astype(np.float32)
+        self.labels = data['labels'].astype(np.int64)
         self.num_samples = len(self.labels)
     
     def __getitem__(self, index):

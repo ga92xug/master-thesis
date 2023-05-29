@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+#import experiment
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 import pprint
 import sys
@@ -450,7 +451,7 @@ class Experiment:
         print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
     
     
-    def run(self):
+    def main_train_loop(self):
         """
         High level functionality to run the experiment. 
         Implements when to train, evaluate, plot, backup, etc.
@@ -540,8 +541,9 @@ def run_experiment(cfg: DictConfig) -> None:
     # check if we are allowed to run
     if cfg.other.gpu_time_limit:
         utils.allowed_usage_time()
-    exp = Experiment(cfg)
-    exp.run()
+    experiment = Experiment(cfg)
+    experiment.main_train_loop()
+    print("Done!")
  
     
 ################################################################################

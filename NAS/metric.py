@@ -17,11 +17,12 @@ class WandbMetric(Metric):
     """
 
     def __init__(self, name: str, entity: str, project: str, 
-                lower_is_better: bool, db_file: str = "data/wandb_cache.db"):
+                lower_is_better: bool, exp_name: str, 
+                db_location: str = "data/"):
         super().__init__(name, lower_is_better=lower_is_better)
         self.project = project
         self.entity = entity
-        self.db_file = db_file
+        self.db_file = db_location + exp_name + "wandb_cache.db"
 
     def connect_to_db(self):
         conn = sqlite3.connect(self.db_file)
@@ -127,17 +128,18 @@ class WandbMetric(Metric):
     def get_metrics(self, trial):
         tried_fetching = False
         conn, cursor = self.connect_to_db()
+        result = None
         
-        cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', (trial_data.index,))
-        result = cursor.fetchone()
         while result is None and not tried_fetching:
+            cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', (trial_data.index,))
+            result = cursor.fetchone()
             if result is not None:
                 gflops, mean_acc, train_duration, valid_duration = float(result[1]), float(result[2]), float(result[3]), float(result[4])
                 metrics = {
-                    "metric_val_acc": mean_acc,
-                    "metric_gflops": gflops,
-                    "metric_train_duration": train_duration,
-                    "metric_valid_duration": valid_duration
+                    "val_acc": mean_acc,
+                    "gflops": gflops,
+                    "train_duration": train_duration,
+                    "valid_duration": valid_duration
                 }
                 return metrics
             else:

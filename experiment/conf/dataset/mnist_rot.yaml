@@ -1,0 +1,9 @@
+data_dir: '../Data/frischs/datasets/'  # Path to the datasets        
+name: "mnist_rot"             # The name of the dataset to use
+augment: True                 # Augment the training set with rotated images
+interpolation: 2              # Type of interpolation to use for data augmentation
+reshuffle: True               # Reshuffle train and valid splits instead of using the default split
+workers: 8                    # Number of jobs to load the dataset
+drop_last_train: False       # Drop the last batch if it is smaller than the batch size
+resolution: 28
+resolution_frozen: True      # Freeze the resolution of the dataset since rescaling it is not wanted
