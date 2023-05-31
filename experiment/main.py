@@ -75,7 +75,7 @@ class Experiment:
         if cfg.wandb.run_id is None:
             # experiment name
             self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
-            
+
             # normal training mode
             self.run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \
@@ -90,6 +90,7 @@ class Experiment:
                 resume = "allow", 
                 project = cfg.wandb.project, 
                 entity = cfg.wandb.entity,
+                mode=cfg.wandb.mode,
                 config = wandb_config,
                 notes = cfg.wandb.notes,
                 tags = cfg.wandb.tags

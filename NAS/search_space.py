@@ -8,18 +8,22 @@ from ax import (
 )
 from ax import ParameterType, RangeParameter, SearchSpace
 from ax.core import ParameterConstraint, OrderConstraint
+from omegaconf import OmegaConf
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Eq_Search_Space:
-    def __init__(self, choice_2_range_params, num_blocks=2):
-        self.num_blocks = num_blocks
+    def __init__(self, cfg_choice_2_range_params, num_middle_blocks=2):
+        self.num_middle_blocks = num_middle_blocks
+        choice_2_range_params = OmegaConf.to_container(cfg_choice_2_range_params, resolve=True)
         self.choice_2_range_params = choice_2_range_params
         self.parameters = {}
 
         # block search space
         # block_id = 0 is the stem block
         # block_id = blocks+1 is the head block
-        for block_id in range(0, self.num_blocks+2):
+        for block_id in range(0, self.num_middle_blocks+2):
             self.parameters[block_id] = self.per_block_search_space(block_id)
 
 
@@ -68,7 +72,7 @@ class Eq_Search_Space:
             block_search_space["kernel_size"] = self.get_kernel_size(block_id)
             return block_search_space
         
-        elif block_id == self.num_blocks+1:
+        elif block_id == self.num_middle_blocks+1:
             block_search_space["reflection"] = self.get_reflection(block_id)
             block_search_space["group"] = self.get_group(block_id)
             block_search_space["out_channels"] = self.get_out_channels(block_id)
@@ -120,7 +124,7 @@ class Eq_Search_Space:
                 values=["conv", "dconv", "mbconv"],
                 parameter_type=ParameterType.STRING,
                 is_ordered=False,
-                sort_values=True,
+                sort_values=False,
             )
     
     def get_kernel_size(self, block_id):
@@ -147,7 +151,7 @@ class Eq_Search_Space:
                 values=["identity", "no"], # "pool"
                 parameter_type=ParameterType.STRING,
                 is_ordered=False,
-                sort_values=True,
+                sort_values=False,
             )
     
     def get_out_channels(self, block_id):

@@ -266,10 +266,10 @@ def get_gspace_from_id(id):
                 f'Group id "{id}" is not know.'
             )
 
-        if reflection == -1:
+        if reflection is None:
             # cyclic
             gspace = rot2dOnR2(rotation)
-        elif reflection >=0:
+        elif reflection >= 0:
             # dihedral
             gspace = flipRot2dOnR2(rotation)
         else:

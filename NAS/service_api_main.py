@@ -8,6 +8,10 @@ import torch
 import wandb
 import json
 from omegaconf import DictConfig, OmegaConf
+
+# Ax service
+from ax.service.ax_client import AxClient, ObjectiveProperties
+
 #from ax import save, load
 from ax.core import Experiment, Data
 # Save and load json
@@ -60,6 +64,8 @@ class NAS:
         self.cfg = cfg
         self.device = torch.device('cuda' if torch.cuda.is_available() \
                                    else "cpu")
+
+        self.ax_client = AxClient()
         
         # saving
         self.save_folder = f"NAS/data/{self.cfg.exp_name}"

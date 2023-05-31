@@ -34,12 +34,12 @@ objective:
     gflops: 94
 
 search_space:
-  num_middle_blocks: 2
-  strides: [2, 2, 2]
+  num_middle_blocks: 1
+  strides: [2, 2]
   choice_2_range_params:
       group: [1, 2, 4, 8, 16]
       kernel_size: [3, 5]
-      out_channels: [1.,1.25,1.5,1.75]
+      out_channels: [1.,1.25]
       se_ratio: [0., 0.25]
 
 

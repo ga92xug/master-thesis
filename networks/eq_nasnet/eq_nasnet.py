@@ -115,12 +115,10 @@ class Eq_NAS_Block(EquivariantModule):
         self.out_type = self.bn2.out_type
 
         # Skip connection
-        if block_args.skip == "pool":
-            self.shortcut = EquivariantPool(
-                in_type=self.original_in_type,
-                stride=block_args.stride,
-            )
-        elif block_args.skip == "conv" or block_args.stride > 1:
+        if block_args.skip == "conv" \
+            or block_args.stride > 1 \
+            or self.in_type != self.out_type:
+            # for larger strides or group changes we have to use a conv layer
             self.shortcut = EquivariantConv(
                 in_type=self.original_in_type,
                 out_channels=len(self.bn2.out_type),
@@ -133,6 +131,11 @@ class Eq_NAS_Block(EquivariantModule):
             self.shortcut = nn.Identity()
         elif block_args.skip == "no":
             self.shortcut = None
+        elif block_args.skip == "pool":
+            self.shortcut = EquivariantPool(
+                in_type=self.original_in_type,
+                stride=block_args.stride,
+            )
         else:
             raise ValueError(f"Unsupported skip connection type. \
                              Got: {block_args.skip}")
