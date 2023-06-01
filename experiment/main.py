@@ -1,3 +1,5 @@
+import sqlite3
+import time
 import numpy as np
 import math
 import torch
@@ -72,20 +74,25 @@ class Experiment:
                 cfg, resolve=True, throw_on_missing=True
             )
         
-        if cfg.wandb.run_id is None:
+        self.is_nas = True if cfg.wandb.run_id is not None else False
+        
+        if not self.is_nas:
             # experiment name
             self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
 
             # normal training mode
-            self.run = wandb.init(
+            self.wandb_run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \
                             mode=cfg.wandb.mode, name=self.expname, \
                             notes=cfg.wandb.notes, tags=cfg.wandb.tags)
-            self.run.log_code(".")
+            self.wandb_run.log_code(".")
         else:
+            # 
+            os.environ['WANDB_CONSOLE']="off"
+            os.environ['WANDB_DISABLE_SERVICE']='true'
             # during NAS we init the run HydraWandbRunner to have access to the
             # run id
-            self.run = wandb.init(
+            self.wandb_run = wandb.init(
                 id = cfg.wandb.run_id, 
                 resume = "allow", 
                 project = cfg.wandb.project, 
@@ -156,6 +163,8 @@ class Experiment:
         flops.uncalled_modules_warnings(False)
         gflops = flops.total() / 1e9
         wandb.log({"GFLOPs": gflops}, step=0)
+        #if self.is_nas:
+        #    self.cfg.database_location 
         # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
         
         if self._verbose > 1:
@@ -242,13 +251,17 @@ class Experiment:
         self.last_batch_size = self.train_data_len % self.actual_batch_size
         self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
 
-    def log(self, accuracy, loss, split):
+    def log(self, **kwargs):
         """
-        Plotting is currently not supported. We rely on wandb to plot the metrics.
+        Connect to db and log kwargs to db with key cfg.wandb.run_id
         """
-        return
-        row = [self.seed, split, self._iteration, accuracy, loss]
-        self.logs.loc[len(self.logs)] = row
+        
+        
+
+    def connect_to_db(self):
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+        return conn, cursor
     
     def backup(self):
         if self.cfg.other.backup_model:
@@ -495,7 +508,10 @@ class Experiment:
         if self.cfg.other.should_test:
             self.test()
         
-        self.run.finish(exit_code=0)
+        wandb.finish(exit_code=0)
+        print("waiting for 60 seconds")
+        time.sleep(60)
+        print("done waiting")
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
         """

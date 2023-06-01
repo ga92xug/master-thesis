@@ -18,22 +18,22 @@ class Eq_Search_Space:
         self.num_middle_blocks = num_middle_blocks
         choice_2_range_params = OmegaConf.to_container(cfg_choice_2_range_params, resolve=True)
         self.choice_2_range_params = choice_2_range_params
-        self.parameters = {}
+        self.parameters = []
 
         # block search space
         # block_id = 0 is the stem block
         # block_id = blocks+1 is the head block
         for block_id in range(0, self.num_middle_blocks+2):
-            self.parameters[block_id] = self.per_block_search_space(block_id)
+            self.parameters.extend(self.per_block_search_space(block_id))
 
 
-        constraints = self.get_constraints()
+        self.parameter_constraints = self.get_constraints()
 
         # convert dict to list
-        self.parameters = dict_to_list(self.parameters)
+        #self.parameters = dict_to_list(self.parameters)
 
-        self.search_space = SearchSpace(parameters=self.parameters,
-                                        parameter_constraints=constraints)
+        #self.search_space = SearchSpace(parameters=self.parameters,
+        #                                parameter_constraints=self.constraints)
 
     def get_constraints(self):
         # currently output channels increase by [1.0, 2.0] at every block
@@ -44,53 +44,167 @@ class Eq_Search_Space:
         #             upper_parameter = f"{i}_filter_size",
         #     ) for i in range(1, self.blocks)
         # ]
-        group_decrease = []
-        reflection_decrease = []
-        for block_id, block_param_dict in self.parameters.items():
+        # group_decrease = []
+        # reflection_decrease = []
+        # for block_id, block_param_dict in self.parameters.items():
+        #     if block_id == 0:
+        #         # there is no constraint for the first block
+        #         continue
+        #     group_decrease.append(OrderConstraint(
+        #             upper_parameter = self.parameters[block_id-1]["group"],
+        #             lower_parameter = self.parameters[block_id]["group"],
+        #     ))
+        #     reflection_decrease.append(OrderConstraint(
+        #             upper_parameter = self.parameters[block_id-1]["reflection"],
+        #             lower_parameter = self.parameters[block_id]["reflection"],
+        #     ))
+        
+        parameter_constraints = []
+        for block_id in range(0, self.num_middle_blocks+2):
             if block_id == 0:
-                # there is no constraint for the first block
+                # There is no constraint for the first block
                 continue
-            group_decrease.append(OrderConstraint(
-                    upper_parameter = self.parameters[block_id-1]["group"],
-                    lower_parameter = self.parameters[block_id]["group"],
-            ))
-            reflection_decrease.append(OrderConstraint(
-                    upper_parameter = self.parameters[block_id-1]["reflection"],
-                    lower_parameter = self.parameters[block_id]["reflection"],
-            ))
+            
+            group_decrease_constraint = f"{block_id-1}_group >= {block_id}_group"
+            parameter_constraints.append(group_decrease_constraint)
+            
+            reflection_decrease_constraint = f"{block_id-1}_reflection >= {block_id}_reflection"
+            parameter_constraints.append(reflection_decrease_constraint)
 
-        return group_decrease + reflection_decrease 
+        return parameter_constraints
 
     def per_block_search_space(self, block_id):
         print(f"block_id: {block_id}")
-        block_search_space = {}
+        block_search_space = []
 
         if block_id == 0:
-            block_search_space["reflection"] = self.get_reflection(block_id)
-            block_search_space["group"] = self.get_group(block_id)
-            block_search_space["out_channels"] = self.get_out_channels(block_id)
-            block_search_space["kernel_size"] = self.get_kernel_size(block_id)
+            block_search_space.extend([
+                self.get_reflection(block_id),
+                self.get_group(block_id),
+                self.get_out_channels(block_id),
+                self.get_kernel_size(block_id),
+            ])
+                                      
+            #block_search_space["reflection"] = self.get_reflection(block_id)
+            #block_search_space["group"] = self.get_group(block_id)
+            #block_search_space["out_channels"] = self.get_out_channels(block_id)
+            #block_search_space["kernel_size"] = self.get_kernel_size(block_id)
             return block_search_space
         
         elif block_id == self.num_middle_blocks+1:
-            block_search_space["reflection"] = self.get_reflection(block_id)
-            block_search_space["group"] = self.get_group(block_id)
-            block_search_space["out_channels"] = self.get_out_channels(block_id)
-            block_search_space["kernel_size"] = self.get_kernel_size(block_id)
+            block_search_space.extend([
+                self.get_reflection(block_id),
+                self.get_group(block_id),
+                self.get_out_channels(block_id),
+                self.get_kernel_size(block_id),
+            ])
+            #block_search_space["reflection"] = self.get_reflection(block_id)
+            #block_search_space["group"] = self.get_group(block_id)
+            #block_search_space["out_channels"] = self.get_out_channels(block_id)
+            #block_search_space["kernel_size"] = self.get_kernel_size(block_id)
             return block_search_space
         
         else:
-            block_search_space["reflection"] = self.get_reflection(block_id)
-            block_search_space["group"] = self.get_group(block_id)
-            block_search_space["num_layers"] = self.get_num_layers(block_id)
-            block_search_space["conv_op"] = self.get_conv_op(block_id)
-            block_search_space["kernel_size"] = self.get_kernel_size(block_id)
-            block_search_space["se_ratio"] = self.get_se_ratio(block_id)
-            block_search_space["out_channels"] = self.get_out_channels(block_id)
-            block_search_space["skip_op"] = self.get_skip_op(block_id)
+            block_search_space.extend([
+                self.get_reflection(block_id),
+                self.get_group(block_id),
+                self.get_num_layers(block_id),
+                self.get_conv_op(block_id),
+                self.get_kernel_size(block_id),
+                self.get_se_ratio(block_id),
+                self.get_out_channels(block_id),
+                self.get_skip_op(block_id),
+            ])
+            #block_search_space["reflection"] = self.get_reflection(block_id)
+            #block_search_space["group"] = self.get_group(block_id)
+            #block_search_space["num_layers"] = self.get_num_layers(block_id)
+            #block_search_space["conv_op"] = self.get_conv_op(block_id)
+            #block_search_space["kernel_size"] = self.get_kernel_size(block_id)
+            #block_search_space["se_ratio"] = self.get_se_ratio(block_id)
+            #block_search_space["out_channels"] = self.get_out_channels(block_id)
+            #block_search_space["skip_op"] = self.get_skip_op(block_id)
             return block_search_space
 
 
+    def get_reflection(self, block_id):
+        return {
+            "name": f"{block_id}_reflection",
+            "type": "range",
+            "bounds": [-1, 0],
+        }
+
+    def get_group(self, block_id):
+        return {
+            "name": f"{block_id}_group",
+            "type": "range",
+            "bounds": [0, len(self.choice_2_range_params["group"]) - 1],
+        }
+
+    def get_num_layers(self, block_id):
+        return {
+            "name": f"{block_id}_num_layers",
+            "type": "range",
+            "bounds": [1, 3],
+        }
+
+    def get_conv_op(self, block_id):
+        return {
+            "name": f"{block_id}_conv_op",
+            "type": "choice",
+            "values": ["conv", "dconv", "mbconv"],
+        }
+
+    def get_kernel_size(self, block_id):
+        return {
+            "name": f"{block_id}_kernel_size",
+            "type": "range",
+            "bounds": [0, len(self.choice_2_range_params["kernel_size"]) - 1],
+        }
+
+    def get_se_ratio(self, block_id):
+        return {
+            "name": f"{block_id}_se_ratio",
+            "type": "range",
+            "bounds": [0, len(self.choice_2_range_params["se_ratio"]) - 1],
+        }
+
+    def get_skip_op(self, block_id):
+        return {
+            "name": f"{block_id}_skip_op",
+            "type": "choice",
+            "values": ["identity", "no"],
+        }
+
+    def get_out_channels(self, block_id):
+        return {
+            "name": f"{block_id}_out_channels",
+            "type": "range",
+            "bounds": [0, len(self.choice_2_range_params["out_channels"]) - 1],
+        }
+        
+
+    def get_search_space(self):
+        return self.search_space
+    
+    def get_parameters(self):
+        return self.parameters
+    
+    def get_parameter_constraints(self):
+        return self.parameter_constraints
+
+
+def dict_to_list(d):
+    result = []
+    for value in d.values():
+        #print(value)
+        if isinstance(value, dict):
+            result.extend(dict_to_list(value))
+        else:
+            result.append(value)
+    return result
+
+
+"""
     def get_reflection(self, block_id):
         return RangeParameter(
                 name=f"{block_id}_reflection",
@@ -162,17 +276,4 @@ class Eq_Search_Space:
                 parameter_type=ParameterType.INT,
                 log_scale=False,
             )
-    
-    def get_search_space(self):
-        return self.search_space
-
-
-def dict_to_list(d):
-    result = []
-    for value in d.values():
-        #print(value)
-        if isinstance(value, dict):
-            result.extend(dict_to_list(value))
-        else:
-            result.append(value)
-    return result
+"""

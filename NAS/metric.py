@@ -47,12 +47,11 @@ class WandbMetric(Metric):
         return conn, cursor
     
 
-    def fetch_trial_data(self, trial) -> Tuple:
+    def fetch_trial_data(self, trial_index, wandb_run_id) -> Tuple:
         api = wandb.Api()
-        trial_index = trial.index
         conn, cursor = self.connect_to_db()
 
-        cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', (trial.index,))
+        cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', (trial_index,))
         result = cursor.fetchone()
 
         if result is not None:
@@ -65,7 +64,8 @@ class WandbMetric(Metric):
             successful_fetch = False
             while not successful_fetch:
                 try:
-                    run = api.run(f"{self.entity}/{self.project}/{trial.wandb_run_id}")
+                    print("Fetching data from wandb: ", f"{self.entity}/{self.project}/runs/{wandb_run_id}")
+                    run = api.run(f"{self.entity}/{self.project}/runs/{wandb_run_id}")
                     gflops = run.history(keys=['GFLOPs']).values[:,1][0]
                     acc = run.history(keys=['valid.acc']).values[:,1]
                     train_durations = run.history(keys=['train.duration']).values[:,1]
@@ -74,20 +74,22 @@ class WandbMetric(Metric):
                     valid_duration = np.median(valid_durations)
                     mean_acc = np.median(acc[-5:])
                     cursor.execute('INSERT INTO wandb_run_metrics VALUES (?, ?, ?, ?, ?)', 
-                                   (trial.index, gflops, mean_acc, train_duration, valid_duration))
+                                   (trial_index, gflops, mean_acc, train_duration, valid_duration))
                     conn.commit()
                     successful_fetch = True
                 except:
-                    time.sleep(10)  # wait for 10 seconds before trying again
+                    print("Error fetching data from wandb, trying again in 5 seconds")
+                    time.sleep(5)  # wait for 10 seconds before trying again
 
         data = {
             "gflops": gflops,
-            "valid.acc": mean_acc,
+            "val_acc": mean_acc,
             "train_duration": train_duration,
-            "valid_duration": valid_duration
+            "val_duration": valid_duration
         }
-        #return data
-        return self._make_trial_data(trial_index, self.name, data[self.name])
+        print("fetched data", data)
+        return data
+        #return self._make_trial_data(trial_index, self.name, data[self.name])
 
 
     def to_json(self):
@@ -167,7 +169,7 @@ class WandbMetric(Metric):
                 print("found trial data")
                 gflops, mean_acc, train_duration, valid_duration = float(result[1]), float(result[2]), float(result[3]), float(result[4])
                 metrics = {
-                    "valid.acc": mean_acc,
+                    "val_acc": mean_acc,
                     "gflops": gflops,
                     "train_duration": train_duration,
                     "valid_duration": valid_duration

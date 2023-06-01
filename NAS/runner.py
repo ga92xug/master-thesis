@@ -1,5 +1,6 @@
 import os
 import subprocess
+import time
 from ax import Runner
 import wandb
 from omegaconf import OmegaConf
@@ -42,17 +43,18 @@ class HydraWandbRunner(Runner):
         self.verbose = verbose
 
     def run(self, trial):
+        trial_params, trial_index = trial
         # Construct the command
         command = [self.command_prefix, self.script_path]
 
         # Add the trial parameters
-        trial_index = trial.index
-        print(trial)
-        arm = trial.arm
-        trial_params = arm.parameters
+        #trial_index = trial.index
+        #print(trial)
+        #arm = trial.arm
+        #trial_params = arm.parameters
 
         # Create a new wandb run
-        run = wandb.init(
+        wandb_run = wandb.init(
             entity=self.wandb_entity,
             project=self.wandb_project, 
             mode=self.wandb_mode,
@@ -77,49 +79,20 @@ class HydraWandbRunner(Runner):
         # pass wandb parameters
         command.extend([f"wandb.entity={self.wandb_entity}",
                         f"wandb.project={self.wandb_project}",
-                        f"wandb.run_id={run.id}",
+                        f"wandb.run_id={wandb_run.id}",
                         f"wandb.mode={self.wandb_mode}"])
 
         # run the training
         subprocess.run(command, stdout=subprocess.DEVNULL if self.verbose <= 0 else None)
+        
 
         # Return the trial metadata
         trial_metadata = {
             "name": str(trial_index),
-            "wandb_run_id": run.id,
+            "wandb_run_id": wandb_run.id,
         }
 
         return trial_metadata
-
-
-    def poll_trial_status(
-        self, trials
-    ):
-        """Checks the status of any non-terminal trials and returns their
-        indices as a mapping from TrialStatus to a list of indices. Required
-        for runners used with Ax ``Scheduler``.
-
-        NOTE: Does not need to handle waiting between polling calls while trials
-        are running; this function should just perform a single poll.
-
-        Args:
-            trials: Trials to poll.
-
-        Returns:
-            A dictionary mapping TrialStatus to a list of trial indices that have
-            the respective status at the time of the polling. This does not need to
-            include trials that at the time of polling already have a terminal
-            (ABANDONED, FAILED, COMPLETED) status (but it may).
-        """
-        status_dict = defaultdict(set)
-        for trial in trials:
-            mock_job_queue = get_mock_job_queue_client()
-            status = mock_job_queue.get_job_status(
-                job_id=trial.run_metadata.get("job_id")
-            )
-            status_dict[status].add(trial.index)
-
-        return status_dict
 
 
     # This method returns a JSON-serializable representation of the runner
