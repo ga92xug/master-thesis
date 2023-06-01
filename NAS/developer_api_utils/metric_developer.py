@@ -4,6 +4,7 @@ import pandas as pd
 from ax.core.metric import Metric
 from ax.core.outcome_constraint import ComparisonOp
 from ax.core.types import Tuple
+from ax.utils.common.result import Err, Ok
 import numpy as np
 import sqlite3
 import time
@@ -79,7 +80,7 @@ class WandbMetric(Metric):
                     successful_fetch = True
                 except:
                     print("Error fetching data from wandb, trying again in 5 seconds")
-                    time.sleep(5)  # wait for 10 seconds before trying again
+                    time.sleep(5) 
 
         data = {
             "gflops": gflops,
@@ -87,7 +88,7 @@ class WandbMetric(Metric):
             "train_duration": train_duration,
             "val_duration": valid_duration
         }
-        print("fetched data", data)
+        #print("fetched data", data)
         return data
         #return self._make_trial_data(trial_index, self.name, data[self.name])
 
@@ -133,7 +134,7 @@ class WandbMetric(Metric):
         df = df.astype({"metric_name": str, "mean": float, "trial_index": int, 
                         "arm_name": str})
         #return df
-        return Data(df=df)
+        return Ok(Data(df=df))
 
     
     def is_available_while_running():

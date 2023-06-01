@@ -87,9 +87,11 @@ class Experiment:
                             notes=cfg.wandb.notes, tags=cfg.wandb.tags)
             self.wandb_run.log_code(".")
         else:
-            # 
+            # console logging is a problem when running 2 wandb runs in parallel
+            # so we disable it https://github.com/wandb/wandb/issues/4872
             os.environ['WANDB_CONSOLE']="off"
             os.environ['WANDB_DISABLE_SERVICE']='true'
+            os.environ["WANDB_SILENT"] = "true"
             # during NAS we init the run HydraWandbRunner to have access to the
             # run id
             self.wandb_run = wandb.init(
@@ -112,7 +114,6 @@ class Experiment:
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() \
                                    else "cpu")
-        print("DEVICE:", self.device)
 
         # outpath
         # self.outpath = utils.out_path(cfg)
@@ -151,9 +152,9 @@ class Experiment:
         self._verbose = cfg.other.verbose
 
         # compute number of parameters
-        total_param = get_param_count(self.model, in_mb=False, \
+        self.total_param = get_param_count(self.model, in_mb=False, \
                                       verbose=self._verbose)
-        wandb.log({"total_parameters": total_param}, step=0)
+        #self.wandb_run.log({"total_parameters": total_param}, step=0)
 
         # compute flops
         input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
@@ -161,8 +162,15 @@ class Experiment:
         flops = FlopCountAnalysis(self.model, (input_tensor,))
         flops.unsupported_ops_warnings(False)
         flops.uncalled_modules_warnings(False)
-        gflops = flops.total() / 1e9
-        wandb.log({"GFLOPs": gflops}, step=0)
+        self.gflops = flops.total() / 1e9
+        print("GFLOPs", self.gflops)
+        print("total_parameters", self.total_param)
+        wandb.log({
+            "GFLOPs": self.gflops,
+            "total_parameters": self.total_param,
+        }, step=1, commit=True)
+
+        
         #if self.is_nas:
         #    self.cfg.database_location 
         # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
@@ -251,11 +259,6 @@ class Experiment:
         self.last_batch_size = self.train_data_len % self.actual_batch_size
         self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
 
-    def log(self, **kwargs):
-        """
-        Connect to db and log kwargs to db with key cfg.wandb.run_id
-        """
-        
         
 
     def connect_to_db(self):
@@ -509,9 +512,6 @@ class Experiment:
             self.test()
         
         wandb.finish(exit_code=0)
-        print("waiting for 60 seconds")
-        time.sleep(60)
-        print("done waiting")
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
         """
