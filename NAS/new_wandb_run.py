@@ -9,6 +9,7 @@ def create_wandb_run(entity, project, mode, trial_index):
         mode=mode,
         name=str(trial_index),
     )
+    wandb.finish()
     print("Wandb run id:", wandb_run.id)
 
 if __name__ == '__main__':

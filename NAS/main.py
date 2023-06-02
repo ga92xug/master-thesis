@@ -1,5 +1,6 @@
 from copy import deepcopy
 import os
+from pdb import run
 import timeit
 import hydra
 import torch
@@ -92,42 +93,55 @@ class NAS:
         # Runner
         self.init_runner()
 
-    def init_ax_client(self):
-        # save config
-        wandb_config = OmegaConf.to_container(
-                self.cfg, resolve=True, throw_on_missing=True
-            )
-
-        if self.cfg.other.restart and os.path.exists(self.json_store["ax_client"]):
-            self.ax_client = AxClient.load_from_json_file(filepath=self.json_store["ax_client"])
-            # Get run id from json store
-            with open(self.json_store["wandb_run_id"], 'r') as f:
-                wandb_run_id = json.load(f)['wandb_run_id']
+    def init_wandb(self, run_id):
+        if run_id is not None:
             # resume wandb run
             self.run = wandb.init(
                 project=self.cfg.wandb.high_level.project, 
                 entity=self.cfg.wandb.entity, 
                 mode=self.cfg.wandb.high_level.mode,
-                config=wandb_config,
                 resume="allow",
-                id=wandb_run_id,  # resume the run using the saved run ID
+                id=run_id,  # resume the run using the saved run ID
+            )
+        else:
+            self.run = wandb.init(
+                project=self.cfg.wandb.high_level.project, 
+                entity=self.cfg.wandb.entity, 
+                mode=self.cfg.wandb.high_level.mode,
+                config=self.wandb_config,
             )
 
+
+    def init_ax_client(self):
+        # save config
+        self.wandb_config = OmegaConf.to_container(
+                self.cfg, resolve=True, throw_on_missing=True
+            )
+
+        if not self.cfg.other.restart and os.path.exists(self.json_store["ax_client"]):
+            self.ax_client = AxClient.load_from_json_file(filepath=self.json_store["ax_client"])
+            # Get run id from json store
+            with open(self.json_store["wandb_run_id"], 'r') as f:
+                wandb_run_id = json.load(f)['wandb_run_id']
+            
+            # resume wandb run
+            self.init_wandb(wandb_run_id)
         else:
+
             # setup ax client
             os.makedirs(self.save_folder, exist_ok=True)
             self.ax_client = AxClient(
                 generation_strategy=self.generation_strategy,
             )
-            self.run = wandb.init(
-                project=self.cfg.wandb.high_level.project, 
-                entity=self.cfg.wandb.entity, 
-                mode=self.cfg.wandb.high_level.mode,
-                config=wandb_config,
-            )
+
+            # init wandb
+            self.init_wandb(run_id=None)
+            
             # Save the run_id
             with open(self.json_store["wandb_run_id"], 'w') as f:
                 json.dump({'wandb_run_id': self.run.id}, f)
+        
+        self.run_id = self.run.id
     
     def init_experiment(self):
         self.ax_client.create_experiment(
@@ -189,13 +203,13 @@ class NAS:
             print(df)
 
 
-
         # Pareto frontier       
         if i >= 1:
             # Plotting the pareto frontier only makes for 2 or more trials
             pareto_frontier = _pareto_frontier_scatter_2d_plotly(
                 self.ax_client.experiment)
-            wandb.log({"pareto_frontier_scatter": pareto_frontier})
+            
+            self.run.log({"pareto_frontier_scatter": pareto_frontier})
 
         """
         # Plotting the model fit
@@ -206,7 +220,7 @@ class NAS:
         wandb.log({"cross_validation": cross_validation})
         """
 
-        if i > self.cfg.generation.num_sobol_trials:
+        if i >= self.cfg.generation.num_sobol_trials:
             # The random sobol init trials don't provide a predictive model
             # thus we can't plot the contour plot
 
@@ -221,7 +235,7 @@ class NAS:
             #     model=self.ax_client.generation_strategy.model, 
             #     metric_name="val_acc")
             # gflops_contour_plot = interact_contour_plotly(model=self.ax_client.generation_strategy.model, metric_name="gflops")
-            wandb.log({"val_contour_plot": val_contour_plot,})
+            self.run.log({"val_contour_plot": val_contour_plot,})
                         #"gflops_contour_plot": gflops_contour_plot})
         
 
@@ -268,8 +282,12 @@ class NAS:
     
 
     def log(self, raw_data, generation_time, step):
+        # wandb
+        self.init_wandb(self.run_id)
+
         raw_data["generation_time"] = generation_time
         # Log the metrics and run_time to wandb
+        # since we have multiple runs we have to select the right one here again
         self.run.log(raw_data, step=step)
 
         if self.cfg.other.verbose >= 1:

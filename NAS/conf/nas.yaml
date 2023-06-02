@@ -7,8 +7,6 @@ training:
   dataset: mnist_rot
   optimizer: Adam
   optimizer.lr: 0.015
-  training.epochs: 1
-  training.steps_per_epoch: 1
 
 
 generation:
@@ -20,7 +18,7 @@ generation:
 
 runner:
   script_path: "experiment/main.py"
-  verbose: 1
+  verbose: 0
 
 other:
   evaluate_every: 1

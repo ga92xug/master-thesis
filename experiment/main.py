@@ -511,7 +511,7 @@ class Experiment:
         if self.cfg.other.should_test:
             self.test()
         
-        wandb.finish(exit_code=0)
+        wandb.finish()
 
     def _lr_scheduler_exponential_decay(self, verbose=False):
         """
