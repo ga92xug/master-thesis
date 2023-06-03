@@ -8,36 +8,36 @@ training:
   optimizer: Adam
   optimizer.lr: 0.015
   training.epochs: 1
-  training.steps_per_epoch: -1
+  training.steps_per_epoch: 10
 
 
 generation:
   num_total_trials: 50  # total evaluation budget
-  num_sobol_trials: 5
+  num_sobol_trials: 3
   num_fullbayesian_trials: -1
   batch_size: 1
   #num_botorch_trials: 15
 
 runner:
   script_path: "experiment/main.py"
-  verbose: 1
+  verbose: 0
 
 other:
   evaluate_every: 1
   save_every: 1
   restart: True
-  verbose: 1
+  verbose: 0
 
 objective:
   bounds:
-    val_acc: 0.862
+    valid_acc: 0.862
     gflops: 94
 
 search_space:
   num_middle_blocks: 1
   strides: [2, 2]
   choice_2_range_params:
-      group: [1, 2, 4, 8]
+      group: [1, 2, 4]
       kernel_size: [3, 5]
       out_channels: [1.,1.25]
       se_ratio: [0., 0.25]
@@ -45,9 +45,6 @@ search_space:
 
 wandb:
   entity: "ga92xug"
-  high_level:
-    project: "scaling-laws-nas_high_level"
-    mode: online
-  runs:
-    project: "scaling-laws-nas_runs"
-    mode: online
+  project: "scaling-laws-nas_high_level"
+  mode: online
+  mode_runs: disabled

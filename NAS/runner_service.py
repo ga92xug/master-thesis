@@ -13,7 +13,8 @@ class HydraWandbRunner(Runner):
             self, 
             script_path: str, 
             wandb_entity: str, 
-            wandb_project: str, 
+            wandb_project: str,
+            wandb_run_id: str, 
             wandb_mode: str, 
             choice_2_range_param: dict, 
             strides: list, 
@@ -36,6 +37,7 @@ class HydraWandbRunner(Runner):
         self.script_path = script_path
         self.wandb_entity = wandb_entity
         self.wandb_project = wandb_project
+        self.wandb_run_id = wandb_run_id
         self.wandb_mode = wandb_mode
         self.choice_2_range_param = choice_2_range_param
         self.strides = strides
@@ -45,9 +47,6 @@ class HydraWandbRunner(Runner):
 
     def run(self, trial):
         trial_params, trial_index = trial
-
-        wandb_run_id = self.create_new_wandb_run(trial_index)
-        print("\nWandb run id:", wandb_run_id)
 
         # encode the search space parameters
         encoded_params = encode_parameters(trial_params, 
@@ -67,16 +66,18 @@ class HydraWandbRunner(Runner):
         # pass wandb parameters
         command.extend([f"wandb.entity={self.wandb_entity}",
                         f"wandb.project={self.wandb_project}",
-                        f"wandb.run_id={wandb_run_id}",
+                        f"wandb.run_id={self.wandb_run_id}",
                         f"wandb.mode={self.wandb_mode}"])
+
+        # pass trial index
+        command.extend([f"NAS.trial_index={trial_index}"])
 
         # run the training
         subprocess.run(command, stdout=subprocess.DEVNULL if self.verbose <= 0 else None)
         
         # Return the trial metadata
         return {
-            "name": trial_index,
-            "wandb_run_id": wandb_run_id,
+            "trial_index": trial_index,
         }
 
     # This method returns a JSON-serializable representation of the runner

@@ -69,3 +69,8 @@ wandb:
   tags: null
   group: null
   run_id: null
+
+
+NAS:
+  trial_index: -1              # -1 for this is no NAS run
+  db_path: NAS/data/trial_cache.db                # Path to the database

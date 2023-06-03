@@ -53,7 +53,7 @@ from ax.modelbridge.registry import Models
 # Local
 from runner_service import HydraWandbRunner
 from search_space_service import Eq_Search_Space
-from fetch_run_data import WandbMetric
+from fetch_trial_data import WandbMetric
 
 class NAS:
     def __init__(self, cfg):

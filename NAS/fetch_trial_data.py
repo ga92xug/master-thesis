@@ -4,7 +4,7 @@ import numpy as np
 import sqlite3
 import time
 
-class RunDataFetcher():
+class TrialDataFetcher():
     """
     The RunDataFetcher class is used to retrieve run data from the Weights & Biases (wandb) tool.
     It incorporates a database cache to prevent excessive API calls.
@@ -31,26 +31,35 @@ class RunDataFetcher():
         self.entity = entity
         self.db_location = db_location
         self.exp_name = exp_name
-        self.db_file = db_location + exp_name + "/wandb_cache.db"
+        self.db_file = db_location + "/trial_cache.db"
         self.wandb_mode = wandb_mode
 
-    def connect_to_db(self):
-        """Establishes a connection to the database and creates a table if it does not exist."""
-        conn = sqlite3.connect(self.db_file)
-        cursor = conn.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS wandb_run_metrics (
-                run_id TEXT PRIMARY KEY,
+    def connect_to_db(self, reset: bool = False):
+        """Establishes a connection to the database, deletes the table if it exists and creates a new one."""
+        self.conn = sqlite3.connect(self.db_file)
+        self.cursor = self.conn.cursor()
+        
+        if reset:
+            # Drop the table if it already exists
+            self.cursor.execute('''
+                DROP TABLE IF EXISTS run_metrics
+            ''')
+            self.conn.commit()
+
+        # Create a new table
+        self.cursor.execute('''
+            CREATE TABLE run_metrics (
+                trial_index TEXT PRIMARY KEY,
                 gflops REAL,
-                acc_last_five TEXT,
+                valid_acc REAL,
                 train_duration REAL,
                 valid_duration REAL
             )
         ''')
-        conn.commit()
-        return conn, cursor
+        self.conn.commit()
+
     
-    def fetch_run_data(self, wandb_run_id: str) -> Dict:
+    def fetch_trial_data(self, trial_index: str) -> Dict:
         """
         Fetch data from Weights & Biases (wandb) run or from local database.
 
@@ -58,34 +67,33 @@ class RunDataFetcher():
         :returns: A dictionary with 'gflops', 'val_acc', 'train_duration', 'val_duration' keys.
         """
 
-        print(f"Fetching data for run {wandb_run_id}")
-
         # Attempt to fetch data from local DB
-        run_data = self._fetch_from_db(wandb_run_id)
+        run_data = self._fetch_from_db(trial_index)
+        """
         if run_data is None and self.wandb_mode != "disabled":
             # If data not in DB and wandb is enabled, fetch data from wandb
-            run_data = self._fetch_from_wandb(wandb_run_id)
+            run_data = self._fetch_from_wandb(trial_index)
         elif run_data is None:
             # If data not in DB and wandb is disabled, generate random data
             print("Wandb is disabled, returning random values")
             run_data = {key: val for key, val in zip(['gflops', 'val_acc', 'train_duration', 'val_duration'], np.random.rand(4))}
-
+        """
         return run_data
 
-    def _fetch_from_db(self, wandb_run_id: str) -> Optional[Dict]:
+    def _fetch_from_db(self, trial_index: str) -> Optional[Dict]:
         """
         Fetch data from the local database.
 
         :param wandb_run_id: wandb run id to fetch data from.
         :returns: A dictionary with 'gflops', 'val_acc', 'train_duration', 'val_duration' keys or None if data doesn't exist.
         """
-        conn, cursor = self.connect_to_db()
-        cursor.execute('SELECT * FROM wandb_run_metrics WHERE run_id = ?', (wandb_run_id,))
-        result = cursor.fetchone()
+        self.cursor.execute('SELECT * FROM run_metrics WHERE trial_index = ?', (trial_index,))
+        result = self.cursor.fetchone()
 
         if result is not None:
-            return {key: float(val) for key, val in zip(['gflops', 'val_acc', 'train_duration', 'val_duration'], result[1:])}
+            return {key: float(val) for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration'], result[1:])}
         else:
+            ValueError(f"Trial {trial_index} not found in database")
             return None
 
     def _fetch_from_wandb(self, wandb_run_id: str) -> Dict:
@@ -139,6 +147,6 @@ class RunDataFetcher():
         :param metrics: A dictionary with 'gflops', 'val_acc', 'train_duration', 'val_duration' keys.
         """
         conn, cursor = self.connect_to_db()
-        cursor.execute('INSERT INTO wandb_run_metrics VALUES (?, ?, ?, ?, ?)', 
+        cursor.execute('INSERT INTO run_metrics VALUES (?, ?, ?, ?, ?)', 
                     (wandb_run_id, metrics['gflops'], metrics['val_acc'], metrics['train_duration'], metrics['val_duration']))
         conn.commit()

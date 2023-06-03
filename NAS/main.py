@@ -59,7 +59,7 @@ from ax.modelbridge.registry import Models
 # Local
 from runner_service import HydraWandbRunner
 from search_space_service import Eq_Search_Space
-from fetch_run_data import RunDataFetcher
+from fetch_trial_data import TrialDataFetcher
 from plot import plot_pareto_frontier
 
 class NAS:
@@ -76,20 +76,19 @@ class NAS:
         }
         # Generation strategy
         self.init_generation_strategy()
+        # Data fetcher
+        self.data_fetcher = TrialDataFetcher(
+            entity=self.cfg.wandb.entity,
+            project=self.cfg.wandb.project,
+            wandb_mode=self.cfg.wandb.mode,
+            exp_name=self.cfg.exp_name,
+        )
         # Ax client
         self.init_ax_client()
         # Search space
         self.init_search_space()
         # Experiment
-        self.init_experiment()
-        
-        # Data fetcher
-        self.data_fetcher = RunDataFetcher(
-            entity=self.cfg.wandb.entity,
-            project=self.cfg.wandb.runs.project,
-            wandb_mode=self.cfg.wandb.runs.mode,
-            exp_name=self.cfg.exp_name,
-        )
+        self.init_experiment()        
         # Runner
         self.init_runner()
 
@@ -97,17 +96,17 @@ class NAS:
         if run_id is not None:
             # resume wandb run
             self.run = wandb.init(
-                project=self.cfg.wandb.high_level.project, 
+                project=self.cfg.wandb.project, 
                 entity=self.cfg.wandb.entity, 
-                mode=self.cfg.wandb.high_level.mode,
+                mode=self.cfg.wandb.mode,
                 resume="allow",
                 id=run_id,  # resume the run using the saved run ID
             )
         else:
             self.run = wandb.init(
-                project=self.cfg.wandb.high_level.project, 
+                project=self.cfg.wandb.project, 
                 entity=self.cfg.wandb.entity, 
-                mode=self.cfg.wandb.high_level.mode,
+                mode=self.cfg.wandb.mode,
                 config=self.wandb_config,
             )
 
@@ -126,20 +125,22 @@ class NAS:
             
             # resume wandb run
             self.init_wandb(wandb_run_id)
+            # connect to db
+            self.data_fetcher.connect_to_db(reset=False)
         else:
-
             # setup ax client
             os.makedirs(self.save_folder, exist_ok=True)
             self.ax_client = AxClient(
                 generation_strategy=self.generation_strategy,
             )
-
             # init wandb
             self.init_wandb(run_id=None)
-            
+            # connect to db
+            self.data_fetcher.connect_to_db(reset=True)
             # Save the run_id
             with open(self.json_store["wandb_run_id"], 'w') as f:
                 json.dump({'wandb_run_id': self.run.id}, f)
+
         
         self.run_id = self.run.id
     
@@ -149,9 +150,9 @@ class NAS:
             parameters=self.parameter,
             objectives={
                 # `threshold` arguments are optional
-                "val_acc": ObjectiveProperties(
+                "valid_acc": ObjectiveProperties(
                     minimize=False, 
-                    threshold=self.cfg.objective.bounds.val_acc
+                    threshold=self.cfg.objective.bounds.valid_acc
                 ), 
                 "gflops": ObjectiveProperties(
                     minimize=True, 
@@ -160,7 +161,7 @@ class NAS:
             },
             parameter_constraints=self.parameter_constraints,
             #outcome_constraints=["valid_acc >= 0.9"],
-            tracking_metric_names=["train_duration", "val_duration"],
+            tracking_metric_names=["train_duration", "valid_duration"],
             overwrite_existing_experiment=True,
             #is_test=True,
         )
@@ -184,12 +185,12 @@ class NAS:
         choice_2_range_params = OmegaConf.to_container(
             self.cfg.search_space.choice_2_range_params, resolve=True)
         
-        print("self.cfg.wandb.runs.project", self.cfg.wandb.runs.project)
         self.hydra_wandb_runner = HydraWandbRunner(
             script_path=self.cfg.runner.script_path,
             wandb_entity=self.cfg.wandb.entity, 
-            wandb_project=self.cfg.wandb.runs.project,
-            wandb_mode=self.cfg.wandb.runs.mode,
+            wandb_project=self.cfg.wandb.project,
+            wandb_run_id=self.run_id,
+            wandb_mode=self.cfg.wandb.mode_runs,
             choice_2_range_param=choice_2_range_params,
             strides=list(self.cfg.search_space.strides),
             training_dict=training_dict,
@@ -208,8 +209,10 @@ class NAS:
             # Plotting the pareto frontier only makes for 2 or more trials
             pareto_frontier = _pareto_frontier_scatter_2d_plotly(
                 self.ax_client.experiment)
-            
-            self.run.log({"pareto_frontier_scatter": pareto_frontier})
+            # save this under data/exp_name/pareto_frontier.png
+            #pareto_frontier.write_image(os.path.join(self.save_folder, "pareto_frontier.png"))
+            pareto_frontier.write_html(self.save_folder + f"/pareto/{i}.html")
+            wandb.log({"pareto_frontier_scatter": pareto_frontier}, step=i)
 
         """
         # Plotting the model fit
@@ -229,13 +232,13 @@ class NAS:
                 model=self.ax_client.generation_strategy.model,
                 param_x="0_group",
                 param_y="1_group",
-                metric_name="val_acc",
+                metric_name="valid_acc",
             )
             # val_contour_plot = interact_contour_plotly(
             #     model=self.ax_client.generation_strategy.model, 
-            #     metric_name="val_acc")
+            #     metric_name="valid_acc")
             # gflops_contour_plot = interact_contour_plotly(model=self.ax_client.generation_strategy.model, metric_name="gflops")
-            self.run.log({"val_contour_plot": val_contour_plot,})
+            wandb.log({"val_contour_plot": val_contour_plot}, step=i)
                         #"gflops_contour_plot": gflops_contour_plot})
         
 
@@ -255,16 +258,16 @@ class NAS:
 
             # run trial
             trial_meta_data =  self.hydra_wandb_runner.run(trial)
+            # reinit wandb
+            #self.init_wandb(run_id=self.run_id)
 
             # fetch data
-            raw_data = self.data_fetcher.fetch_run_data(
-                wandb_run_id=trial_meta_data["wandb_run_id"])
+            raw_data = self.data_fetcher.fetch_trial_data(
+                trial_index=trial_meta_data["trial_index"])
 
-            print("raw_data", raw_data)
-            
             # sync data to Ax
             self.ax_client.complete_trial(
-                trial_index=trial_meta_data["name"], 
+                trial_index=trial_meta_data["trial_index"], 
                 raw_data=copy.deepcopy(raw_data)
             )
 
@@ -277,18 +280,16 @@ class NAS:
 
             # Evaluate
             if i % self.cfg.other.evaluate_every == 0:
-                self.evaluate(i)
+                #self.evaluate(i)
+                pass
 
     
 
     def log(self, raw_data, generation_time, step):
-        # wandb
-        self.init_wandb(self.run_id)
-
         raw_data["generation_time"] = generation_time
-        # Log the metrics and run_time to wandb
-        # since we have multiple runs we have to select the right one here again
-        self.run.log(raw_data, step=step)
+        print(f"to_log: {raw_data}")
+        wandb.log(raw_data, step=step, commit=True)
+        #wandb.log({"generation_time": generation_time}, step=step, commit=True)
 
         if self.cfg.other.verbose >= 1:
             print(f"Generation time: {generation_time:.2f} seconds")

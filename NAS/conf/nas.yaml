@@ -28,7 +28,7 @@ other:
 
 objective:
   bounds:
-    val_acc: 0.862
+    valid_acc: 0.862
     gflops: 94
 
 search_space:
@@ -43,9 +43,6 @@ search_space:
 
 wandb:
   entity: "ga92xug"
-  high_level:
-    project: "scaling-laws-nas_high_level"
-    mode: online
-  runs:
-    project: "scaling-laws-nas_runs"
-    mode: online
+  project: "scaling-laws-nas_high_level"
+  mode: online
+  mode_runs: disabled

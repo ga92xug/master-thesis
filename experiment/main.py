@@ -69,12 +69,15 @@ def accuracy(predictions, targets):
 class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
+        print(OmegaConf.to_yaml(cfg))
+        self.cfg = cfg
         # Wandb
         wandb_config = OmegaConf.to_container(
                 cfg, resolve=True, throw_on_missing=True
             )
         
-        self.is_nas = True if cfg.wandb.run_id is not None else False
+        # NAS runs have increasing trial index
+        self.is_nas = cfg.NAS.trial_index != -1
         
         if not self.is_nas:
             # experiment name
@@ -87,13 +90,16 @@ class Experiment:
                             notes=cfg.wandb.notes, tags=cfg.wandb.tags)
             self.wandb_run.log_code(".")
         else:
+            self.connect_to_db()
+            self.trial_data = {}
+            self._epoch = 0
+            self.max_epochs = cfg.training.epochs
             # console logging is a problem when running 2 wandb runs in parallel
             # so we disable it https://github.com/wandb/wandb/issues/4872
             os.environ['WANDB_CONSOLE']="off"
             os.environ['WANDB_DISABLE_SERVICE']='true'
             os.environ["WANDB_SILENT"] = "true"
-            # during NAS we init the run HydraWandbRunner to have access to the
-            # run id
+            # during NAS we reinit
             self.wandb_run = wandb.init(
                 id = cfg.wandb.run_id, 
                 resume = "allow", 
@@ -105,8 +111,6 @@ class Experiment:
                 tags = cfg.wandb.tags
             )
         
-        print(OmegaConf.to_yaml(cfg))
-        self.cfg = cfg
         # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
@@ -154,7 +158,8 @@ class Experiment:
         # compute number of parameters
         self.total_param = get_param_count(self.model, in_mb=False, \
                                       verbose=self._verbose)
-        #self.wandb_run.log({"total_parameters": total_param}, step=0)
+        print("total_parameters", self.total_param)
+        self.log({"total_parameters": self.total_param}, step=0)
 
         # compute flops
         input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
@@ -164,17 +169,8 @@ class Experiment:
         flops.uncalled_modules_warnings(False)
         self.gflops = flops.total() / 1e9
         print("GFLOPs", self.gflops)
-        print("total_parameters", self.total_param)
-        wandb.log({
-            "GFLOPs": self.gflops,
-            "total_parameters": self.total_param,
-        }, step=1, commit=True)
+        self.log({"GFLOPs": self.gflops}, step=0)
 
-        
-        #if self.is_nas:
-        #    self.cfg.database_location 
-        # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
-        
         if self._verbose > 1:
             print(f"Starting: {self._global_start_time}")
         
@@ -204,9 +200,6 @@ class Experiment:
         
         self._lr_exp_steps = 0
         
-        # no hydra instantiation for optimizer since it is tricky to pass the model parameters
-        #self._optimizer = hydra.utils.instantiate(cfg.optimizer, params=self.model.parameters(), 
-        #                                          )
         if cfg.optimizer._target_ == "optimizer.build_optimizer_sfcnn":
             self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
                                             params=self.model)
@@ -259,12 +252,56 @@ class Experiment:
         self.last_batch_size = self.train_data_len % self.actual_batch_size
         self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
 
-        
+
+    def log(self, to_log: dict, step: int):
+        if self.is_nas:
+            trial_index = self.cfg.NAS.trial_index
+            prefix = f"{trial_index}_"
+
+            self.aggregate_and_log_db(to_log, trial_index)
+
+            # Prefix log entries
+            to_log = {prefix + key: value for key, value in to_log.items()}
+
+        wandb.log(to_log, step)
+
+    def aggregate_and_log_db(self, to_log: dict, trial_index: str):
+        if trial_index not in self.trial_data:
+            # Initialize dict for trial if it doesn't exist
+            self.trial_data[trial_index] = {}
+
+        for key, sub_dict in to_log.items():
+            if isinstance(sub_dict, dict):
+                for sub_key, value in sub_dict.items():
+                    new_key = f"{key}_{sub_key}"
+                    if new_key in ['valid_acc', 'train_duration', 'valid_duration']:
+                        # For 'valid_acc', 'train_duration', and 'valid_duration', only update the value if it's the last epoch
+                        if self._epoch == self.max_epochs - 1 and new_key not in self.trial_data[trial_index]:
+                            self.trial_data[trial_index][new_key] = value
+                    else:
+                        self.trial_data[trial_index][new_key] = value
+            else:
+                self.trial_data[trial_index][key] = sub_dict
+
+        # Check if all keys are populated
+        if all(key in self.trial_data[trial_index] for key in ['GFLOPs', 'valid_acc', 'train_duration', 'valid_duration']):
+            # If all keys are populated, write to DB
+            self.log_to_db(self.trial_data[trial_index], trial_index)
+            # Then clear the data for this trial index
+            self.trial_data[trial_index] = {}
+
+    def log_to_db(self, to_log: dict, trial_index: int):
+        keys_to_log = ['trial_index', 'GFLOPs', 'valid_acc', 'train_duration', 'valid_duration']
+        values = [trial_index] + [to_log.get(key) for key in keys_to_log[1:]]
+
+        query = f"INSERT INTO run_metrics ({', '.join(keys_to_log)}) VALUES ({', '.join(['?'] * len(keys_to_log))})"
+        self.cursor.execute(query, values)
+        self.conn.commit()
+
 
     def connect_to_db(self):
-        conn = sqlite3.connect(self.db_file)
-        cursor = conn.cursor()
-        return conn, cursor
+        self.conn = sqlite3.connect(self.cfg.NAS.db_path)
+        self.cursor = self.conn.cursor()
     
     def backup(self):
         if self.cfg.other.backup_model:
@@ -274,11 +311,11 @@ class Experiment:
         starttime = datetime.datetime.now().timestamp()
 
         if self.cfg.wandb.watch:
+            assert not self.is_nas, "watching is not supported for NAS"
             # Tell wandb to watch what the model gets up to: gradients, weights, and more!
             wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
 
         self.model.train()
-        
         self._optimizer.zero_grad()
         
         epoch_iterations = 0
@@ -303,8 +340,8 @@ class Experiment:
             train_loss_epoch += loss.item() * x.shape[0]
             train_acc_epoch += acc * x.shape[0]
 
-            wandb.log({"train": {"loss": loss, "acc": acc}},\
-                          step=self.global_step)
+            self.log({"train": {"loss": loss, "acc": acc}}, step=self.global_step)
+  
             if self._verbose > 2:
                     print(f"Epoch {self._epoch} | {epoch_iterations}/{self.n_batches};\
                            loss: {loss.item():.3f}; acc: {acc:.3f}")
@@ -335,7 +372,7 @@ class Experiment:
         # log the training loss, accuracy, and duration
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
-        wandb.log({"train": {"duration": duration}}, step=self.global_step)
+        self.log({"train": {"duration": duration}}, step=self.global_step)
         self.global_step += 1
         if self._verbose > 1:
             print(f"-"*100)
@@ -446,7 +483,7 @@ class Experiment:
         duration = float(endtime - starttime)
 
         if log:
-            wandb.log({f"{split}": {"loss": loss, "acc": acc, \
+            self.log({f"{split}": {"loss": loss, "acc": acc, \
                             "duration": duration}}, step=self.global_step)
 
         if confusion:
@@ -454,7 +491,7 @@ class Experiment:
             t_test_all = np.concatenate(t_test_all, axis=0)
             conf_matrix += compute_confusion_matrix(y_test_all, t_test_all, \
                                                     list(range(self.n_outputs)))
-            wandb.log({"confusion_matrix": \
+            self.log({"confusion_matrix": \
                         wandb.plot.confusion_matrix(probs=y_test_all,
                         y_true=t_test_all, preds=None, \
                         class_names=list(range(self.n_outputs)))})
