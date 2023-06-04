@@ -1,6 +1,7 @@
 __pycache__/
 
 datasets/*/*
+datasets/currently_unused
 
 !datasets/*/*.py
 !datasets/*/*.sh
