@@ -59,8 +59,6 @@ class EquivariantWideResNet(nn.Module):
         restrict: List[str] = [None, None],  # "invariant", "reflection", "halved"
         input_channels: int = 3,
         layout: List[int] = [16, 16, 32, 64],
-        kernel_size: int = 3,
-        padding: int = 1,
         num_classes: int = 10,
         kernel_layout: List[int] = [3,3],
         drop_out: float = 0.0,
