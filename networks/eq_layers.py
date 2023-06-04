@@ -159,7 +159,6 @@ class EquivariantNorm(EquivariantModule):
 
         # batch norm
         norm = BatchNorm
-        induced_norm = InducedNormBatchNorm
         param = affine
 
         # Split into pointwise and induced representations
@@ -172,7 +171,6 @@ class EquivariantNorm(EquivariantModule):
             field_type = self.in_type.group_by_labels(labels)
             modules = [
                 (norm(field_type["pointwise"], param), "pointwise"),
-                (induced_norm(field_type["induced"], param), "induced"),
             ]
             self.norm = MultipleModule(self.in_type, labels, modules)
 
