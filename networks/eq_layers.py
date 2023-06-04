@@ -87,7 +87,7 @@ class Restriction(EquivariantModule):
                 # restrict to invariant case
                 subgroup_id = (None, 1) if group != "cyclic" else 1
             else:
-                raise ValueError(f"Restriction {restrict} not implemented.")
+                raise NotImplementedError(f"Restriction {restrict} not implemented.")
 
             layers.append(RestrictionModule(self.in_type, subgroup_id))
             layers.append(DisentangleModule(layers[-1].out_type))
@@ -204,18 +204,7 @@ class EquivariantPool(EquivariantModule):
             modules_pool = [(PointwiseMaxPool(self.in_type, pool_size), "pointwise")]
         # Induced
         else:
-            labels = [
-                "pointwise" if only_zero_freq(r) else "induced" for r in self.in_type
-            ]
-            out_type = self.in_type.group_by_labels(labels)
-            modules_map = [
-                (NormPool(out_type["pointwise"]), "pointwise"),
-                (InducedNormPool(out_type["induced"]), "induced"),
-            ]
-            modules_pool = [
-                (PointwiseMaxPool(out_type["pointwise"], pool_size), "pointwise"),
-                (NormMaxPool(out_type["induced"], pool_size), "induced"),
-            ]
+            NotImplementedError("Induced Pooling not implemented")
 
         if invariant_map:
             self.map = MultipleModule(self.in_type, labels, modules_map)
