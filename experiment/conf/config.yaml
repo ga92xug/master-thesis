@@ -74,3 +74,5 @@ wandb:
 NAS:
   trial_index: -1              # -1 for this is no NAS run
   db_path: NAS/data/trial_cache.db                # Path to the database
+  max_building_time: -1
+  max_gflops: -1

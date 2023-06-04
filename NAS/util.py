@@ -1,6 +1,9 @@
 ######################################################################
 # Encode the parameters of the search space into block_args structure for Eq_NASNet
 
+import wandb
+
+
 def encode_parameters(params, choice_2_range_params, strides):
     """
     Encodes the parameters into a string representation.
@@ -79,3 +82,24 @@ def decode_single_block_parameters(encoded_params, block_number):
         })
 
     return params
+
+
+
+def init_wandb(self, run_id, cfg, wandb_config=None):
+    if run_id is not None:
+        # resume wandb run
+        run = wandb.init(
+            project=cfg.wandb.project, 
+            entity=cfg.wandb.entity, 
+            mode=cfg.wandb.mode,
+            resume="allow",
+            id=run_id,  # resume the run using the saved run ID
+        )
+    else:
+        run = wandb.init(
+            project=cfg.wandb.project, 
+            entity=cfg.wandb.entity, 
+            mode=cfg.wandb.mode,
+            config=wandb_config,
+        )
+    return run

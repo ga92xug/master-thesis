@@ -47,11 +47,11 @@ from ax.plot.pareto_utils import compute_posterior_pareto_frontier
 from ax.plot.contour import plot_contour_plotly
 from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.service.utils.report_utils import exp_to_df
-from ax.plot.pareto_frontier import scatter_plot_with_pareto_frontier_plotly
 from ax.plot.contour import interact_contour_plotly
 from ax.modelbridge.cross_validation import compute_diagnostics, cross_validate
 # check difference between the 2
 from ax.plot.diagnostic import interact_cross_validation_plotly
+from ax.plot.pareto_frontier import scatter_plot_with_pareto_frontier_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 # Models
 from ax.modelbridge.registry import Models
@@ -60,7 +60,8 @@ from ax.modelbridge.registry import Models
 from runner_service import HydraWandbRunner
 from search_space_service import Eq_Search_Space
 from fetch_trial_data import TrialDataFetcher
-from plot import plot_pareto_frontier
+from plot_adapted_ax import plot_pareto_frontier
+from util import init_wandb
 
 class NAS:
     def __init__(self, cfg):
@@ -92,24 +93,6 @@ class NAS:
         # Runner
         self.init_runner()
 
-    def init_wandb(self, run_id):
-        if run_id is not None:
-            # resume wandb run
-            self.run = wandb.init(
-                project=self.cfg.wandb.project, 
-                entity=self.cfg.wandb.entity, 
-                mode=self.cfg.wandb.mode,
-                resume="allow",
-                id=run_id,  # resume the run using the saved run ID
-            )
-        else:
-            self.run = wandb.init(
-                project=self.cfg.wandb.project, 
-                entity=self.cfg.wandb.entity, 
-                mode=self.cfg.wandb.mode,
-                config=self.wandb_config,
-            )
-
 
     def init_ax_client(self):
         # save config
@@ -124,7 +107,7 @@ class NAS:
                 wandb_run_id = json.load(f)['wandb_run_id']
             
             # resume wandb run
-            self.init_wandb(wandb_run_id)
+            init_wandb(wandb_run_id, self.cfg)
             # connect to db
             self.data_fetcher.connect_to_db(reset=False)
         else:
@@ -134,7 +117,7 @@ class NAS:
                 generation_strategy=self.generation_strategy,
             )
             # init wandb
-            self.init_wandb(run_id=None)
+            init_wandb(run_id=None, cfg=self.cfg, wandb_config=self.wandb_config)
             # connect to db
             self.data_fetcher.connect_to_db(reset=True)
             # Save the run_id
@@ -253,17 +236,18 @@ class NAS:
             # get next trial
             start = timeit.default_timer()
             trial = self.ax_client.get_next_trial()
+            print(f"trial: {trial}")
             stop = timeit.default_timer()
             generation_time = stop - start
 
             # run trial
             trial_meta_data =  self.hydra_wandb_runner.run(trial)
-            # reinit wandb
-            #self.init_wandb(run_id=self.run_id)
 
             # fetch data
             raw_data = self.data_fetcher.fetch_trial_data(
                 trial_index=trial_meta_data["trial_index"])
+
+            print(f"raw_data: {raw_data}")
 
             # sync data to Ax
             self.ax_client.complete_trial(

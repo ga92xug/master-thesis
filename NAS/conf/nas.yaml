@@ -1,12 +1,14 @@
-exp_name: "mnist_rot"
+exp_name: cifar10
 seed: 42
 
 training:
   model: eq_nasnet
-  training: mnist_rot
-  dataset: mnist_rot
-  optimizer: Adam
-  optimizer.lr: 0.015
+  training: train_e2_100epochs
+  dataset: cifar10
+  optimizer: SGD
+  nas.max_building_time: 600    # in seconds
+  nas.max_gflops: 1000         # in GFLOPS
+  #optimizer.lr: 0.015
 
 
 generation:
@@ -28,8 +30,8 @@ other:
 
 objective:
   bounds:
-    valid_acc: 0.862
-    gflops: 94
+    valid_acc: 0.90
+    gflops: 20
 
 search_space:
   num_middle_blocks: 2
@@ -37,7 +39,7 @@ search_space:
   choice_2_range_params:
       group: [1, 2, 4, 8, 16]
       kernel_size: [3, 5]
-      out_channels: [1.,1.25,1.5,1.75]
+      out_channels: [1.,1.25,1.5,1.75,2]
       se_ratio: [0., 0.25]
 
 

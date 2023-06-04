@@ -13,6 +13,7 @@ import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from networks.util import get_param_count, cuda_memory_usage
 
+
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import wandb
@@ -28,6 +29,7 @@ import datetime
 
 # import plot_exps
 import utils
+import log
 import optimizer
 #import optimizers_L1L2
 
@@ -89,11 +91,12 @@ class Experiment:
                             mode=cfg.wandb.mode, name=self.expname, \
                             notes=cfg.wandb.notes, tags=cfg.wandb.tags)
             self.wandb_run.log_code(".")
+            
         else:
             self.connect_to_db()
-            self.trial_data = {}
             self._epoch = 0
             self.max_epochs = cfg.training.epochs
+            logger = log.Log(cfg=cfg, )
             # console logging is a problem when running 2 wandb runs in parallel
             # so we disable it https://github.com/wandb/wandb/issues/4872
             os.environ['WANDB_CONSOLE']="off"
@@ -253,55 +256,7 @@ class Experiment:
         self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
 
 
-    def log(self, to_log: dict, step: int):
-        if self.is_nas:
-            trial_index = self.cfg.NAS.trial_index
-            prefix = f"{trial_index}_"
 
-            self.aggregate_and_log_db(to_log, trial_index)
-
-            # Prefix log entries
-            to_log = {prefix + key: value for key, value in to_log.items()}
-
-        wandb.log(to_log, step)
-
-    def aggregate_and_log_db(self, to_log: dict, trial_index: str):
-        if trial_index not in self.trial_data:
-            # Initialize dict for trial if it doesn't exist
-            self.trial_data[trial_index] = {}
-
-        for key, sub_dict in to_log.items():
-            if isinstance(sub_dict, dict):
-                for sub_key, value in sub_dict.items():
-                    new_key = f"{key}_{sub_key}"
-                    if new_key in ['valid_acc', 'train_duration', 'valid_duration']:
-                        # For 'valid_acc', 'train_duration', and 'valid_duration', only update the value if it's the last epoch
-                        if self._epoch == self.max_epochs - 1 and new_key not in self.trial_data[trial_index]:
-                            self.trial_data[trial_index][new_key] = value
-                    else:
-                        self.trial_data[trial_index][new_key] = value
-            else:
-                self.trial_data[trial_index][key] = sub_dict
-
-        # Check if all keys are populated
-        if all(key in self.trial_data[trial_index] for key in ['GFLOPs', 'valid_acc', 'train_duration', 'valid_duration']):
-            # If all keys are populated, write to DB
-            self.log_to_db(self.trial_data[trial_index], trial_index)
-            # Then clear the data for this trial index
-            self.trial_data[trial_index] = {}
-
-    def log_to_db(self, to_log: dict, trial_index: int):
-        keys_to_log = ['trial_index', 'GFLOPs', 'valid_acc', 'train_duration', 'valid_duration']
-        values = [trial_index] + [to_log.get(key) for key in keys_to_log[1:]]
-
-        query = f"INSERT INTO run_metrics ({', '.join(keys_to_log)}) VALUES ({', '.join(['?'] * len(keys_to_log))})"
-        self.cursor.execute(query, values)
-        self.conn.commit()
-
-
-    def connect_to_db(self):
-        self.conn = sqlite3.connect(self.cfg.NAS.db_path)
-        self.cursor = self.conn.cursor()
     
     def backup(self):
         if self.cfg.other.backup_model:

@@ -4,30 +4,99 @@ import pandas as pd
 import numpy as np
 import io
 import datetime
+import hydra
+import signal
 
 from typing import List
 
+import torch
+
 #from models import *
 from networks import *
+from networks.util import get_param_count
 
-# the values of these command line arguments are used to define the name of the experiments
-# you can add more names in this list
-EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fixparams", "augment", "F", "sigma", "interpolation"]
+################################################################################
+# building the model
+################################################################################
+
+# Define a function to handle the timeout
+def timeout_handler(signum, frame):
+    raise TimeoutError("Command timed out")
+
+def set_gflops():
+    pass
+
+def build_model(cfg, n_inputs, n_outputs, device, log, is_nas=False, trial_data=None):
+    if not is_nas:
+        # normal model building
+
+        # build the model
+        model = hydra.utils.instantiate(
+            cfg.model,
+            input_channels=n_inputs,
+            num_classes=n_outputs,
+            image_size=cfg.dataset.resolution,
+        ).to(device)
+        if device != torch.device("cpu"):
+            model = torch.nn.DataParallel(model)
+        if cfg.training.compile:
+            model = torch.compile(model)
+        print("Stage 2: model built")
+
+        # compute number of parameters
+        total_param = get_param_count(model, in_mb=False, \
+                                      verbose=self._verbose)
+        self.log({"total_parameters": self.total_param}, step=0)
+
+        # compute flops
+        input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
+            cfg.dataset.resolution, cfg.dataset.resolution).to(self.device)
+        flops = FlopCountAnalysis(self.model, (input_tensor,))
+        flops.unsupported_ops_warnings(False)
+        flops.uncalled_modules_warnings(False)
+        self.gflops = flops.total() / 1e9
+        print("GFLOPs", self.gflops)
+        self.log({"GFLOPs": self.gflops}, step=0)
+
+    else:
+        # NAS model building
+
+        # Set the maximum allowed execution time in seconds
+        max_execution_time = cfg.nas.max_building_time
+
+        # Set the signal handler for the timeout
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(max_execution_time)
+
+        try:
+            # Your command that builds the model
+            # Place the command here that occasionally takes a long time
+
+            # build the model
+            model = hydra.utils.instantiate(
+                cfg.model,
+                input_channels=n_inputs,
+                num_classes=n_outputs,
+                image_size=cfg.dataset.resolution,
+            ).to(device)
+            if device != torch.device("cpu"):
+                model = torch.nn.DataParallel(model)
+            if cfg.training.compile:
+                model = torch.compile(model)
+
+            # Cancel the alarm since the command finished before the timeout
+            signal.alarm(0)
+        except TimeoutError:
+            # Handle the timeout error
+            
+            print("Command execution timed out")
+
+        except cuda_out_of_memory:
+            print("Cuda out of memory")
 
 
-def allowed_usage_time(
-    start_time: datetime.time = datetime.time(hour=8, minute=30),
-    end_time: datetime.time = datetime.time(hour=20),
-):
-    """
-    GPU sharing. Check if the current time is within the allowed usage time.
-    """
-    # Get the current time in GMT+2
-    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
 
-    # Check if the current time is within the range
-    if start_time <= now <= end_time:
-        raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
+
 
 
 ########################################################################################################################
@@ -37,33 +106,31 @@ def allowed_usage_time(
 def exp_name(cfg):
     values = []
     # model name
-    if cfg.model._target_ == "networks.EquivariantWideResNet":
+    if "EquivariantWideResNet" in cfg.model._target_: 
         values.append("eq_wrn")
-    elif cfg.model._target_ == "networks.EquivariantResNet9":
+    elif "EquivariantResNet9" in cfg.model._target_:
         values.append("res9")
-    elif cfg.model._target_ == "networks.EquivariantMobileNetV2":
+    elif "EquivariantMobileNetV2" in cfg.model._target_:
         values.append("eq_mobv2")
-    elif cfg.model._target_ == "networks.RandomNet":
-        values.append("rand")
-    elif cfg.model._target_ == "networks.WideResNet":
+    elif "WideResNet" in cfg.model._target_: 
         values.append("wrn")
     else:
         ValueError("Unknown model")
 
     # depth
-    if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
+    if "EquivariantWideResNet" in cfg.model._target_ or "WideResNet" in cfg.model._target_:
         values.append(f"{cfg.model.depth}")
-    elif cfg.model._target_ in ["networks.EquivariantMobileNetV2"]:
+    elif "EquivariantMobileNetV2" in cfg.model._target_ :
         values.append(f"{cfg.model.depth_multiplier}")
     
     # width
-    if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
+    if "EquivariantWideResNet" in cfg.model._target_ or "WideResNet" in cfg.model._target_:
         values.append(f"{cfg.model.widen_factor}")
-    elif cfg.model._target_ in ["networks.EquivariantMobileNetV2"]:
+    elif "EquivariantMobileNetV2" in cfg.model._target_ :
         values.append(f"{cfg.model.width_multiplier}")
     
     # kernel size
-    if cfg.model._target_ in ["networks.WideResNet", "networks.EquivariantWideResNet"]:
+    if "EquivariantWideResNet" in cfg.model._target_ or "WideResNet" in cfg.model._target_:
         if len(cfg.model.kernel_layout) == 3:
             values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]})")
         elif len(cfg.model.kernel_layout) == 2:
@@ -303,3 +370,17 @@ def build_dataloaders(cfg):
     dataloaders = {"train": train_loader, "valid": valid_loader, "test": test_loader}
     return dataloaders, n_inputs, n_outputs
 
+
+def allowed_usage_time(
+    start_time: datetime.time = datetime.time(hour=8, minute=30),
+    end_time: datetime.time = datetime.time(hour=20),
+):
+    """
+    GPU sharing. Check if the current time is within the allowed usage time.
+    """
+    # Get the current time in GMT+2
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
+
+    # Check if the current time is within the range
+    if start_time <= now <= end_time:
+        raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
