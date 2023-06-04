@@ -47,7 +47,6 @@ from networks.util import (
     cuda_memory_usage,
 )
 
-CHANNELS_CONSTANT = 1
 
 class EquivariantWideResNet(nn.Module):
     def __init__(
@@ -69,16 +68,9 @@ class EquivariantWideResNet(nn.Module):
         act_func: str = "ReLU",
         image_size: int = 32,
     ):
-        self.depth = depth
-        self.widen_factor = widen_factor
-        self.group = group
-        self.rotation = rotation
-        self.restrict = [None, restrict] if isinstance(restrict, str) else restrict
-        self.restrict = list(self.restrict)
-        assert len(self.restrict) == 2, "restrict must be a string or a list of two strings"
-        self.input_channels = input_channels
-        self.layout = layout
-        self.kernel_size = kernel_size
+        restrict = [None, restrict] if isinstance(restrict, str) else restrict
+        restrict = list(restrict)
+        assert len(restrict) == 2, "restrict must be a string or a list of two strings"
         # self.padding = padding
         self.kernel_layout = kernel_layout
         if len(kernel_layout) != 2 or kernel_layout[0] == 3 or kernel_layout[1] == 3:
@@ -87,24 +79,23 @@ class EquivariantWideResNet(nn.Module):
             self.padding = 2
         elif kernel_layout == [7,7]:
             self.padding = 3
-        if self.rotation > 4 and self.kernel_layout[0] == 3:
+        if rotation > 4 and self.kernel_layout[0] == 3:
             pass
             # warnings.warn(f"Discretization artifacts are expected for rotation > 4 and \
             #         kernel_layout = {self.kernel_layout}.")
-        self.num_classes = num_classes
         self.drop_out = drop_out
         self.bias = bias
         self.act_func = act_func
 
         super(EquivariantWideResNet, self).__init__()
-        assert (self.depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
+        assert (depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
         self.fix_params_mode = fix_params_mode
-        n = (self.depth - 4) / 6
+        n = (depth - 4) / 6
         if len(kernel_layout) == 1:
             n = int(n * 2)
         elif len(kernel_layout) == 4:
             n = int(n / 2)
-        k = self.widen_factor
+        k = widen_factor
 
         if drop_out > 0.0:
             assert len(kernel_layout) == 2, "Dropout only implemented for kernel_layout = [3,3]"
@@ -118,11 +109,11 @@ class EquivariantWideResNet(nn.Module):
 
         if self.fix_params_mode == "iter":
             self.wrn = WideResNet(
-                depth=self.depth,
-                num_classes=self.num_classes,
-                widen_factor=self.widen_factor,
-                input_channels=self.input_channels,
-                layout=self.layout,
+                depth=depth,
+                num_classes=num_classes,
+                widen_factor=widen_factor,
+                input_channels=input_channels,
+                layout=layout,
                 kernel_size=self.kernel_size,
                 padding=self.padding,
                 kernel_layout=self.kernel_layout,
@@ -135,18 +126,18 @@ class EquivariantWideResNet(nn.Module):
             if i != len(kernel_layout) - 1:
                 value += ","
 
-        print(f"Eq_WRN_{self.depth}_{k:.2f}_B({value})")
+        print(f"Eq_WRN_{depth}_{k:.2f}_B({value})")
         gspace = get_gspace(group, rotation)
         self.gspace = gspace
 
-        self.num_channels = np.array(self.layout, dtype=float)
+        self.num_channels = np.array(layout, dtype=float)
         # Add width
         self.num_channels = (self.num_channels * np.array([1, k, k, k]))
         self.num_channels = np.round(self.num_channels).astype(int)
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
-            self.gspace, [self.gspace.trivial_repr] * self.input_channels
+            self.gspace, [self.gspace.trivial_repr] * input_channels
         )
 
         # "Lifting" conv from trivial to regular feature fields
@@ -175,7 +166,7 @@ class EquivariantWideResNet(nn.Module):
         )
         image_size = calculate_output_image_size(image_size, stride=1) # 32
         
-        self.restrict1 = Restriction(self.layer1.out_type, self.group, self.rotation, self.restrict[0])
+        self.restrict1 = Restriction(self.layer1.out_type, group, rotation, restrict[0])
         self.field_type = self.restrict1.out_type
 
         normal_blocks = self.wrn.layer2 if fix_params_mode in ["all", "iter"] else None
@@ -195,8 +186,8 @@ class EquivariantWideResNet(nn.Module):
         image_size = calculate_output_image_size(image_size, stride=2) # 16
 
         # Restrict last conv and res layers
-        #print(f"Restricting {self.layer2.out_type} to {self.restrict[1]}, {self.group}, {self.rotation}")
-        self.restrict2 = Restriction(self.layer2.out_type, self.group, self.rotation, self.restrict[1])
+        #print(f"Restricting {self.layer2.out_type} to {self.restrict[1]}, {group}, {rotation}")
+        self.restrict2 = Restriction(self.layer2.out_type, group, rotation, restrict[1])
         self.field_type = self.restrict2.out_type
 
         normal_blocks = self.wrn.layer3 if fix_params_mode in ["all", "iter"] else None
@@ -222,7 +213,7 @@ class EquivariantWideResNet(nn.Module):
         image_size = int(image_size[0] / 8) 
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
-            self.invariant_map.out_type.size * image_size * image_size, self.num_classes
+            self.invariant_map.out_type.size * image_size * image_size, num_classes
         )
 
         # print stats
@@ -300,50 +291,6 @@ class EquivariantWideResNet(nn.Module):
         x = self.classifier(x)
         return x
         
-    
-    def iter_fix_param(self, l, equi_conv_block, normal_conv_block, block=None,
-                       preserved_field_type=None, n=None, stride=None):
-        norm_param = sum([p.numel() for p in normal_conv_block.parameters() if p.requires_grad])
-        equi_param = sum([p.numel() for p in equi_conv_block.parameters() if p.requires_grad])
-        current_channel_size = self.num_channels[l]
-        old_equi_param = None
-
-        # initialize search range
-        if equi_param > norm_param:
-            lower_bound = max(current_channel_size - 200, 1)
-            upper_bound = current_channel_size
-        else:
-            lower_bound = current_channel_size
-            upper_bound = int((self.layout[l] // 0.7) + 50) 
-            if l == 1:
-                upper_bound = max(upper_bound, int(self.layout[l]) + 20)
-
-        # binary search
-        while lower_bound <= upper_bound:
-            prediction = (lower_bound + upper_bound) // 2
-            # save the old one since we might not be in 1% range
-            old_equi_param, old_equi_conv_block = equi_param, equi_conv_block 
-            equi_param, equi_conv_block = self.param_count(l,
-                                        prediction, block, preserved_field_type, n, stride)
-
-            if abs(equi_param - norm_param) < 0.01:
-                last_ratio = equi_param / norm_param
-                return equi_conv_block
-
-            if equi_param < norm_param:
-                # prediction is too small
-                lower_bound = prediction + 1
-            else:
-                upper_bound = prediction - 1
-
-        # if no solution found, return closest channel size
-        if old_equi_param is not None:
-            if abs(old_equi_param - norm_param) < abs(equi_param - norm_param):
-                equi_conv_block = old_equi_conv_block
-            
-        last_ratio = equi_param / norm_param
-        print(f'Ratio for block {l}: {last_ratio}')
-        return equi_conv_block
 
 
     def param_count(self, l, channel_size_prediction, block, preserved_field_type=None, n=None, stride=None):
