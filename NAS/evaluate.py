@@ -11,7 +11,6 @@ from ax.modelbridge.factory import get_MOO_NEHVI
 # Plotting imports and initialization
 from ax.plot.contour import interact_contour_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
-from util import init_wandb
 
 # resume wandb run
 # wandb.init(
@@ -49,20 +48,12 @@ def evaluate(
         experiment=experiment, 
         data=data,
     )
-    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc")
-    gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops")
-    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_interact_contour_plotly)}, step=51, commit=True)
-    wandb.log({"gflops_contour": wandb.Plotly(gflops_interact_contour_plotly)}, step=51, commit=True)
+    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False)
+    gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True)
+    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_interact_contour_plotly)}, step=50, commit=True)
+    wandb.log({"gflops_contour": wandb.Plotly(gflops_interact_contour_plotly)}, step=50, commit=True)
 
 
-
-
-
-
-
-
-
-# %matplotlib inline
 
 
 def scalar_mappable(

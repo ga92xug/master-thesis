@@ -1,0 +1,8 @@
+training:
+  model: eq_nasnet
+  training: train_e2_100epochs
+  dataset: cifar10
+  optimizer: SGD
+  nas.max_building_time: 600    # in seconds
+  nas.max_gflops: 1000         # in GFLOPS
+  #optimizer.lr: 0.015
