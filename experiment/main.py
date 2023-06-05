@@ -35,15 +35,6 @@ np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 #import torch._dynamo
 #torch._dynamo.config.suppress_errors = True
 
-def compute_confusion_matrix(predictions, targets, labels):
-    if predictions.shape[1] > 1:
-        predictions = predictions.argmax(axis=1)
-    else:
-        predictions = (predictions > 0.)
-    
-    conf_matrix = confusion_matrix(targets, predictions, labels=labels)
-    return conf_matrix
-
 
 class Experiment:
     def __init__(self, cfg: DictConfig):
@@ -140,8 +131,8 @@ class Experiment:
         self.batch_size = cfg.training.batch_size
         self.accumulate = cfg.training.accumulate
         self.steps_per_epoch = cfg.training.steps_per_epoch
+
         self._lr = cfg.optimizer.lr
-        
         self._lr_decay_start = cfg.training.lr_decay_start
         self._lr_decay_factor = cfg.training.lr_decay_factor
         self._lr_decay_epoch = cfg.training.lr_decay_epoch
@@ -154,9 +145,6 @@ class Experiment:
         
         self._lr_exp_steps = 0
         
-        # no hydra instantiation for optimizer since it is tricky to pass the model parameters
-        #self._optimizer = hydra.utils.instantiate(cfg.optimizer, params=self.model.parameters(), 
-        #                                          )
         if cfg.optimizer._target_ == "optimizer.build_optimizer_sfcnn":
             self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
                                             params=self.model)
@@ -220,7 +208,6 @@ class Experiment:
         self._optimizer.zero_grad()
         epoch_iterations = 0
         train_loss_epoch = 0
-        train_acc_epoch = 0
         n_samples = 0
 
         # 1 epoch
@@ -243,24 +230,20 @@ class Experiment:
                 print(f"Epoch {self._epoch} \
                         loss: {loss.item():.3f}; acc: {acc:.3f}")
 
+            # loss
             loss = loss / self.accumulate
             loss.backward(retain_graph=False)
             
-
             # accumulate gradients
             if (batch_idx + 1) % self.accumulate == 0 or batch_idx == self.train_n_batches_len - 1:                
                 self._optimizer.step()
                 self._optimizer.zero_grad()
+                self._iteration += 1
+                epoch_iterations += 1
             
                 if self._eval_frequency > 0 and self._iteration % self._eval_frequency == 0:
                     self.valid()
                 
-                self._iteration += 1
-                epoch_iterations += 1
-                
-                if self.cfg.other.backup_frequency > 0 and self._iteration % self.cfg.other.backup_frequency == 0:
-                    self.backup()
-
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
             
@@ -269,16 +252,14 @@ class Experiment:
             if cuda_memory_usage(verbose=0) > 0.8:
                 torch.cuda.empty_cache()
 
-        # log the training loss, accuracy, and duration
+        # log and print
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
         wandb.log({"train": {"duration": duration}}, step=self.global_step)
+        utils.print_results(self.train_accuracy.compute(), train_loss_epoch / n_samples, duration, "TRAIN", self._epoch, self._verbose)
+        
+        # avoid wandb not logging duration bug
         self.global_step += 1
-        if self._verbose > 1:
-            print(f"-"*100)
-            print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
-            print(f'Accuracy: {self.train_accuracy.compute():.3f}; Loss: {(train_loss_epoch / n_samples):.3f}\n')
-
         self.train_accuracy.reset()
         return
 
@@ -288,10 +269,9 @@ class Experiment:
             print("############################################ START TESTING ########################################")
         
         if self.cfg.training.earlystop:
-            self.model.eval()
             self.model.load_state_dict(self.best_state_dict)
         
-        acc, loss, duration = self.evaluate("test", confusion=True)
+        acc, loss, duration = self.inference("test", confusion=True)
         
         if self._verbose > 0:
             np.set_printoptions(precision=4, suppress=True, threshold=1000000, linewidth=1000000)
@@ -302,9 +282,8 @@ class Experiment:
 
     
     def valid(self):
-        acc, loss, duration = self.evaluate("valid")
-        if self._verbose > 1:
-            self.print_results(acc, loss, duration, "VALID")
+        acc, loss, duration = self.inference("valid")
+        utils.print_results(acc, loss, duration, "VALID", self._epoch, self._verbose)
 
         if self.cfg.training.earlystop or self._adapt_lr_type == "validation":
             # earlystop part
@@ -335,7 +314,7 @@ class Experiment:
             self.best_valid_accuracy = max(acc, self.best_valid_accuracy)
 
     @torch.no_grad()
-    def evaluate(self, split, log=True, confusion=False):
+    def inference(self, split, log=True, confusion=False):
         starttime = datetime.datetime.now().timestamp()
         self.model.eval()
         if confusion:
@@ -344,7 +323,7 @@ class Experiment:
         
         cumulative_loss = 0.
         n_samples = 0
-        for batch_idx, (x_test, t_test) in enumerate(self._dataloaders[split]):
+        for _, (x_test, t_test) in enumerate(self._dataloaders[split]):
             x_test = x_test.to(self.device)
             t_test = t_test.to(self.device)
             
@@ -362,16 +341,14 @@ class Experiment:
             del y_test
             del t_test
         
+        # log
         acc = self.valid_accuracy.compute()
         self.valid_accuracy.reset()
         loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()
         duration = float(endtime - starttime)
-
-        if log:
-            wandb.log({f"{split}": {"loss": loss, "acc": acc, \
+        wandb.log({f"{split}": {"loss": loss, "acc": acc, \
                             "duration": duration}}, step=self.global_step)
-
         if confusion:
             y_test_all = np.concatenate(y_test_all, axis=0)
             t_test_all = np.concatenate(t_test_all, axis=0)
@@ -380,12 +357,6 @@ class Experiment:
                         y_true=t_test_all, preds=None, \
                         class_names=list(range(self.n_outputs)))})
         return acc, loss, duration
-
-    
-    def print_results(self, acc, loss, duration, mode):
-        print('-'*100)
-        print(f'{mode} Epoch: {self._epoch} lasted {duration:.3f} seconds')
-        print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
     
     
     def run(self):

@@ -29,6 +29,12 @@ def allowed_usage_time(
     if start_time <= now <= end_time:
         raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
 
+def print_results(acc, loss, duration, mode, epoch, verbose):
+    if verbose:
+        print('-'*100)
+        print(f'{mode} Epoch: {epoch} lasted {duration:.3f} seconds')
+        print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
+
 
 ########################################################################################################################
 # Utilites to build paths and names in a standard way
