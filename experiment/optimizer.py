@@ -18,10 +18,8 @@ def build_optimizer_sfcnn(params, l1, lamb_conv_L1, lamb_conv_L2,
     batchnormLayers = [m for m in params.modules() if isinstance(m,
                                                                      (
                                                                     enn.BatchNorm,
-                                                                    enn.InducedNormBatchNorm,
                                                                     enn.GroupStandardization,
                                                                     enn.GroupNorm,
-                                                                    enn.InducedNormGroupNorm,
                                                                       )
                                                                 )]
     linearLayers = [m for m in params.modules() if isinstance(m, nn.Linear)]

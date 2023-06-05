@@ -106,8 +106,8 @@ from experiment.datasets.mnist_fliprot import data_loader_mnist_fliprot
 from experiment.datasets.mnist12k import data_loader_mnist12k
 from experiment.datasets.cifar10 import data_loader_cifar10
 from experiment.datasets.cifar100 import data_loader_cifar100
-from experiment.datasets.STL10 import data_loader_stl10
-from experiment.datasets.STL10 import data_loader_stl10frac
+# from experiment.datasets.STL10 import data_loader_stl10
+# from experiment.datasets.STL10 import data_loader_stl10frac
 from experiment.datasets.imagenette import data_loader_imagenette
 from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
 

@@ -11,7 +11,7 @@ from nn import *
 from nn.modules import EquivariantModule
 
 
-__all__ = ["BatchNorm", "InducedNormBatchNorm"]
+__all__ = ["BatchNorm"]
 
 
 class BatchNorm(EquivariantModule):

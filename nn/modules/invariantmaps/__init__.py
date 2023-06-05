@@ -1,4 +1,3 @@
-
 from .gpool import GroupPooling, MaxPoolChannels
 
 from .norm import NormPool

@@ -112,8 +112,6 @@ class EquivariantWideResNet(nn.Module):
                 widen_factor=widen_factor,
                 input_channels=input_channels,
                 layout=layout,
-                kernel_size=self.kernel_size,
-                padding=self.padding,
                 kernel_layout=self.kernel_layout,
                 drop_out=self.drop_out,
                 bias=self.bias,
@@ -154,7 +152,6 @@ class EquivariantWideResNet(nn.Module):
             self.num_channels[1],
             n,
             stride=1,
-            kernel_size=self.kernel_size,
             padding=self.padding,
             bias=self.bias,
             act_func=self.act_func,
@@ -173,7 +170,6 @@ class EquivariantWideResNet(nn.Module):
             self.num_channels[2],
             n,
             stride=2,
-            kernel_size=self.kernel_size,
             padding=self.padding,
             bias=self.bias,
             act_func=self.act_func,
@@ -194,7 +190,6 @@ class EquivariantWideResNet(nn.Module):
             out_channels=self.num_channels[3],
             num_blocks=n,
             stride=2,
-            kernel_size=self.kernel_size,
             padding=self.padding,
             bias=self.bias,
             act_func=self.act_func,
@@ -233,7 +228,6 @@ class EquivariantWideResNet(nn.Module):
         out_channels: int,
         num_blocks: int,
         stride: int,
-        kernel_size: int,
         padding: int,
         bias: bool,
         kernel_layout: List[int],
@@ -258,7 +252,6 @@ class EquivariantWideResNet(nn.Module):
                     self.field_type,
                     out_channels,
                     stride=stride,
-                    kernel_size=kernel_size,
                     padding=padding,
                     kernel_layout=kernel_layout,
                     bias=bias,
@@ -289,32 +282,3 @@ class EquivariantWideResNet(nn.Module):
         x = self.classifier(x)
         return x
         
-
-
-    def param_count(self, l, channel_size_prediction, block, preserved_field_type=None, n=None, stride=None):
-        if l == 0:
-            # change the conv1
-            eq_conv_block = EquivariantConv(
-                in_type=self.input_field_type,
-                out_channels=channel_size_prediction,
-                kernel_size=self.kernel_size,
-                padding=self.padding,
-                groups=1,
-                stride=1,
-                dilation=1,
-                bias=self.bias,
-            )
-        else:
-            self.field_type = copy.deepcopy(preserved_field_type)
-            eq_conv_block = self._wide_layer(
-                block=block,
-                out_channels=channel_size_prediction,
-                num_blocks=n,
-                stride=stride,
-                kernel_size=self.kernel_size,
-                padding=self.padding,
-                bias=self.bias,
-                act_func=self.act_func,
-                kernel_layout=self.kernel_layout,
-            )
-        return sum([p.numel() for p in eq_conv_block.parameters() if p.requires_grad]), eq_conv_block

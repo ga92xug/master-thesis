@@ -2,7 +2,6 @@ defaults:
 - _self_
 - dataset: cifar10
 - model: eq_wrn
-- other: default
 - optimizer: SGD
 - training: train_e2_100epochs
 

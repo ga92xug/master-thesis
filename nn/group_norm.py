@@ -9,7 +9,7 @@ import torch
 from typing import List, Tuple, Any
 from einops import rearrange, repeat
 
-__all__ = ["GroupNorm", "InducedNormGroupNorm", "GroupStandardization"]
+__all__ = ["GroupNorm", "GroupStandardization"]
 
 
 class GroupNorm(EquivariantModule):

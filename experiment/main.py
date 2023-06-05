@@ -52,17 +52,6 @@ def compute_confusion_matrix(predictions, targets, labels):
     return conf_matrix
 
 
-def accuracy(predictions, targets):
-    if predictions.shape[1] > 1:
-        predictions = predictions.argmax(dim=1)
-    else:
-        predictions = (predictions > 0.)
-    
-    predictions = predictions.to(dtype=targets.dtype)
-    accuracy = float((targets == predictions).sum()) / predictions.numel()
-    return accuracy
-
-
 class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
@@ -103,10 +92,12 @@ class Experiment:
         else:
             self._loss_function = torch.nn.CrossEntropyLoss()
         self.n_outputs = n_outputs
+
+        print("n_outputs:", n_outputs)
         
         if self.n_outputs > 1:
-            self.train_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device)
-            self.valid_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device)
+            self.train_accuracy = MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)
+            self.valid_accuracy = MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)
         else:
             self.train_accuracy = BinaryAccuracy().to(self.device)
             self.valid_accuracy = BinaryAccuracy().to(self.device)
@@ -225,14 +216,6 @@ class Experiment:
         self.actual_batch_size = self.batch_size * self.accumulate
         self.last_batch_size = self.train_data_len % self.actual_batch_size
         self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
-
-    def log(self, accuracy, loss, split):
-        """
-        Plotting is currently not supported. We rely on wandb to plot the metrics.
-        """
-        return
-        row = [self.seed, split, self._iteration, accuracy, loss]
-        self.logs.loc[len(self.logs)] = row
     
     def backup(self):
         if self.cfg.other.backup_model:
@@ -262,15 +245,11 @@ class Experiment:
             x = x.to(self.device)
             t = t.to(self.device)
             y = self.model(x)
-            #print("y", y.shape, y.dtype)
-            #print("t", t.shape, t.dtype)
+            # print("y", y)
+            print("t", t)
             #print("x", x.shape, x.dtype)
             loss = self._loss_function(y, t)
-            #preds, target
-            acc_torch = self.train_accuracy(y.detach(), t.detach())
-            acc = accuracy(y.detach(), t.detach())
-            print("accuracy", acc)
-            print("acctorch", acc_torch)
+            acc = self.train_accuracy(y.detach(), t.detach())
                         
             train_loss_epoch += loss.item() * x.shape[0]
             train_acc_epoch += acc * x.shape[0]
@@ -312,8 +291,9 @@ class Experiment:
         if self._verbose > 1:
             print(f"-"*100)
             print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
-            print(f'Accuracy: {train_acc_epoch / n_samples:.3f}; Loss: {(train_loss_epoch / n_samples):.3f}\n')
-            print(f"acc_torch: {self.train_accuracy.compute()}")
+            print(f'Accuracy: {self.train_accuracy.compute():.3f}; Loss: {(train_loss_epoch / n_samples):.3f}\n')
+
+        self.train_accuracy.reset()
         return
 
     def test(self):
@@ -406,14 +386,15 @@ class Experiment:
                 t_test_all.append(t_test.detach().cpu().numpy())
 
             n_samples += x_test.shape[0]
-            cumulative_acc += accuracy(y_test, t_test) * x_test.shape[0]
+            self.valid_accuracy(y_test, t_test)
             cumulative_loss += self._loss_function(y_test, t_test).item() * x_test.shape[0]
             
             del x_test
             del y_test
             del t_test
         
-        acc = float(cumulative_acc / n_samples)
+        acc = self.valid_accuracy.compute()
+        self.valid_accuracy.reset()
         loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()
         duration = float(endtime - starttime)
