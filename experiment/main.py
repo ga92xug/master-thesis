@@ -104,9 +104,12 @@ class Experiment:
             self._loss_function = torch.nn.CrossEntropyLoss()
         self.n_outputs = n_outputs
         
-        self.train_accuracy = MulticlassAccuracy(self.n_outputs)\
-            .to(self.device) if self.n_outputs > 1 \
-            else BinaryAccuracy().to(self.device)
+        if self.n_outputs > 1:
+            self.train_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device)
+            self.valid_accuracy = MulticlassAccuracy(self.n_outputs).to(self.device)
+        else:
+            self.train_accuracy = BinaryAccuracy().to(self.device)
+            self.valid_accuracy = BinaryAccuracy().to(self.device)
 
         # build the model
         self.model = hydra.utils.instantiate(
@@ -263,7 +266,11 @@ class Experiment:
             #print("t", t.shape, t.dtype)
             #print("x", x.shape, x.dtype)
             loss = self._loss_function(y, t)
+            #preds, target
+            acc_torch = self.train_accuracy(y.detach(), t.detach())
             acc = accuracy(y.detach(), t.detach())
+            print("accuracy", acc)
+            print("acctorch", acc_torch)
                         
             train_loss_epoch += loss.item() * x.shape[0]
             train_acc_epoch += acc * x.shape[0]
@@ -271,8 +278,8 @@ class Experiment:
             wandb.log({"train": {"loss": loss, "acc": acc}},\
                           step=self.global_step)
             if self._verbose > 2:
-                    print(f"Epoch {self._epoch} | {epoch_iterations}/{self.n_batches};\
-                           loss: {loss.item():.3f}; acc: {acc:.3f}")
+                print(f"Epoch {self._epoch} | {epoch_iterations}/{self.n_batches};\
+                        loss: {loss.item():.3f}; acc: {acc:.3f}")
 
             loss.backward(retain_graph=False)
             self.global_step += x.shape[0]
@@ -306,6 +313,7 @@ class Experiment:
             print(f"-"*100)
             print(f"TRAIN Epoch {self._epoch} lasted {duration:.3f} seconds")
             print(f'Accuracy: {train_acc_epoch / n_samples:.3f}; Loss: {(train_loss_epoch / n_samples):.3f}\n')
+            print(f"acc_torch: {self.train_accuracy.compute()}")
         return
 
     def test(self):
