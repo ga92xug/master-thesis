@@ -1,29 +1,22 @@
 import numpy as np
+import hydra
+import os
+import datetime
+from omegaconf import DictConfig, OmegaConf
+import wandb
 import math
 import torch
 import torch.nn as nn
-from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics.classification import (
+    BinaryAccuracy, 
+    MulticlassAccuracy,
+)
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 import pprint
 import sys
 
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from networks.util import get_param_count, cuda_memory_usage
-
-import hydra
-from omegaconf import DictConfig, OmegaConf
-import wandb
-
-
-#import e2cnn.nn as enn
-import nn as enn
-
-import pandas as pd
-import argparse
-import os
-import datetime
-
-# import plot_exps
 import utils
 import optimizer
 #import optimizers_L1L2
@@ -73,8 +66,7 @@ class Experiment:
         np.random.seed(cfg.other.seed)
         
         # device
-        self.device = torch.device('cuda' if torch.cuda.is_available() \
-                                   else "cpu")
+        self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         print("DEVICE:", self.device)
 
         # outpath
@@ -212,10 +204,6 @@ class Experiment:
 
         # training statistics
         self.train_n_batches_len = len(self._dataloaders["train"])
-        self.train_data_len = len(self._dataloaders["train"].dataset)
-        self.actual_batch_size = self.batch_size * self.accumulate
-        self.last_batch_size = self.train_data_len % self.actual_batch_size
-        self.n_batches = self.train_data_len // self.actual_batch_size + (self.last_batch_size >= 0)        
     
     def backup(self):
         if self.cfg.other.backup_model:
@@ -229,39 +217,35 @@ class Experiment:
             wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
 
         self.model.train()
-        
         self._optimizer.zero_grad()
-        
         epoch_iterations = 0
         train_loss_epoch = 0
         train_acc_epoch = 0
         n_samples = 0
+
+        # 1 epoch
         for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
             if self._verbose > 3:
                 print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
             
-            n_samples += x.shape[0]
-
+            # compute prediction
             x = x.to(self.device)
             t = t.to(self.device)
             y = self.model(x)
-            # print("y", y)
-            print("t", t)
-            #print("x", x.shape, x.dtype)
-            loss = self._loss_function(y, t)
-            acc = self.train_accuracy(y.detach(), t.detach())
-                        
-            train_loss_epoch += loss.item() * x.shape[0]
-            train_acc_epoch += acc * x.shape[0]
 
-            wandb.log({"train": {"loss": loss, "acc": acc}},\
-                          step=self.global_step)
+            # compute loss and accuracy
+            n_samples += x.shape[0]
+            loss = self._loss_function(y, t)
+            acc = self.train_accuracy(y.detach(), t.detach())    
+            train_loss_epoch += loss.item() * x.shape[0]
+            wandb.log({"train": {"loss": loss, "acc": acc}}, step=self.global_step)
             if self._verbose > 2:
-                print(f"Epoch {self._epoch} | {epoch_iterations}/{self.n_batches};\
+                print(f"Epoch {self._epoch} \
                         loss: {loss.item():.3f}; acc: {acc:.3f}")
 
+            loss = loss / self.accumulate
             loss.backward(retain_graph=False)
-            self.global_step += x.shape[0]
+            
 
             # accumulate gradients
             if (batch_idx + 1) % self.accumulate == 0 or batch_idx == self.train_n_batches_len - 1:                
@@ -279,7 +263,9 @@ class Experiment:
 
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
-
+            
+            self.global_step += x.shape[0]
+            
             if cuda_memory_usage(verbose=0) > 0.8:
                 torch.cuda.empty_cache()
 
@@ -305,9 +291,7 @@ class Experiment:
             self.model.eval()
             self.model.load_state_dict(self.best_state_dict)
         
-        acc, loss, duration, conf_matrix = self.evaluate("test", confusion=True)
-
-        self.conf_matrix = conf_matrix
+        acc, loss, duration = self.evaluate("test", confusion=True)
         
         if self._verbose > 0:
             np.set_printoptions(precision=4, suppress=True, threshold=1000000, linewidth=1000000)
@@ -315,22 +299,9 @@ class Experiment:
             print(f"##### TEST LOSS = {loss:.3f}")
             print(f"##### TEST ACCURACY = {acc:.3f}")
             print("###################################################################################################")
-            print("# Confusion Matrix")
-            print(conf_matrix)
-            print("# Normalized Confusion Matrix")
-            conf_matrix /= conf_matrix.sum(axis=1, keepdims=True)
-            print(conf_matrix)
-            print("###################################################################################################")
-            print("\n")
+
     
     def valid(self):
-        # during validation also evaluate test set. Don't do this
-        if self.cfg.training.eval_test:
-            acc, loss, duration = self.evaluate("test")
-            if self._verbose > 1:
-                self.print_results(acc, loss, duration, "TEST")
-
-        # evaluate validation set
         acc, loss, duration = self.evaluate("valid")
         if self._verbose > 1:
             self.print_results(acc, loss, duration, "VALID")
@@ -368,12 +339,10 @@ class Experiment:
         starttime = datetime.datetime.now().timestamp()
         self.model.eval()
         if confusion:
-            conf_matrix = np.zeros((self.n_outputs, self.n_outputs))
             y_test_all = []
             t_test_all = []
         
         cumulative_loss = 0.
-        cumulative_acc = 0
         n_samples = 0
         for batch_idx, (x_test, t_test) in enumerate(self._dataloaders[split]):
             x_test = x_test.to(self.device)
@@ -406,15 +375,12 @@ class Experiment:
         if confusion:
             y_test_all = np.concatenate(y_test_all, axis=0)
             t_test_all = np.concatenate(t_test_all, axis=0)
-            conf_matrix += compute_confusion_matrix(y_test_all, t_test_all, \
-                                                    list(range(self.n_outputs)))
             wandb.log({"confusion_matrix": \
                         wandb.plot.confusion_matrix(probs=y_test_all,
                         y_true=t_test_all, preds=None, \
                         class_names=list(range(self.n_outputs)))})
-            return acc, loss, duration, conf_matrix
-        else:
-            return acc, loss, duration
+        return acc, loss, duration
+
     
     def print_results(self, acc, loss, duration, mode):
         print('-'*100)
