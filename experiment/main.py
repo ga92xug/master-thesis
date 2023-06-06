@@ -8,7 +8,6 @@ import wandb
 import math
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from torchmetrics.classification import (
     BinaryAccuracy, 
     MulticlassAccuracy,
@@ -36,7 +35,6 @@ np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 #import torch._dynamo
 #torch._dynamo.config.suppress_errors = True
 
-
 class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
@@ -58,7 +56,7 @@ class Experiment:
         
         # NAS runs have increasing trial index
         self.is_nas = cfg.NAS.trial_index != -1
-        self.logger = log.Log(cfg=cfg, is_nas=self.is_nas, max_epochs=cfg.other.max_epochs)
+        self.logger = log.Log(cfg=cfg, is_nas=self.is_nas, max_epochs=cfg.training.epochs)
         
         if not self.is_nas:
             # experiment name
@@ -111,14 +109,14 @@ class Experiment:
             cfg.model,
             input_channels=n_inputs,
             num_classes=self.n_outputs,
-            image_size=cfg.dataset.resolution,
+            image_size=cfg.training.dataset.resolution,
         ).to(self.device)
         if cfg.training.compile:
             self.model = torch.compile(self.model)
         print("Stage 2: model built")
 
         # optimizer
-        self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
+        self._optimizer = hydra.utils.instantiate(cfg.training.optimizer, 
                                             params=self.model.parameters())
 
         # total parameters and GFLOPs
@@ -143,62 +141,21 @@ class Experiment:
         self._eval_frequency = cfg.other.eval_frequency
         self.steps_per_epoch = cfg.training.steps_per_epoch
 
-        # learning rate
-        self._lr = cfg.optimizer.lr
-        self._lr_decay_start = cfg.training.lr_decay_start
-        self._lr_decay_factor = cfg.training.lr_decay_factor
-        self._lr_decay_epoch = cfg.training.lr_decay_epoch
-        self._lr_decay_schedule = cfg.training.lr_decay_schedule
-        print("lr_decay_schedule: ", cfg.training.lr_decay_schedule)
-        if cfg.training.lr_decay_schedule is not None:
-            print("if statement lr_decay_schedule: ", cfg.training.lr_decay_schedule is not None)
-            self._lr_decay_epoch = None
-            self._lr_decay_start = None
-        
-        self._lr_exp_steps = 0
-
         # adapt learning rate
-        self._adapt_lr_type = cfg.training.adapt_lr
-        if self._adapt_lr_type == "exponential":
-            self._lr_scheduler = \
-                MultiStepLR(
-                    self._optimizer,
-                    milestones=[self._lr_decay_start],
-                    gamma=self._lr_decay_factor,
-                )
-            # self._adapt_lr = self._lr_scheduler_exponential_decay
-        elif self._adapt_lr_type == "validation":
-            self._lr_scheduler = \
-                ReduceLROnPlateau(
-                    self._optimizer,
-                    factor=self._lr_decay_factor,
-                    patience=self._lr_decay_epoch,
-                    verbose=self._verbose > 2,
-                    eps=1e-8,
-                )
-            self._adapt_lr = self._lr_scheduler.step
-            
-        elif self._adapt_lr_type is not None:
-            raise ValueError()
-        else:
-            self._adapt_lr = None
+        self._lr_scheduler = hydra.utils.instantiate(cfg.training.scheduler, 
+                                            optimizer=self._optimizer)
+        print("Stage 3: optimizer built")
+        self._adapt_lr_in_validation = "ReduceLROnPlateau" in cfg.training.scheduler._target_
         
         # iteration is the number of batches seen
         self._iteration = 0
         self._epoch = 0
         self.global_step = 0        
         
-        assert cfg.training.valid_metric in ["loss", "accuracy"]
-        self._valid_metric = cfg.training.valid_metric
-
-        self._last_valid_metric = 1e+20
-        self.best_valid_iteration = 0
-        self.best_valid_loss = 1e+20
-        self.best_valid_accuracy = 0
-        self.best_state_dict = self.model.state_dict()
-        
+        # time limit
         self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
+        print("Stage 4: training starts: " + str(self._global_start_time))
 
         # training statistics
         self.train_n_batches_len = len(self._dataloaders["train"])
@@ -235,7 +192,7 @@ class Experiment:
             loss = self._loss_function(y, t)
             acc = self.train_accuracy(y.detach(), t.detach())    
             train_loss_epoch += loss.item() * x.shape[0]
-            wandb.log({"train": {"loss": loss, "acc": acc}}, step=self.global_step)
+            self.logger.log({"train": {"loss": loss, "acc": acc}}, step=self.global_step, epoch=self._epoch)
             if self._verbose > 2:
                 print(f"Epoch {self._epoch} \
                         loss: {loss.item():.3f}; acc: {acc:.3f}")
@@ -284,34 +241,11 @@ class Experiment:
     def valid(self):
         acc, loss, duration = self.inference("valid")
         utils.print_results(acc, loss, duration, "VALID", self._epoch, self._verbose)
+        
+        # adapt learning rate
+        if self._adapt_lr_in_validation:
+            self._lr_scheduler.step(acc)
 
-        if self.cfg.training.earlystop or self._adapt_lr_type == "validation":
-            # earlystop part
-            if self._valid_metric == "accuracy":
-                _last_valid_metric = acc
-                if self.cfg.training.earlystop and \
-                    _last_valid_metric > self.best_valid_accuracy:
-                    
-                    self.best_valid_accuracy = _last_valid_metric
-                    self.best_valid_iteration = self._epoch
-                    self.best_state_dict = self.model.state_dict()
-            elif self._valid_metric == "loss":
-                _last_valid_metric = loss
-                if self.cfg.training.earlystop and \
-                    _last_valid_metric < self.best_valid_loss:
-
-                    self.best_valid_loss = _last_valid_metric
-                    self.best_valid_iteration = self._epoch
-                    self.best_state_dict = self.model.state_dict()
-            else:
-                raise ValueError(self._valid_metric)
-            
-            # adapt learning rate
-            if self._adapt_lr_type == "validation" and self._adapt_lr is not None:
-                self._adapt_lr(_last_valid_metric)
-
-            self.best_valid_loss = min(loss, self.best_valid_loss)
-            self.best_valid_accuracy = max(acc, self.best_valid_accuracy)
 
     @torch.no_grad()
     def inference(self, split, log=True, confusion=False):
@@ -347,8 +281,9 @@ class Experiment:
         loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()
         duration = float(endtime - starttime)
-        wandb.log({f"{split}": {"loss": loss, "acc": acc, \
-                            "duration": duration}}, step=self.global_step)
+        self.logger.log(
+            {f"{split}": {"loss": loss, "acc": acc, "duration": duration}}, 
+            step=self.global_step, epoch=self._epoch)
         if confusion:
             y_test_all = np.concatenate(y_test_all, axis=0)
             t_test_all = np.concatenate(t_test_all, axis=0)
@@ -366,26 +301,23 @@ class Experiment:
         """
         self._iteration = 0
         
-        while self._epoch < self.max_epochs:
+        while self._epoch < self.max_epochs and self.time_limit_reached():
             # check if we are allowed to run
             if self.cfg.other.gpu_time_limit:
                 utils.allowed_usage_time()
             
-            if self._time_limit is not None:
-                if (datetime.datetime.now().timestamp() - \
-                    self._global_start_time.timestamp()) / 60. \
-                    > self._time_limit:
+            if :
+                
                     print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self._epoch}.")
                     print(f"Best validation accuracy: {self.best_valid_accuracy:.3f}")
                     print(f"Best validation loss: {self.best_valid_loss:.3f}")
                     print(f"Best validation iteration: {self.best_valid_iteration}")
                     break
             
-            if self._adapt_lr is not None and self._adapt_lr_type != "validation":
-                self._adapt_lr()
-            
+            # train
             self.train()
             
+            # validate
             if self._eval_frequency < 0 and self._epoch % (-self._eval_frequency) == 0:
                 self.valid()
             
@@ -393,7 +325,8 @@ class Experiment:
                 self.backup()
 
             # adapt learning rate
-
+            if not self._adapt_lr_in_validation and self._lr_scheduler is not None:
+                self._lr_scheduler.step()
 
             self._epoch += 1
         
@@ -404,29 +337,13 @@ class Experiment:
         
         wandb.finish(exit_code=0)
 
-    def _lr_scheduler_exponential_decay(self, verbose=False):
-        """
-        Decay initial learning rate exponentially starting after epoch_start epochs
-        The learning rate is multiplied with base_factor every lr_decay_epoch epochs
-        """
-        
-        if self._lr_decay_schedule is not None:
-            if self._epoch in self._lr_decay_schedule:
-                self._lr_decay_schedule.remove(self._epoch)
-                self._lr *= self._lr_decay_factor
-        else:
-            if self._epoch <= self._lr_decay_start:
-                lr = self._lr
-            else:
-                lr = self._lr * (self._lr_decay_factor ** \
-                                 ((self._epoch - self._lr_decay_start) // \
-                                  self._lr_decay_epoch))
-        if verbose:
-            print('learning rate = {:6f}'.format(lr))
-        for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
-        return self._optimizer, lr
-    
+    def time_limit_reached(self):
+        if self._time_limit is not None and \
+            (datetime.datetime.now().timestamp() - \
+            self._global_start_time.timestamp()) / 60. \
+            > self._time_limit:
+            return True
+
     
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")

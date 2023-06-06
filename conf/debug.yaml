@@ -6,7 +6,7 @@ defaults:
 # Dataset parameters        
 training:
   compile: False
-  steps_per_epoch: -1
+  steps_per_epoch: 2
   accumulate: 1
   earlystop: False
   dataset:
@@ -33,11 +33,10 @@ other:
   gpu_time_limit: False
 
 
-
 # WandB
 wandb:
   project: scaling-laws-eq         # Name of the wandb project
-  mode: online                  # For debugging disabled, online, offline
+  mode: disabled                  # For debugging disabled, online, offline
   watch: False                  # For detailed weight analysis
   # wandb_entity: Null          # Name of the wandb entity default is your username
   notes: null

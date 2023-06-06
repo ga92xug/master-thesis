@@ -231,8 +231,10 @@ def get_param_count(model_name, in_mb=False, verbose=False):
         
 
 def get_gflops(model, cfg, n_inputs, verbose=False):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    image_size = cfg.training.dataset.resolution
     input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
-            cfg.dataset.resolution, cfg.dataset.resolution).to(model.get_device())
+            image_size, image_size).to(device)
     flops = FlopCountAnalysis(model, (input_tensor,))
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)

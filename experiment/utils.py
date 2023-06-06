@@ -120,15 +120,15 @@ from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
 
 
 def build_dataloaders(cfg):
-    dataset = cfg.dataset.name
+    dataset = cfg.training.dataset.name
     batch_size = cfg.training.batch_size
-    num_workers = cfg.dataset.workers
-    drop_last_train = cfg.dataset.drop_last_train or False
-    augment = cfg.dataset.augment or False
+    num_workers = cfg.training.dataset.workers
+    drop_last_train = cfg.training.dataset.drop_last_train or False
+    augment = cfg.training.dataset.augment or False
     validation = cfg.training.earlystop or True 
-    reshuffle = cfg.dataset.reshuffle or False
+    reshuffle = cfg.training.dataset.reshuffle or False
     eval_batch_size = cfg.training.eval_batch_size or None
-    interpolation = cfg.dataset.interpolation or 2
+    interpolation = cfg.training.dataset.interpolation or 2
     
     if eval_batch_size is None:
         eval_batch_size = batch_size
