@@ -3,7 +3,7 @@ import sys
 from matplotlib import pyplot as plt
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from experiment.network_instantiation import main
+from experiment.speed_test import main
 
 
 def binary_search_over_model_scaling(

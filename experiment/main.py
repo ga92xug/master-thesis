@@ -1,5 +1,5 @@
-from tabnanny import verbose
 import numpy as np
+np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
 import os
 import datetime
@@ -8,27 +8,14 @@ import wandb
 import math
 import torch
 import torch.nn as nn
-from torchmetrics.classification import (
-    BinaryAccuracy, 
-    MulticlassAccuracy,
-)
+from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-
-from networks.util import get_param_count, cuda_memory_usage, get_gflops
+from experiment.model_instantiate import create_model
+from networks.util import cuda_memory_usage
 import utils
 import log
-import optimizer
-#import optimizers_L1L2
 
-from sklearn.metrics import confusion_matrix
-
-import matplotlib
-
-if "DISPLAY" not in os.environ:
-    matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 
 #os.environ['HYDRA_FULL_ERROR'] = '1'
 #os.environ['TORCHDYNAMO_VERBOSE'] = '0'
@@ -105,27 +92,21 @@ class Experiment:
             self.valid_accuracy = BinaryAccuracy().to(self.device)
 
         # model
-        self.model = hydra.utils.instantiate(
-            cfg.model,
-            input_channels=n_inputs,
-            num_classes=self.n_outputs,
+        stats = create_model(
+            cfg=cfg, 
+            n_inputs=n_inputs, 
+            n_outputs=self.n_outputs, 
             image_size=cfg.training.dataset.resolution,
-        ).to(self.device)
-        if cfg.training.compile:
-            self.model = torch.compile(self.model)
+            device=self.device,
+            verbose=self._verbose,
+        )
+        self.logger.log(stats, step=0, epoch=0)
         print("Stage 2: model built")
 
         # optimizer
         self._optimizer = hydra.utils.instantiate(cfg.training.optimizer, 
                                             params=self.model.parameters())
 
-        # total parameters and GFLOPs
-        total_param = get_param_count(self.model, in_mb=False, \
-                                      verbose=self._verbose)
-        gflops = get_gflops(self.model, cfg, n_inputs, verbose=self._verbose)
-        self.logger.log({"total_parameters": total_param,
-                   "GFLOPs": gflops}, step=0, epoch=0)
-        # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
         
         # outpath
         # self.outpath = utils.out_path(cfg)
@@ -346,8 +327,7 @@ def run_experiment(cfg: DictConfig) -> None:
         utils.allowed_usage_time()
     exp = Experiment(cfg)
     exp.iteration_over_epochs()
- 
+
 
 if __name__ == "__main__":
     run_experiment()
-    
