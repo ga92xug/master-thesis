@@ -303,16 +303,7 @@ class Experiment:
         
         while self._epoch < self.max_epochs and self.time_limit_reached():
             # check if we are allowed to run
-            if self.cfg.other.gpu_time_limit:
-                utils.allowed_usage_time()
-            
-            if :
-                
-                    print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self._epoch}.")
-                    print(f"Best validation accuracy: {self.best_valid_accuracy:.3f}")
-                    print(f"Best validation loss: {self.best_valid_loss:.3f}")
-                    print(f"Best validation iteration: {self.best_valid_iteration}")
-                    break
+            utils.allowed_usage_time(self.cfg.other.gpu_time_limit)
             
             # train
             self.train()
@@ -342,7 +333,9 @@ class Experiment:
             (datetime.datetime.now().timestamp() - \
             self._global_start_time.timestamp()) / 60. \
             > self._time_limit:
+            print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self._epoch}.")
             return True
+        return False
 
     
 

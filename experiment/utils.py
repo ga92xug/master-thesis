@@ -16,13 +16,16 @@ EXPERIMENT_PARAMETERS = ["model", "type", "N", "flip", "restrict", "sgsize", "fi
 
 
 def allowed_usage_time(
-    start_time: datetime.time = datetime.time(hour=8, minute=30),
-    end_time: datetime.time = datetime.time(hour=20),
+        respect_start_time: bool,
+        start_time: datetime.time = datetime.time(hour=8, minute=30),
+        end_time: datetime.time = datetime.time(hour=20),
 ):
     """
     GPU sharing. Check if the current time is within the allowed usage time.
     """
-    # Get the current time in GMT+2
+    if not respect_start_time:
+        return
+
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
 
     # Check if the current time is within the range
