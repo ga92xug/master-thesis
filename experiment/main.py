@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import numpy as np
 import hydra
 import os
@@ -7,17 +8,17 @@ import wandb
 import math
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau, MultiStepLR
 from torchmetrics.classification import (
     BinaryAccuracy, 
     MulticlassAccuracy,
 )
-from fvcore.nn import FlopCountAnalysis, flop_count_table
-import pprint
 import sys
-
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-from networks.util import get_param_count, cuda_memory_usage
+
+from networks.util import get_param_count, cuda_memory_usage, get_gflops
 import utils
+import log
 import optimizer
 #import optimizers_L1L2
 
@@ -39,45 +40,65 @@ np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
-        # Wandb
-        wandb.config = OmegaConf.to_container(
-            cfg, resolve=True, throw_on_missing=True
-        )
-        # experiment name
-        self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
-        run = wandb.init(project=cfg.wandb.project, config=wandb.config, \
-                        mode=cfg.wandb.mode, name=self.expname, \
-                        notes=cfg.wandb.notes, tags=cfg.wandb.tags)
-        wandb.run.log_code(".")
-        
-        print(OmegaConf.to_yaml(cfg))
-        self.cfg = cfg
+        self._verbose = cfg.other.verbose
+        self._global_start_time = datetime.datetime.now()
+        if self._verbose > 1:
+            print(f"Starting: {self._global_start_time}")
         # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
-        
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-        print("DEVICE:", self.device)
+        # Wandb
+        print(OmegaConf.to_yaml(cfg))
+        self.cfg = cfg
+        wandb_config = OmegaConf.to_container(
+                cfg, resolve=True, throw_on_missing=True
+            )
+        
+        # NAS runs have increasing trial index
+        self.is_nas = cfg.NAS.trial_index != -1
+        self.logger = log.Log(cfg=cfg, is_nas=self.is_nas, max_epochs=cfg.other.max_epochs)
+        
+        if not self.is_nas:
+            # experiment name
+            self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
 
-        # outpath
-        # self.outpath = utils.out_path(cfg)
-        # os.makedirs(self.outpath, exist_ok=True)
+            # normal training mode
+            self.wandb_run = wandb.init(
+                project=cfg.wandb.project, config=wandb_config, \
+                            mode=cfg.wandb.mode, name=self.expname, \
+                            notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+            self.wandb_run.log_code(".")
+            
+        else:
+            # console logging is a problem when running 2 wandb runs in parallel
+            # so we disable it https://github.com/wandb/wandb/issues/4872
+            os.environ['WANDB_CONSOLE']="off"
+            os.environ['WANDB_DISABLE_SERVICE']='true'
+            os.environ["WANDB_SILENT"] = "true"
+            # during NAS we reinit
+            self.wandb_run = wandb.init(
+                id = cfg.wandb.run_id, 
+                resume = "allow", 
+                project = cfg.wandb.project, 
+                entity = cfg.wandb.entity,
+                mode = cfg.wandb.mode,
+                notes = cfg.wandb.notes,
+                tags = cfg.wandb.tags
+            )
                
-        # build the datasets and the train, validation and test loaders
-        self._dataloaders, n_inputs, n_outputs = utils.build_dataloaders(cfg)
+        # dataset
+        self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
         print("Stage 1: datasets built")
         
         # Loss function
-        if n_outputs == 2:
-            n_outputs = 1
+        if self.n_outputs == 2:
             self._loss_function = torch.nn.BCEWithLogitsLoss()
         else:
             self._loss_function = torch.nn.CrossEntropyLoss()
-        self.n_outputs = n_outputs
-
-        print("n_outputs:", n_outputs)
         
+        # Metrics
         if self.n_outputs > 1:
             self.train_accuracy = MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)
             self.valid_accuracy = MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)
@@ -85,40 +106,32 @@ class Experiment:
             self.train_accuracy = BinaryAccuracy().to(self.device)
             self.valid_accuracy = BinaryAccuracy().to(self.device)
 
-        # build the model
+        # model
         self.model = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,
-            num_classes=n_outputs,
+            num_classes=self.n_outputs,
             image_size=cfg.dataset.resolution,
         ).to(self.device)
-        if self.device != torch.device("cpu"):
-            self.model = nn.DataParallel(self.model)
         if cfg.training.compile:
             self.model = torch.compile(self.model)
         print("Stage 2: model built")
 
-        self._global_start_time = datetime.datetime.now()
-        self._verbose = cfg.other.verbose
+        # optimizer
+        self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
+                                            params=self.model.parameters())
 
-        # compute number of parameters
+        # total parameters and GFLOPs
         total_param = get_param_count(self.model, in_mb=False, \
                                       verbose=self._verbose)
-        wandb.log({"total_parameters": total_param}, step=0)
-
-        # compute flops
-        input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
-            cfg.dataset.resolution, cfg.dataset.resolution).to(self.device)
-        flops = FlopCountAnalysis(self.model, (input_tensor,))
-        flops.unsupported_ops_warnings(False)
-        flops.uncalled_modules_warnings(False)
-        gflops = flops.total() / 1e9
-        wandb.log({"GFLOPs": gflops}, step=0)
+        gflops = get_gflops(self.model, cfg, n_inputs, verbose=self._verbose)
+        self.logger.log({"total_parameters": total_param,
+                   "GFLOPs": gflops}, step=0, epoch=0)
         # assert total_param <= 4e7, "We don't want to train a model with more than 40M parameters!"
         
-        if self._verbose > 1:
-            print(f"Starting: {self._global_start_time}")
-        
+        # outpath
+        # self.outpath = utils.out_path(cfg)
+        # os.makedirs(self.outpath, exist_ok=True)
         # backup model parameters
         self.modelpath = utils.backup_path(cfg)
         if cfg.other.backup_model:
@@ -128,10 +141,9 @@ class Experiment:
         # training configuration
         self.max_epochs = cfg.training.epochs
         self._eval_frequency = cfg.other.eval_frequency
-        self.batch_size = cfg.training.batch_size
-        self.accumulate = cfg.training.accumulate
         self.steps_per_epoch = cfg.training.steps_per_epoch
 
+        # learning rate
         self._lr = cfg.optimizer.lr
         self._lr_decay_start = cfg.training.lr_decay_start
         self._lr_decay_factor = cfg.training.lr_decay_factor
@@ -144,22 +156,20 @@ class Experiment:
             self._lr_decay_start = None
         
         self._lr_exp_steps = 0
-        
-        if cfg.optimizer._target_ == "optimizer.build_optimizer_sfcnn":
-            self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
-                                            params=self.model)
-        else:
-            self._optimizer = hydra.utils.instantiate(cfg.optimizer, 
-                                            params=self.model.parameters())
-        # self._optimizer = optimizer.build_optimizer(self.model, cfg)
 
         # adapt learning rate
         self._adapt_lr_type = cfg.training.adapt_lr
-        if cfg.training.adapt_lr == "exponential":
-            self._adapt_lr = self._lr_scheduler_exponential_decay
-        elif cfg.training.adapt_lr == "validation":
+        if self._adapt_lr_type == "exponential":
             self._lr_scheduler = \
-                torch.optim.lr_scheduler.ReduceLROnPlateau(
+                MultiStepLR(
+                    self._optimizer,
+                    milestones=[self._lr_decay_start],
+                    gamma=self._lr_decay_factor,
+                )
+            # self._adapt_lr = self._lr_scheduler_exponential_decay
+        elif self._adapt_lr_type == "validation":
+            self._lr_scheduler = \
+                ReduceLROnPlateau(
                     self._optimizer,
                     factor=self._lr_decay_factor,
                     patience=self._lr_decay_epoch,
@@ -168,7 +178,7 @@ class Experiment:
                 )
             self._adapt_lr = self._lr_scheduler.step
             
-        elif cfg.training.adapt_lr is not None:
+        elif self._adapt_lr_type is not None:
             raise ValueError()
         else:
             self._adapt_lr = None
@@ -231,31 +241,33 @@ class Experiment:
                         loss: {loss.item():.3f}; acc: {acc:.3f}")
 
             # loss
-            loss = loss / self.accumulate
-            loss.backward(retain_graph=False)
+            loss = loss / self.cfg.training.accumulate
+            loss.backward()
             
             # accumulate gradients
-            if (batch_idx + 1) % self.accumulate == 0 or batch_idx == self.train_n_batches_len - 1:                
+            if (batch_idx + 1) % self.cfg.training.accumulate == 0 or \
+                 batch_idx == self.train_n_batches_len - 1:                
                 self._optimizer.step()
                 self._optimizer.zero_grad()
                 self._iteration += 1
                 epoch_iterations += 1
-            
+
+                # validation more than once per epoch
                 if self._eval_frequency > 0 and self._iteration % self._eval_frequency == 0:
                     self.valid()
                 
+                # short training for testing
                 if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
                     break
             
             self.global_step += x.shape[0]
-            
-            if cuda_memory_usage(verbose=0) > 0.8:
-                torch.cuda.empty_cache()
+            # if cuda_memory_usage(verbose=0) > 0.8:
+            #     torch.cuda.empty_cache()
 
         # log and print
         endtime = datetime.datetime.now().timestamp()
         duration = endtime - starttime
-        wandb.log({"train": {"duration": duration}}, step=self.global_step)
+        self.logger.log({"train": {"duration": duration}}, step=self.global_step, epoch=self._epoch)
         utils.print_results(self.train_accuracy.compute(), train_loss_epoch / n_samples, duration, "TRAIN", self._epoch, self._verbose)
         
         # avoid wandb not logging duration bug
@@ -264,22 +276,10 @@ class Experiment:
         return
 
     def test(self):
-        if self._verbose > 0:
-            print("\n")
-            print("############################################ START TESTING ########################################")
-        
         if self.cfg.training.earlystop:
             self.model.load_state_dict(self.best_state_dict)
         
-        acc, loss, duration = self.inference("test", confusion=True)
-        
-        if self._verbose > 0:
-            np.set_printoptions(precision=4, suppress=True, threshold=1000000, linewidth=1000000)
-            print(f"##### ExperimentClassification [{self.expname}]")
-            print(f"##### TEST LOSS = {loss:.3f}")
-            print(f"##### TEST ACCURACY = {acc:.3f}")
-            print("###################################################################################################")
-
+        self.inference("test", confusion=True)
     
     def valid(self):
         acc, loss, duration = self.inference("valid")
@@ -354,12 +354,12 @@ class Experiment:
             t_test_all = np.concatenate(t_test_all, axis=0)
             wandb.log({"confusion_matrix": \
                         wandb.plot.confusion_matrix(probs=y_test_all,
-                        y_true=t_test_all, preds=None, \
+                        y_true=t_test_all, \
                         class_names=list(range(self.n_outputs)))})
         return acc, loss, duration
     
     
-    def run(self):
+    def iteration_over_epochs(self):
         """
         High level functionality to run the experiment. 
         Implements when to train, evaluate, plot, backup, etc.
@@ -392,12 +392,12 @@ class Experiment:
             if self.cfg.other.backup_frequency < 0 and self._epoch % (-self.cfg.other.backup_frequency) == 0:
                 self.backup()
 
+            # adapt learning rate
+
+
             self._epoch += 1
         
         # Training done, evaluate on test set
-        if self._verbose > 1:
-            print("###################################### Backup and Test #######################################")
-        
         self.backup()
         if self.cfg.other.should_test:
             self.test()
@@ -427,21 +427,6 @@ class Experiment:
             param_group['lr'] = lr
         return self._optimizer, lr
     
-    def _lr_scheduler_valid_adaptive(self, verbose=False):
-        """
-        Decay initial learning rate exponentially by "_lr_decay_factor" starting after "_lr_decay_start" epochs
-        The learning rate is multiplied with "_decay_factor" after the validation metric doesn't improve for "_lr_decay_epoch"
-        """
-        if self._epoch > self._lr_decay_start and self._epoch - max(self._last_adapt, self.best_valid_iteration) > 20:
-            self._last_adapt = self._epoch
-            self._lr_exp_steps += 1
-        
-        lr = self._lr * (self._lr_decay_factor ** self._lr_exp_steps)
-        if verbose:
-            print('learning rate = {:6f}'.format(lr))
-        for param_group in self._optimizer.param_groups:
-            param_group['lr'] = lr
-        return self._optimizer, lr
     
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
@@ -450,12 +435,8 @@ def run_experiment(cfg: DictConfig) -> None:
     if cfg.other.gpu_time_limit:
         utils.allowed_usage_time()
     exp = Experiment(cfg)
-    exp.run()
+    exp.iteration_over_epochs()
  
-    
-################################################################################
-################################################################################
-
 
 if __name__ == "__main__":
     run_experiment()

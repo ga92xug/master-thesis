@@ -307,5 +307,9 @@ def build_dataloaders(cfg):
         raise ValueError("Dataset '{}' not recognized!".format(dataset))
     
     dataloaders = {"train": train_loader, "valid": valid_loader, "test": test_loader}
+
+    if n_outputs == 2:
+        n_outputs = 1
+
     return dataloaders, n_inputs, n_outputs
 

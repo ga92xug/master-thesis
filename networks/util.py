@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import sys
 import torch
+from fvcore.nn import FlopCountAnalysis, flop_count_table
 from networks.eq_efficientnet_util import Eq_Conv2dSamePadding
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
@@ -227,6 +228,18 @@ def get_param_count(model_name, in_mb=False, verbose=False):
             if verbose:
                 print(f'Total params: {total_params}')
             return total_params
+        
+
+def get_gflops(model, cfg, n_inputs, verbose=False):
+    input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
+            cfg.dataset.resolution, cfg.dataset.resolution).to(model.get_device())
+    flops = FlopCountAnalysis(model, (input_tensor,))
+    flops.unsupported_ops_warnings(False)
+    flops.uncalled_modules_warnings(False)
+    gflops = flops.total() / 1e9
+    if verbose:
+        print(f'GFLOPs: {gflops:.2f}')
+    return gflops
 
 
 def get_gspace(group, rotation):
