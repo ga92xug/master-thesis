@@ -1,6 +1,6 @@
 defaults:
 - _self_
-- optimizer: SGD
+- optimizer: Adam
 - dataset: galaxy10
 - scheduler: multi_step_lr 
 
@@ -9,6 +9,10 @@ eval_batch_size: 64           # Number of examples to process in a batch during 
 epochs: 50                    # Number of training epochs
 augment_train: False     
 
+optimizer:
+  lr: 0.01
+  weight_decay: 1e-6
+  betas: [0.9,0.999]
 
 scheduler:
   gamma: 0.02

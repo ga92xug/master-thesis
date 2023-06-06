@@ -35,7 +35,6 @@ def create_model(
     model_building_time = stop - start
     stats["model_building_time"] = model_building_time
     stats["param_count"] = get_param_count(model, in_mb=False, verbose=verbose)
-
     stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs, 
                         image_size, verbose=verbose)
 
@@ -46,7 +45,6 @@ def create_model(
         compile_time = stop - start
         stats["compile_time"] = compile_time
         
-
     if verbose >= 1:
         print(f"Model building time: {model_building_time}")
         if cfg.training.compile:

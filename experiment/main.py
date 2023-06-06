@@ -146,17 +146,15 @@ class Experiment:
             torch.save(self.best_state_dict, self.modelpath)
     
     def train(self):
-        starttime = datetime.datetime.now().timestamp()
-
-        if self.cfg.wandb.watch:
-            # Tell wandb to watch what the model gets up to: gradients, weights, and more!
-            wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
-
+        start_time = datetime.datetime.now().timestamp()
         self.model.train()
         self._optimizer.zero_grad()
         epoch_iterations = 0
         train_loss_epoch = 0
         n_samples = 0
+
+        if self.cfg.wandb.watch:
+            wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
 
         # 1 epoch
         for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
@@ -203,8 +201,8 @@ class Experiment:
             #     torch.cuda.empty_cache()
 
         # log and print
-        endtime = datetime.datetime.now().timestamp()
-        duration = endtime - starttime
+        end_time = datetime.datetime.now().timestamp()
+        duration = end_time - start_time
         self.logger.log({"train": {"duration": duration}}, step=self.global_step, epoch=self._epoch)
         utils.print_results(self.train_accuracy.compute(), train_loss_epoch / n_samples, duration, "TRAIN", self._epoch, self._verbose)
         
