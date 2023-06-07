@@ -7,14 +7,9 @@ from run_command import run_command
 # global arguments
 global_args = [
         "model=eq_wrn", 
-        "dataset=cifar10",
-        "training=train_e2_100epochs",
-        "optimizer=SGD",
-        "model.fix_params_mode=heuristic",
-        "model.restrict=[halved,invariant]",
+        "training=cifar10-training",
         "wandb.tags=[G_CNN_exp1]",
         "wandb.group=G_CNN_exp1",
-        "model.rotation=8",
     ]
 
 # 3x3
@@ -41,11 +36,7 @@ args = ["model.kernel_layout=[7,7]", "model.padding=3",
 # global arguments
 global_args = [
         "model=eq_wrn", 
-        "dataset=cifar10",
-        "training=train_e2_100epochs",
-        "optimizer=SGD",
-        "model.fix_params_mode=heuristic",
-        "model.restrict=[halved,invariant]",
+        "training=cifar10-training",
         "wandb.tags=[G_CNN_exp1]",
         "wandb.group=G_CNN_exp1",
         "model.rotation=14",
@@ -77,14 +68,9 @@ args = ["model.kernel_layout=[7,7]", "model.padding=3",
 # group experiment
 global_args = [
         "model=eq_wrn", 
-        "dataset=cifar10",
-        "training=train_e2_100epochs",
-        "optimizer=SGD",
-        "model.fix_params_mode=heuristic",
-        "model.restrict=[halved,invariant]",
+        "training=cifar10-training",
         "wandb.tags=[G_CNN_exp2]",
         "wandb.group=G_CNN_exp2",
-        "model.rotation=8",
     ]
 
 # 3x3
@@ -100,14 +86,9 @@ args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
 # rotation experiment
 global_args = [
         "model=eq_wrn", 
-        "dataset=cifar10",
-        "training=train_e2_100epochs",
-        "optimizer=SGD",
-        "model.fix_params_mode=heuristic",
-        "model.restrict=[halved,invariant]",
+        "training=cifar10-training",
         "wandb.tags=[G_CNN_exp3]",
         "wandb.group=G_CNN_exp3",
-        "model.rotation=8",
     ]
 
 # 3x3
@@ -124,14 +105,8 @@ run_command(args, global_args, test=False)
 
 # restriction experiment
 global_args = [
-        # model
         "model=eq_wrn", 
-        "model.fix_params_mode=heuristic",
-        "model.rotation=8",
-        # training
-        "dataset=cifar10",
-        "training=train_e2_100epochs",
-        "optimizer=SGD",
+        "training=cifar10-training",
         # wandb
         "wandb.tags=[G_CNN_exp4]",
         "wandb.group=G_CNN_exp4",

@@ -8,20 +8,12 @@ import nn as nn_eq
 from nn import (
     FieldType,
     EquivariantModule,
-    SequentialModule,
     BatchNorm,
-    InducedNormBatchNorm,
     GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormMaxPool,
     PointwiseMaxPool,
-    DisentangleModule,
-    RestrictionModule,
     MultipleModule,
 )
 from group_theory import Representation
-from nn.modules import nonlinearities
 
 __all__ = [
     "Restriction",
@@ -54,22 +46,10 @@ class EquivariantNorm(EquivariantModule):
 
         # batch norm
         norm = BatchNorm
-        induced_norm = InducedNormBatchNorm
         param = affine
 
-        # Split into pointwise and induced representations
-        if len(set(self.in_type.fields_names())) == 1:
-            self.norm = norm(self.in_type, param)
-        else:
-            labels = [
-                "pointwise" if only_zero_freq(r) else "induced" for r in self.in_type
-            ]
-            field_type = self.in_type.group_by_labels(labels)
-            modules = [
-                (norm(field_type["pointwise"], param), "pointwise"),
-                (induced_norm(field_type["induced"], param), "induced"),
-            ]
-            self.norm = MultipleModule(self.in_type, labels, modules)
+        self.norm = norm(self.in_type, param)
+        
 
         self.out_type = self.norm.out_type
 
@@ -94,25 +74,10 @@ class EquivariantPool(EquivariantModule):
         self.map = None
         self.pool = None
 
-        # Split into pointwise and induced representations
-        if len(set(self.in_type.fields_names())) == 1:
-            labels = ["pointwise"] * len(self.in_type)
-            modules_map = [(GroupPooling(self.in_type), "pointwise")]
-            modules_pool = [(PointwiseMaxPool(self.in_type, pool_size), "pointwise")]
-        # Induced
-        else:
-            labels = [
-                "pointwise" if only_zero_freq(r) else "induced" for r in self.in_type
-            ]
-            out_type = self.in_type.group_by_labels(labels)
-            modules_map = [
-                (NormPool(out_type["pointwise"]), "pointwise"),
-                (InducedNormPool(out_type["induced"]), "induced"),
-            ]
-            modules_pool = [
-                (PointwiseMaxPool(out_type["pointwise"], pool_size), "pointwise"),
-                (NormMaxPool(out_type["induced"], pool_size), "induced"),
-            ]
+        labels = ["pointwise"] * len(self.in_type)
+        modules_map = [(GroupPooling(self.in_type), "pointwise")]
+        modules_pool = [(PointwiseMaxPool(self.in_type, pool_size), "pointwise")]
+    
 
         if invariant_map:
             self.map = MultipleModule(self.in_type, labels, modules_map)
@@ -141,22 +106,3 @@ class EquivariantPool(EquivariantModule):
         assert input_shape[1] == self.in_type.size
         return input_shape
 
-
-if __name__ == "__main__":
-    # 
-    input_channels = 3
-    out_channels = 3
-    r2_act = nn_eq.rot2dOnR2(N=4)
-    r2_in_type = FieldType(r2_act, [r2_act.trivial_repr]*input_channels)
-    
-    eq_conv = EquivariantConv(in_type=r2_in_type, out_channels=out_channels, \
-                              kernel_size=3, padding=1, stride=1, bias=False)
-    
-
-    conv1 = nn.Conv2d(input_channels, out_channels, kernel_size=3, stride=1,
-                               padding=1, bias=False)
-
-    tot_param = sum([p.numel() for p in eq_conv.parameters() if p.requires_grad])
-    print('Total number of parameters: {}'.format(tot_param))
-    tot_param = sum([p.numel() for p in conv1.parameters() if p.requires_grad])
-    print('Total number of parameters: {}'.format(tot_param))

@@ -5,7 +5,7 @@ import wandb
 from matplotlib import pyplot as plt
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from experiment.network_instantiation import main
+from experiment.speed_test import main
 
 title_size = 12
 label_size = 10

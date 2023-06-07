@@ -3,25 +3,14 @@ from torch import nn
 import numpy as np
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-import nn as nn_eq
 
 from nn import (
     FieldType,
     EquivariantModule,
     SequentialModule,
-    BatchNorm,
-    InducedNormBatchNorm,
-    GroupPooling,
-    NormPool,
-    InducedNormPool,
-    NormMaxPool,
-    PointwiseMaxPool,
     DisentangleModule,
     RestrictionModule,
-    MultipleModule,
 )
-from group_theory import Representation
-from nn.modules import nonlinearities
 
 
 class Restriction(EquivariantModule):

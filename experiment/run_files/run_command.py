@@ -3,7 +3,7 @@ import sys
 import pathlib
 sys.path.append('experiment')
 #print("Add path", pathlib.Path(sys.path[-1]).absolute())
-from network_instantiation import extract_info_instantiate_network
+from experiment.speed_test import extract_info_instantiate_network
 
 def run_command(args, global_args, test):
     global_args_test = global_args + [

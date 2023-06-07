@@ -1,27 +1,8 @@
-antlr4-python3-runtime @ file:///home/conda/feedstock_root/build_artifacts/antlr-python-runtime-meta_1638309185939/work
-appdirs @ file:///home/conda/feedstock_root/build_artifacts/appdirs_1603108395799/work
-Bottleneck @ file:///work/ci_py311/bottleneck_1676827011612/work
-brotlipy==0.7.0
-certifi==2023.5.7
-cffi @ file:///home/nshulga/miniconda3/conda-bld/cffi_1674258368552/work
-charset-normalizer @ file:///tmp/build/80754af9/charset-normalizer_1630003229654/work
-click @ file:///home/conda/feedstock_root/build_artifacts/click_1666798198223/work
-cloudpickle @ file:///home/conda/feedstock_root/build_artifacts/cloudpickle_1674202310934/work
-colorama @ file:///home/conda/feedstock_root/build_artifacts/colorama_1666700638685/work
-contourpy @ file:///work/ci_py311/contourpy_1676827066340/work
-cryptography @ file:///home/nshulga/miniconda3/conda-bld/cryptography_1675987174359/work
-cycler @ file:///home/conda/feedstock_root/build_artifacts/cycler_1635519461629/work
-cytoolz @ file:///work/ci_py311/cytoolz_1676830405847/work
-dask @ file:///home/conda/feedstock_root/build_artifacts/dask-core_1683908660643/work
-dataclasses @ file:///home/conda/feedstock_root/build_artifacts/dataclasses_1628958434797/work
-docker-pycreds==0.4.0
 einops @ file:///home/conda/feedstock_root/build_artifacts/einops_1681884646122/work
 filelock @ file:///home/nshulga/miniconda3/conda-bld/filelock_1675716959985/work
 fonttools==4.25.0
 fsspec @ file:///home/conda/feedstock_root/build_artifacts/fsspec_1683494881189/work
 fvcore @ file:///home/conda/feedstock_root/build_artifacts/fvcore_1671623667463/work
-gitdb @ file:///home/conda/feedstock_root/build_artifacts/gitdb_1669279893622/work
-GitPython @ file:///home/conda/feedstock_root/build_artifacts/gitpython_1676637751542/work
 gmpy2 @ file:///work/ci_py311/gmpy2_1676839849213/work
 hydra-core @ file:///home/conda/feedstock_root/build_artifacts/hydra-core_1677543700389/work
 idna @ file:///work/ci_py311/idna_1676822698822/work
@@ -40,17 +21,11 @@ mkl-random @ file:///home/nshulga/miniconda3/conda-bld/mkl_random_1674273800330/
 mkl-service==2.4.0
 mpmath==1.2.1
 munkres==1.1.4
-networkx @ file:///croot/networkx_1678964333703/work
-numexpr @ file:///work/ci_py311_2/numexpr_1679336657660/work
 numpy @ file:///croot/numpy_and_numpy_base_1682520569166/work
 omegaconf @ file:///home/conda/feedstock_root/build_artifacts/omegaconf_1670575376789/work
-packaging @ file:///home/conda/feedstock_root/build_artifacts/packaging_1681337016113/work
 pandas==1.5.3
-partd @ file:///home/conda/feedstock_root/build_artifacts/partd_1681246756246/work
 pathtools==0.1.2
 Pillow==9.3.0
-pooch @ file:///home/conda/feedstock_root/build_artifacts/pooch_1643032624649/work
-portalocker @ file:///home/conda/feedstock_root/build_artifacts/portalocker_1674135650264/work
 protobuf==3.20.3
 psutil @ file:///work/ci_py311_2/psutil_1679337388738/work
 pycparser @ file:///tmp/build/80754af9/pycparser_1636541352034/work

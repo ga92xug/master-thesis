@@ -21,7 +21,6 @@ class EquivariantWideConvBlock(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
         dilation: int = 1,
@@ -58,15 +57,7 @@ class EquivariantWideConvBlock(EquivariantModule):
         self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
                                       gspace=self.in_type.gspace, **kwargs)
         
-        # self.conv1 = EquivariantConv(
-        #     self.act_func1.out_type,
-        #     out_channels,
-        #     kernel_size=kernel_layout[0],
-        #     padding=paddings[0],
-        #     stride=strides[0],
-        #     dilation=dilation,
-        #     bias=bias,
-        # )
+        
         current_out_type = self.conv1.out_type
         
         if len(kernel_layout) == 3:
@@ -78,15 +69,7 @@ class EquivariantWideConvBlock(EquivariantModule):
             normal_conv = normal_block.conv if fix_params_mode in ["all", "iter"] else None        
             conv = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
                                           gspace=act.out_type, **kwargs)
-            # conv = EquivariantConv(
-            #         act.out_type,
-            #         out_channels,
-            #         kernel_size=kernel_layout[1],
-            #         padding=paddings[1],
-            #         stride=strides[1],
-            #         dilation=dilation,
-            #         bias=bias,
-            #     )
+            
             current_out_type = conv.out_type
             self.block = SequentialModule(norm, act, conv)
         
@@ -101,15 +84,7 @@ class EquivariantWideConvBlock(EquivariantModule):
         normal_conv = normal_block.conv2 if fix_params_mode in ["all", "iter"] else None
         self.conv2 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv,
                                         gspace=self.act_func2.out_type, **kwargs)
-        # self.conv2 = EquivariantConv(
-        #     self.act_func2.out_type,
-        #     out_channels,
-        #     kernel_size=kernel_layout[-1],
-        #     padding=paddings[-1],
-        #     stride=strides[-1],
-        #     dilation=dilation,
-        #     bias=bias,
-        # )
+        
         
         self.out_type = self.conv2.out_type
 
@@ -167,7 +142,6 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
         dilation: int = 1,
@@ -190,8 +164,6 @@ class EquivariantWideConvBlock_vary_l(EquivariantModule):
                 break
         
         paddings = [padding if kernel_layout[i] > 1 else 0 for i in range(len(kernel_layout))]
-        #print("strides", strides)
-        #print("paddings", paddings)
 
         # block 1
         self.norm1 = EquivariantNorm(
@@ -273,7 +245,6 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        kernel_size: int = 3,
         padding: int = 1,
         stride: int = 1,
         dilation: int = 1,
@@ -310,15 +281,6 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
         self.conv1 = get_fixed_params(EquivariantConv, fix_params_mode, normal_conv, 
                                       gspace=self.in_type.gspace, **kwargs)
         
-        # self.conv1 = EquivariantConv(
-        #     self.act_func1.out_type,
-        #     out_channels,
-        #     kernel_size=kernel_layout[0],
-        #     padding=paddings[0],
-        #     stride=strides[0],
-        #     dilation=dilation,
-        #     bias=bias,
-        # )
                 
         self.norm2 = EquivariantNorm(self.conv1.out_type, affine=False)
         self.act_func2 = getattr(nonlinearities, act_func)(self.norm2.out_type)
@@ -351,32 +313,16 @@ class EquivariantWideConvBlock_drop_out(EquivariantModule):
 
     def forward(self, x):
         # bn -> relu -> conv
-        # print("\nBlock")
-        # print("norm1")
-        # cuda_memory_usage()
         out = self.norm1(x)
-        #cuda_memory_usage()
-        #print("act_func1")
         out = self.act_func1(out)
-        #cuda_memory_usage()
-        #print("conv1")
         out = self.conv1(out)
         
-        
-        #print("norm2")
-        #cuda_memory_usage()
         out = self.norm2(out)
-        #cuda_memory_usage()
-        #print("act_func2")
         out = self.act_func2(out)
-        #cuda_memory_usage()
         out = self.drop_out(out)
-        #cuda_memory_usage()
         out = self.conv2(out)
-        #cuda_memory_usage()
+        
         out += self.shortcut(x)
-        #cuda_memory_usage()
-        #print("\n")
         return out
 
     def evaluate_output_shape(self, input_shape: Tuple):

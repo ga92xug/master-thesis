@@ -1,4 +1,5 @@
 import sqlite3
+import torch
 import wandb
 
 class Log():
@@ -17,19 +18,19 @@ class Log():
             self.connect_to_db()
 
 
-    def log(self, to_log: dict, step: int):
+    def log(self, to_log: dict, step: int, epoch: int):
         if self.is_nas:
             trial_index = self.cfg.NAS.trial_index
             prefix = f"{trial_index}_"
 
-            self.aggregate_and_log_db(to_log, trial_index)
+            self.aggregate_and_log_db(to_log, trial_index, epoch)
 
             # Prefix log entries
             to_log = {prefix + key: value for key, value in to_log.items()}
 
         wandb.log(to_log, step)
 
-    def aggregate_and_log_db(self, to_log: dict, trial_index: str):
+    def aggregate_and_log_db(self, to_log: dict, trial_index: str, epoch: int):
         if trial_index not in self.trial_data:
             # Initialize dict for trial if it doesn't exist
             self.trial_data[trial_index] = {}
@@ -40,7 +41,7 @@ class Log():
                     new_key = f"{key}_{sub_key}"
                     if new_key in ['valid_acc', 'train_duration', 'valid_duration']:
                         # For 'valid_acc', 'train_duration', and 'valid_duration', only update the value if it's the last epoch
-                        if self._epoch == self.max_epochs - 1 and new_key not in self.trial_data[trial_index]:
+                        if epoch == self.max_epochs - 1 and new_key not in self.trial_data[trial_index]:
                             self.trial_data[trial_index][new_key] = value
                     else:
                         self.trial_data[trial_index][new_key] = value
@@ -69,3 +70,8 @@ class Log():
     def connect_to_db(self):
         self.conn = sqlite3.connect(self.cfg.NAS.db_path)
         self.cursor = self.conn.cursor()
+
+
+
+
+

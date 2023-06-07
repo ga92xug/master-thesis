@@ -34,7 +34,6 @@ from nn import (
     FieldType,
     EquivariantModule,
     BatchNorm,
-    InducedNormBatchNorm,
     Mish,
     ReLU,
     Swish,
@@ -68,7 +67,6 @@ class Eq_NAS_Block(EquivariantModule):
             self._expand_conv = Eq_Conv2dSamePaddingChangeFactor(
                 in_type=in_type,
                 change_factor=self.expand_ratio,
-                image_size=image_size,
                 kernel_size=1,
                 bias=False,
             )
@@ -82,7 +80,6 @@ class Eq_NAS_Block(EquivariantModule):
         self.conv1 = Eq_Conv2dSamePaddingChangeFactor(
             in_type=in_type,
             change_factor=restriction_correction_factor,
-            image_size=image_size,
             kernel_size=block_args.kernel_size,
             groups=groups,
             stride=block_args.stride,
@@ -107,7 +104,6 @@ class Eq_NAS_Block(EquivariantModule):
         self.conv2 = Eq_Conv2dSamePaddingChangeFactor(
             in_type=out_type,
             change_factor=block_args.channel_increase_factor,
-            image_size=image_size,
             kernel_size=kernel_size,
             bias=False,
         )
@@ -237,7 +233,6 @@ class EquivariantNASNet(nn.Module):
             out_channels=int(out_channels * channel_increase_factor),
             kernel_size=stem_args.kernel_size,
             stride=2,
-            image_size=image_size,
             bias=False,
         )
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
@@ -317,7 +312,6 @@ class EquivariantNASNet(nn.Module):
         self._conv_head = Eq_Conv2dSamePaddingChangeFactor(
             in_type=self.field_type, 
             change_factor=channel_increase_factor * restriction_correction_factor, 
-            image_size=image_size, 
             bias=False
         )
         self._bn1 = BatchNorm(in_type=self._conv_head.out_type)

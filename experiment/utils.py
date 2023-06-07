@@ -96,7 +96,25 @@ def build_model(cfg, n_inputs, n_outputs, device, log, is_nas=False, trial_data=
 
 
 
+def allowed_usage_time(
+        respect_start_time: bool,
+        start_time: datetime.time = datetime.time(hour=8, minute=30),
+        end_time: datetime.time = datetime.time(hour=20),
+):
+    """
+    GPU sharing. Check if the current time is within the allowed usage time.
+    """
+    if not respect_start_time:
+        return
 
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
+
+
+def print_results(acc, loss, duration, mode, epoch, verbose):
+    if verbose:
+        print('-'*100)
+        print(f'{mode} Epoch: {epoch} lasted {duration:.3f} seconds')
+        print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
 
 
 ########################################################################################################################
@@ -173,23 +191,23 @@ from experiment.datasets.mnist_fliprot import data_loader_mnist_fliprot
 from experiment.datasets.mnist12k import data_loader_mnist12k
 from experiment.datasets.cifar10 import data_loader_cifar10
 from experiment.datasets.cifar100 import data_loader_cifar100
-from experiment.datasets.STL10 import data_loader_stl10
-from experiment.datasets.STL10 import data_loader_stl10frac
+# from experiment.datasets.STL10 import data_loader_stl10
+# from experiment.datasets.STL10 import data_loader_stl10frac
 from experiment.datasets.imagenette import data_loader_imagenette
 from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
 
 
 
 def build_dataloaders(cfg):
-    dataset = cfg.dataset.name
+    dataset = cfg.training.dataset.name
     batch_size = cfg.training.batch_size
-    num_workers = cfg.dataset.workers
-    drop_last_train = cfg.dataset.drop_last_train or False
-    augment = cfg.dataset.augment or False
+    num_workers = cfg.training.dataset.workers
+    drop_last_train = cfg.training.dataset.drop_last_train or False
+    augment = cfg.training.dataset.augment or False
     validation = cfg.training.earlystop or True 
-    reshuffle = cfg.dataset.reshuffle or False
+    reshuffle = cfg.training.dataset.reshuffle or False
     eval_batch_size = cfg.training.eval_batch_size or None
-    interpolation = cfg.dataset.interpolation or 2
+    interpolation = cfg.training.dataset.interpolation or 2
     
     if eval_batch_size is None:
         eval_batch_size = batch_size
@@ -368,6 +386,10 @@ def build_dataloaders(cfg):
         raise ValueError("Dataset '{}' not recognized!".format(dataset))
     
     dataloaders = {"train": train_loader, "valid": valid_loader, "test": test_loader}
+
+    if n_outputs == 2:
+        n_outputs = 1
+
     return dataloaders, n_inputs, n_outputs
 
 
