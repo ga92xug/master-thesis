@@ -144,32 +144,6 @@ def eq_round_filters(filters, global_params):
         new_filters += divisor
     return int(new_filters)
 
-def eq_round_filters(filters, global_params, rotation=1):
-    """Calculate and round number of filters based on width multiplier.
-       Use width_coefficient, depth_divisor and min_depth of global_params.
-    Args:
-        filters (int): Filters number to be calculated.
-        global_params (namedtuple): Global params of the model.
-    Returns:
-        new_filters: New filters number after calculating.
-    """
-    multiplier = global_params.width_coefficient
-    if not multiplier:
-        return filters
-    # TODO: modify the params names.
-    #       maybe the names (width_divisor,min_width)
-    #       are more suitable than (depth_divisor,min_depth).
-    divisor = global_params.depth_divisor
-    min_depth = global_params.min_depth
-    filters *= multiplier
-    min_depth = min_depth or divisor  # pay attention to this line when using min_depth
-    # follow the formula transferred from official TensorFlow implementation
-    new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
-    if new_filters < 0.9 * filters and rotation == 1:  # prevent rounding by more than 10%
-         new_filters += divisor
-    # new_filters /= rotation
-    return int(round(new_filters))
-
 
 def round_repeats(repeats, global_params):
     """Calculate module's repeat number of a block based on depth multiplier.
@@ -302,58 +276,6 @@ class Conv2dSamePadding(nn.Module):
         x = self.static_padding(x)
         x = self.conv2d(x)
         return x
-    
-class Eq_Conv2dSamePadding(EquivariantModule):
-    """2D Convolutions like TensorFlow's 'SAME' mode, with the given input image size.
-       The padding mudule is calculated in construction function, then used in forward.
-    """
-
-    # With the same calculation as Conv2dDynamicSamePadding
-
-    def __init__(
-        self,
-        in_type: FieldType,
-        out_channels: int,
-        image_size: int,
-        kernel_size: int = 3,
-        stride: int = 1,
-        dilation: int = 1,
-        groups: int = 1,
-        bias: bool = True,
-        # kernel_layout: List[int] = None,
-    ):
-        super().__init__()
-        self.stride = [stride] * 2 if isinstance(stride, int) else stride
-        self.stride = self.stride if len(self.stride) == 2 else [self.stride[0]] * 2
-        self.dilation = [dilation] * 2
-        self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, padding=0,
-                                      stride=self.stride, groups=groups, bias=bias)
-        self.out_type = self.conv2d.out_type
-        
-
-        # Calculate padding based on image size and save it
-        assert image_size is not None
-        ih, iw = (image_size, image_size) if isinstance(image_size, int) else image_size
-        # kh, kw = self.weight.size()[-2:]
-        kh, kw = kernel_size, kernel_size # we don't support uneven kernel sizes
-        sh, sw = self.stride[0], self.stride[1]
-        # types of ih, sh, iw and sw
-        oh, ow = math.ceil(ih / sh), math.ceil(iw / sw)
-        self.pad_h = max((oh - 1) * self.stride[0] + (kh - 1) * self.dilation[0] + 1 - ih, 0)
-        self.pad_w = max((ow - 1) * self.stride[1] + (kw - 1) * self.dilation[1] + 1 - iw, 0)
-        
-    def forward(self, x):
-        if self.pad_h > 0 or self.pad_w > 0:
-            x.tensor = torch.nn.functional.pad(x.tensor, 
-                            pad=(self.pad_w // 2, self.pad_w - self.pad_w // 2, 
-                            self.pad_h // 2, self.pad_h - self.pad_h // 2))
-        x = self.conv2d(x)
-        return x
-
-    def evaluate_output_shape(self, input_shape: Tuple):
-        assert len(input_shape) == 4
-        assert input_shape[1] == self.in_type.size
-        return input_shape
 
 ################################################################################
 # Helper functions for loading model params

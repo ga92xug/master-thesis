@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,7 +5,7 @@ import torch.nn.functional as F
 import hydra
 from omegaconf import DictConfig
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+sys.path.append('../networks') # add parent directory
 
 from networks.util import (
     calculate_output_image_size,
@@ -143,8 +142,8 @@ class NetworkBlock(nn.Module):
         return self.layer(x)
 
 class WideResNet(nn.Module):
-    def __init__(self, depth, layout, kernel_layout, input_channels, \
-                 num_classes, widen_factor=1, bias=False, drop_out=0.0,
+    def __init__(self, depth, layout, kernel_size, kernel_layout, padding, input_channels, \
+                 num_classes, widen_factor=1, bias=False, drop_out=0.0, restrict=None,
                  image_size=32):
         super(WideResNet, self).__init__()
         # nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
@@ -158,7 +157,7 @@ class WideResNet(nn.Module):
             n = int(n / 2)
         block = BasicBlock
         # 1st conv before any network block
-        self.conv1 = nn.Conv2d(input_channels, nChannels[0], kernel_size=kernel_layout[0], stride=1,
+        self.conv1 = nn.Conv2d(input_channels, nChannels[0], kernel_size=kernel_size, stride=1,
                                padding=1, bias=bias)
         image_size = calculate_output_image_size(image_size, stride=1)
         # 1st block

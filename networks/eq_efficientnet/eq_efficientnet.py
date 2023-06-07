@@ -11,29 +11,29 @@ from typing import List, Tuple
 import hydra
 from omegaconf import DictConfig, OmegaConf
 import sys
-
-sys.path.append('../scaling-laws-ecnn') # add parent directory
-import torch
 from torch import nn
-from torch.nn import functional as F
-from networks.eq_efficientnet_util import (
+sys.path.append('../networks') # add parent directory
+from .eq_efficientnet_util import (
     BlockDecoder,
     eq_drop_connect,
     eq_round_filters,
     round_repeats,
-    drop_connect,
-    get_same_padding_conv2d,
-    get_model_params,
     efficientnet_params,
-    load_pretrained_weights,
     Swish,
-    MemoryEfficientSwish,
-    Eq_Conv2dSamePadding,
-    Conv2dSamePadding
+)   
+from networks.eq_convs import (
+    Eq_Conv2dSamePadding, 
+    EquivariantConv, 
+    EquivariantSqueezeExcitation,
 )
-from networks.efficientnet import EfficientNet
-from networks.eq_layers import EquivariantConv, EquivariantPool, EquivariantSqueezeExcitation, Restriction
-from networks.util import calculate_output_image_size, get_fixed_params, get_gspace, get_param_count
+from .efficientnet import EfficientNet
+from networks.eq_other import EquivariantPool, Restriction
+from networks.util import (
+    calculate_output_image_size, 
+    get_fixed_params, 
+    get_gspace_from_name, 
+    get_param_count,
+)
 
 from nn import (
     rot2dOnR2,
@@ -269,7 +269,7 @@ class EquivariantEfficientNet(nn.Module):
         # Conv2d = get_same_padding_conv2d(image_size=image_size)
 
         # Get group spaces for specified rotations and flips
-        gspace = get_gspace(group, rotation)
+        gspace = get_gspace_from_name(group, rotation)
         self.gspace = gspace
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
@@ -277,7 +277,7 @@ class EquivariantEfficientNet(nn.Module):
             self.gspace, [self.gspace.trivial_repr] * self.input_channels
         )
         # Stem
-        out_channels = eq_round_filters(32, self._global_params, rotation=1)
+        out_channels = eq_round_filters(32, self._global_params)
         kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
             'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
         self._conv_stem = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, self.efficientnet._conv_stem,
@@ -329,7 +329,7 @@ class EquivariantEfficientNet(nn.Module):
 
         # Head
         input_channels = block_args.output_filters  # output of final block
-        out_channels = eq_round_filters(1280, self._global_params, rotation=self.rotation)
+        out_channels = eq_round_filters(1280, self._global_params)
         self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
                                                kernel_size=1, image_size=image_size, 
                                                bias=False)

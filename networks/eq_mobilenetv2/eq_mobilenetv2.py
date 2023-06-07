@@ -1,33 +1,27 @@
-import timeit
-import warnings
-import hydra
 import numpy as np
 from typing import List, Tuple
 from omegaconf import DictConfig
-import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (
-    rot2dOnR2,
-    flipRot2dOnR2,
     FieldType,
-    SequentialModule,
     GroupTensor,
 )
 from networks.util import (
     calculate_output_image_size,
     get_fixed_params, 
-    get_gspace, 
-    get_param_count
+    get_gspace_from_name, 
 )
 from networks import (
     Restriction,
     EquivariantPool,
     EquivariantConvBlock,
-    EquivariantConvBlock_Conv_BN_actF,
+    Equivariant_Conv_BN_actF,
+)
+
+from .util_eq_mobilenetv2 import (
     EquivariantBottleneck,
     EquivariantBottleneckBlock,
 )
@@ -59,7 +53,7 @@ class EquivariantMobileNetV2(nn.Module):
         print(f"Eq_MobileNetV2_{depth_multiplier}_{width_multiplier}_{group}_{rotation}")
         self.drop_out = drop_out
         self.restrict = list(restrict)
-        gspace = get_gspace(group, rotation)
+        gspace = get_gspace_from_name(group, rotation)
 
         self.num_channels = np.round((np.array(channel_layout) * width_multiplier))
         self.bottleneck_layout = (np.round(np.array(bottleneck_layout) * depth_multiplier)).astype(int) 
@@ -71,7 +65,7 @@ class EquivariantMobileNetV2(nn.Module):
         kwargs = {"in_type": self.input_field_type, "out_channels": self.num_channels[0],
             "kernel_size": kernel_size, "padding": padding, "act_func": "ReLU",
             "stride": 2}
-        self.conv1 = get_fixed_params(EquivariantConvBlock_Conv_BN_actF, fix_params_mode, 
+        self.conv1 = get_fixed_params(Equivariant_Conv_BN_actF, fix_params_mode, 
                         gspace=self.input_field_type.gspace, **kwargs)
         image_size = calculate_output_image_size(image_size, stride=2) # 16
 

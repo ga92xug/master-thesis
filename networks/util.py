@@ -1,11 +1,9 @@
 from copy import deepcopy
 import math
+from typing import Tuple
 import warnings
-from matplotlib import pyplot as plt
-import numpy as np
 import sys
 import torch
-from networks.eq_efficientnet_util import Eq_Conv2dSamePadding
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from nn import (
@@ -25,6 +23,9 @@ def cuda_memory_usage(verbose=1):
         print(f"Allocated:    {a / 1024 ** 3:.1f} GB")
         # print(f"Free:         {f / 1024 ** 3:.1f} GB")
     return r / t
+
+def get_group_id(reflection, group):
+    return (reflection, group) if reflection >= 0 else (None, group)
 
 def get_width_and_height_from_size(x):
     """Obtain height and width from x.
@@ -223,14 +224,13 @@ def get_param_count(model_name, in_mb=False, verbose=False):
                 print(f'Total size: {size_all_mb:.2f} MB')
             return size_all_mb
         else:
-            total_params = sum(p.numel() for p in model_name.parameters())
+            total_params = sum(p.numel() for p in model_name.parameters()) / 1e6
             if verbose:
                 print(f'Total params: {total_params}')
             return total_params
-        
 
 
-def get_gspace(group, rotation):
+def get_gspace_from_name(group, rotation):
         """Get group space for a given group and rotation.
         Args:
             group (str): Group name.
@@ -247,5 +247,33 @@ def get_gspace(group, rotation):
         else:
             raise ValueError(
                 f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
+            )
+        return gspace
+
+def get_gspace_from_id(id):
+        """Get group space from id.
+        Args:
+            id (tuple): Group id.
+        Returns:
+            gspace: Group space.
+        """
+        if isinstance(id, Tuple):
+            reflection, rotation = id
+        elif isinstance(id, int):
+            reflection, rotation = -1, id
+        else:
+            raise ValueError(
+                f'Group id "{id}" is not know.'
+            )
+
+        if reflection is None:
+            # cyclic
+            gspace = rot2dOnR2(rotation)
+        elif reflection >= 0:
+            # dihedral
+            gspace = flipRot2dOnR2(rotation)
+        else:
+            raise ValueError(
+                f'Group id "{id}" is not know.'
             )
         return gspace
