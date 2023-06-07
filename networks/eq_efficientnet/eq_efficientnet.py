@@ -111,7 +111,7 @@ class MBConvBlock(EquivariantModule):
         
         oup = len(in_type) * self._block_args.expand_ratio
         if self._block_args.expand_ratio != 1:
-            kwargs = {'in_type': inp, 'out_channels': oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
+            kwargs = {'in_type': inp, 'out_channels': oup, 'kernel_size': 1, 'bias': False}
             self._expand_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, 
                                                  normal_block._expand_conv, 
                                                  gspace=in_type.gspace, **kwargs)
@@ -122,7 +122,7 @@ class MBConvBlock(EquivariantModule):
         # Depthwise convolution phase
         k = self._block_args.kernel_size
         s = self._block_args.stride
-        kwargs = {'in_type': inp, 'out_channels': len(inp), 'image_size': image_size, 'groups': len(inp), 
+        kwargs = {'in_type': inp, 'out_channels': len(inp), 'groups': len(inp), 
                   'kernel_size': k, 'stride': s, 'bias': False}
         self._depthwise_conv = Eq_Conv2dSamePadding(**kwargs)
         self._bn1 = BatchNorm(in_type=self._depthwise_conv.out_type, momentum=self._bn_mom, eps=self._bn_eps)
@@ -146,7 +146,7 @@ class MBConvBlock(EquivariantModule):
 
         # Pointwise convolution phase
         final_oup = self._block_args.output_filters
-        kwargs = {'in_type': out_type, 'out_channels': final_oup, 'image_size': image_size, 'kernel_size': 1, 'bias': False}
+        kwargs = {'in_type': out_type, 'out_channels': final_oup, 'kernel_size': 1, 'bias': False}
         self._project_conv = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, 
                                               normal_block._project_conv, 
                                               gspace=out_type.gspace, **kwargs)
@@ -279,7 +279,7 @@ class EquivariantEfficientNet(nn.Module):
         # Stem
         out_channels = eq_round_filters(32, self._global_params)
         kwargs = {'in_type': self.input_field_type, 'out_channels': out_channels,
-            'kernel_size': 3, 'stride': 2, 'image_size': image_size, 'bias': False}
+            'kernel_size': 3, 'stride': 2, 'bias': False}
         self._conv_stem = get_fixed_params(Eq_Conv2dSamePadding, fix_params_mode, self.efficientnet._conv_stem,
                                                gspace=self.input_field_type.gspace, **kwargs)
 

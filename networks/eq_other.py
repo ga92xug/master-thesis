@@ -10,8 +10,6 @@ from nn import (
     EquivariantModule,
     BatchNorm,
     GroupPooling,
-    NormPool,
-    NormMaxPool,
     PointwiseMaxPool,
     MultipleModule,
 )

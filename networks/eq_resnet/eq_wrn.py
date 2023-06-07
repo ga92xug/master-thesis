@@ -112,7 +112,7 @@ class EquivariantWideResNet(nn.Module):
                 value += ","
 
         print(f"Eq_WRN_{depth}_{k:.2f}_B({value})")
-        gspace = get_gspace(group, rotation)
+        gspace = get_gspace_from_name(group, rotation)
         self.gspace = gspace
 
         self.num_channels = np.array(layout, dtype=float)

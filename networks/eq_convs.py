@@ -14,6 +14,12 @@ from nn import (
 )
 from nn.modules import nonlinearities
 
+PADDINGS = {
+    1: 0,
+    3: 1,
+    5: 2,
+    7: 3,
+}
 
 class EquivariantConv(EquivariantModule):
     def __init__(
@@ -251,7 +257,6 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         self,
         in_type: FieldType,
         out_channels: int,
-        image_size: int,
         kernel_size: int = 3,
         stride: int = 1,
         dilation: int = 1,
@@ -263,7 +268,7 @@ class Eq_Conv2dSamePadding(EquivariantModule):
 
         padding = PADDINGS[kernel_size]
         self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, 
-                                      padding=padding,
+                                      padding=padding, dilation=dilation,
                                       stride=stride, groups=groups, bias=bias)
         self.out_type = self.conv2d.out_type
         
@@ -282,7 +287,6 @@ class Eq_Conv2dSamePaddingChangeFactor(EquivariantModule):
         self,
         in_type: FieldType,
         change_factor: float,
-        image_size: int,
         kernel_size: int = 3,
         stride: int = 1,
         dilation: int = 1,
@@ -318,9 +322,3 @@ class Eq_Conv2dSamePaddingChangeFactor(EquivariantModule):
         return input_shape
 
 
-PADDINGS = {
-    1: 0,
-    3: 1,
-    5: 2,
-    7: 3,
-}
