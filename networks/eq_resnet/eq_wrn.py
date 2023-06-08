@@ -54,6 +54,7 @@ class EquivariantWideResNet(nn.Module):
         bias: bool = False,
         act_func: str = "ReLU",
         image_size: int = 32,
+        average_adaptive_pooling: int = 1,
     ):
         restrict = [None, restrict] if isinstance(restrict, str) else restrict
         restrict = list(restrict)
@@ -192,10 +193,11 @@ class EquivariantWideResNet(nn.Module):
         self.relu = getattr(nonlinearities, act_func)(self.bn1.out_type)
 
         self.invariant_map = EquivariantPool(self.relu.out_type, invariant_map=True)
-        image_size = int(image_size[0] / 2) 
+        image_size = int(image_size[0] / 2)
+        self.global_pool = nn.AdaptiveAvgPool2d(average_adaptive_pooling) 
         self.flatten = nn.Flatten()
         self.classifier = nn.Linear(
-            self.invariant_map.out_type.size * image_size * image_size, num_classes
+            self.invariant_map.out_type.size * average_adaptive_pooling * average_adaptive_pooling, num_classes
         )
 
         # print stats
@@ -266,7 +268,8 @@ class EquivariantWideResNet(nn.Module):
         x = self.relu(self.bn1(x))
         x = self.invariant_map(x)
         x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
-        x = F.avg_pool2d(x, (2,2)) if x.shape[-1] > 1 else x
+        # x = F.avg_pool2d(x, (2,2)) if x.shape[-1] > 1 else x
+        x = self.global_pool(x)
         x = self.flatten(x)
         x = self.classifier(x)
         return x

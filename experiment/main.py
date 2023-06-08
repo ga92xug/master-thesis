@@ -144,7 +144,7 @@ class Experiment:
     
     def backup(self):
         if self.cfg.other.backup_model:
-            torch.save(self.best_state_dict, self.modelpath)
+            torch.save(self.model.state_dict(), self.modelpath)
     
     def train(self):
         start_time = datetime.datetime.now().timestamp()
@@ -213,9 +213,6 @@ class Experiment:
         return
 
     def test(self):
-        if self.cfg.training.earlystop:
-            self.model.load_state_dict(self.best_state_dict)
-        
         self.inference("test", confusion=True)
     
     def valid(self):
