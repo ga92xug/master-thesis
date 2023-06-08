@@ -24,6 +24,7 @@ class TrialDataFetcher():
             project: str, 
             wandb_mode: str,
             exp_name: str, 
+            max_gflops: int,
             db_location: str = "NAS/data/"
         ):
         """Initializes the RunDataFetcher with the entity, project, wandb_mode, experiment name, and database location."""
@@ -33,6 +34,7 @@ class TrialDataFetcher():
         self.exp_name = exp_name
         self.db_file = db_location + "/trial_cache.db"
         self.wandb_mode = wandb_mode
+        self.max_gflops = max_gflops
 
     def connect_to_db(self, reset: bool = False):
         """Establishes a connection to the database, deletes the table if it exists and creates a new one."""
@@ -91,10 +93,20 @@ class TrialDataFetcher():
         result = self.cursor.fetchone()
 
         if result is not None:
-            return {key: float(val) for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration'], result[1:])}
+            result_dict = {}
+            for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration'], result[1:]):
+                if key == 'gflops' and val is None:
+                    ValueError(f"Trial {trial_index} does not have GFLOPs data. We always expect an estimate of GFLOPs. Even if trial failed.")
+                try:
+                    result_dict[key] = float(val)
+                except:
+                    if result_dict['gflops'] <= self.max_gflops:
+                        raise ValueError(f"Trial {trial_index} has invalid {key} value: {val}. We only accept missing values if GFLOPs is above {self.max_gflops}.")
+                    result_dict[key] = None
+                    
+            return result_dict
         else:
             ValueError(f"Trial {trial_index} not found in database")
-            return None
 
     def _fetch_from_wandb(self, wandb_run_id: str) -> Dict:
         """

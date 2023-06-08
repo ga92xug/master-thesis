@@ -15,7 +15,7 @@ import sys
 sys.path.append('..')
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from experiment.utils import allowed_usage_time, build_dataloaders
-from experiment.model_instantiate import create_model
+from experiment.model_instantiate import get_model
 from networks.util import (
     cuda_memory_usage,
     get_param_count
@@ -60,7 +60,7 @@ def main():
     image_size = cfg.dataset.resolution
     
     # instantiate model
-    model, stats = create_model(
+    model, stats = get_model(
         cfg=cfg, n_inputs=n_inputs, n_outputs=n_outputs, image_size=image_size,
         device=device, verbose=cfg.other.verbose, 
     )

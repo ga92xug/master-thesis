@@ -13,7 +13,7 @@ import torch.nn as nn
 from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-from experiment.model_instantiate import create_model
+from experiment.model_instantiate import get_model
 from networks.util import cuda_memory_usage
 import utils
 import log
@@ -94,15 +94,15 @@ class Experiment:
             self.valid_accuracy = BinaryAccuracy().to(self.device)
 
         # model
-        self.model, stats = create_model(
+        self.model, stats = get_model(
             cfg=cfg, 
             n_inputs=n_inputs, 
             n_outputs=self.n_outputs, 
             image_size=cfg.training.dataset.resolution,
             device=self.device,
+            logger=self.logger,
             verbose=self._verbose,
         )
-        self.logger.log(stats, step=0, epoch=0)
         print("Stage 2: model built")
 
         # optimizer

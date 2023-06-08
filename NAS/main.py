@@ -55,6 +55,7 @@ from ax.plot.pareto_frontier import scatter_plot_with_pareto_frontier_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 # Models
 from ax.modelbridge.registry import Models
+from evaluate import evaluate
 
 # Local
 from runner_service import HydraWandbRunner
@@ -83,6 +84,7 @@ class NAS:
             project=self.cfg.wandb.project,
             wandb_mode=self.cfg.wandb.mode,
             exp_name=self.cfg.exp_name,
+            max_gflops=self.cfg.training.nas.max_gflops,
         )
         # Ax client
         self.init_ax_client()
@@ -143,7 +145,7 @@ class NAS:
                 )
             },
             parameter_constraints=self.parameter_constraints,
-            #outcome_constraints=["valid_acc >= 0.9"],
+            outcome_constraints=[f"gflops <= {self.cfg.training.nas.max_gflops}"],
             tracking_metric_names=["train_duration", "valid_duration"],
             overwrite_existing_experiment=True,
             #is_test=True,
@@ -179,51 +181,6 @@ class NAS:
             training_dict=training_dict,
             verbose=self.cfg.runner.verbose,
         )
-
-
-    def evaluate(self, i):
-        df = exp_to_df(self.ax_client.experiment)
-        if self.cfg.other.verbose >= 1:
-            print(df)
-
-
-        # Pareto frontier       
-        if i >= 1:
-            # Plotting the pareto frontier only makes for 2 or more trials
-            pareto_frontier = _pareto_frontier_scatter_2d_plotly(
-                self.ax_client.experiment)
-            # save this under data/exp_name/pareto_frontier.png
-            #pareto_frontier.write_image(os.path.join(self.save_folder, "pareto_frontier.png"))
-            pareto_frontier.write_html(self.save_folder + f"/pareto/{i}.html")
-            wandb.log({"pareto_frontier_scatter": pareto_frontier}, step=i)
-
-        """
-        # Plotting the model fit
-        model = self.generation_strategy.model
-        cv = cross_validate(model=model)  
-        compute_diagnostics(cv)
-        cross_validation = interact_cross_validation_plotly(cv)
-        wandb.log({"cross_validation": cross_validation})
-        """
-
-        if i >= self.cfg.generation.num_sobol_trials:
-            # The random sobol init trials don't provide a predictive model
-            # thus we can't plot the contour plot
-
-            # Plotting the optimization goals against the search space
-            val_contour_plot = plot_contour_plotly(
-                model=self.ax_client.generation_strategy.model,
-                param_x="0_group",
-                param_y="1_group",
-                metric_name="valid_acc",
-            )
-            # val_contour_plot = interact_contour_plotly(
-            #     model=self.ax_client.generation_strategy.model, 
-            #     metric_name="valid_acc")
-            # gflops_contour_plot = interact_contour_plotly(model=self.ax_client.generation_strategy.model, metric_name="gflops")
-            wandb.log({"val_contour_plot": val_contour_plot}, step=i)
-                        #"gflops_contour_plot": gflops_contour_plot})
-        
 
     
     def main_optim_loop(self):
@@ -264,8 +221,11 @@ class NAS:
 
             # Evaluate
             if i % self.cfg.other.evaluate_every == 0:
-                #self.evaluate(i)
-                pass
+                evaluate(
+                    ax_client=self.ax_client,
+                    device=self.device,
+                    step=i,
+                )
 
     
 

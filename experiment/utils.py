@@ -19,12 +19,7 @@ from networks.util import get_param_count
 # building the model
 ################################################################################
 
-# Define a function to handle the timeout
-def timeout_handler(signum, frame):
-    raise TimeoutError("Command timed out")
 
-def set_gflops():
-    pass
 
 def build_model(cfg, n_inputs, n_outputs, device, log, is_nas=False, trial_data=None):
     if not is_nas:
@@ -43,30 +38,10 @@ def build_model(cfg, n_inputs, n_outputs, device, log, is_nas=False, trial_data=
             model = torch.compile(model)
         print("Stage 2: model built")
 
-        # compute number of parameters
-        total_param = get_param_count(model, in_mb=False, \
-                                      verbose=self._verbose)
-        self.log({"total_parameters": self.total_param}, step=0)
-
-        # compute flops
-        input_tensor = torch.randn(cfg.training.batch_size, n_inputs, \
-            cfg.dataset.resolution, cfg.dataset.resolution).to(self.device)
-        flops = FlopCountAnalysis(self.model, (input_tensor,))
-        flops.unsupported_ops_warnings(False)
-        flops.uncalled_modules_warnings(False)
-        self.gflops = flops.total() / 1e9
-        print("GFLOPs", self.gflops)
-        self.log({"GFLOPs": self.gflops}, step=0)
-
     else:
         # NAS model building
 
-        # Set the maximum allowed execution time in seconds
-        max_execution_time = cfg.nas.max_building_time
-
-        # Set the signal handler for the timeout
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(max_execution_time)
+        
 
         try:
             # Your command that builds the model
@@ -91,7 +66,7 @@ def build_model(cfg, n_inputs, n_outputs, device, log, is_nas=False, trial_data=
             
             print("Command execution timed out")
 
-        except cuda_out_of_memory:
+        except torch.cuda.CudaError:
             print("Cuda out of memory")
 
 

@@ -208,14 +208,11 @@ class EquivariantNASNet(nn.Module):
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
 
-        self.input_channels = input_channels
         image_size = [image_size]*2 if isinstance(image_size, int) else image_size
-        self.image_size = image_size
-        self.num_classes = num_classes
         
 
         self.input_field_type = FieldType(
-            self.gspace, [self.gspace.trivial_repr] * self.input_channels
+            self.gspace, [self.gspace.trivial_repr] * input_channels
         )
 
         # Stem
@@ -329,7 +326,7 @@ class EquivariantNASNet(nn.Module):
         print("image size: ", image_size)
 
         self.dropout = nn.Dropout(self.dropout_rate)
-        self.fc = nn.Linear(len(self._swish1.out_type), self.num_classes)
+        self.fc = nn.Linear(len(self._swish1.out_type), num_classes)
 
 
     def forward(self, inputs):

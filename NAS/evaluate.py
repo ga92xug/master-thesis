@@ -21,7 +21,9 @@ from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 # )
 
 def evaluate(
-        ax_client = None,
+        ax_client: AxClient,
+        device: str,
+        step: int,
         filepath: str = None,
 ):
     assert ax_client is not None or filepath is not None, "Either ax_client or filepath must be provided"
@@ -35,23 +37,24 @@ def evaluate(
     # pareto frontier
     pareto_frontier = _pareto_frontier_scatter_2d_plotly(experiment)
     pareto_frontier
-    wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, step=50, commit=True)
+    wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, step=step, commit=True)
 
     # scalar mappable
     fig = scalar_mappable(ax_client.experiment, title="Equivariant NAS on MNIST-rot", new_point=[0.958, 86], new_point_label="eq_wrn_16_4")
     fig.show()
-    wandb.log({"pareto_frontier_image": wandb.Image(fig)}, step=50)
+    wandb.log({"pareto_frontier_image": wandb.Image(fig)}, step=step, commit=True)
 
 
     # contour plots
     model = get_MOO_NEHVI(
         experiment=experiment, 
         data=data,
+        device=device
     )
     valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False)
     gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True)
-    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_interact_contour_plotly)}, step=50, commit=True)
-    wandb.log({"gflops_contour": wandb.Plotly(gflops_interact_contour_plotly)}, step=50, commit=True)
+    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_interact_contour_plotly)}, step=step, commit=True)
+    wandb.log({"gflops_contour": wandb.Plotly(gflops_interact_contour_plotly)}, step=step, commit=True)
 
 
 

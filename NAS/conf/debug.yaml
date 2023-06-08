@@ -1,9 +1,13 @@
+defaults:
+- _self_
+- training: cifar10
+
 exp_name: "mnist_rot"
 seed: 42
 
 training:
   model: eq_nasnet
-  training: mnist_rot
+  training: mnist_rot_test
   dataset: mnist_rot
   optimizer: Adam
   optimizer.lr: 0.015
