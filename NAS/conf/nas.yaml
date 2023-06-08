@@ -1,17 +1,20 @@
 defaults:
 - _self_
-- training: cifar10
+- training: mnist_rot
+- search_space: mnist_rot
+- objective: mnist_rot
 
-
-exp_name: cifar10
+exp_name: mnist_rot_2
 seed: 42
-
 
 generation:
   num_total_trials: 50  # total evaluation budget
   num_sobol_trials: 5
   num_fullbayesian_trials: -1
   batch_size: 1
+  progress_bar: False
+  num_samples: 256
+  warmup_steps: 512
   #num_botorch_trials: 15
 
 runner:
@@ -23,21 +26,6 @@ other:
   save_every: 1
   restart: True
   verbose: 1
-
-objective:
-  bounds:
-    valid_acc: 0.90
-    gflops: 20
-
-search_space:
-  num_middle_blocks: 2
-  strides: [1, 2, 2]
-  choice_2_range_params:
-      group: [1, 2, 4, 8, 16]
-      kernel_size: [3, 5]
-      out_channels: [1.,1.25,1.5,1.75,2]
-      se_ratio: [0., 0.5]
-
 
 wandb:
   entity: "ga92xug"

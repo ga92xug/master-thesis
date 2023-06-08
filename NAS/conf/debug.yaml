@@ -1,25 +1,24 @@
 defaults:
 - _self_
-- training: cifar10
+- training: debug_mnist_rot
+- search_space: debug
+- objective: mnist_rot
 
-exp_name: "mnist_rot"
+exp_name: mnist_rot_test
 seed: 42
 
 training:
-  model: eq_nasnet
-  training: mnist_rot_test
-  dataset: mnist_rot
-  optimizer: Adam
-  optimizer.lr: 0.015
   training.epochs: 1
   training.steps_per_epoch: 10
-
 
 generation:
   num_total_trials: 50  # total evaluation budget
   num_sobol_trials: 3
   num_fullbayesian_trials: -1
   batch_size: 1
+  progress_bar: True
+  num_samples: 64
+  warmup_steps: 128
   #num_botorch_trials: 15
 
 runner:
@@ -32,23 +31,8 @@ other:
   restart: True
   verbose: 0
 
-objective:
-  bounds:
-    valid_acc: 0.862
-    gflops: 94
-
-search_space:
-  num_middle_blocks: 1
-  strides: [2, 2]
-  choice_2_range_params:
-      group: [1, 2, 4]
-      kernel_size: [3, 5]
-      out_channels: [1.,1.25]
-      se_ratio: [0., 0.25]
-
-
 wandb:
   entity: "ga92xug"
   project: "scaling-laws-nas_high_level"
-  mode: online
+  mode: disabled
   mode_runs: disabled

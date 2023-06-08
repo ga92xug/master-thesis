@@ -85,7 +85,7 @@ def decode_single_block_parameters(encoded_params, block_number):
 
 
 
-def init_wandb(self, run_id, cfg, wandb_config=None):
+def init_wandb(run_id, cfg, wandb_config=None):
     if run_id is not None:
         # resume wandb run
         run = wandb.init(

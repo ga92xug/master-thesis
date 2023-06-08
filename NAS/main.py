@@ -61,12 +61,12 @@ from evaluate import evaluate
 from runner_service import HydraWandbRunner
 from search_space_service import Eq_Search_Space
 from fetch_trial_data import TrialDataFetcher
-from plot_adapted_ax import plot_pareto_frontier
 from util import init_wandb
 
 class NAS:
     def __init__(self, cfg):
         self.cfg = cfg
+        print(OmegaConf.to_yaml(cfg))
         self.save_folder = f"NAS/data/{self.cfg.exp_name}"
         self.device = torch.device('cuda' if torch.cuda.is_available() \
                                    else "cpu")
@@ -84,7 +84,7 @@ class NAS:
             project=self.cfg.wandb.project,
             wandb_mode=self.cfg.wandb.mode,
             exp_name=self.cfg.exp_name,
-            max_gflops=self.cfg.training.nas.max_gflops,
+            max_gflops=self.cfg.objective.max_gflops,
         )
         # Ax client
         self.init_ax_client()
@@ -109,7 +109,7 @@ class NAS:
                 wandb_run_id = json.load(f)['wandb_run_id']
             
             # resume wandb run
-            init_wandb(wandb_run_id, self.cfg)
+            self.run = init_wandb(wandb_run_id, self.cfg)
             # connect to db
             self.data_fetcher.connect_to_db(reset=False)
         else:
@@ -119,7 +119,7 @@ class NAS:
                 generation_strategy=self.generation_strategy,
             )
             # init wandb
-            init_wandb(run_id=None, cfg=self.cfg, wandb_config=self.wandb_config)
+            self.run = init_wandb(run_id=None, cfg=self.cfg, wandb_config=self.wandb_config)
             # connect to db
             self.data_fetcher.connect_to_db(reset=True)
             # Save the run_id
@@ -145,7 +145,7 @@ class NAS:
                 )
             },
             parameter_constraints=self.parameter_constraints,
-            outcome_constraints=[f"gflops <= {self.cfg.training.nas.max_gflops}"],
+            outcome_constraints=[f"gflops <= {self.cfg.objective.max_gflops}"],
             tracking_metric_names=["train_duration", "valid_duration"],
             overwrite_existing_experiment=True,
             #is_test=True,
@@ -167,6 +167,8 @@ class NAS:
         # we have to convert the config to a dict because the config is not serializable
         # only matters for developer api
         training_dict = OmegaConf.to_container(self.cfg.training, resolve=True)
+        training_dict["NAS.max_gflops"] = self.cfg.objective.max_gflops
+        training_dict["NAS.max_generation_time"] = self.cfg.objective.max_generation_time
         choice_2_range_params = OmegaConf.to_container(
             self.cfg.search_space.choice_2_range_params, resolve=True)
         
@@ -267,9 +269,9 @@ class NAS:
                     num_trials=self.cfg.generation.num_fullbayesian_trials,
                     model_kwargs={
                         "torch_device": self.device,
-                        "num_samples": 256,
-                        "warmup_steps": 512,
-                        #"disable_progbar": True, # Set to False to print a progress bar from MCMC
+                        "num_samples": self.cfg.generation.num_samples,
+                        "warmup_steps": self.cfg.generation.warmup_steps,
+                        "disable_progbar": self.cfg.generation.progress_bar, # Set to False to print a progress bar from MCMC
                     },
                     max_parallelism=1,
                 ),
