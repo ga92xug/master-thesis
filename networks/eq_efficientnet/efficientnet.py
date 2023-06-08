@@ -13,7 +13,7 @@ sys.path.append('../networks') # add parent directory
 import torch
 from torch import nn
 from torch.nn import functional as F
-from .eq_efficientnet_util import (
+from .util import (
     BlockDecoder,
     eq_round_filters,
     round_repeats,

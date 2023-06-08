@@ -94,7 +94,7 @@ class Experiment:
             self.valid_accuracy = BinaryAccuracy().to(self.device)
 
         # model
-        stats = create_model(
+        self.model, stats = create_model(
             cfg=cfg, 
             n_inputs=n_inputs, 
             n_outputs=self.n_outputs, 
@@ -133,15 +133,14 @@ class Experiment:
         # iteration is the number of batches seen
         self._iteration = 0
         self._epoch = 0
-        self.global_step = 0        
+        self.global_step = 0  
+        self.train_n_batches_len = len(self._dataloaders["train"])      
         
         # time limit
         self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
         print("Stage 4: training starts: " + str(self._global_start_time))
 
-        # training statistics
-        self.train_n_batches_len = len(self._dataloaders["train"])
     
     def backup(self):
         if self.cfg.other.backup_model:
@@ -282,7 +281,7 @@ class Experiment:
         """
         self._iteration = 0
         
-        while self._epoch < self.max_epochs and self.time_limit_reached():
+        while self._epoch < self.max_epochs and not self.time_limit_reached():
             # check if we are allowed to run
             utils.allowed_usage_time(self.cfg.other.gpu_time_limit)
             
@@ -323,8 +322,7 @@ class Experiment:
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     # check if we are allowed to run
-    if cfg.other.gpu_time_limit:
-        utils.allowed_usage_time()
+    utils.allowed_usage_time(cfg.other.gpu_time_limit)
     exp = Experiment(cfg)
     exp.iteration_over_epochs()
 

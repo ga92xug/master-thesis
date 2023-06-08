@@ -3,7 +3,7 @@ import timeit
 import torch
 from omegaconf import DictConfig
 from fvcore.nn import FlopCountAnalysis, flop_count_table
-from networks.util import get_gflops, get_param_count
+from networks.util import get_param_count
 
 
 def create_model(
@@ -36,7 +36,7 @@ def create_model(
     stats["model_building_time"] = model_building_time
     stats["param_count"] = get_param_count(model, in_mb=False, verbose=verbose)
     stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs, 
-                        image_size, verbose=verbose)
+                        image_size, device=device, verbose=verbose)
 
     if cfg.training.compile:
         start = timeit.default_timer()

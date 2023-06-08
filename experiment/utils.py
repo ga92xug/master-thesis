@@ -394,12 +394,15 @@ def build_dataloaders(cfg):
 
 
 def allowed_usage_time(
+    gpu_time_limit: bool,
     start_time: datetime.time = datetime.time(hour=8, minute=30),
     end_time: datetime.time = datetime.time(hour=20),
 ):
     """
     GPU sharing. Check if the current time is within the allowed usage time.
     """
+    if not gpu_time_limit:
+        return
     # Get the current time in GMT+2
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
 

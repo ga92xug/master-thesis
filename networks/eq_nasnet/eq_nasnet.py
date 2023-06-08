@@ -5,7 +5,7 @@ from omegaconf import DictConfig, OmegaConf
 import sys
 sys.path.append('../networks') # add parent directory
 
-from .eq_nasnet_util import (
+from .util import (
     BlockDecoder,
     eq_round_filters,
     round_repeats,

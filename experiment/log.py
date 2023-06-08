@@ -28,7 +28,7 @@ class Log():
             # Prefix log entries
             to_log = {prefix + key: value for key, value in to_log.items()}
 
-        wandb.log(to_log, step)
+        wandb.log(to_log, step=step)
 
     def aggregate_and_log_db(self, to_log: dict, trial_index: str, epoch: int):
         if trial_index not in self.trial_data:
