@@ -318,7 +318,7 @@ class Experiment:
 
     
 
-@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     # check if we are allowed to run
     if cfg.other.gpu_time_limit:

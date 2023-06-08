@@ -3,7 +3,7 @@ import timeit
 import torch
 from omegaconf import DictConfig
 from fvcore.nn import FlopCountAnalysis, flop_count_table
-from networks.util import get_gflops, get_param_count
+from networks.util import get_param_count
 
 
 def create_model(
