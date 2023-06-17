@@ -145,7 +145,7 @@ class NAS:
                 )
             },
             parameter_constraints=self.parameter_constraints,
-            outcome_constraints=[f"gflops <= {self.cfg.objective.max_gflops}"],
+            # outcome_constraints=[f"gflops <= {self.cfg.objective.max_gflops}"],
             tracking_metric_names=["train_duration", "valid_duration"],
             overwrite_existing_experiment=True,
             #is_test=True,
@@ -168,7 +168,7 @@ class NAS:
         # only matters for developer api
         training_dict = OmegaConf.to_container(self.cfg.training, resolve=True)
         training_dict["NAS.max_gflops"] = self.cfg.objective.max_gflops
-        training_dict["NAS.max_generation_time"] = self.cfg.objective.max_generation_time
+        training_dict["NAS.max_building_time"] = self.cfg.objective.max_building_time
         choice_2_range_params = OmegaConf.to_container(
             self.cfg.search_space.choice_2_range_params, resolve=True)
         
@@ -195,7 +195,6 @@ class NAS:
             # get next trial
             start = timeit.default_timer()
             trial = self.ax_client.get_next_trial()
-            print(f"trial: {trial}")
             stop = timeit.default_timer()
             generation_time = stop - start
 
@@ -222,7 +221,7 @@ class NAS:
                 self.ax_client.save_to_json_file(filepath=self.json_store["ax_client"])
 
             # Evaluate
-            if i % self.cfg.other.evaluate_every == 0:
+            if i % self.cfg.other.evaluate_every == 0 and i >= 1:
                 evaluate(
                     ax_client=self.ax_client,
                     device=self.device,
@@ -233,7 +232,6 @@ class NAS:
 
     def log(self, raw_data, generation_time, step):
         raw_data["generation_time"] = generation_time
-        print(f"to_log: {raw_data}")
         wandb.log(raw_data, step=step, commit=True)
         #wandb.log({"generation_time": generation_time}, step=step, commit=True)
 

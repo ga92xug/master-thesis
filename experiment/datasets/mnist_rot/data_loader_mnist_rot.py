@@ -35,7 +35,7 @@ class mnist_rot_dataset(data.Dataset):
             
             filename = 'mnist_rot/mnist_rot_trainval.npz'
             
-            data = np.load(cfg.dataset.data_dir + filename)
+            data = np.load(cfg.training.dataset.data_dir + filename)
 
             num_train = len(data["labels"])
             indices = np.arange(0, num_train)
@@ -59,7 +59,7 @@ class mnist_rot_dataset(data.Dataset):
             
         else:
             filename = 'mnist_rot/mnist_rot_test.npz'
-            data = np.load(cfg.dataset.data_dir + filename)
+            data = np.load(cfg.training.dataset.data_dir + filename)
 
         self.images = data['images'].astype(np.float32)
         self.labels = data['labels'].astype(np.int64)
@@ -109,7 +109,7 @@ def build_mnist_rot_loader(mode, cfg, batch_size, num_workers=8, rot_interpol_au
             transform = [own_transforms.GrayToTensor()]
     elif mode in ['train', 'trainval']:
         shuffle = True
-        drop_last = cfg.dataset.drop_last_train
+        drop_last = cfg.training.dataset.drop_last_train
         if rot_interpol_augmentation:
             transform = [
                 own_transforms.Rotate(rng=rng, interpolation=interpolation),

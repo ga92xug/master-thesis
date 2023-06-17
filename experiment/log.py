@@ -53,14 +53,19 @@ class Log():
 
         self.log_to_db(self.trial_data, trial_index)
         gflops = self.trial_data['GFLOPs']
-        if gflops > self.cfg.nas.max_gflops:
-            raise ValueError(f"GFLOPs ({gflops}) is greater than the max ({self.cfg.nas.max_gflops})")
+        if gflops > self.cfg.NAS.max_gflops:
+            raise ValueError(f"GFLOPs ({gflops}) is greater than the max ({self.cfg.NAS.max_gflops})")
 
     def log_to_db(self, to_log: dict, trial_index: int):
+        for key, value in to_log.items():
+            if isinstance(value, torch.Tensor):
+                to_log[key] = value.item()
+                
+
         keys_to_log = ['trial_index', 'GFLOPs', 'valid_acc', 'train_duration', 'valid_duration']
         values = [trial_index] + [to_log.get(key) for key in keys_to_log[1:]]
 
-        query = f"INSERT INTO run_metrics ({', '.join(keys_to_log)}) VALUES ({', '.join(['?'] * len(keys_to_log))})"
+        query = f"INSERT OR REPLACE INTO run_metrics ({', '.join(keys_to_log)}) VALUES ({', '.join(['?'] * len(keys_to_log))})"
         self.cursor.execute(query, values)
         self.conn.commit()
 

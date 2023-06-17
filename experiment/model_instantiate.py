@@ -44,7 +44,7 @@ def get_model(
         
         
         # Set the maximum allowed execution time in seconds
-        max_building_time = cfg.nas.max_building_time
+        max_building_time = cfg.NAS.max_building_time
         max_gflops = cfg.NAS.max_gflops
 
         assert max_building_time > 0, "max_building_time must be greater than 0"

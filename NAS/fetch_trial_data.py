@@ -35,6 +35,8 @@ class TrialDataFetcher():
         self.db_file = db_location + "/trial_cache.db"
         self.wandb_mode = wandb_mode
         self.max_gflops = max_gflops
+        self.connect_to_db(reset=True)
+
 
     def connect_to_db(self, reset: bool = False):
         """Establishes a connection to the database, deletes the table if it exists and creates a new one."""
@@ -102,7 +104,7 @@ class TrialDataFetcher():
                 except:
                     if result_dict['gflops'] <= self.max_gflops:
                         raise ValueError(f"Trial {trial_index} has invalid {key} value: {val}. We only accept missing values if GFLOPs is above {self.max_gflops}.")
-                    result_dict[key] = None
+                    #result_dict[key] = None
                     
             return result_dict
         else:
@@ -158,7 +160,7 @@ class TrialDataFetcher():
         :param wandb_run_id: wandb run id of the data.
         :param metrics: A dictionary with 'gflops', 'val_acc', 'train_duration', 'val_duration' keys.
         """
-        conn, cursor = self.connect_to_db()
-        cursor.execute('INSERT INTO run_metrics VALUES (?, ?, ?, ?, ?)', 
+        #conn, cursor = self.connect_to_db()
+        self.cursor.execute('INSERT INTO run_metrics VALUES (?, ?, ?, ?, ?)', 
                     (wandb_run_id, metrics['gflops'], metrics['val_acc'], metrics['train_duration'], metrics['val_duration']))
-        conn.commit()
+        self.conn.commit()

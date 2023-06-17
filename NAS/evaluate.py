@@ -9,9 +9,9 @@ from ax.service.ax_client import AxClient
 from ax.modelbridge.factory import get_MOO_NEHVI 
 
 # Plotting imports and initialization
-from ax.plot.contour import interact_contour_plotly
+#from ax.plot.contour import interact_contour_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
-
+from plot import interact_contour_plotly
 # resume wandb run
 # wandb.init(
 #     project="scaling-laws-nas_high_level", 

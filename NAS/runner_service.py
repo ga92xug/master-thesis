@@ -66,7 +66,7 @@ class HydraWandbRunner(Runner):
         # pass wandb parameters
         command.extend([f"wandb.entity={self.wandb_entity}",
                         f"wandb.project={self.wandb_project}",
-                        f"wandb.run_id={self.wandb_run_id}",
+                        f"+wandb.run_id={self.wandb_run_id}",
                         f"wandb.mode={self.wandb_mode}"])
 
         # pass trial index
