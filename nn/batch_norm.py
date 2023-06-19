@@ -142,8 +142,8 @@ class BatchNorm(EquivariantModule):
     def check_equivariance(
         self, atol: float = 1e-6, rtol: float = 1e-5
     ) -> List[Tuple[Any, float]]:
-        # return super(BatchNorm, self).check_equivariance(atol=atol, rtol=rtol)
-        pass
+        return super(BatchNorm, self).check_equivariance(atol=atol, rtol=rtol)
+        #pass
 
     def export(self):
         r"""
