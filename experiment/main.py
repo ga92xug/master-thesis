@@ -31,13 +31,13 @@ class Experiment:
         self._global_start_time = datetime.datetime.now()
         if self._verbose > 1:
             print(f"Starting: {self._global_start_time}")
+            print(OmegaConf.to_yaml(cfg))
         # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         # Wandb
-        print(OmegaConf.to_yaml(cfg))
         self.cfg = cfg
         wandb_config = OmegaConf.to_container(
                 cfg, resolve=True, throw_on_missing=True
@@ -78,7 +78,6 @@ class Experiment:
                
         # dataset
         self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
-        print("Stage 1: datasets built")
         
         # Loss function
         if self.n_outputs == 2:

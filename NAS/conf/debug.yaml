@@ -16,9 +16,9 @@ generation:
   num_sobol_trials: 3
   num_fullbayesian_trials: -1
   batch_size: 1
-  progress_bar: True
-  num_samples: 64
-  warmup_steps: 128
+  progress_bar: False
+  num_samples: 32
+  warmup_steps: 64
   #num_botorch_trials: 15
 
 runner:
@@ -26,7 +26,7 @@ runner:
   verbose: 1
 
 other:
-  evaluate_every: 50
+  evaluate_every: 5
   save_every: 1
   restart: True
   verbose: 0

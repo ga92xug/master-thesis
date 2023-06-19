@@ -33,8 +33,8 @@ class Log():
 
             # Prefix log entries
             to_log = {self.prefix + key: value for key, value in to_log.items()}
-
-        wandb.log(to_log, step=step)
+        else:
+            wandb.log(to_log, step=step)
 
     def aggregate_and_log_db(self, to_log: dict, trial_index: str, epoch: int):
         for key, sub_dict in to_log.items():

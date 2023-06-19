@@ -209,28 +209,28 @@ class NAS:
                     trial_index=trial_meta_data["trial_index"], 
                     reason="Model building time exceeded the limit"
                 )
-                continue
+            else: 
+                self.ax_client.complete_trial(
+                    trial_index=trial_meta_data["trial_index"], 
+                    raw_data=copy.deepcopy(raw_data)
+                )
 
-            self.ax_client.complete_trial(
-                trial_index=trial_meta_data["trial_index"], 
-                raw_data=copy.deepcopy(raw_data)
-            )
+                # Evaluate
+                if i % self.cfg.other.evaluate_every == 0 and i >= 1:
+                    try:
+                        evaluate(ax_client=self.ax_client, device=self.device, step=i)
+                    except:
+                        # the eval fails if not enough data is available
+                        print("Evaluation failed")
 
             # log metrics and print
             self.log(raw_data, generation_time, i)
-            
             # Save
             if i % self.cfg.other.save_every == 0:
                 self.ax_client.save_to_json_file(filepath=self.json_store["ax_client"])
 
-            # Evaluate
-            if i == self.cfg.generation.num_total_trials - 1 or \
-                    (i % self.cfg.other.evaluate_every == 0 and i >= 1):
-                evaluate(
-                    ax_client=self.ax_client,
-                    device=self.device,
-                    step=i,
-                )
+        # final evaluation
+        evaluate(ax_client=self.ax_client, device=self.device,step=i)
 
     
 

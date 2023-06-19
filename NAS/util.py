@@ -102,4 +102,6 @@ def init_wandb(run_id, cfg, wandb_config=None):
             mode=cfg.wandb.mode,
             config=wandb_config,
         )
+
+    run.log_code(".")
     return run

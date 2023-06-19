@@ -78,6 +78,8 @@ class HydraWandbRunner(Runner):
 
         # pass trial index
         overrides.extend([f"NAS.trial_index={trial_index}"])
+        # set verbose
+        overrides.extend([f"other.verbose={self.verbose}"])
 
         # context initialization
         GlobalHydra.instance().clear()

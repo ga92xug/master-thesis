@@ -78,7 +78,6 @@ class Eq_Search_Space:
         return parameter_constraints
 
     def per_block_search_space(self, block_id):
-        print(f"block_id: {block_id}")
         block_search_space = []
 
         if block_id == 0:
