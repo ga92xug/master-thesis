@@ -147,7 +147,7 @@ class NAS:
             },
             parameter_constraints=self.parameter_constraints,
             outcome_constraints=[f"model_building_time <= {self.cfg.objective.max_building_time-1}"],
-            tracking_metric_names=["train_duration", "valid_duration", "model_building_time"],
+            tracking_metric_names=["model_building_time"],
             overwrite_existing_experiment=True,
             #is_test=True,
         )
@@ -210,9 +210,15 @@ class NAS:
                     reason="Model building time exceeded the limit"
                 )
             else: 
+                # we don't want to give ax all the raw data since run full bayesian optimization for each
+                ax_metrics = {
+                    "valid_acc": raw_data["valid_acc"],
+                    "gflops": raw_data["gflops"],
+                    "model_building_time": raw_data["model_building_time"],
+                }
                 self.ax_client.complete_trial(
                     trial_index=trial_meta_data["trial_index"], 
-                    raw_data=copy.deepcopy(raw_data)
+                    raw_data=ax_metrics
                 )
 
                 # Evaluate
