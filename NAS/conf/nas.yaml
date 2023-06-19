@@ -22,7 +22,7 @@ runner:
   verbose: 0
 
 other:
-  evaluate_every: 1
+  evaluate_every: 50
   save_every: 1
   restart: True
   verbose: 1

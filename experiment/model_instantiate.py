@@ -5,10 +5,9 @@ import torch
 from omegaconf import DictConfig
 from fvcore.nn import FlopCountAnalysis, flop_count_table
 from networks.util import get_param_count
-from log import Log
+from experiment.log import Log
 
 
-TIMEOUT_MULTIPLIER = 1.5
 CUDA_CREATE_MULTIPLIER = 2.0
 CUDA_CALCULATE_MULTIPLIER = 1.2
 
@@ -41,46 +40,33 @@ def get_model(
         stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs, 
                             image_size, device=device, verbose=verbose)
     else:
-        
-        
         # Set the maximum allowed execution time in seconds
         max_building_time = cfg.NAS.max_building_time
         max_gflops = cfg.NAS.max_gflops
 
         assert max_building_time > 0, "max_building_time must be greater than 0"
-        assert max_gflops > 0, "max_gflops must be greater than 0"
+        # we currently don't restrict the gflops
+        # assert max_gflops > 0, "max_gflops must be greater than 0"
 
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(max_building_time)
-
+        
         # create model
         try:
             model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device)
-            # Cancel the alarm since the command finished before the timeout
+            # Cancel alarm
             signal.alarm(0)
-        except TimeoutError as e:
+            stats["model_building_time"] = model_building_time
+        except:
             # Handle the timeout
-            stats["GFLOPs"] = int(max_gflops * TIMEOUT_MULTIPLIER)
+            stats["model_building_time"] = max_building_time
             logger.log(stats, step=0, epoch=0)
             raise RuntimeError("Model building timeout")
-
-        except torch.cuda.CudaError:
-            # Handle CUDA out of memory
-            stats["GFLOPs"] = int(max_gflops * CUDA_CREATE_MULTIPLIER)
-            logger.log(stats, step=0, epoch=0)
-            raise RuntimeError("CUDA out of memory")
-
         
-        try:
-            stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs,
-                            image_size, device=device, verbose=verbose)
-        except torch.cuda.CudaError:
-            # Handle CUDA out of memory
-            stats["GFLOPs"] = int(max_gflops * CUDA_CALCULATE_MULTIPLIER)
-            logger.log(stats, step=0, epoch=0)
-            raise RuntimeError("CUDA out of memory")
 
+        stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs,
+                        image_size, device=device, verbose=verbose)
 
     ############################################################################
     # Both NAS and non-NAS
@@ -118,7 +104,7 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
 
 # Define a function to handle the timeout
 def timeout_handler(signum, frame):
-    raise TimeoutError("Command timed out")
+    raise TimeoutError()
 
 def init_model(cfg, n_inputs, n_outputs, image_size, device):
     start = timeit.default_timer()
@@ -131,3 +117,4 @@ def init_model(cfg, n_inputs, n_outputs, image_size, device):
     stop = timeit.default_timer()
     model_building_time = stop - start
     return model, model_building_time
+    

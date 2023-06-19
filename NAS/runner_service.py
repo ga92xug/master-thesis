@@ -1,7 +1,14 @@
 import subprocess
 from ax import Runner
 import wandb
+from hydra import compose, initialize
+from hydra.core.global_hydra import GlobalHydra
+from omegaconf import OmegaConf
+import sys
+import os
+sys.path.append(f"{os.getcwd()}")
 
+from experiment.main import run_experiment_from_config
 
 # local imports
 from util import encode_parameters
@@ -44,6 +51,50 @@ class HydraWandbRunner(Runner):
         self.training_dict = training_dict
         self.verbose = verbose
         
+
+    def run_within_same_process(self, trial):
+        trial_params, trial_index = trial
+
+        # encode the search space parameters
+        encoded_params = encode_parameters(trial_params, 
+                                           self.choice_2_range_param, 
+                                           self.strides)
+        if self.verbose >= 1: 
+            print("trial_params", trial_params)
+
+
+        # Construct overrides
+        overrides = []
+        overrides.extend([f"model.blocks_args={encoded_params}"])
+        # Append all training settings
+        for key, value in self.training_dict.items():
+            overrides.append(f"{key}={value}")
+                
+        # pass wandb parameters
+        overrides.extend([f"wandb.entity={self.wandb_entity}",
+                        f"wandb.project={self.wandb_project}",
+                        f"+wandb.run_id={self.wandb_run_id}",
+                        f"wandb.mode={self.wandb_mode}"])
+
+        # pass trial index
+        overrides.extend([f"NAS.trial_index={trial_index}"])
+
+        # context initialization
+        GlobalHydra.instance().clear()
+        with initialize(version_base="1.2", config_path="../experiment/conf"):
+            cfg = compose(config_name="config", overrides=overrides)
+
+
+        try:
+            run_experiment_from_config(cfg)
+        except Exception as e:
+            print("Trial failed with exception:", e)
+        
+
+        # Return the trial metadata
+        return {
+            "trial_index": trial_index,
+        }
 
     def run(self, trial):
         trial_params, trial_index = trial

@@ -1,4 +1,3 @@
-
 from ax import (
     ChoiceParameter,
     ParameterType,
@@ -10,13 +9,16 @@ from ax import ParameterType, RangeParameter, SearchSpace
 from ax.core import ParameterConstraint, OrderConstraint
 from omegaconf import OmegaConf
 import warnings
+
+from requests import get
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class Eq_Search_Space:
-    def __init__(self, cfg_choice_2_range_params, num_middle_blocks=2):
-        self.num_middle_blocks = num_middle_blocks
-        choice_2_range_params = OmegaConf.to_container(cfg_choice_2_range_params, resolve=True)
+    def __init__(self, search_space_cfg):
+        self.search_space_cfg = search_space_cfg
+        self.num_middle_blocks = search_space_cfg.num_middle_blocks
+        choice_2_range_params = OmegaConf.to_container(search_space_cfg.choice_2_range_params, resolve=True)
         self.choice_2_range_params = choice_2_range_params
         self.parameters = []
 
@@ -65,9 +67,11 @@ class Eq_Search_Space:
                 # There is no constraint for the first block
                 continue
             
+            # the group must never increase
             group_decrease_constraint = f"{block_id-1}_group >= {block_id}_group"
             parameter_constraints.append(group_decrease_constraint)
             
+            # the reflection must never increase
             reflection_decrease_constraint = f"{block_id-1}_reflection >= {block_id}_reflection"
             parameter_constraints.append(reflection_decrease_constraint)
 
@@ -127,10 +131,12 @@ class Eq_Search_Space:
 
 
     def get_reflection(self, block_id):
+        bounds = list(self.search_space_cfg.reflection)
         return {
             "name": f"{block_id}_reflection",
             "type": "range",
-            "bounds": [-1, 0],
+            "bounds": bounds,
+            "value_type": "int",
         }
 
     def get_group(self, block_id):
@@ -138,13 +144,16 @@ class Eq_Search_Space:
             "name": f"{block_id}_group",
             "type": "range",
             "bounds": [0, len(self.choice_2_range_params["group"]) - 1],
+            "value_type": "int",
         }
 
     def get_num_layers(self, block_id):
+        bounds = list(self.search_space_cfg.num_layers)
         return {
             "name": f"{block_id}_num_layers",
             "type": "range",
-            "bounds": [1, 3],
+            "bounds": bounds,
+            "value_type": "int",
         }
 
     def get_conv_op(self, block_id):
@@ -152,6 +161,7 @@ class Eq_Search_Space:
             "name": f"{block_id}_conv_op",
             "type": "choice",
             "values": ["conv", "dconv", "mbconv"],
+            "is_ordered": True,
         }
 
     def get_kernel_size(self, block_id):
@@ -159,6 +169,7 @@ class Eq_Search_Space:
             "name": f"{block_id}_kernel_size",
             "type": "range",
             "bounds": [0, len(self.choice_2_range_params["kernel_size"]) - 1],
+            "value_type": "int",
         }
 
     def get_se_ratio(self, block_id):
@@ -166,6 +177,7 @@ class Eq_Search_Space:
             "name": f"{block_id}_se_ratio",
             "type": "range",
             "bounds": [0, len(self.choice_2_range_params["se_ratio"]) - 1],
+            "value_type": "int",
         }
 
     def get_skip_op(self, block_id):
@@ -176,10 +188,19 @@ class Eq_Search_Space:
         }
 
     def get_out_channels(self, block_id):
+        bounds = [0, len(self.choice_2_range_params["out_channels"]) - 1]
+
+        try:
+            upper_bound = getattr(self.search_space_cfg, f"{block_id}_out_channels")
+            bounds = bounds[:upper_bound]
+        except:
+            pass
+
         return {
             "name": f"{block_id}_out_channels",
             "type": "range",
-            "bounds": [0, len(self.choice_2_range_params["out_channels"]) - 1],
+            "bounds": bounds,
+            "value_type": "int",
         }
         
 

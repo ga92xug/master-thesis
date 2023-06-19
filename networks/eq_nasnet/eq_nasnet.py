@@ -229,14 +229,14 @@ class EquivariantNASNet(nn.Module):
             in_type=self.input_field_type,
             out_channels=int(out_channels * channel_increase_factor),
             kernel_size=stem_args.kernel_size,
-            stride=2,
+            stride=stem_args.stride,
             bias=False,
         )
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
         self._swish0 = Swish(in_type=self._bn0.out_type)
 
         self.field_type = self._swish0.out_type
-        image_size = calculate_output_image_size(image_size, 2)
+        image_size = calculate_output_image_size(image_size, stem_args.stride)
 
         # Build blocks
         self._blocks = nn.ModuleList([])

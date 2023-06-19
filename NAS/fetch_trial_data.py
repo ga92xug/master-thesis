@@ -25,6 +25,7 @@ class TrialDataFetcher():
             wandb_mode: str,
             exp_name: str, 
             max_gflops: int,
+            max_building_time: int,
             db_location: str = "NAS/data/"
         ):
         """Initializes the RunDataFetcher with the entity, project, wandb_mode, experiment name, and database location."""
@@ -35,6 +36,7 @@ class TrialDataFetcher():
         self.db_file = db_location + "/trial_cache.db"
         self.wandb_mode = wandb_mode
         self.max_gflops = max_gflops
+        self.max_building_time = max_building_time
         self.connect_to_db(reset=True)
 
 
@@ -57,7 +59,8 @@ class TrialDataFetcher():
                 gflops REAL,
                 valid_acc REAL,
                 train_duration REAL,
-                valid_duration REAL
+                valid_duration REAL,
+                model_building_time REAL
             )
         ''')
         self.conn.commit()
@@ -96,15 +99,18 @@ class TrialDataFetcher():
 
         if result is not None:
             result_dict = {}
-            for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration'], result[1:]):
-                if key == 'gflops' and val is None:
-                    ValueError(f"Trial {trial_index} does not have GFLOPs data. We always expect an estimate of GFLOPs. Even if trial failed.")
-                try:
+            for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration', 'model_building_time'], result[1:]):
+                if key == 'model_building_time' and val is None:
+                    ValueError(f"Trial {trial_index} does not have GFLOPs data. We always expect an estimate of the building_time. Even if trial failed.")
+                
+                if val is not None:
                     result_dict[key] = float(val)
-                except:
-                    if result_dict['gflops'] <= self.max_gflops:
-                        raise ValueError(f"Trial {trial_index} has invalid {key} value: {val}. We only accept missing values if GFLOPs is above {self.max_gflops}.")
-                    #result_dict[key] = None
+                # try:
+                #     result_dict[key] = float(val)
+                # except:
+                #     if result_dict['model_building_time'] <= self.max_building_time and result_dict['gflops'] <= self.max_gflops:
+                #         raise ValueError(f"Trial {trial_index} has invalid {key} value: {val}. We only accept missing values if GFLOPs is above {self.max_gflops} and max_building_time is above {self.max_building_time}.")
+                #     #result_dict[key] = None
                     
             return result_dict
         else:

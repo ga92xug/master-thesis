@@ -15,8 +15,8 @@ import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from experiment.model_instantiate import get_model
 from networks.util import cuda_memory_usage
-import utils
-import log
+from experiment import utils
+from experiment import log
 
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
@@ -59,21 +59,22 @@ class Experiment:
             self.wandb_run.log_code(".")
             
         else:
+            pass
             # console logging is a problem when running 2 wandb runs in parallel
             # so we disable it https://github.com/wandb/wandb/issues/4872
-            os.environ['WANDB_CONSOLE']="off"
-            os.environ['WANDB_DISABLE_SERVICE']='true'
-            os.environ["WANDB_SILENT"] = "true"
-            # during NAS we reinit
-            self.wandb_run = wandb.init(
-                id = cfg.wandb.run_id, 
-                resume = "allow", 
-                project = cfg.wandb.project, 
-                entity = cfg.wandb.entity,
-                mode = cfg.wandb.mode,
-                notes = cfg.wandb.notes,
-                tags = cfg.wandb.tags
-            )
+            # os.environ['WANDB_CONSOLE']="off"
+            # os.environ['WANDB_DISABLE_SERVICE']='true'
+            # os.environ["WANDB_SILENT"] = "true"
+            # # during NAS we reinit
+            # self.wandb_run = wandb.init(
+            #     id = cfg.wandb.run_id, 
+            #     resume = "allow", 
+            #     project = cfg.wandb.project, 
+            #     entity = cfg.wandb.entity,
+            #     mode = cfg.wandb.mode,
+            #     notes = cfg.wandb.notes,
+            #     tags = cfg.wandb.tags
+            # )
                
         # dataset
         self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
@@ -303,7 +304,8 @@ class Experiment:
         if self.cfg.other.should_test:
             self.test()
         
-        wandb.finish()
+        if not self.is_nas:
+            wandb.finish()
 
     def time_limit_reached(self):
         if self._time_limit is not None and \
@@ -318,6 +320,13 @@ class Experiment:
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
+    # check if we are allowed to run
+    utils.allowed_usage_time(cfg.other.gpu_time_limit)
+    exp = Experiment(cfg)
+    exp.iteration_over_epochs()
+
+
+def run_experiment_from_config(cfg: DictConfig) -> None:
     # check if we are allowed to run
     utils.allowed_usage_time(cfg.other.gpu_time_limit)
     exp = Experiment(cfg)

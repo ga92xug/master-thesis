@@ -133,7 +133,7 @@ def exp_name(cfg):
         elif len(cfg.model.kernel_layout) == 4:
             values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]},{cfg.model.kernel_layout[3]})")
 
-    if "Equivariant" in cfg.model._target_:
+    if "Equivariant" in cfg.model._target_ and "nas" not in cfg.model._target_:
         if cfg.model.group == "cyclic":
             group = "C"
         elif cfg.model.group == "dihedral":

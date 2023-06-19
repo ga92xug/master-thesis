@@ -85,6 +85,7 @@ class NAS:
             wandb_mode=self.cfg.wandb.mode,
             exp_name=self.cfg.exp_name,
             max_gflops=self.cfg.objective.max_gflops,
+            max_building_time=self.cfg.objective.max_building_time,
         )
         # Ax client
         self.init_ax_client()
@@ -145,8 +146,8 @@ class NAS:
                 )
             },
             parameter_constraints=self.parameter_constraints,
-            # outcome_constraints=[f"gflops <= {self.cfg.objective.max_gflops}"],
-            tracking_metric_names=["train_duration", "valid_duration"],
+            outcome_constraints=[f"model_building_time <= {self.cfg.objective.max_building_time-1}"],
+            tracking_metric_names=["train_duration", "valid_duration", "model_building_time"],
             overwrite_existing_experiment=True,
             #is_test=True,
         )
@@ -154,14 +155,11 @@ class NAS:
     def init_search_space(self):
         # search space
         eq_search_space = Eq_Search_Space(
-            cfg_choice_2_range_params=self.cfg.search_space.choice_2_range_params, 
-            num_middle_blocks=self.cfg.search_space.num_middle_blocks
+            search_space_cfg=self.cfg.search_space,
         )
         #self.search_space = eq_search_space.get_search_space()
         self.parameter = eq_search_space.get_parameters()
         self.parameter_constraints = eq_search_space.get_parameter_constraints()
-
-
 
     def init_runner(self):
         # we have to convert the config to a dict because the config is not serializable
@@ -199,15 +197,20 @@ class NAS:
             generation_time = stop - start
 
             # run trial
-            trial_meta_data =  self.hydra_wandb_runner.run(trial)
+            trial_meta_data =  self.hydra_wandb_runner.run_within_same_process(trial)
 
             # fetch data
             raw_data = self.data_fetcher.fetch_trial_data(
                 trial_index=trial_meta_data["trial_index"])
 
-            print(f"raw_data: {raw_data}")
-
             # sync data to Ax
+            if len(raw_data) == 1:
+                self.ax_client.abandon_trial(
+                    trial_index=trial_meta_data["trial_index"], 
+                    reason="Model building time exceeded the limit"
+                )
+                continue
+
             self.ax_client.complete_trial(
                 trial_index=trial_meta_data["trial_index"], 
                 raw_data=copy.deepcopy(raw_data)
@@ -221,7 +224,8 @@ class NAS:
                 self.ax_client.save_to_json_file(filepath=self.json_store["ax_client"])
 
             # Evaluate
-            if i % self.cfg.other.evaluate_every == 0 and i >= 1:
+            if i == self.cfg.generation.num_total_trials - 1 or \
+                    (i % self.cfg.other.evaluate_every == 0 and i >= 1):
                 evaluate(
                     ax_client=self.ax_client,
                     device=self.device,
