@@ -118,6 +118,7 @@ class NAS:
             os.makedirs(self.save_folder, exist_ok=True)
             self.ax_client = AxClient(
                 generation_strategy=self.generation_strategy,
+                random_seed=self.cfg.seed,
             )
             # init wandb
             self.run = init_wandb(run_id=None, cfg=self.cfg, wandb_config=self.wandb_config)
@@ -134,6 +135,7 @@ class NAS:
         self.ax_client.create_experiment(
             name=self.cfg.exp_name, 
             parameters=self.parameter,
+            support_intermediate_data=True,
             objectives={
                 # `threshold` arguments are optional
                 "valid_acc": ObjectiveProperties(
@@ -146,7 +148,7 @@ class NAS:
                 )
             },
             parameter_constraints=self.parameter_constraints,
-            outcome_constraints=[f"model_building_time <= {self.cfg.objective.max_building_time-1}"],
+            outcome_constraints=[f"model_building_time <= {self.cfg.objective.max_building_time - 1}"],
             tracking_metric_names=["model_building_time"],
             overwrite_existing_experiment=True,
             #is_test=True,
@@ -184,7 +186,6 @@ class NAS:
 
     
     def main_optim_loop(self):
-
         # Running optimization trials
         for i in range(self.cfg.generation.num_total_trials):
             if self.cfg.other.verbose >= 1:
@@ -204,7 +205,16 @@ class NAS:
                 trial_index=trial_meta_data["trial_index"])
 
             # sync data to Ax
-            if len(raw_data) == 1:
+            if len(raw_data) in [1, 2]:
+                self.ax_client.update_running_trial_with_intermediate_data(
+                    trial_index=trial_meta_data["trial_index"],
+                    raw_data=raw_data,
+
+                )
+                self.ax_client.stop_trial_early(
+                    trial_index=trial_meta_data["trial_index"],
+                )
+            elif len(raw_data) == 0:
                 self.ax_client.abandon_trial(
                     trial_index=trial_meta_data["trial_index"], 
                     reason="Model building time exceeded the limit"

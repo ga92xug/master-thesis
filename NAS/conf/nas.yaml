@@ -5,7 +5,7 @@ defaults:
 - objective: mnist_rot
 
 exp_name: mnist_rot_2
-seed: 42
+seed: 0
 
 generation:
   num_total_trials: 50  # total evaluation budget
@@ -22,7 +22,7 @@ runner:
   verbose: 0
 
 other:
-  evaluate_every: 50
+  evaluate_every: 25
   save_every: 1
   restart: True
   verbose: 1
