@@ -1,4 +1,5 @@
 from copy import deepcopy
+from curses import raw
 import os
 from pdb import run
 import timeit
@@ -201,34 +202,34 @@ class NAS:
             trial_meta_data =  self.hydra_wandb_runner.run_within_same_process(trial)
 
             # fetch data
-            raw_data = self.data_fetcher.fetch_trial_data(
+            ax_data, raw_data, = self.data_fetcher.fetch_trial_data(
                 trial_index=trial_meta_data["trial_index"])
 
             # sync data to Ax
-            if len(raw_data) in [1, 2]:
+            if len(ax_data) == 0 or ax_data["model_building_time"] < self.cfg.objective.max_building_time:
+                # abandon trial
+                self.ax_client.abandon_trial(
+                    trial_index=trial_meta_data["trial_index"], 
+                )
+                UserWarning("Abandon trial this behavior is not expected.")
+                i -= 1
+
+            elif len(ax_data) in [1, 2]:
+                # early stop trial 
+                # expected if the model building time exceeds the limit
                 self.ax_client.update_running_trial_with_intermediate_data(
                     trial_index=trial_meta_data["trial_index"],
-                    raw_data=raw_data,
+                    raw_data=ax_data,
 
                 )
                 self.ax_client.stop_trial_early(
                     trial_index=trial_meta_data["trial_index"],
                 )
-            elif len(raw_data) == 0:
-                self.ax_client.abandon_trial(
-                    trial_index=trial_meta_data["trial_index"], 
-                    reason="Model building time exceeded the limit"
-                )
-            else: 
-                # we don't want to give ax all the raw data since run full bayesian optimization for each
-                ax_metrics = {
-                    "valid_acc": raw_data["valid_acc"],
-                    "gflops": raw_data["gflops"],
-                    "model_building_time": raw_data["model_building_time"],
-                }
+            else:
+                # complete trial
                 self.ax_client.complete_trial(
                     trial_index=trial_meta_data["trial_index"], 
-                    raw_data=ax_metrics
+                    raw_data=ax_data,
                 )
 
                 # Evaluate
@@ -239,11 +240,13 @@ class NAS:
                         # the eval fails if not enough data is available
                         print("Evaluation failed")
 
+
             # log metrics and print
             self.log(raw_data, generation_time, i)
             # Save
             if i % self.cfg.other.save_every == 0:
                 self.ax_client.save_to_json_file(filepath=self.json_store["ax_client"])
+
 
         # final evaluation
         evaluate(ax_client=self.ax_client, device=self.device,step=i)

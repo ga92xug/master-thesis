@@ -76,16 +76,24 @@ class TrialDataFetcher():
 
         # Attempt to fetch data from local DB
         run_data = self._fetch_from_db(trial_index)
-        """
-        if run_data is None and self.wandb_mode != "disabled":
-            # If data not in DB and wandb is enabled, fetch data from wandb
-            run_data = self._fetch_from_wandb(trial_index)
-        elif run_data is None:
-            # If data not in DB and wandb is disabled, generate random data
-            print("Wandb is disabled, returning random values")
-            run_data = {key: val for key, val in zip(['gflops', 'val_acc', 'train_duration', 'val_duration'], np.random.rand(4))}
-        """
-        return run_data
+        # split the data since we only want to do bayesian optimization on the ax metrics
+        ax_dict, remaining_dict = self.split_dict(run_data) 
+
+        return ax_dict, run_data
+
+
+    def split_dict(self, initial_dict):
+        ax_metrics = ["gflops", "valid_acc", "model_building_time"]
+        selected_dict = {}
+        remaining_dict = {}
+
+        for key, value in initial_dict.items():
+            if key in ax_metrics:
+                selected_dict[key] = value
+            else:
+                remaining_dict[key] = value
+
+        return selected_dict, remaining_dict
 
     def _fetch_from_db(self, trial_index: str) -> Optional[Dict]:
         """
