@@ -1,3 +1,4 @@
+from operator import is_
 from typing import Tuple, List
 from torch import nn
 import numpy as np
@@ -11,7 +12,7 @@ from nn import (
     DisentangleModule,
     RestrictionModule,
 )
-
+from networks.eq_other import EquivariantPool
 
 class Restriction(EquivariantModule):
     def __init__(
@@ -94,3 +95,36 @@ class Restriction_from_id(EquivariantModule):
         assert input_shape[1] == self.in_type.size
         return input_shape
 
+
+class Restriction_Group_or_CNN():
+    def __init__(
+        self, in_type: FieldType, group_id: Tuple,
+    ):
+        self.is_cnn = group_id[0] == 0
+
+        if self.is_cnn:
+            # CNN
+            pass
+            self.invariant_map = EquivariantPool(
+                in_type, 
+                invariant_map=True
+            )
+            channels = len(in_type)
+        else:
+            # group
+            self.restrict = Restriction_from_id(in_type, group_id)
+            self.out_type = self.restrict.out_type
+        
+
+    def forward(self, x):
+        if self.is_cnn:
+            pass
+        else:
+            pass
+
+        return self.restrict(x)
+
+    def evaluate_output_shape(self, input_shape: Tuple):
+        assert len(input_shape) == 4
+        assert input_shape[1] == self.in_type.size
+        return input_shape
