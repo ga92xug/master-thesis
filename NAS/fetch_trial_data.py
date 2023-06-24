@@ -109,7 +109,7 @@ class TrialDataFetcher():
             result_dict = {}
             for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration', 'model_building_time'], result[1:]):
                 if key == 'model_building_time' and val is None:
-                    ValueError(f"Trial {trial_index} does not have GFLOPs data. We always expect an estimate of the building_time. Even if trial failed.")
+                    ValueError(f"Trial {trial_index} does not have model_building_time data.")
                 
                 if val is not None:
                     result_dict[key] = float(val)
@@ -122,7 +122,8 @@ class TrialDataFetcher():
                     
             return result_dict
         else:
-            ValueError(f"Trial {trial_index} not found in database")
+            # return {}
+            raise ValueError(f"Trial {trial_index} not found in database")
 
     def _fetch_from_wandb(self, wandb_run_id: str) -> Dict:
         """

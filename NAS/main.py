@@ -199,7 +199,7 @@ class NAS:
             generation_time = stop - start
 
             # run trial
-            trial_meta_data =  self.hydra_wandb_runner.run_within_same_process(trial)
+            trial_meta_data =  self.hydra_wandb_runner.run(trial)
 
             # fetch data
             ax_data, raw_data, = self.data_fetcher.fetch_trial_data(
@@ -211,8 +211,9 @@ class NAS:
                 self.ax_client.abandon_trial(
                     trial_index=trial_meta_data["trial_index"], 
                 )
+                wandb.log({"Abandon trial": 1}, step=i)
                 UserWarning("Abandon trial this behavior is not expected.")
-                i -= 1
+                # i -= 1
 
             elif len(ax_data) in [1, 2]:
                 # early stop trial 

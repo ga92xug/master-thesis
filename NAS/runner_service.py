@@ -86,7 +86,6 @@ class HydraWandbRunner(Runner):
         with initialize(version_base="1.2", config_path="../experiment/conf"):
             cfg = compose(config_name="config", overrides=overrides)
 
-
         try:
             run_experiment_from_config(cfg)
         except Exception as e:

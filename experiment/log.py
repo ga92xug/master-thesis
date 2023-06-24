@@ -58,7 +58,6 @@ class Log():
             if isinstance(value, torch.Tensor):
                 to_log[key] = value.item()
                 
-
         keys_to_log = ['trial_index', 'GFLOPs', 'valid_acc', 'train_duration', 'valid_duration', "model_building_time"]
         values = [trial_index] + [to_log.get(key) for key in keys_to_log[1:]]
 

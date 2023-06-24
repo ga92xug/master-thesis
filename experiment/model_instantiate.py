@@ -48,6 +48,12 @@ def get_model(
         # we currently don't restrict the gflops
         # assert max_gflops > 0, "max_gflops must be greater than 0"
 
+        # Define a function to handle the timeout
+        def timeout_handler(signum, frame):
+            stats["model_building_time"] = max_building_time
+            logger.log(stats, step=0, epoch=0)
+            raise TimeoutError()
+
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(max_building_time)
@@ -58,13 +64,11 @@ def get_model(
             # Cancel alarm
             signal.alarm(0)
             stats["model_building_time"] = model_building_time
-        except:
-            # Handle the timeout
-            stats["model_building_time"] = max_building_time
-            logger.log(stats, step=0, epoch=0)
-            raise RuntimeError("Model building timeout")
+        except Exception as e:
+            # Cancel alarm
+            signal.alarm(0)
+            raise e
         
-
         stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs,
                         image_size, device=device, verbose=verbose)
 
@@ -102,9 +106,7 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
     return gflops
 
 
-# Define a function to handle the timeout
-def timeout_handler(signum, frame):
-    raise TimeoutError()
+
 
 def init_model(cfg, n_inputs, n_outputs, image_size, device):
     start = timeit.default_timer()
