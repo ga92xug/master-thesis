@@ -1,2 +1,0 @@
-model: eq_nasnet
-training: mnist_rot-training

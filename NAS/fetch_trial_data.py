@@ -122,8 +122,8 @@ class TrialDataFetcher():
                     
             return result_dict
         else:
-            # return {}
-            raise ValueError(f"Trial {trial_index} not found in database")
+            return {}
+            #raise ValueError(f"Trial {trial_index} not found in database")
 
     def _fetch_from_wandb(self, wandb_run_id: str) -> Dict:
         """

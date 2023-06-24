@@ -24,31 +24,53 @@ BlockArgs = collections.namedtuple('BlockArgs', [
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
-def eq_round_filters(filters, width_coefficient, depth_divisor, min_depth):
+def get_out_channels(
+        input_channels: int,
+        increase_factor: float,
+        group: int, 
+        width_coefficient, 
+        depth_divisor, 
+        min_depth
+    ):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
     Args:
-        filters (int): Filters number to be calculated.
+        input_channels (int): Filters number to be calculated.
         global_params (namedtuple): Global params of the model.
     Returns:
         new_filters: New filters number after calculating.
     """
+    increased_channels = input_channels * increase_factor
+    out_channels = (increased_channels / group) * math.sqrt(group)
+
     multiplier = width_coefficient
-    if not multiplier:
-        return int(round(filters))
+    if multiplier == 1:
+        return int(round(out_channels))
     # TODO: modify the params names.
     #       maybe the names (width_divisor,min_width)
     #       are more suitable than (depth_divisor,min_depth).
     divisor = depth_divisor
     min_depth = min_depth
-    filters *= multiplier
+    out_channels *= multiplier
     min_depth = min_depth or divisor  # pay attention to this line when using min_depth
     # follow the formula transferred from official TensorFlow implementation
-    new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
-    if new_filters < 0.9 * filters:  # prevent rounding by more than 10%
-         new_filters += divisor
+    new_out_channels = max(min_depth, int(out_channels + divisor / 2) // divisor * divisor)
+    if new_out_channels < 0.9 * input_channels:  # prevent rounding by more than 10%
+         new_out_channels += divisor
     # new_filters /= rotation
-    return int(round(new_filters))
+    return int(round(new_out_channels))
+
+def get_increase_factor(
+        increase_factor: float,
+        width_coefficient, 
+        depth_divisor, 
+        min_depth
+    ):
+    multiplier = width_coefficient
+    if multiplier == 1:
+        return increase_factor
+    else:
+        raise ValueError("Not implemented yet.")
 
 
 def round_repeats(repeats, depth_coefficient):

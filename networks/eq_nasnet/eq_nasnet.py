@@ -1,4 +1,5 @@
 import math
+import re
 from typing import List, Tuple
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
@@ -7,7 +8,8 @@ sys.path.append('../networks') # add parent directory
 
 from .util import (
     BlockDecoder,
-    eq_round_filters,
+    get_increase_factor,
+    get_out_channels,
     round_repeats,
 )
 from networks import (
@@ -66,10 +68,11 @@ class Eq_NAS_Block(EquivariantModule):
         if self.expand_ratio != 1:
             self._expand_conv = Eq_Conv2dSamePaddingChangeFactor(
                 in_type=in_type,
-                change_factor=self.expand_ratio,
+                change_factor=self.expand_ratio * restriction_correction_factor,
                 kernel_size=1,
                 bias=False,
             )
+            restriction_correction_factor = 1 # used up
             self._bn0 = BatchNorm(in_type=self._expand_conv.out_type)
             self._swish0 = Swish(in_type=self._bn0.out_type)
             in_type = self._swish0.out_type
@@ -217,24 +220,23 @@ class EquivariantNASNet(nn.Module):
 
         # Stem
         print("Building stem")
-        out_channels = (stem_channels / stem_args.group) \
-            * math.sqrt(stem_args.group)
-        channel_increase_factor = eq_round_filters(
-            stem_args.channel_increase_factor, 
-            self.width_coefficient, 
-            self.depth_divisor, 
-            self.min_depth
+        out_channels = get_out_channels(
+            input_channels=stem_channels,
+            increase_factor=stem_args.channel_increase_factor, 
+            group=stem_args.group,
+            width_coefficient=self.width_coefficient, 
+            depth_divisor=self.depth_divisor, 
+            min_depth=self.min_depth
         )
         self._conv_stem = Eq_Conv2dSamePadding(
             in_type=self.input_field_type,
-            out_channels=int(out_channels * channel_increase_factor),
+            out_channels=out_channels,
             kernel_size=stem_args.kernel_size,
             stride=stem_args.stride,
             bias=False,
         )
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
         self._swish0 = Swish(in_type=self._bn0.out_type)
-
         self.field_type = self._swish0.out_type
         image_size = calculate_output_image_size(image_size, stem_args.stride)
 
@@ -246,7 +248,7 @@ class EquivariantNASNet(nn.Module):
             print(f"Building block: {i+1}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                channel_increase_factor=eq_round_filters(
+                channel_increase_factor=get_increase_factor(
                     block_args.channel_increase_factor, 
                     self.width_coefficient, 
                     self.depth_divisor, 
@@ -300,7 +302,7 @@ class EquivariantNASNet(nn.Module):
         self.field_type = self.restrict_last.out_type
 
         # Head
-        channel_increase_factor = eq_round_filters(
+        channel_increase_factor = get_increase_factor(
             last_block_args.channel_increase_factor, 
             self.width_coefficient,
             self.depth_divisor, 
@@ -319,11 +321,10 @@ class EquivariantNASNet(nn.Module):
             self._swish1.out_type, 
             invariant_map=True
         )
-
         # pooling
+        print("pooling image size: ", image_size)
         assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
-        print("image size: ", image_size)
 
         self.dropout = nn.Dropout(self.dropout_rate)
         self.fc = nn.Linear(len(self._swish1.out_type), num_classes)

@@ -193,10 +193,7 @@ class NAS:
                 print(f"Trial: {i}")
 
             # get next trial
-            start = timeit.default_timer()
-            trial = self.ax_client.get_next_trial()
-            stop = timeit.default_timer()
-            generation_time = stop - start
+            trial, generation_time = self.get_next_trial()
 
             # run trial
             trial_meta_data =  self.hydra_wandb_runner.run(trial)
@@ -253,6 +250,17 @@ class NAS:
         evaluate(ax_client=self.ax_client, device=self.device,step=i)
 
     
+    def get_next_trial(self):
+        # get next trial
+        start = timeit.default_timer()
+        # trial = ({
+        #     '0_reflection': 0, '0_group': 3, '0_out_channels': 3, '0_kernel_size': 1, '1_reflection': 0, '1_group': 1, '1_num_layers': 2, '1_conv_op': 'conv', '1_kernel_size': 1, '1_se_ratio': 0, '1_out_channels': 4, '2_reflection': 0, '2_group': 1, '2_num_layers': 1, '2_conv_op': 'conv', '2_kernel_size': 1, '2_se_ratio': 1, '2_out_channels': 1, '3_reflection': 0, '3_group': 1, '3_num_layers': 1, '3_conv_op': 'mbconv', '3_kernel_size': 1, '3_se_ratio': 0, '3_out_channels': 4, '4_reflection': -1, '4_group': 1, '4_out_channels': 3, '4_kernel_size': 0, '1_skip_op': 'no', '2_skip_op': 'identity', '3_skip_op': 'identity'
+        # }, 0)
+        trial = self.ax_client.get_next_trial()
+        stop = timeit.default_timer()
+        generation_time = stop - start
+
+        return trial, generation_time
 
     def log(self, raw_data, generation_time, step):
         raw_data["generation_time"] = generation_time

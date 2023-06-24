@@ -45,32 +45,29 @@ def get_model(
         max_gflops = cfg.NAS.max_gflops
 
         assert max_building_time > 0, "max_building_time must be greater than 0"
+        logger.log({"model_building_time": max_building_time}, step=0, epoch=0)
         # we currently don't restrict the gflops
         # assert max_gflops > 0, "max_gflops must be greater than 0"
 
         # Define a function to handle the timeout
         def timeout_handler(signum, frame):
-            stats["model_building_time"] = max_building_time
-            logger.log(stats, step=0, epoch=0)
+            print("Model building time exceeded.")
             raise TimeoutError()
 
         # Set the signal handler for the timeout
         signal.signal(signal.SIGALRM, timeout_handler)
         signal.alarm(max_building_time)
         
-        # create model
-        try:
-            model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device)
-            # Cancel alarm
-            signal.alarm(0)
-            stats["model_building_time"] = model_building_time
-        except Exception as e:
-            # Cancel alarm
-            signal.alarm(0)
-            raise e
+        # create model  
+        model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device)
+        # Cancel alarm
+        signal.alarm(0)
+        logger.log({"model_building_time": model_building_time}, step=0, epoch=0)
         
-        stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs,
+        # flops
+        gflops = get_gflops(model, cfg.training.batch_size, n_inputs,
                         image_size, device=device, verbose=verbose)
+        logger.log({"GFLOPs": gflops}, step=0, epoch=0)
 
     ############################################################################
     # Both NAS and non-NAS

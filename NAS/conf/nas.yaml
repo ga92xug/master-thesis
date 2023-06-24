@@ -4,6 +4,10 @@ defaults:
 - search_space: mnist_rot
 - objective: mnist_rot
 
+# training:
+#   training.epochs: 1
+#   training.steps_per_epoch: 10
+
 exp_name: mnist_rot_2
 seed: 0
 
@@ -19,7 +23,7 @@ generation:
 
 runner:
   script_path: "experiment/main.py"
-  verbose: 0
+  verbose: 1
 
 other:
   evaluate_every: 25
