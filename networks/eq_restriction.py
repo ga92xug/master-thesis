@@ -115,6 +115,9 @@ class Restriction_Group_or_CNN():
                 invariant_map=True
             )
             self.out_type = len(in_type)
+            print("Switching to CNN.")
+            print("in_type", in_type)
+            print("out_type", self.out_type)
         elif self.is_cnn:
             # already in CNN
             self.setting = "cnn"

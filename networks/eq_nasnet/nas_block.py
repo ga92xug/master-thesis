@@ -9,6 +9,7 @@ import sys
 sys.path.append('../networks') # add parent directory
 
 from .util import (
+    BlockArgs,
     BlockDecoder,
     get_increase_factor,
     get_out_channels,
@@ -193,11 +194,10 @@ class NAS_Block(nn.Module):
     def __init__(
             self, 
             in_channels: int, 
-            block_args, 
-            image_size, 
-            restriction_correction_factor=1, 
-            dropout_rate=0.0,
-            expand_ratio=6
+            block_args: BlockArgs, 
+            image_size: int, 
+            dropout_rate: float = 0.0,
+            expand_ratio: int = 6
         ):
         """
         Args:
@@ -258,6 +258,8 @@ class NAS_Block(nn.Module):
         self._bn2 = nn.BatchNorm2d(num_features=out_channels)
         self._swish2 = nn.SiLU()
 
+        self.out_type = out_channels
+
         # Skip connection
         if block_args.skip == "conv" \
             or block_args.stride > 1 \
@@ -291,7 +293,7 @@ class NAS_Block(nn.Module):
 
         # Expansion and Depthwise Convolution
         x = inputs
-        if self._block_args.expand_ratio != 1:
+        if self.block_args.expand_ratio != 1:
             x = self._expand_conv(inputs)
             x = self._bn0(x)
             x = self._swish0(x)

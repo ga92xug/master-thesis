@@ -14,7 +14,7 @@ from .util import (
     round_repeats,
 )
 from networks.eq_restriction import Restriction_Group_or_CNN
-from networks.eq_nasnet.nas_block import Eq_NAS_Block, NAS_Block
+from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_Block, NAS_Block
 
 from networks import (
     EquivariantPool, 
@@ -174,19 +174,38 @@ class EquivariantNASNet(nn.Module):
             self.depth_divisor, 
             self.min_depth
         )
-        self._conv_head = Eq_Conv2dSamePaddingChangeFactor(
-            in_type=self.field_type, 
-            change_factor=channel_increase_factor * restriction_correction_factor, 
-            bias=False
-        )
-        self._bn1 = BatchNorm(in_type=self._conv_head.out_type)
-        self._swish1 = Swish(in_type=self._bn1.out_type)
+        out_channels = get_out_channels(
+                in_type=self.field_type, 
+                increase_factor=channel_increase_factor,
+                group=block_args.group,
+            )
+        
+        if self.restrict_last.setting in ["cnn", "switch"]:
+            self._conv_head = Conv2dSamePadding(
+                in_channels=self.field_type,
+                out_channels=out_channels,
+                kernel_size=last_block_args.kernel_size,
+                bias=False,
+            )
+            self._bn1 = nn.BatchNorm2d(out_channels)
+            self._swish1 = nn.SiLU()
 
-        # Final linear layer
-        self.invariant_map = EquivariantPool(
-            self._swish1.out_type, 
-            invariant_map=True
-        )
+        elif self.restrict_last.setting == "group": 
+            self._conv_head = Eq_Conv2dSamePadding(
+                in_type=self.field_type, 
+                out_channels=out_channels,
+                bias=False
+            )
+            self._bn1 = BatchNorm(in_type=self._conv_head.out_type)
+            self._swish1 = Swish(in_type=self._bn1.out_type)
+
+            # Final linear layer
+            self.invariant_map = EquivariantPool(
+                self._swish1.out_type, 
+                invariant_map=True
+            )
+        else:
+            raise NotImplementedError(f"This setting: {self.restrict_last.setting} is not implemented")
         # pooling
         print("pooling image size: ", image_size)
         assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
@@ -208,9 +227,12 @@ class EquivariantNASNet(nn.Module):
         # Head
         x = self.restrict_last(x)
         x = self._swish1(self._bn1(self._conv_head(x)))
+        # transfer to invariant if not already
+        if hasattr(self, "invariant_map"):
+            x = self.invariant_map(x)
+            x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
+
         # Pooling and final linear layer
-        x = self.invariant_map(x)
-        x = x.tensor  # extract tensor from GroupTensor before common Pytorch ops
         x = self._avg_pooling(x)
         x = x.flatten(start_dim=1)
         x = self.dropout(x)
@@ -229,20 +251,18 @@ class EquivariantNASNet(nn.Module):
         if setting in ["CNN", "switch"]:
             
             block = NAS_Block(
-                    in_channel_size=restrict.out_type,
+                    in_channel_size=self.field_type,
                     block_args=block_args,
                     image_size=image_size,
-                    restriction_correction_factor=restrict.get_correction_factor(),
                     dropout_rate=self.dropout_rate,
                     expand_ratio=self.cnn_expand_ratio,
                 )
         
         else:
             block = Eq_NAS_Block(
-                    self.field_type, 
-                    block_args, 
+                    in_type=self.field_type, 
+                    block_args=block_args, 
                     image_size=image_size,
-                    restriction_correction_factor=restrict.get_correction_factor(),
                     dropout_rate=self.dropout_rate,
                     expand_ratio=self.eq_expand_ratio,
                 )
