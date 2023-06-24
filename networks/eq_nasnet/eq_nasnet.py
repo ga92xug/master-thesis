@@ -7,11 +7,15 @@ import sys
 sys.path.append('../networks') # add parent directory
 
 from .util import (
+    BlockArgs,
     BlockDecoder,
     get_increase_factor,
     get_out_channels,
     round_repeats,
 )
+from networks.eq_restriction import Restriction_Group_or_CNN
+from networks.eq_nasnet.nas_block import Eq_NAS_Block, NAS_Block
+
 from networks import (
     EquivariantPool, 
     Restriction_from_id,
@@ -45,132 +49,6 @@ import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 
-class Eq_NAS_Block(EquivariantModule):
-    """
-    Block with variable content based on block_args.
-    """
-    def __init__(self, in_type, block_args, image_size, 
-                 restriction_correction_factor=1, dropout_rate=0.0,
-                 expand_ratio=2):
-        """
-        Args:
-        block_args (namedtuple): BlockArgs, defined in utils.py.
-        image_size (tuple or list): [image_height, image_width].
-        """
-        super().__init__()
-        self.block_args = block_args
-        self.original_in_type = in_type
-        self.has_se = 0 < block_args.se_ratio <= 1
-
-        self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
-
-        # Expansion phase
-        if self.expand_ratio != 1:
-            self._expand_conv = Eq_Conv2dSamePaddingChangeFactor(
-                in_type=in_type,
-                change_factor=self.expand_ratio * restriction_correction_factor,
-                kernel_size=1,
-                bias=False,
-            )
-            restriction_correction_factor = 1 # used up
-            self._bn0 = BatchNorm(in_type=self._expand_conv.out_type)
-            self._swish0 = Swish(in_type=self._bn0.out_type)
-            in_type = self._swish0.out_type
-
-        # Conv1
-        # potentially depthwise convolution
-        groups = len(in_type) if block_args.conv_op in ['mbconv', 'dconv'] else 1
-        self.conv1 = Eq_Conv2dSamePaddingChangeFactor(
-            in_type=in_type,
-            change_factor=restriction_correction_factor,
-            kernel_size=block_args.kernel_size,
-            groups=groups,
-            stride=block_args.stride,
-            bias=False,
-        )
-        self.bn1 = BatchNorm(in_type=self.conv1.out_type)
-        self.swish1 = Swish(in_type=self.bn1.out_type)
-        out_type = self.swish1.out_type
-        image_size = calculate_output_image_size(image_size, block_args.stride)
-
-        # Squeeze and Excitation layer
-        if self.has_se:
-            self.squeeze = EquivariantSqueezeExcitation(
-                in_type=out_type,
-                sequeeze_ratio=block_args.se_ratio
-            )
-            out_type = self.squeeze.out_type
-
-        # Conv2
-        # potentially pointwise convolution
-        kernel_size = 1 if block_args.conv_op in ['mbconv', 'dconv'] else block_args.kernel_size
-        self.conv2 = Eq_Conv2dSamePaddingChangeFactor(
-            in_type=out_type,
-            change_factor=block_args.channel_increase_factor,
-            kernel_size=kernel_size,
-            bias=False,
-        )
-        self.bn2 = BatchNorm(in_type=self.conv2.out_type)
-        self.out_type = self.bn2.out_type
-
-        # Skip connection
-        if block_args.skip == "conv" \
-            or block_args.stride > 1 \
-            or self.in_type != self.out_type:
-            # for larger strides or group changes we have to use a conv layer
-            self.shortcut = EquivariantConv(
-                in_type=self.original_in_type,
-                out_channels=len(self.bn2.out_type),
-                kernel_size=1,
-                padding=0,
-                stride=block_args.stride,
-                bias=False,
-            )
-        elif block_args.skip == "identity":
-            self.shortcut = nn.Identity()
-        elif block_args.skip == "no":
-            self.shortcut = None
-        elif block_args.skip == "pool":
-            self.shortcut = EquivariantPool(
-                in_type=self.original_in_type,
-                stride=block_args.stride,
-            )
-        else:
-            raise ValueError(f"Unsupported skip connection type. \
-                             Got: {block_args.skip}")
-
-        
-    def forward(self, inputs):
-        x = inputs
-        # Expansion
-        if self.expand_ratio != 1:
-            x = self._expand_conv(x)
-            x = self._bn0(x)
-            x = self._swish0(x)
-
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.swish1(x)
-
-        # Squeeze and Excitation
-        if self.has_se:
-            x = self.squeeze(x)
-
-        # Pointwise Convolution
-        x = self.conv2(x)
-        x = self.bn2(x)
-        
-        # Skip connection
-        if self.shortcut is not None:
-            #print("x", x.tensor.shape, "shortcut", shortcut_result.tensor.shape)
-            x = x + self.shortcut(inputs) # skip connection
-        return x
-
-    def evaluate_output_shape(self, input_shape: Tuple):
-        assert len(input_shape) == 4
-        assert input_shape[1] == self.original_in_type.size
-        return input_shape
-
 
 class EquivariantNASNet(nn.Module):
     def __init__(
@@ -183,7 +61,8 @@ class EquivariantNASNet(nn.Module):
             depth_divisor=8,
             min_depth=1,
             stem_channels=16,
-            expand_ratio=2,
+            eq_expand_ratio=2,
+            cnn_expand_ratio=6,
             input_channels=3, 
             num_classes=10, 
     ):
@@ -198,7 +77,8 @@ class EquivariantNASNet(nn.Module):
         self.dropout_rate = dropout_rate
         self.depth_divisor = depth_divisor
         self.min_depth = min_depth
-        self.expand_ratio = expand_ratio
+        self.eq_expand_ratio = eq_expand_ratio
+        self.cnn_expand_ratio = cnn_expand_ratio
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
         self.blocks_args = blocks_args
@@ -221,7 +101,7 @@ class EquivariantNASNet(nn.Module):
         # Stem
         print("Building stem")
         out_channels = get_out_channels(
-            input_channels=stem_channels,
+            in_type=stem_channels,
             increase_factor=stem_args.channel_increase_factor, 
             group=stem_args.group,
             width_coefficient=self.width_coefficient, 
@@ -260,35 +140,21 @@ class EquivariantNASNet(nn.Module):
                 ),
             )
             group_id = get_group_id(block_args.reflection, block_args.group)
-            restrict = Restriction_from_id(self.field_type,group_id)
+            restrict = Restriction_Group_or_CNN(self.field_type,group_id)
             self._blocks.append(restrict)
             self.field_type = restrict.out_type
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(
-                Eq_NAS_Block(
-                        self.field_type, 
-                        block_args, 
-                        image_size=image_size,
-                        restriction_correction_factor=restrict.get_correction_factor(),
-                        dropout_rate=self.dropout_rate,
-                        expand_ratio=self.expand_ratio,
-                    )
-            )
+            block = self.create_block(restrict, block_args, image_size)
+            self._blocks.append(block)
             self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, 
                                                      block_args.stride)
             if block_args.num_layers > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(stride=1, channel_increase_factor=1)
+            
             for _ in range(block_args.num_layers - 1):
-                self._blocks.append(
-                    Eq_NAS_Block(
-                        in_type=self.field_type, 
-                        block_args=block_args, 
-                        image_size=image_size, 
-                        dropout_rate=self.dropout_rate,
-                        expand_ratio=self.expand_ratio
-                    )
-                )
+                block = self.create_block(restrict, block_args, image_size)
+                self._blocks.append(block)
                 self.field_type = self._blocks[-1].out_type
 
 
@@ -297,8 +163,8 @@ class EquivariantNASNet(nn.Module):
         last_block_args = self.blocks_args[-1]
         # Restrict
         group_id = get_group_id(last_block_args.reflection, last_block_args.group)
-        self.restrict_last = Restriction_from_id(self.field_type, group_id)
-        restriction_correction_factor = self.restrict_last.get_correction_factor()
+        self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)
+        #restriction_correction_factor = self.restrict_last.get_correction_factor()
         self.field_type = self.restrict_last.out_type
 
         # Head
@@ -350,3 +216,35 @@ class EquivariantNASNet(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         return x
+
+
+    def create_block(
+        self,
+        restrict: nn.Module,
+        block_args: BlockArgs,
+        image_size: Tuple[int, int],
+
+    ):  
+        setting = restrict.setting
+        if setting in ["CNN", "switch"]:
+            
+            block = NAS_Block(
+                    in_channel_size=restrict.out_type,
+                    block_args=block_args,
+                    image_size=image_size,
+                    restriction_correction_factor=restrict.get_correction_factor(),
+                    dropout_rate=self.dropout_rate,
+                    expand_ratio=self.cnn_expand_ratio,
+                )
+        
+        else:
+            block = Eq_NAS_Block(
+                    self.field_type, 
+                    block_args, 
+                    image_size=image_size,
+                    restriction_correction_factor=restrict.get_correction_factor(),
+                    dropout_rate=self.dropout_rate,
+                    expand_ratio=self.eq_expand_ratio,
+                )
+            
+        return block

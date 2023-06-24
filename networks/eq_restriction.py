@@ -1,5 +1,5 @@
 from operator import is_
-from typing import Tuple, List
+from typing import Tuple, List, Union
 from torch import nn
 import numpy as np
 import sys
@@ -97,32 +97,46 @@ class Restriction_from_id(EquivariantModule):
 
 
 class Restriction_Group_or_CNN():
+    """
+    Restriction for the group or switch to CNN.
+    """
     def __init__(
-        self, in_type: FieldType, group_id: Tuple,
+        self, 
+        in_type: Union[FieldType, int], 
+        group_id: Tuple,
     ):
         self.is_cnn = group_id[0] == 0
 
-        if self.is_cnn:
-            # CNN
-            pass
+        if self.is_cnn and isinstance(in_type, FieldType):
+            # switch to CNN
+            self.setting = "switch"
             self.invariant_map = EquivariantPool(
                 in_type, 
                 invariant_map=True
             )
-            channels = len(in_type)
+            self.out_type = len(in_type)
+        elif self.is_cnn:
+            # already in CNN
+            self.setting = "cnn"
+            self.out_type = in_type
         else:
             # group
+            self.setting = "group"
+            assert isinstance(in_type, FieldType), \
+            "If we are in the group setting, in_type has to be a FieldType."
             self.restrict = Restriction_from_id(in_type, group_id)
             self.out_type = self.restrict.out_type
         
 
     def forward(self, x):
-        if self.is_cnn:
-            pass
+        if self.setting == "switch":
+            x = self.invariant_map(x)
+            return x.tensor
+        elif self.setting == "cnn":
+            return x
         else:
-            pass
+            return self.restrict(x)
 
-        return self.restrict(x)
 
     def evaluate_output_shape(self, input_shape: Tuple):
         assert len(input_shape) == 4

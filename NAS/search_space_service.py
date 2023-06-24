@@ -183,7 +183,7 @@ class Eq_Search_Space:
         return {
             "name": f"{block_id}_skip_op",
             "type": "choice",
-            "values": ["identity", "no"],
+            "values": ["identity", "conv"],
         }
 
     def get_out_channels(self, block_id):

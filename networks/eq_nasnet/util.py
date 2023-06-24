@@ -1,13 +1,15 @@
 import re
 import math
 import collections
-from typing import Tuple
+from typing import Tuple, Union
 import torch
 from torch import nn
 from torch.nn import functional as F
 import sys
+
 sys.path.append('../networks') # add parent directory
 
+from nn import FieldType
 
 CHANNELS_CONSTANT = 1
 
@@ -25,7 +27,7 @@ BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
 def get_out_channels(
-        input_channels: int,
+        in_type: Union[int, FieldType],
         increase_factor: float,
         group: int, 
         width_coefficient, 
@@ -40,25 +42,13 @@ def get_out_channels(
     Returns:
         new_filters: New filters number after calculating.
     """
-    increased_channels = input_channels * increase_factor
+    if isinstance(in_type, FieldType):
+        in_type = len(in_type)
+    increased_channels = in_type * increase_factor
     out_channels = (increased_channels / group) * math.sqrt(group)
 
-    multiplier = width_coefficient
-    if multiplier == 1:
-        return int(round(out_channels))
-    # TODO: modify the params names.
-    #       maybe the names (width_divisor,min_width)
-    #       are more suitable than (depth_divisor,min_depth).
-    divisor = depth_divisor
-    min_depth = min_depth
-    out_channels *= multiplier
-    min_depth = min_depth or divisor  # pay attention to this line when using min_depth
-    # follow the formula transferred from official TensorFlow implementation
-    new_out_channels = max(min_depth, int(out_channels + divisor / 2) // divisor * divisor)
-    if new_out_channels < 0.9 * input_channels:  # prevent rounding by more than 10%
-         new_out_channels += divisor
-    # new_filters /= rotation
-    return int(round(new_out_channels))
+    return int(round(out_channels))
+    
 
 def get_increase_factor(
         increase_factor: float,
@@ -69,8 +59,21 @@ def get_increase_factor(
     multiplier = width_coefficient
     if multiplier == 1:
         return increase_factor
-    else:
-        raise ValueError("Not implemented yet.")
+    
+    # TODO: modify the params names.
+    #       maybe the names (width_divisor,min_width)
+    #       are more suitable than (depth_divisor,min_depth).
+    divisor = depth_divisor
+    min_depth = min_depth
+    out_channels *= multiplier
+    min_depth = min_depth or divisor  # pay attention to this line when using min_depth
+    # follow the formula transferred from official TensorFlow implementation
+    new_out_channels = max(min_depth, int(out_channels + divisor / 2) // divisor * divisor)
+    if new_out_channels < 0.9 * in_type:  # prevent rounding by more than 10%
+         new_out_channels += divisor
+    # new_filters /= rotation
+    return int(round(new_out_channels))
+        
 
 
 def round_repeats(repeats, depth_coefficient):
