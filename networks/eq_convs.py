@@ -11,6 +11,9 @@ from nn import (
     FieldType,
     EquivariantModule,
     R2Conv,
+    PointwiseAdaptiveAvgPool,
+    Swish,
+    NormNonLinearity,
 )
 from nn.modules import nonlinearities
 
@@ -223,6 +226,8 @@ class EquivariantSqueezeExcitation(EquivariantModule):
     ):
         super(EquivariantSqueezeExcitation, self).__init__()
         self.in_type = in_type
+        
+        self.avgpool = PointwiseAdaptiveAvgPool(self.in_type, 1)
 
         self.conv1 = EquivariantConvChangeFactor(
             in_type=self.in_type, 
@@ -231,26 +236,36 @@ class EquivariantSqueezeExcitation(EquivariantModule):
             padding=0
         )
 
+        self.act_func = Swish(self.conv1.out_type)
+
         self.conv2 = EquivariantConvChangeFactor(
-            self.conv1.out_type, 
+            self.act_func.out_type, 
             change_factor=1/sequeeze_ratio, 
             kernel_size=1, 
             padding=0
         )
 
-        self.out_type = self.conv2.out_type
+        self.scale_activation = NormNonLinearity(
+            self.conv2.out_type, function="n_sigmoid"
+        )
+
+        self.out_type = self.scale_activation.out_type
+
+    def _scale(self, input: GroupTensor):
+        scale = self.avgpool(input)
+        scale = self.conv1(scale)
+        scale = self.act_func(scale)
+        scale = self.conv2(scale)
+        return self.scale_activation(scale)
 
     def forward(self, input: GroupTensor):
-        x = self.conv1(input)
-        x = self.conv2(x)
-        return x
+        scale = self._scale(input)
+        return GroupTensor(scale.tensor * input.tensor, self.out_type)
 
     def evaluate_output_shape(self, input_shape: Tuple):
         assert len(input_shape) == 4
         assert input_shape[1] == self.in_type.size
         return input_shape
-    
-
     
 class Eq_Conv2dSamePadding(EquivariantModule):
     def __init__(
