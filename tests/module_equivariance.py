@@ -39,10 +39,8 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
             conv_block = EquivariantWideConvBlock(
                 in_type=input_field_type,
                 out_channels=16,
-                #frequency=rot,
                 kernel_layout=[3,1,3],
                 padding=1,
-                #num_groups=4,
             ).cuda()
             print("\nConv Block:")
             conv_block.check_equivariance()
