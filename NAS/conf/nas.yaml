@@ -1,14 +1,14 @@
 defaults:
 - _self_
-- training: mnist_rot
-- search_space: mnist_rot
-- objective: mnist_rot
+- training: cifar10
+- search_space: cifar10
+- objective: cifar10
 
 # training:
 #   training.epochs: 1
 #   training.steps_per_epoch: 10
 
-exp_name: mnist_rot_2
+exp_name: cifar10_1
 seed: 0
 
 generation:

@@ -203,13 +203,14 @@ class NAS:
                 trial_index=trial_meta_data["trial_index"])
 
             # sync data to Ax
-            if len(ax_data) == 0 or ax_data["model_building_time"] < self.cfg.objective.max_building_time:
+            if len(ax_data) == 0 or \
+                (len(ax_data) == 1 and ax_data["model_building_time"] < self.cfg.objective.max_building_time):
                 # abandon trial
                 self.ax_client.abandon_trial(
                     trial_index=trial_meta_data["trial_index"], 
                 )
                 wandb.log({"Abandon trial": 1}, step=i)
-                UserWarning("Abandon trial this behavior is not expected.")
+                print("Abandon trial this behavior is not expected.")
                 # i -= 1
 
             elif len(ax_data) in [1, 2]:
@@ -265,11 +266,9 @@ class NAS:
     def log(self, raw_data, generation_time, step):
         raw_data["generation_time"] = generation_time
         wandb.log(raw_data, step=step, commit=True)
-        #wandb.log({"generation_time": generation_time}, step=step, commit=True)
 
-        if self.cfg.other.verbose >= 1:
+        if self.cfg.other.verbose >= 2:
             print(f"Generation time: {generation_time:.2f} seconds")
-            print(f"Metrics: {raw_data}")
 
 
     def init_generation_strategy(self):
