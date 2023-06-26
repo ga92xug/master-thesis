@@ -4,7 +4,7 @@ import torch
 
 from ..equivariant_module import EquivariantModule
 from group_theory import CyclicGroup
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 __all__ = ["VectorFieldNonLinearity"]
 
@@ -24,7 +24,7 @@ class VectorFieldNonLinearity(EquivariantModule):
             in_type (FieldType): the input field type
 
         """
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         assert isinstance(in_type.gspace.fibergroup, CyclicGroup)
         assert in_type.gspace.fibergroup.rotation_order > 1

@@ -1,0 +1,10 @@
+batch_size: 128                # Number of examples to process in a batch during training
+eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+epochs: 200                    # Number of training epochs
+augment_train: False  
+
+
+scheduler:
+  __target__: 'torch.optim.lr_scheduler.MultiStepLR'
+  milestones: [60, 120, 180]
+  gamma: 0.2

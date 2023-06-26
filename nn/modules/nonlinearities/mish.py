@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -28,7 +28,7 @@ class Mish(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(Mish, self).__init__()
 

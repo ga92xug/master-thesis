@@ -1158,3 +1158,14 @@ class GroupElement(ABC):
 
         """
         return self._element
+
+    def to(self, param: str):
+        r"""
+            Converts the current group element to the input parametrization ``param`` and returns the corresponding
+            values.
+            .. note ::
+                This method does *not* return an instance of :class:`~escnn.group.GroupElement`.
+                This method does *not* affect the internal representation of the element, but just converts it to the
+                input ``param`` and returns the converted values.
+        """
+        return self.group._change_param(self._element, self.param, param)

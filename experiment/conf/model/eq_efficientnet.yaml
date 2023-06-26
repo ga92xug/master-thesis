@@ -1,0 +1,18 @@
+_target_: networks.EquivariantEfficientNet
+group: cyclic
+rotation: 8
+restrict: [null,null,null,null,null,halved,invariant,null]
+#restrict: null # "invariant", "reflection", "halved"
+fix_params_mode: "no" # "iter", "heuristic", "all", "no"
+global_params:
+  width_coefficient: 1
+  depth_coefficient: 1
+  drop_out: 0.2
+  batch_norm_momentum: 0.99
+  batch_norm_epsilon: 1e-3
+  drop_connect_rate: 0.2
+  depth_divisor: 12
+  min_depth: 1
+  include_top: True
+
+blocks_args: ['r1_k3_s11_e1_i32_o16_se0.25','r2_k3_s22_e6_i16_o24_se0.25','r2_k5_s22_e6_i24_o40_se0.25','r3_k3_s22_e6_i40_o80_se0.25','r3_k5_s11_e6_i80_o112_se0.25','r4_k5_s22_e6_i112_o192_se0.25','r1_k3_s11_e6_i192_o320_se0.25']

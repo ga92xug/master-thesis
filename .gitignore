@@ -1,9 +1,12 @@
 # Models 
-models/
+# models/
 imgs/
 sweeps/
 outputs/
+output/
 logs/
+scaling/figures
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -171,5 +174,14 @@ plots
 data
 .vscode
 norm_torch
-*.ipynb
+introduction_scaling_laws.ipynb
+parameter-test.ipynb
 test_equivalence.py
+
+# examples
+examples/
+
+multirun
+
+NAS/
+networks/e2_wide_resnet

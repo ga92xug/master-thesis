@@ -1,0 +1,12 @@
+__pycache__/
+
+datasets/*/*
+datasets/currently_unused
+
+!datasets/*/*.py
+!datasets/*/*.sh
+!datasets/*.py
+
+outputs/
+
+e2cnn_old_files/

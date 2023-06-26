@@ -1,0 +1,25 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: mnist_rot
+- scheduler: exponential
+
+batch_size: 64                # Number of examples to process in a batch during training
+eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+epochs: 40                    # Number of training epochs
+augment_train: False
+earlystop: False               # Whether to use early stopping based on a validation set     
+
+optimizer:
+  lr: 0.015
+  weight_decay: 0.0005
+
+
+scheduler:
+  gamma: 0.7
+
+# original:
+# adapt_lr: exponential                # Adaptive learning rate scheduler to use (exponential, validation, or Null)
+# lr_decay_start: 15            # Epoch to start adaptive learning rate decay
+# lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
+# lr_decay_epoch: 1             # Period (in epochs) between adaptive learning rate decay

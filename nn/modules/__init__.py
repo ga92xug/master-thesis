@@ -2,16 +2,14 @@ from .equivariant_module import EquivariantModule
 from .multiple_module import MultipleModule
 from .conv import R2Conv
 
-from .nonlinearities import GatedNonLinearity1
-from .nonlinearities import GatedNonLinearity2
-from .nonlinearities import InducedGatedNonLinearity
+from .nonlinearities import GatedNonLinearity1, GatedNonLinearity2
 from .nonlinearities import NormNonLinearity
-from .nonlinearities import InducedNormNonLinearity
 from .nonlinearities import PointwiseNonLinearity
 from .nonlinearities import VectorFieldNonLinearity
 from .nonlinearities import ReLU
 from .nonlinearities import ELU
 from .nonlinearities import Mish
+from .nonlinearities import Swish
 from .nonlinearities import FourierPointwise
 from .nonlinearities import FourierELU
 from .nonlinearities import QuotientFourierPointwise
@@ -30,7 +28,6 @@ from .pooling import PointwiseMaxPoolAntialiased
 from .invariantmaps import GroupPooling
 from .invariantmaps import MaxPoolChannels
 from .invariantmaps import NormPool
-from .invariantmaps import InducedNormPool
 
 from .restriction_module import RestrictionModule
 from .disentangle_module import DisentangleModule
@@ -47,14 +44,13 @@ __all__ = ["EquivariantModule", "MultipleModule"] + [
     "R2Conv",
     "GatedNonLinearity1",
     "GatedNonLinearity2",
-    "InducedGatedNonLinearity",
     "NormNonLinearity",
-    "InducedNormNonLinearity",
     "PointwiseNonLinearity",
     "VectorFieldNonLinearity",
     "ReLU",
     "ELU",
     "Mish",
+    "Swish",
     "FourierPointwise",
     "FourierELU",
     "QuotientFourierPointwise",
@@ -70,7 +66,6 @@ __all__ = ["EquivariantModule", "MultipleModule"] + [
     "GroupPooling",
     "MaxPoolChannels",
     "NormPool",
-    "InducedNormPool",
     "RestrictionModule",
     "DisentangleModule",
     "FieldDropout",

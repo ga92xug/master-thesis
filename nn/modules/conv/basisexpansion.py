@@ -276,7 +276,7 @@ class BasisExpansion(torch.nn.Module):
         if mask is None:
             mask = np.ones(len(basis), dtype=bool)
 
-        assert mask.shape == (len(basis),) and mask.dtype == np.bool
+        assert mask.shape == (len(basis),) and mask.dtype == bool
 
         if not mask.any():
             raise EmptyBasisException
@@ -362,8 +362,8 @@ class BasisExpansion(torch.nn.Module):
                 in_indices[io_pair][0] : in_indices[io_pair][1],
                 :,
             ] = _filter_block.reshape(
-                out_indices[io_pair][2],
-                in_indices[io_pair][2],
+                out_indices[io_pair][2].item(),
+                in_indices[io_pair][2].item(),
                 kernel_size,
             )
 

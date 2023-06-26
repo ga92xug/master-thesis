@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -25,8 +25,8 @@ class PointwiseDropout(EquivariantModule):
             inplace (bool, optional): can optionally do the operation in-place. Default: ``False``
 
         """
-
-        assert isinstance(in_type.gspace, GSpace)
+        
+        assert isinstance(in_type.gspace, GSpace2D)
         if p < 0 or p > 1:
             raise ValueError(
                 "dropout probability has to be between 0 and 1, but got {}".format(p)
@@ -58,8 +58,7 @@ class PointwiseDropout(EquivariantModule):
             the resulting feature map
 
         """
-
-        assert input.type == self.in_type
+        assert input.type == self.in_type, "input type is {}, but expected {}".format(input.type, self.in_type)
 
         output = F.dropout(input.tensor, self.p, self.training, self.inplace)
 

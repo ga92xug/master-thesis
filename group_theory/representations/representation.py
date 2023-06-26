@@ -683,7 +683,7 @@ def build_regular_representation(group: Group):
     character = {}
 
     for e in group._elements:
-        r = np.zeros((size, size), dtype=np.float)
+        r = np.zeros((size, size), dtype=float)
 
         for g in group._elements:
             eg = e @ g
@@ -723,7 +723,7 @@ def build_regular_representation(group: Group):
 
     P = directsum(irreps, name="irreps")
 
-    v = np.zeros((size, 1), dtype=np.float)
+    v = np.zeros((size, 1), dtype=float)
 
     p = 0
     for irr, m in multiplicities:

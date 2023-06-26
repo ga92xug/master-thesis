@@ -1,0 +1,49 @@
+defaults:
+- _self_
+- model: eq_wrn
+- training: cifar10-training
+
+# Dataset parameters        
+training:
+  compile: False
+  steps_per_epoch: -1
+  accumulate: 1
+  earlystop: False
+  dataset:
+    data_dir: '../Data/frischs/datasets/'  # Path to the datasets        
+    #augment: True                 # Augment the training set with rotated images
+    #interpolation: 2              # Type of interpolation to use for data augmentation
+    reshuffle: True               # Reshuffle train and valid splits instead of using the default split
+    workers: 8                    # Number of jobs to load the dataset
+    drop_last_train: False       # Drop the last batch if it is smaller than the batch size
+
+# Other experiment's parameters
+other:
+  eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
+  backup_model: False           # Backup the model in a file
+  plot_frequency: 100           # Plot frequency (counts iterations if positive, epochs if negative. Use -1 to plot at the end of each epoch)
+  store_plot: False              # Store the plot
+  show: False                   # Show the plot during training
+  backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
+  seed: 42                      # Seed for random number generators
+  output_path: 'experiment/outputs/'  # Path to the output directory
+  verbose: 2                    # Verbose Level
+  time_limit: null              # Maximum time limit for training (in Minutes)
+  should_test: True
+  gpu_time_limit: False
+
+
+
+# WandB
+wandb:
+  project: scaling-laws-eq         # Name of the wandb project
+  mode: online                  # For debugging disabled, online, offline
+  watch: False                  # For detailed weight analysis
+  # wandb_entity: Null          # Name of the wandb entity default is your username
+  notes: null
+  give_name: True
+  tags: null
+  group: null
+
+NAS:
+  trial_index: -1

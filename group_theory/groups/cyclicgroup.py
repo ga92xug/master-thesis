@@ -120,7 +120,7 @@ class CyclicGroup(Group):
 
         assert self.order() % order == 0, (
             "Error! The subgroups of a cyclic group have an order that divides the order of the supergroup."
-            " %d does not divide %d " % (order, self.order())
+            f" {order} does not divide {self.order()} " 
         )
 
         # Build the subgroup

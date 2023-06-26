@@ -4,7 +4,7 @@ import numpy as np
 
 from collections import defaultdict
 
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -50,7 +50,7 @@ class GatedNonLinearity2(EquivariantModule):
         assert isinstance(in_type[0], FieldType)
         assert isinstance(in_type[1], FieldType)
 
-        assert isinstance(in_type[0].gspace, GSpace)
+        assert isinstance(in_type[0].gspace, GSpace2D)
         assert in_type[0].gspace == in_type[1].gspace
 
         # the first is the representation of the gates

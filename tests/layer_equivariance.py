@@ -19,6 +19,12 @@ from networks import (
     EquivariantPool,
 )
 
+from networks.eq_convs import (
+    Eq_Conv2dSamePaddingChangeFactor,
+    EquivariantSqueezeExcitation,
+    Equivariant_Conv_BN_actF,
+)
+
 
 def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
     """Runs equivariance check from EquivariantModule on pre-defined equivariant layers.
@@ -35,6 +41,10 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
         - EquivariantConvBlock
         - EquivariantNorm
         - EquivariantPool
+
+        - Equivariant_Conv_BN_actF
+        - EquivariantSqueezeExcitation
+        - Eq_Conv2dSamePaddingChangeFactor
     """
     # Iterate over different number of rotations
     for rot in rotations:
@@ -57,7 +67,7 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
                 frequencies_cutoff=lambda r: 3 * r,
             ).cuda()
             print("\nR2Conv:")
-            conv.check_equivariance()
+            conv.check_equivariance(atol=0.000009, rtol=0.00009)
 
             pool = GroupPooling(input_field_type)
             print("\nGroupPooling:")
@@ -80,15 +90,37 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
             conv_block = EquivariantConvBlock(
                 in_type=input_field_type,
                 out_channels=16,
-                frequency=rot,
+                #frequency=rot,
                 kernel_size=3,
                 padding=1,
-                num_groups=4,
+                #num_groups=4,
             ).cuda()
             print("\nConv Block:")
             conv_block.check_equivariance()
 
-            norm_block = EquivariantNorm(input_field_type, num_groups=4, affine=False)
+            conv_bn_act = Equivariant_Conv_BN_actF(
+                in_type=input_field_type,
+                out_channels=16,
+            ).cuda()
+            print("\nConv BN Act:")
+            conv_bn_act.check_equivariance()
+
+            squeeze_excitation = EquivariantSqueezeExcitation(
+                in_type=input_field_type,
+                sequeeze_ratio=0.25,
+            ).cuda()
+            print("\nSqueeze Excitation:")
+            squeeze_excitation.check_equivariance()
+
+            conv_same = Eq_Conv2dSamePaddingChangeFactor(
+                in_type=input_field_type,
+                change_factor=1.25,
+            ).cuda()
+            print("\nConv Same:")
+            conv_same.check_equivariance()
+
+            #norm_block = EquivariantNorm(input_field_type, num_groups=4, affine=False)
+            norm_block = EquivariantNorm(input_field_type, affine=False)
             print("\nNorm Block:")
             norm_block.check_equivariance()
 

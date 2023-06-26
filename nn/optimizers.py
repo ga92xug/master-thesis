@@ -8,13 +8,13 @@ from typing import Callable, List, Optional, Union
 import torch
 from torch.optim import Optimizer
 
-from opacus.optimizers import DPOptimizer
+#from opacus.optimizers import DPOptimizer
 
 
 logger = logging.getLogger(__name__)
 
-
-class AdaClipDPOptimizer(DPOptimizer):
+class AdaClipDPOptimizer():
+#class AdaClipDPOptimizer(DPOptimizer):
     """
     :class:`~opacus.optimizers.optimizer.DPOptimizer` that implements
     adaptive clipping strategy

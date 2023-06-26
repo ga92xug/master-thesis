@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -39,7 +39,7 @@ class PointwiseAvgPool(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
         assert in_type.gspace.dimensionality == 2
 
         # for r in in_type.representations:

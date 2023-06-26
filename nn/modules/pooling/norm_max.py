@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from torch.nn import Parameter
 
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -43,7 +43,7 @@ class NormMaxPool(EquivariantModule):
             ceil_mode: when ``True``, will use ceil instead of floor to compute the output shape
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
         assert in_type.gspace.dimensionality == 2
 
         super(NormMaxPool, self).__init__()

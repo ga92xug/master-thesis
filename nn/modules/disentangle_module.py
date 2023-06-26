@@ -1,4 +1,4 @@
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 import torch
 import numpy as np
@@ -33,7 +33,7 @@ class DisentangleModule(EquivariantModule):
 
         """
         assert isinstance(in_type, FieldType)
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(EquivariantModule, self).__init__()
 

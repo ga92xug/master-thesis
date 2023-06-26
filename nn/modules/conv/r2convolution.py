@@ -142,9 +142,9 @@ class R2Conv(_RdConv):
                                     the parameters in :attr:`~nn.R2Conv.bias`
         
         """
-
         assert isinstance(in_type.gspace, GSpace2D)
         assert isinstance(out_type.gspace, GSpace2D)
+
 
         (
             basis_filter,
@@ -168,7 +168,7 @@ class R2Conv(_RdConv):
             bias,
             basis_filter,
         )
-
+        
         if initialize:
             # by default, the weights are initialized with a generalized form of He's weight initialization
             generalized_he_init(self.weights.data, self.basisexpansion)
@@ -179,9 +179,9 @@ class R2Conv(_RdConv):
         return self.space.build_kernel_basis(
             in_repr,
             out_repr,
-            self._sigma,
-            self._rings,
-            maximum_frequency=self._maximum_frequency,
+            self._sigma, # None
+            self._rings, # None
+            maximum_frequency=self._maximum_frequency, # lambda r: 3 * r
         )
 
     def forward(self, input: GroupTensor):
@@ -204,7 +204,7 @@ class R2Conv(_RdConv):
         else:
             # Retrieve filter and bias
             _filter, _bias = self.expand_parameters()
-
+        
         # Use filter for convolution and return result
         if self.padding_mode == "zeros":
             output = conv2d(

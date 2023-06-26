@@ -1,0 +1,19 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: galaxy10
+- scheduler: multi_step_lr 
+
+batch_size: 128                # Number of examples to process in a batch during training
+eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+epochs: 50                    # Number of training epochs
+augment_train: False     
+
+optimizer:
+  lr: 0.01
+  weight_decay: 1e-6
+  betas: [0.9,0.999]
+
+scheduler:
+  gamma: 0.02
+  milestones: [0, 25]

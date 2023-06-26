@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from .equivariant_module import EquivariantModule
-from nn import GSpace, GroupTensor, FieldType
+from nn import GSpace2D, GroupTensor, FieldType
 
 import torch
 from typing import List, Tuple, Any
@@ -37,7 +37,7 @@ class RestrictionModule(EquivariantModule):
 
         """
         assert isinstance(in_type, FieldType)
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(EquivariantModule, self).__init__()
 

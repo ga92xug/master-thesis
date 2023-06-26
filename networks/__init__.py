@@ -1,24 +1,40 @@
-from .eq_layers import (
-    Restriction,
-    EquivariantConv,
+from .eq_other import (
     EquivariantNorm,
     EquivariantPool,
-    EquivariantConvBlock,
-    EquivariantWideConvBlock,
-    EquivariantSqueezeExcitation,
 )
-from .eq_resnet9 import EquivariantResNet9
-from .eq_wrn import EquivariantWideResNet
+from .eq_restriction import (
+    Restriction,
+    Restriction_from_id,
+)
+from .eq_convs import (
+    EquivariantConv,
+    EquivariantConvBlock,
+    EquivariantSqueezeExcitation,
+    Equivariant_Conv_BN_actF,
+    Eq_Conv2dSamePadding,
+    Eq_Conv2dSamePaddingChangeFactor,
+)
+from .util import (
+    get_width_and_height_from_size,
+    calculate_output_image_size,
+    cuda_memory_usage,
+)
 
 __all__ = [
+    # eq_other
     "Restriction",
-    "EquivariantConv",
+    "Restriction_from_id",
     "EquivariantNorm",
     "EquivariantPool",
+    # eq_convs
+    "EquivariantConv",
     "EquivariantConvBlock",
-    "EquivariantWideConvBlock",
     "EquivariantSqueezeExcitation",
-] + [
-    "EquivariantResNet9",
-    "EquivariantWideResNet",
+    "Equivariant_Conv_BN_actF",
+    "Eq_Conv2dSamePadding",
+    "Eq_Conv2dSamePaddingChangeFactor",  
+    # util
+    "get_width_and_height_from_size",
+    "calculate_output_image_size",
+    "cuda_memory_usage",
 ]

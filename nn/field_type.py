@@ -16,7 +16,7 @@ __all__ = ["FieldType"]
 class FieldType:
     def __init__(
         self,
-        gspace: nn.GSpace,
+        gspace: nn.GSpace2D,
         representations: Union[Tuple[Representation], List[Representation]],
     ):
         r"""

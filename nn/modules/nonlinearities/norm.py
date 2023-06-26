@@ -2,7 +2,7 @@ from collections import defaultdict
 
 from torch.nn import Parameter
 
-from nn import GSpace, FieldType, GroupTensor
+from nn import GSpace2D, FieldType, GroupTensor
 
 from ..equivariant_module import EquivariantModule
 
@@ -35,7 +35,7 @@ class NormNonLinearity(EquivariantModule):
 
         """
 
-        assert isinstance(in_type.gspace, GSpace)
+        assert isinstance(in_type.gspace, GSpace2D)
 
         super(NormNonLinearity, self).__init__()
 
@@ -93,6 +93,7 @@ class NormNonLinearity(EquivariantModule):
                 torch.zeros(1, len(self.in_type), 1, 1, dtype=torch.float),
                 requires_grad=True,
             )
+            self.log_bias.data = self.log_bias.data.to(f"cuda:{torch.cuda.current_device()}")
         else:
             self.log_bias = None
 
