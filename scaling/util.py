@@ -70,7 +70,10 @@ def download_data(entity, project, run_ids):
         #train_times.append(run.summary.get('train_time', 0))  # Replace 'train_time' with the actual key name
 
         # GFLOPs
-        gflops.append(run.history(keys=['GFLOPs']).values[:, 1][0])
+        try:
+            gflops.append(run.history(keys=['GFLOPs']).values[:, 1][0])
+        except:
+            pass
 
     return valid_accs, total_params, gflops
 
@@ -146,6 +149,9 @@ def plot_flops(gflops, labels, title):
     name = title.replace(' ', '_').lower()
     save_plot(plt, "flops", title)
     plt.show()
+
+
+
 
 def binary_search_over_model_scaling(
         search_param, scale_param, scaling_factor, initial_range, constraint_func,

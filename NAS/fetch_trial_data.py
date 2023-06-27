@@ -54,7 +54,7 @@ class TrialDataFetcher():
 
         # Create a new table
         self.cursor.execute('''
-            CREATE TABLE run_metrics (
+            CREATE TABLE IF NOT EXISTS run_metrics (
                 trial_index TEXT PRIMARY KEY,
                 gflops REAL,
                 valid_acc REAL,

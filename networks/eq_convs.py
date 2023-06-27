@@ -238,9 +238,9 @@ class EquivariantSqueezeExcitation(EquivariantModule):
 
         self.act_func = Swish(self.conv1.out_type)
 
-        self.conv2 = EquivariantConvChangeFactor(
+        self.conv2 = EquivariantConv(
             self.act_func.out_type, 
-            change_factor=1/sequeeze_ratio, 
+            len(self.in_type),
             kernel_size=1, 
             padding=0
         )

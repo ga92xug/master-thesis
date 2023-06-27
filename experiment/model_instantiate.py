@@ -4,9 +4,13 @@ import timeit
 import torch
 from omegaconf import DictConfig
 from fvcore.nn import FlopCountAnalysis, flop_count_table
+import sys
+import os
+
+sys.path.append(f"{os.getcwd()}")
+from experiment.utils import build_dataloaders
 from networks.util import get_param_count
 from experiment.log import Log
-
 
 CUDA_CREATE_MULTIPLIER = 2.0
 CUDA_CALCULATE_MULTIPLIER = 1.2
@@ -87,7 +91,8 @@ def get_model(
     if verbose >= 3:
         print(model)
 
-    logger.log(stats, step=0, epoch=0)
+    if logger is not None:
+        logger.log(stats, step=0, epoch=0)
     return model, stats
 
 
@@ -103,8 +108,6 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
     return gflops
 
 
-
-
 def init_model(cfg, n_inputs, n_outputs, image_size, device):
     start = timeit.default_timer()
     model = hydra.utils.instantiate(
@@ -117,3 +120,24 @@ def init_model(cfg, n_inputs, n_outputs, image_size, device):
     model_building_time = stop - start
     return model, model_building_time
     
+
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+def test_instantiate(cfg: DictConfig) -> None:
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+    _dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
+    is_nas = cfg.NAS.trial_index != -1
+    # model
+    model, stats = get_model(
+        cfg=cfg, 
+        n_inputs=n_inputs, 
+        n_outputs=n_outputs, 
+        image_size=cfg.training.dataset.resolution,
+        device=device,
+        logger=None,
+        verbose=0,
+    )
+    print(stats)
+
+
+if __name__ == "__main__":
+    test_instantiate()

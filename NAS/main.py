@@ -106,6 +106,12 @@ class NAS:
 
         if not self.cfg.other.restart and os.path.exists(self.json_store["ax_client"]):
             self.ax_client = AxClient.load_from_json_file(filepath=self.json_store["ax_client"])
+
+            self.ax_client.experiment.fetch_data()
+            df = exp_to_df(self.ax_client.experiment).sort_values(by=["trial_index"])
+            count_trials = df[df['trial_status'] != 'ABANDONED'].shape[0]
+            self.num_trials = self.cfg.generation.num_total_trials - count_trials
+
             # Get run id from json store
             with open(self.json_store["wandb_run_id"], 'r') as f:
                 wandb_run_id = json.load(f)['wandb_run_id']
@@ -121,6 +127,7 @@ class NAS:
                 generation_strategy=self.generation_strategy,
                 random_seed=self.cfg.seed,
             )
+            self.num_trials = self.cfg.generation.num_total_trials
             # init wandb
             self.run = init_wandb(run_id=None, cfg=self.cfg, wandb_config=self.wandb_config)
             # connect to db
@@ -188,7 +195,7 @@ class NAS:
     
     def main_optim_loop(self):
         # Running optimization trials
-        for i in range(self.cfg.generation.num_total_trials):
+        for i in range(self.num_trials):
             if self.cfg.other.verbose >= 1:
                 print(f"Trial: {i}")
 
@@ -211,7 +218,7 @@ class NAS:
                 )
                 wandb.log({"Abandon trial": 1}, step=i)
                 print("Abandon trial this behavior is not expected.")
-                # i -= 1
+                i -= 1
 
             elif len(ax_data) in [1, 2]:
                 # early stop trial 

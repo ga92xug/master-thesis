@@ -337,6 +337,9 @@ class EquivariantNASNet(nn.Module):
         x = self._swish0(self._bn0(self._conv_stem(x)))
         # Blocks
         for idx, restrict_or_MBBlock in enumerate(self._blocks):
+            
+            # if isinstance(restrict_or_MBBlock, Eq_NAS_Block):
+            #     print(f"Running block: {idx}")
             x = restrict_or_MBBlock(x)
 
         # Head
