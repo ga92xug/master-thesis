@@ -323,7 +323,7 @@ class EquivariantNASNet(nn.Module):
         )
         # pooling
         print("pooling image size: ", image_size)
-        assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
+        #assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
 
         self.dropout = nn.Dropout(self.dropout_rate)

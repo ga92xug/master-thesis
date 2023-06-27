@@ -77,8 +77,6 @@ class NAS:
             #"generation_strategy": f"{self.save_folder}/ax_generation_strategy.json",
             "wandb_run_id": f"{self.save_folder}/wandb_run_id.json",
         }
-        # Generation strategy
-        self.init_generation_strategy()
         # Data fetcher
         self.data_fetcher = TrialDataFetcher(
             entity=self.cfg.wandb.entity,
@@ -87,13 +85,10 @@ class NAS:
             exp_name=self.cfg.exp_name,
             max_gflops=self.cfg.objective.max_gflops,
             max_building_time=self.cfg.objective.max_building_time,
+            db_location=self.save_folder,
         )
         # Ax client
         self.init_ax_client()
-        # Search space
-        self.init_search_space()
-        # Experiment
-        self.init_experiment()        
         # Runner
         self.init_runner()
 
@@ -107,8 +102,10 @@ class NAS:
         if not self.cfg.other.restart and os.path.exists(self.json_store["ax_client"]):
             self.ax_client = AxClient.load_from_json_file(filepath=self.json_store["ax_client"])
 
+            # number of trials
             self.ax_client.experiment.fetch_data()
             df = exp_to_df(self.ax_client.experiment).sort_values(by=["trial_index"])
+            print(df)
             count_trials = df[df['trial_status'] != 'ABANDONED'].shape[0]
             self.num_trials = self.cfg.generation.num_total_trials - count_trials
 
@@ -121,12 +118,15 @@ class NAS:
             # connect to db
             self.data_fetcher.connect_to_db(reset=False)
         else:
+            # Generation strategy
+            self.init_generation_strategy()
             # setup ax client
             os.makedirs(self.save_folder, exist_ok=True)
             self.ax_client = AxClient(
                 generation_strategy=self.generation_strategy,
                 random_seed=self.cfg.seed,
             )
+            # number of trials
             self.num_trials = self.cfg.generation.num_total_trials
             # init wandb
             self.run = init_wandb(run_id=None, cfg=self.cfg, wandb_config=self.wandb_config)
@@ -135,6 +135,11 @@ class NAS:
             # Save the run_id
             with open(self.json_store["wandb_run_id"], 'w') as f:
                 json.dump({'wandb_run_id': self.run.id}, f)
+
+            # Search space
+            self.init_search_space()
+            # Experiment
+            self.init_experiment()        
 
         
         self.run_id = self.run.id
