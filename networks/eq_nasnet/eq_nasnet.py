@@ -208,7 +208,7 @@ class EquivariantNASNet(nn.Module):
             raise NotImplementedError(f"This setting: {self.restrict_last.setting} is not implemented")
         # pooling
         print("pooling image size: ", image_size)
-        assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
+        #assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
 
         self.dropout = nn.Dropout(self.dropout_rate)
@@ -222,6 +222,9 @@ class EquivariantNASNet(nn.Module):
         x = self._swish0(self._bn0(self._conv_stem(x)))
         # Blocks
         for idx, restrict_or_MBBlock in enumerate(self._blocks):
+            
+            # if isinstance(restrict_or_MBBlock, Eq_NAS_Block):
+            #     print(f"Running block: {idx}")
             x = restrict_or_MBBlock(x)
 
         # Head

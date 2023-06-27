@@ -1,8 +1,10 @@
+import os
 import sys
 import matplotlib.pyplot as plt
+from numpy import save
 import pandas as pd
 import wandb
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, ticker
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from experiment.speed_test import main
@@ -54,6 +56,7 @@ def download_data(entity, project, run_ids):
     valid_accs = []
     total_params = []
     train_times = []
+    gflops = []
     
     # Download validation accuracy, total parameters, and train times for each run
     for run_id in run_ids:
@@ -66,8 +69,13 @@ def download_data(entity, project, run_ids):
         # Download train times
         #train_times.append(run.summary.get('train_time', 0))  # Replace 'train_time' with the actual key name
 
+        # GFLOPs
+        try:
+            gflops.append(run.history(keys=['GFLOPs']).values[:, 1][0])
+        except:
+            pass
 
-    return valid_accs, total_params, train_times
+    return valid_accs, total_params, gflops
 
 
 def smooth_data(data, window=5):
@@ -75,20 +83,29 @@ def smooth_data(data, window=5):
     smoothed_data = df.rolling(window=window, axis=1, min_periods=1).mean().values
     return smoothed_data
 
+def save_plot(figure, location, name, folder_name='figures/first_experiments'):
+    name = name.replace(' ', '_').lower()
+
+    if not os.path.exists(f'{folder_name}'):
+        os.makedirs(f'{folder_name}')
+
+    figure.savefig(f'{folder_name}/{location}_{name}.png', dpi=300, bbox_inches = "tight")
+
+
 def plot_validation_accuracy(valid_accs, lables, title):
     valid_accs = smooth_data(valid_accs)
-    plt.figure(figsize=(4, 3))
+    figure = plt.figure(figsize=(4, 3))
     for i, acc in enumerate(valid_accs):
         plt.plot(acc, label=lables[i], linewidth=3)
     plt.xlabel('Epoch', fontsize=label_size)
     plt.ylabel('Validation Accuracy', fontsize=label_size)
     plt.ylim(0.6, 1.0)
-    plt.title(title, fontsize=title_size, fontweight='bold')
+    #plt.title(title, fontsize=title_size, fontweight='bold')
     plt.legend()
     plt.grid(True)
     plt.yticks([0.6, 0.7, 0.8, 0.9, 1.0])
-    name = title.replace(' ', '_').lower()
-    plt.savefig(f'figures/valid_acc/{name}.png')
+
+    save_plot(figure, "valid_acc", title)
     plt.show()
 
 
@@ -97,11 +114,11 @@ def plot_total_parameters(total_params, labels, title):
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
     plt.bar(labels, total_params, color=colors)
     #plt.xlabel('Run ID')
-    plt.title('# Parameters', fontsize=title_size, fontweight='bold')
+    #plt.title('# Parameters', fontsize=title_size, fontweight='bold')
     #plt.title(title)
     #plt.grid(axis='y')
-    name = title.replace(' ', '_').lower()
-    plt.savefig(f'figures/params/{name}.png')
+    plt.ylabel('# Parameters')
+    save_plot(plt, "params", title)
     plt.show()
 
 def plot_train_times(train_times, labels, title):
@@ -109,12 +126,31 @@ def plot_train_times(train_times, labels, title):
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
     plt.bar(labels, train_times, color=colors)
     #plt.xlabel('Run ID')
-    plt.title('Train Time (seconds)', fontsize=title_size, fontweight='bold')
+    #plt.title('Train Time (seconds)', fontsize=title_size, fontweight='bold')
     #plt.title(title)
     #plt.grid(axis='y')
     name = title.replace(' ', '_').lower()
-    plt.savefig(f'figures/train_time/{name}.png')
+    save_plot(plt, "train_time", title)
     plt.show()
+
+def plot_flops(gflops, labels, title):
+    plt.figure(figsize=(2, 3))
+    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
+    plt.bar(labels, gflops, color=colors)
+
+    # Set the y-axis tick formatter
+    #formatter = ticker.FuncFormatter(lambda x, pos: f'{x / 1e2:.1f}')
+    #plt.gca().yaxis.set_major_formatter(formatter)
+    plt.ylabel('FLOPs')
+    #plt.xlabel('Run ID')
+    #plt.title('GFLOPs', fontsize=title_size, fontweight='bold')
+    #plt.title(title)
+    #plt.grid(axis='y')
+    name = title.replace(' ', '_').lower()
+    save_plot(plt, "flops", title)
+    plt.show()
+
+
 
 
 def binary_search_over_model_scaling(

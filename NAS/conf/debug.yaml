@@ -28,7 +28,7 @@ runner:
 other:
   evaluate_every: 5
   save_every: 1
-  restart: True
+  restart: False
   verbose: 0
 
 wandb:
