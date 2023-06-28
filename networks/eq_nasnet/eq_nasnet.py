@@ -2,6 +2,7 @@ import math
 import re
 from typing import List, Tuple
 from matplotlib.pyplot import stem
+from numpy import block
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
@@ -11,8 +12,9 @@ from .util import (
     BlockArgs,
     BlockDecoder,
     get_increase_factor,
-    get_out_channels,
+    get_fixed_out_channels,
     round_repeats,
+    get_channel_sizes,
 )
 from networks.eq_restriction import Restriction_Group_or_CNN
 from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_Block, NAS_Block
@@ -80,15 +82,11 @@ class EquivariantNASNet(nn.Module):
         self.cnn_expand_ratio = cnn_expand_ratio
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
-        self.channel_sizes = self.get_channel_sizes(stem_channels, blocks_args)
-        print(f"channel_sizes: {self.channel_sizes}")
-        self.blocks_args = blocks_args
+        self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient, depth_divisor, min_depth)
         stem_args = blocks_args[0]
 
         # Get group spaces for specified rotations and flips
-        self.reflection = stem_args.reflection
-        self.group = stem_args.group
-        group_id = get_group_id(self.reflection, self.group)
+        group_id = get_group_id(stem_args.reflection, stem_args.group)
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
 
@@ -101,20 +99,13 @@ class EquivariantNASNet(nn.Module):
 
         # Stem
         print("Building stem")
-        out_channels = get_out_channels(
-            in_type=stem_channels,
-            increase_factor=get_increase_factor(
-                stem_args.channel_increase_factor, 
-                self.width_coefficient,
-                self.depth_divisor, 
-                self.min_depth
-            ), 
-            new_rotation=stem_args.group,
-            is_first=True,
-        )
+        channel_size = get_fixed_out_channels(
+                out_channel = stem_args.out_channel,
+                rotation=stem_args.group,
+            )
         self._conv_stem = Eq_Conv2dSamePadding(
             in_type=self.input_field_type,
-            out_channels=out_channels,
+            out_channels=channel_size,
             kernel_size=stem_args.kernel_size,
             stride=stem_args.stride,
             bias=False,
@@ -122,6 +113,7 @@ class EquivariantNASNet(nn.Module):
         self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
         self._swish0 = Swish(in_type=self._bn0.out_type)
         self.field_type = self._swish0.out_type
+        self.prev_channel_size = stem_args.out_channel
         image_size = calculate_output_image_size(image_size, stem_args.stride)
 
         # Build blocks
@@ -132,12 +124,6 @@ class EquivariantNASNet(nn.Module):
             print(f"Building block: {i+1}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
-                channel_increase_factor=get_increase_factor(
-                    block_args.channel_increase_factor, 
-                    self.width_coefficient, 
-                    self.depth_divisor, 
-                    self.min_depth
-                ),
                 num_layers=round_repeats(
                     block_args.num_layers, 
                     self.depth_coefficient
@@ -150,16 +136,14 @@ class EquivariantNASNet(nn.Module):
             # The first block needs to take care of stride and filter size increase.
             block = self.create_block(restrict, block_args, image_size)
             self._blocks.append(block)
-            self.field_type = self._blocks[-1].out_type
             image_size = calculate_output_image_size(image_size, 
                                                      block_args.stride)
             if block_args.num_layers > 1:  # modify block_args to keep same output size
-                block_args = block_args._replace(stride=1, channel_increase_factor=1)
+                block_args = block_args._replace(stride=1)
             
             for _ in range(block_args.num_layers - 1):
                 block = self.create_block(restrict, block_args, image_size)
                 self._blocks.append(block)
-                self.field_type = self._blocks[-1].out_type
 
 
         # Build head
@@ -172,16 +156,9 @@ class EquivariantNASNet(nn.Module):
         self.field_type = self.restrict_last.out_type
 
         # Head
-        channel_increase_factor = get_increase_factor(
-            last_block_args.channel_increase_factor, 
-            self.width_coefficient,
-            self.depth_divisor, 
-            self.min_depth
-        )
-        out_channels = get_out_channels(
-                in_type=self.field_type, 
-                increase_factor=channel_increase_factor,
-                new_rotation=block_args.group,
+        out_channels = get_fixed_out_channels(
+                out_channel = last_block_args.out_channel,
+                rotation=block_args.group,
             )
         
         if self.restrict_last.setting in ["cnn", "switch"]:
@@ -216,17 +193,18 @@ class EquivariantNASNet(nn.Module):
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
 
         self.dropout = nn.Dropout(self.dropout_rate)
-        self.fc = nn.Linear(len(self._swish1.out_type), num_classes)
+        if self.restrict_last.setting in ["cnn", "switch"]:
+            self.fc = nn.Linear(out_channels, num_classes)
+        else:
+            self.fc = nn.Linear(len(self._swish1.out_type), num_classes)
 
 
     def forward(self, inputs):
         x = GroupTensor(inputs, self.input_field_type)
-
         # Stem
         x = self._swish0(self._bn0(self._conv_stem(x)))
         # Blocks
         for idx, restrict_or_MBBlock in enumerate(self._blocks):
-            
             # if isinstance(restrict_or_MBBlock, Eq_NAS_Block):
             #     print(f"Running block: {idx}")
             x = restrict_or_MBBlock(x)
@@ -254,7 +232,7 @@ class EquivariantNASNet(nn.Module):
         image_size: Tuple[int, int],
     ):  
         setting = restrict.setting
-        if setting in ["CNN", "switch"]:
+        if setting in ["cnn", "switch"]:
             
             block = NAS_Block(
                     in_channel_size=self.field_type,
@@ -266,23 +244,17 @@ class EquivariantNASNet(nn.Module):
         
         else:
             block = Eq_NAS_Block(
-                    in_type=self.field_type, 
+                    in_type=self.field_type,
+                    in_channel_size=self.prev_channel_size, 
                     block_args=block_args, 
                     image_size=image_size,
                     dropout_rate=self.dropout_rate,
                     expand_ratio=self.eq_expand_ratio,
                 )
+        self.prev_channel_size = block_args.out_channel
+        self.field_type = block.out_type
             
         return block
 
-    def get_channel_sizes(self, initial_channel_size, blocks_args):
-        channel_sizes = [initial_channel_size]
-        for block_args in blocks_args:
-            increase_factor = get_increase_factor(
-                block_args.channel_increase_factor, 
-                self.width_coefficient,
-                self.depth_divisor, 
-                self.min_depth
-            )
-            initial_channel_size.append(initial_channel_size[-1] * increase_factor)
-        return channel_sizes
+    
+

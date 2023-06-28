@@ -20,13 +20,44 @@ CHANNELS_CONSTANT = 1
 
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple('BlockArgs', [
-        'reflection', 'group', 'kernel_size', 'stride', 'channel_increase_factor',
+        'reflection', 'group', 'kernel_size', 'stride', 'out_channel',
         'num_layers', 'conv_op', 'se_ratio', 'skip'])
 # Set GlobalParams and BlockArgs's defaults
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
+def get_fixed_out_channels(
+        out_channel: int,
+        rotation: int, 
+    ):
+    if rotation == 0:
+        # CNN layer
+        return out_channel
 
-def get_out_channels(
+    out_channel = (out_channel / rotation) * math.sqrt(rotation)
+    out_channel = int(round(out_channel))
+
+    print(f"out_channel: {out_channel}")
+    return out_channel
+
+def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, depth_divisor, min_depth):
+    list_out_channel = []
+    old_channels = initial_channel_size
+    for i, block_args in enumerate(blocks_args):
+        # first in out_channels the increase factor is stored
+        # we change that to the actual out_channels
+        increase_factor = block_args.out_channel
+        if i == 0:
+            increase_factor += width_coefficient
+
+        out_channel = old_channels*increase_factor
+        blocks_args[i] = block_args._replace(out_channel=out_channel)
+        old_channels = out_channel
+        list_out_channel.append(out_channel)
+
+    print(f"list_out_channel: {list_out_channel}")
+    return blocks_args
+
+def get_fixed_out_channels2(
         in_type: Union[int, FieldType],
         increase_factor: float,
         new_rotation: int, 
@@ -74,15 +105,18 @@ def get_increase_factor(
         #print(f"increase_factor: {increase_factor}")
         return increase_factor
     
+    else:
+        return width_coefficient * increase_factor
+    
     # TODO: modify the params names.
     #       maybe the names (width_divisor,min_width)
     #       are more suitable than (depth_divisor,min_depth).
     divisor = depth_divisor
     min_depth = min_depth
-    out_channels *= multiplier
+    increase_factor *= multiplier
     min_depth = min_depth or divisor  # pay attention to this line when using min_depth
     # follow the formula transferred from official TensorFlow implementation
-    new_out_channels = max(min_depth, int(out_channels + divisor / 2) // divisor * divisor)
+    new_out_channels = max(min_depth, int(increase_factor + divisor / 2) // divisor * divisor)
     if new_out_channels < 0.9:  # prevent rounding by more than 10%
          new_out_channels += divisor
     # new_filters /= rotation
@@ -120,7 +154,7 @@ class BlockDecoder(object):
         reflection,
         kernel_size,
         group,
-        channel_increase_factor,
+        out_channel,
         stride,
         
         num_layers,
@@ -155,7 +189,7 @@ class BlockDecoder(object):
             # 0 - k-1 blocks have these params 
             kernel_size=                int(options['k']) if 'k' in options else None,
             stride=                     int(options['s']) if 's' in options else None,
-            channel_increase_factor=    int(options['o']) if 'o' in options else None,
+            out_channel=                int(options['o']) if 'o' in options else None,
             # only 1 - k-1 middle blocks have these params
             num_layers=                 int(options['n']) if 'n' in options else None,
             conv_op=                    str(options['c']) if 'c' in options else None,
@@ -205,9 +239,9 @@ class BlockDecoder(object):
         """
         
         for i, block in enumerate(blocks_args):
-            assert isinstance(block.channel_increase_factor, int) and block.channel_increase_factor > 0
+            assert isinstance(block.out_channel, int) and block.out_channel > 0
             assert isinstance(block.kernel_size, int) and block.kernel_size > 0
-            assert isinstance(block.group, int) and block.group > 0
+            assert isinstance(block.group, int) and block.group >= 0
             assert isinstance(block.reflection, int) and block.reflection in [-1,0]
 
             if i != len(blocks_args) - 1:

@@ -12,7 +12,7 @@ from .util import (
     BlockArgs,
     BlockDecoder,
     get_increase_factor,
-    get_out_channels,
+    get_fixed_out_channels,
     round_repeats,
 )
 from networks import (
@@ -52,7 +52,7 @@ class Eq_NAS_Block(EquivariantModule):
     """
     Block with variable content based on block_args.
     """
-    def __init__(self, in_type, block_args, image_size, 
+    def __init__(self, in_type, in_channel_size, block_args, image_size, 
                  dropout_rate=0.0,
                  expand_ratio=2):
         """
@@ -67,15 +67,16 @@ class Eq_NAS_Block(EquivariantModule):
 
         # Expansion phase
         self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
-        out_channels = get_out_channels(
-                in_type=in_type, 
-                increase_factor=self.expand_ratio,
-                new_rotation=block_args.group,
+        intermedite_channel_size = get_fixed_out_channels(
+                out_channel=in_channel_size,
+                rotation=block_args.group,
             )
+        intermedite_channel_size = intermedite_channel_size * self.expand_ratio
+        
         if self.expand_ratio != 1:
             self._expand_conv = Eq_Conv2dSamePadding(
                 in_type=in_type,
-                out_channels=out_channels,
+                out_channels=intermedite_channel_size,
                 kernel_size=1,
                 bias=False,
             )
@@ -88,7 +89,7 @@ class Eq_NAS_Block(EquivariantModule):
         groups = len(in_type) if block_args.conv_op in ['mbconv', 'dconv'] else 1
         self._conv1 = Eq_Conv2dSamePadding(
             in_type=in_type,
-            out_channels=out_channels,
+            out_channels=intermedite_channel_size,
             kernel_size=block_args.kernel_size,
             groups=groups,
             stride=block_args.stride,
@@ -110,14 +111,13 @@ class Eq_NAS_Block(EquivariantModule):
         # Conv2
         # potentially pointwise convolution
         kernel_size = 1 if block_args.conv_op in ['mbconv', 'dconv'] else block_args.kernel_size
-        out_channels = get_out_channels(
-                in_type=out_type, 
-                increase_factor=block_args.channel_increase_factor,
-                new_rotation=block_args.group,
+        end_channel_size = get_fixed_out_channels(
+                out_channel=block_args.out_channel,
+                rotation=block_args.group,
             )
         self._conv2 = Eq_Conv2dSamePadding(
             in_type=out_type,
-            out_channels=out_channels,
+            out_channels=end_channel_size,
             kernel_size=kernel_size,
             bias=False,
         )
@@ -139,6 +139,8 @@ class Eq_NAS_Block(EquivariantModule):
                 bias=False,
             )
         elif block_args.skip == "identity":
+            self.shortcut = nn.Identity()
+        elif block_args.skip == "no":
             self.shortcut = None
         elif block_args.skip == "pool":
             self.shortcut = EquivariantPool(
@@ -186,7 +188,7 @@ class Eq_NAS_Block(EquivariantModule):
 class NAS_Block(nn.Module):
     def __init__(
             self, 
-            in_channels: int, 
+            in_channel_size: int, 
             block_args: BlockArgs, 
             image_size: int, 
             dropout_rate: float = 0.0,
@@ -199,68 +201,67 @@ class NAS_Block(nn.Module):
         """
         super().__init__()
         self.block_args = block_args
-        self.original_in_channels = in_channels
+        self.original_in_channel_size = in_channel_size
         self.has_se = 0 < block_args.se_ratio <= 1
 
         self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
 
         # Expansion phase
+        intermedite_channel_size = in_channel_size * self.expand_ratio
         if self.expand_ratio != 1:
-            out_channels = in_channels * self.expand_ratio
             self._expand_conv = Conv2dSamePadding(
-                in_channels=in_channels,
-                out_channels=out_channels,
+                in_channels=in_channel_size,
+                out_channels=intermedite_channel_size,
                 kernel_size=1,
                 bias=False,
             )
-            self._bn0 = nn.BatchNorm2d(num_features=out_channels)
+            self._bn0 = nn.BatchNorm2d(num_features=intermedite_channel_size)
             self._swish0 = nn.SiLU()
 
         # Conv1
         # potentially depthwise convolution
-        groups = out_channels if block_args.conv_op in ['mbconv', 'dconv'] else 1
+        groups = intermedite_channel_size if block_args.conv_op in ['mbconv', 'dconv'] else 1
         self._conv1 = Conv2dSamePadding(
-            in_channels=out_channels,
-            out_channels=out_channels,
+            in_channels=intermedite_channel_size,
+            out_channels=intermedite_channel_size,
             kernel_size=block_args.kernel_size,
             groups=groups,
             stride=block_args.stride,
             bias=False,
         )
-        self._bn1 = nn.BatchNorm2d(num_features=out_channels)
+        self._bn1 = nn.BatchNorm2d(num_features=intermedite_channel_size)
         self._swish1 = nn.SiLU()
         image_size = calculate_output_image_size(image_size, block_args.stride)
 
         # Squeeze and Excitation layer
         if self.has_se:
             num_squeezed_channels = max(1, int(self._block_args.input_filters * self._block_args.se_ratio))
-            self._se_reduce = Conv2dSamePadding(in_channels=out_channels, out_channels=num_squeezed_channels, kernel_size=1)
+            self._se_reduce = Conv2dSamePadding(in_channels=intermedite_channel_size, out_channels=num_squeezed_channels, kernel_size=1)
             self._swish_se = nn.SiLU()
-            self._se_expand = Conv2dSamePadding(in_channels=num_squeezed_channels, out_channels=out_channels, kernel_size=1)
+            self._se_expand = Conv2dSamePadding(in_channels=num_squeezed_channels, out_channels=intermedite_channel_size, kernel_size=1)
 
         # Conv2
         # potentially pointwise convolution
         kernel_size = 1 if block_args.conv_op in ['mbconv', 'dconv'] else block_args.kernel_size
-        out_channels = out_channels * block_args.channel_increase_factor
         self._conv2 = Conv2dSamePadding(
-            in_channels=out_channels,
-            out_channels=out_channels,
+            in_channels=intermedite_channel_size,
+            out_channels=block_args.out_channel,
             kernel_size=kernel_size,
             bias=False,
         )
-        self._bn2 = nn.BatchNorm2d(num_features=out_channels)
+        self._bn2 = nn.BatchNorm2d(num_features=block_args.out_channel)
         self._swish2 = nn.SiLU()
 
-        self.out_type = out_channels
+        self.out_type = block_args.out_channel
 
         # Skip connection
         if block_args.skip == "conv" \
             or block_args.stride > 1 \
-            or self.original_in_channels != out_channels:
+            or self.original_in_channel_size != block_args.out_channel:
             # for larger strides or group changes we have to use a conv layer
             self.shortcut = nn.Conv2d(
-                in_channels=self.original_in_channels,
-                out_channels=out_channels,
+                in_channels=self.original_in_channel_size,
+                out_channels=block_args.out_channel,
                 kernel_size=1,
                 padding=0,
                 stride=block_args.stride,
@@ -286,7 +287,7 @@ class NAS_Block(nn.Module):
 
         # Expansion and Depthwise Convolution
         x = inputs
-        if self.block_args.expand_ratio != 1:
+        if self.expand_ratio != 1:
             x = self._expand_conv(inputs)
             x = self._bn0(x)
             x = self._swish0(x)

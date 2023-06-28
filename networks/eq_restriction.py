@@ -106,7 +106,7 @@ class Restriction_Group_or_CNN(nn.Module):
         group_id: Tuple,
     ):
         super().__init__()
-        self.is_cnn = group_id[0] == 0
+        self.is_cnn = group_id[1] == 0
 
         if self.is_cnn and isinstance(in_type, FieldType):
             # switch to CNN
