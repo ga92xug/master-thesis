@@ -1,6 +1,7 @@
 import math
 import re
 from typing import List, Tuple
+from matplotlib.pyplot import stem
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
@@ -48,8 +49,6 @@ from nn import (
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
-
-
 class EquivariantNASNet(nn.Module):
     def __init__(
             self, 
@@ -81,6 +80,8 @@ class EquivariantNASNet(nn.Module):
         self.cnn_expand_ratio = cnn_expand_ratio
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
+        self.channel_sizes = self.get_channel_sizes(stem_channels, blocks_args)
+        print(f"channel_sizes: {self.channel_sizes}")
         self.blocks_args = blocks_args
         stem_args = blocks_args[0]
 
@@ -102,11 +103,14 @@ class EquivariantNASNet(nn.Module):
         print("Building stem")
         out_channels = get_out_channels(
             in_type=stem_channels,
-            increase_factor=stem_args.channel_increase_factor, 
-            group=stem_args.group,
-            width_coefficient=self.width_coefficient, 
-            depth_divisor=self.depth_divisor, 
-            min_depth=self.min_depth
+            increase_factor=get_increase_factor(
+                stem_args.channel_increase_factor, 
+                self.width_coefficient,
+                self.depth_divisor, 
+                self.min_depth
+            ), 
+            new_rotation=stem_args.group,
+            is_first=True,
         )
         self._conv_stem = Eq_Conv2dSamePadding(
             in_type=self.input_field_type,
@@ -177,7 +181,7 @@ class EquivariantNASNet(nn.Module):
         out_channels = get_out_channels(
                 in_type=self.field_type, 
                 increase_factor=channel_increase_factor,
-                group=block_args.group,
+                new_rotation=block_args.group,
             )
         
         if self.restrict_last.setting in ["cnn", "switch"]:
@@ -248,7 +252,6 @@ class EquivariantNASNet(nn.Module):
         restrict: nn.Module,
         block_args: BlockArgs,
         image_size: Tuple[int, int],
-
     ):  
         setting = restrict.setting
         if setting in ["CNN", "switch"]:
@@ -271,3 +274,15 @@ class EquivariantNASNet(nn.Module):
                 )
             
         return block
+
+    def get_channel_sizes(self, initial_channel_size, blocks_args):
+        channel_sizes = [initial_channel_size]
+        for block_args in blocks_args:
+            increase_factor = get_increase_factor(
+                block_args.channel_increase_factor, 
+                self.width_coefficient,
+                self.depth_divisor, 
+                self.min_depth
+            )
+            initial_channel_size.append(initial_channel_size[-1] * increase_factor)
+        return channel_sizes

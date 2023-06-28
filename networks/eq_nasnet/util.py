@@ -29,10 +29,8 @@ BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 def get_out_channels(
         in_type: Union[int, FieldType],
         increase_factor: float,
-        group: int, 
-        width_coefficient, 
-        depth_divisor, 
-        min_depth
+        new_rotation: int, 
+        is_first: bool = False,
     ):
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
@@ -42,12 +40,27 @@ def get_out_channels(
     Returns:
         new_filters: New filters number after calculating.
     """
-    if isinstance(in_type, FieldType):
-        in_type = len(in_type)
-    increased_channels = in_type * increase_factor
-    out_channels = (increased_channels / group) * math.sqrt(group)
+    if is_first:
+        increased_channels = in_type * increase_factor
+        out_channels = (increased_channels / new_rotation) * math.sqrt(new_rotation)
 
-    return int(round(out_channels))
+    elif isinstance(in_type, FieldType):
+        old_rotation = in_type.gspace._sg_id[1]
+        print(f"in_type: {in_type}, increase_factor: {increase_factor}, new_rotation: {new_rotation}, old_rotation: {old_rotation}")
+        old_channels = len(in_type)
+        old_initial_channels_size = (old_channels * old_rotation) / math.sqrt(old_rotation)
+        print(f"old_initial_channels_size: {old_initial_channels_size}")
+        old_initial_channels_size_increased = old_initial_channels_size * increase_factor
+
+        out_channels = (old_initial_channels_size_increased / new_rotation) * math.sqrt(new_rotation)
+    elif isinstance(in_type, int):
+        out_channels = in_type * increase_factor
+    else:
+        raise ValueError(f"input_channels must be int or FieldType, got {type(in_type)}")
+
+    out_channels = int(round(out_channels))
+    print(f"out_channels: {out_channels}")
+    return out_channels
     
 
 def get_increase_factor(
@@ -58,6 +71,7 @@ def get_increase_factor(
     ):
     multiplier = width_coefficient
     if multiplier == 1:
+        #print(f"increase_factor: {increase_factor}")
         return increase_factor
     
     # TODO: modify the params names.
@@ -69,7 +83,7 @@ def get_increase_factor(
     min_depth = min_depth or divisor  # pay attention to this line when using min_depth
     # follow the formula transferred from official TensorFlow implementation
     new_out_channels = max(min_depth, int(out_channels + divisor / 2) // divisor * divisor)
-    if new_out_channels < 0.9 * in_type:  # prevent rounding by more than 10%
+    if new_out_channels < 0.9:  # prevent rounding by more than 10%
          new_out_channels += divisor
     # new_filters /= rotation
     return int(round(new_out_channels))
@@ -204,7 +218,7 @@ class BlockDecoder(object):
                 assert isinstance(block.num_layers, int) and block.num_layers > 0
                 assert isinstance(block.conv_op, str) and block.conv_op in ["conv", "dconv", "mbconv"]
                 assert isinstance(block.se_ratio, float) and 0 <= block.se_ratio <= 1
-                assert isinstance(block.skip, str) and block.skip in ["identity", "no"]
+                assert isinstance(block.skip, str) and block.skip in ["identity", "no", "conv"]
 
                 assert previous_block.reflection >= block.reflection
                 assert previous_block.group >= block.group

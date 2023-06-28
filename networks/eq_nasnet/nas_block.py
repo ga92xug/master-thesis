@@ -53,7 +53,6 @@ class Eq_NAS_Block(EquivariantModule):
     Block with variable content based on block_args.
     """
     def __init__(self, in_type, block_args, image_size, 
-                 
                  dropout_rate=0.0,
                  expand_ratio=2):
         """
@@ -66,18 +65,17 @@ class Eq_NAS_Block(EquivariantModule):
         self.original_in_type = in_type
         self.has_se = 0 < block_args.se_ratio <= 1
 
-        self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
-
         # Expansion phase
-        if self.expand_ratio != 1:
-            out_channels = get_out_channels(
+        self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
+        out_channels = get_out_channels(
                 in_type=in_type, 
                 increase_factor=self.expand_ratio,
-                group=block_args.group,
+                new_rotation=block_args.group,
             )
+        if self.expand_ratio != 1:
             self._expand_conv = Eq_Conv2dSamePadding(
                 in_type=in_type,
-                out_type=out_channels,
+                out_channels=out_channels,
                 kernel_size=1,
                 bias=False,
             )
@@ -88,14 +86,9 @@ class Eq_NAS_Block(EquivariantModule):
         # Conv1
         # potentially depthwise convolution
         groups = len(in_type) if block_args.conv_op in ['mbconv', 'dconv'] else 1
-        out_channels = get_out_channels(
-                in_type=in_type, 
-                increase_factor=1,
-                group=block_args.group,
-            )
         self._conv1 = Eq_Conv2dSamePadding(
             in_type=in_type,
-            out_type=out_channels,
+            out_channels=out_channels,
             kernel_size=block_args.kernel_size,
             groups=groups,
             stride=block_args.stride,
@@ -120,11 +113,11 @@ class Eq_NAS_Block(EquivariantModule):
         out_channels = get_out_channels(
                 in_type=out_type, 
                 increase_factor=block_args.channel_increase_factor,
-                group=block_args.group,
+                new_rotation=block_args.group,
             )
         self._conv2 = Eq_Conv2dSamePadding(
             in_type=out_type,
-            out_type=out_channels,
+            out_channels=out_channels,
             kernel_size=kernel_size,
             bias=False,
         )

@@ -96,7 +96,7 @@ class Restriction_from_id(EquivariantModule):
         return input_shape
 
 
-class Restriction_Group_or_CNN():
+class Restriction_Group_or_CNN(nn.Module):
     """
     Restriction for the group or switch to CNN.
     """
@@ -105,6 +105,7 @@ class Restriction_Group_or_CNN():
         in_type: Union[FieldType, int], 
         group_id: Tuple,
     ):
+        super().__init__()
         self.is_cnn = group_id[0] == 0
 
         if self.is_cnn and isinstance(in_type, FieldType):

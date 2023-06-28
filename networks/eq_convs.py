@@ -83,7 +83,7 @@ class EquivariantConvChangeFactor(EquivariantModule):
         super().__init__()
         self.in_type = in_type  # declaration required by base class
 
-        out_channels = int(change_factor * len(in_type))
+        out_channels = int(round(change_factor * len(in_type)))
 
         # Cyclic and Dihedral Groups
         out_type = FieldType(
