@@ -23,6 +23,7 @@ class HydraWandbRunner(Runner):
             wandb_project: str,
             wandb_run_id: str, 
             wandb_mode: str, 
+            db_path: str,
             choice_2_range_param: dict, 
             strides: list, 
             training_dict: dict,
@@ -46,6 +47,7 @@ class HydraWandbRunner(Runner):
         self.wandb_project = wandb_project
         self.wandb_run_id = wandb_run_id
         self.wandb_mode = wandb_mode
+        self.db_path = db_path
         self.choice_2_range_param = choice_2_range_param
         self.strides = strides
         self.training_dict = training_dict
@@ -122,7 +124,8 @@ class HydraWandbRunner(Runner):
                         f"wandb.mode={self.wandb_mode}"])
 
         # pass trial index
-        command.extend([f"NAS.trial_index={trial_index}"])
+        command.extend([f"NAS.trial_index={trial_index}",
+                        f"NAS.db_path={self.db_path}/trial_cache.db"])
 
         # run the training
         subprocess.run(command, stdout=subprocess.DEVNULL if self.verbose <= 0 else None)

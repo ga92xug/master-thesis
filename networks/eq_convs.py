@@ -105,7 +105,7 @@ class EquivariantConvChangeFactor(EquivariantModule):
         self.trivials, self.gate = None, None
 
         self.out_type = self.conv.out_type
-        assert int(len(in_type) * change_factor) == len(self.out_type)
+        assert int(round(change_factor * len(in_type))) == len(self.out_type), f"{len(in_type)} * {change_factor} != {len(self.out_type)}"
 
     def forward(self, x):
         return self.conv(x)
@@ -280,6 +280,7 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         # kernel_layout: List[int] = None,
     ):
         super().__init__()
+        #print("out_channels", out_channels)
         padding = PADDINGS[kernel_size]
         self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, 
                                       padding=padding, dilation=dilation,

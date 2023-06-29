@@ -154,8 +154,8 @@ class _RdConv(EquivariantModule, ABC):
         if groups > 1:
             # Check the input and output classes can be split in `groups` groups, all equal to each other
             # first, check that the number of fields is divisible by `groups`
-            assert len(in_type) % groups == 0
-            assert len(out_type) % groups == 0
+            assert len(in_type) % groups == 0, f"in_type {len(in_type)} is not divisible by {groups}"
+            assert len(out_type) % groups == 0, f"out_type {len(out_type)} is not divisible by {groups}"
             in_size = len(in_type) // groups
             out_size = len(out_type) // groups
 

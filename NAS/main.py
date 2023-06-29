@@ -69,6 +69,7 @@ class NAS:
         self.cfg = cfg
         print(OmegaConf.to_yaml(cfg))
         self.save_folder = f"NAS/data/{self.cfg.exp_name}"
+        os.makedirs(self.save_folder, exist_ok=True)
         self.device = torch.device('cuda' if torch.cuda.is_available() \
                                    else "cpu")
         self.json_store = {
@@ -121,7 +122,6 @@ class NAS:
             # Generation strategy
             self.init_generation_strategy()
             # setup ax client
-            os.makedirs(self.save_folder, exist_ok=True)
             self.ax_client = AxClient(
                 generation_strategy=self.generation_strategy,
                 random_seed=self.cfg.seed,
@@ -191,6 +191,7 @@ class NAS:
             wandb_project=self.cfg.wandb.project,
             wandb_run_id=self.run_id,
             wandb_mode=self.cfg.wandb.mode_runs,
+            db_path=self.save_folder,
             choice_2_range_param=choice_2_range_params,
             strides=list(self.cfg.search_space.strides),
             training_dict=training_dict,
@@ -214,6 +215,7 @@ class NAS:
             ax_data, raw_data, = self.data_fetcher.fetch_trial_data(
                 trial_index=trial_meta_data["trial_index"])
 
+            print(ax_data)
             # sync data to Ax
             if len(ax_data) == 0 or \
                 (len(ax_data) == 1 and ax_data["model_building_time"] < self.cfg.objective.max_building_time):
@@ -223,6 +225,7 @@ class NAS:
                 )
                 wandb.log({"Abandon trial": 1}, step=i)
                 print("Abandon trial this behavior is not expected.")
+                quit()
                 i -= 1
 
             elif len(ax_data) in [1, 2]:

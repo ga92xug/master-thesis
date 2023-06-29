@@ -4,11 +4,11 @@ defaults:
 - search_space: cifar10
 - objective: cifar10
 
-#training:
-#  training.epochs: 1
-#  training.steps_per_epoch: 10
+training:
+  training.epochs: 1
+  training.steps_per_epoch: 10
 
-exp_name: cifar10_2
+exp_name: cifar10_test
 seed: 0
 
 generation:

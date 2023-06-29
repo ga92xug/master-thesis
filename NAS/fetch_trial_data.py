@@ -26,7 +26,7 @@ class TrialDataFetcher():
             exp_name: str, 
             max_gflops: int,
             max_building_time: int,
-            db_location: str = "NAS/data/"
+            db_location: str,
         ):
         """Initializes the RunDataFetcher with the entity, project, wandb_mode, experiment name, and database location."""
         self.project = project
@@ -42,6 +42,7 @@ class TrialDataFetcher():
 
     def connect_to_db(self, reset: bool = False):
         """Establishes a connection to the database, deletes the table if it exists and creates a new one."""
+        print(f"Connecting to database at {self.db_file}")
         self.conn = sqlite3.connect(self.db_file)
         self.cursor = self.conn.cursor()
         

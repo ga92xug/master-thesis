@@ -67,7 +67,7 @@ class Log():
 
 
     def connect_to_db(self):
-        self.conn = sqlite3.connect(self.cfg.NAS.db_path)
+        self.conn = sqlite3.connect(f"{self.cfg.NAS.db_path}")
         self.cursor = self.conn.cursor()
 
 

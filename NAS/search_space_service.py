@@ -66,8 +66,9 @@ class Eq_Search_Space:
         for block_id in range(0, self.num_middle_blocks+2):
             if block_id == 0:
                 # inital group must be larger than zero (otherwise we would train a CNN)
-                initial_group_constraint = f"0_group > 0"
-                parameter_constraints.append(initial_group_constraint)
+                # initial_group_constraint = f"0_group >= 0"
+                # parameter_constraints.append(initial_group_constraint)
+                continue
 
 
             # the group must never increase

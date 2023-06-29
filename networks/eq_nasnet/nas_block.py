@@ -58,11 +58,9 @@ class Eq_NAS_Block(EquivariantModule):
         """
         super().__init__()
         self.block_args = block_args
-        self.original_in_type = copy.deepcopy(in_type)
-        self.has_se = 0 < block_args.se_ratio <= 1
-
-        # Expansion phase
-        self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
+        self.original_in_type = in_type
+        self.has_se = 0 < block_args.se_ratio < 1
+        
         intermedite_channel_size = get_fixed_out_channels(
                 out_channel=in_channel_size,
                 rotation=block_args.group,
@@ -71,8 +69,10 @@ class Eq_NAS_Block(EquivariantModule):
                 out_channel=block_args.out_channel,
                 rotation=block_args.group,
             )
-        intermedite_channel_size = intermedite_channel_size * self.expand_ratio
-        
+
+        # Expansion phase
+        self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
+        intermedite_channel_size = int(round(intermedite_channel_size * self.expand_ratio))
         if self.expand_ratio != 1:
             self._bn0 = BatchNorm(in_type=in_type, affine=False)
             self._swish0 = Swish(in_type=self._bn0.out_type)
@@ -84,15 +84,19 @@ class Eq_NAS_Block(EquivariantModule):
             )
             in_type = self._expand_conv.out_type
 
-
         self._bn1 = BatchNorm(in_type=in_type, affine=False)
         self._swish1 = Swish(in_type=self._bn1.out_type)
         # Conv1
         # potentially depthwise convolution
-        groups = len(in_type) if block_args.conv_op in ['mbconv', 'dconv'] else 1
+        if block_args.conv_op == 'dconv' and intermedite_channel_size % len(in_type) != 0:
+            # depthwise convolution only if no restriction
+            # otherwise the input size is not divisible by the number of groups
+            block_args = block_args._replace(conv_op='conv')
+
+        groups = len(self._swish1.out_type) if block_args.conv_op in ['mbconv', 'dconv'] else 1
         self._conv1 = Eq_Conv2dSamePadding(
             in_type=self._swish1.out_type,
-            out_channels=end_channel_size,
+            out_channels=intermedite_channel_size,
             kernel_size=block_args.kernel_size,
             groups=groups,
             stride=block_args.stride,
@@ -131,7 +135,7 @@ class Eq_NAS_Block(EquivariantModule):
             batch_norm = BatchNorm(in_type=self.original_in_type, affine=False)
             shortcut = EquivariantConv(
                 in_type=batch_norm.out_type,
-                out_channels=len(self._swish2.out_type),
+                out_channels=len(self.out_type),
                 kernel_size=1,
                 padding=0,
                 stride=block_args.stride,
