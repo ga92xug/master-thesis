@@ -280,7 +280,6 @@ class Eq_Conv2dSamePadding(EquivariantModule):
         # kernel_layout: List[int] = None,
     ):
         super().__init__()
-
         padding = PADDINGS[kernel_size]
         self.conv2d = EquivariantConv(in_type, out_channels, kernel_size, 
                                       padding=padding, dilation=dilation,

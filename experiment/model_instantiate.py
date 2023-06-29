@@ -3,7 +3,7 @@ import hydra
 import timeit
 import torch
 from omegaconf import DictConfig
-from fvcore.nn import FlopCountAnalysis, flop_count_table
+from fvcore.nn import FlopCountAnalysis, flop_count_table, parameter_count_table
 import sys
 import os
 
@@ -103,6 +103,7 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
     gflops = flops.total() / 1e9
+    #print(parameter_count_table(model))
     if verbose >= 1:
         print(f'GFLOPs: {gflops:.2f}')
     return gflops

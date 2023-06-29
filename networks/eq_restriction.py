@@ -67,6 +67,15 @@ class Restriction_from_id(EquivariantModule):
         self.in_type = in_type
         self.restriction_correction_factor = 1
 
+        old_group_id = in_type.gspace._sg_id
+
+        if old_group_id == group_id or \
+            (group_id[0] is not None and np.isclose(group_id[1], old_group_id[1])):
+            # no restriction
+            self.restrict = nn.Identity()
+            self.out_type = self.in_type
+            return
+
         if "C" in self.in_type.fibergroup.name:
             # cyclic group
             self.restrict = RestrictionModule(self.in_type, group_id[1])
@@ -130,6 +139,7 @@ class Restriction_Group_or_CNN(nn.Module):
             "If we are in the group setting, in_type has to be a FieldType."
             self.restrict = Restriction_from_id(in_type, group_id)
             self.out_type = self.restrict.out_type
+
         
 
     def forward(self, x):

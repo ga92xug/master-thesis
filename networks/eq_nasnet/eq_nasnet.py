@@ -110,9 +110,7 @@ class EquivariantNASNet(nn.Module):
             stride=stem_args.stride,
             bias=False,
         )
-        self._bn0 = BatchNorm(in_type=self._conv_stem.out_type)
-        self._swish0 = Swish(in_type=self._bn0.out_type)
-        self.field_type = self._swish0.out_type
+        self.field_type = self._conv_stem.out_type
         self.prev_channel_size = stem_args.out_channel
         image_size = calculate_output_image_size(image_size, stem_args.stride)
 
@@ -155,6 +153,7 @@ class EquivariantNASNet(nn.Module):
         #restriction_correction_factor = self.restrict_last.get_correction_factor()
         self.field_type = self.restrict_last.out_type
 
+        
         # Head
         out_channels = get_fixed_out_channels(
                 out_channel = last_block_args.out_channel,
@@ -162,27 +161,33 @@ class EquivariantNASNet(nn.Module):
             )
         
         if self.restrict_last.setting in ["cnn", "switch"]:
+            self._bn1 = nn.BatchNorm2d(self.field_type)
+            self._swish1 = nn.SiLU()
             self._conv_head = Conv2dSamePadding(
                 in_channels=self.field_type,
                 out_channels=out_channels,
                 kernel_size=last_block_args.kernel_size,
                 bias=False,
             )
-            self._bn1 = nn.BatchNorm2d(out_channels)
-            self._swish1 = nn.SiLU()
-
+            self._bn2 = nn.BatchNorm2d(out_channels)
+            self._swish2 = nn.SiLU()
+            
         elif self.restrict_last.setting == "group": 
+            """
+            self._bn1 = BatchNorm(in_type=self.field_type, affine=False)
+            self._swish1 = Swish(in_type=self._bn1.out_type)
             self._conv_head = Eq_Conv2dSamePadding(
-                in_type=self.field_type, 
+                in_type=self._swish1.out_type, 
                 out_channels=out_channels,
                 bias=False
             )
-            self._bn1 = BatchNorm(in_type=self._conv_head.out_type)
-            self._swish1 = Swish(in_type=self._bn1.out_type)
-
+            self.field_type = self._conv_head.out_type
+            """
+            self._bn2 = BatchNorm(in_type=self.field_type, affine=False)
+            self._swish2 = Swish(in_type=self._bn2.out_type)
             # Final linear layer
             self.invariant_map = EquivariantPool(
-                self._swish1.out_type, 
+                self._swish2.out_type, 
                 invariant_map=True
             )
         else:
@@ -196,13 +201,13 @@ class EquivariantNASNet(nn.Module):
         if self.restrict_last.setting in ["cnn", "switch"]:
             self.fc = nn.Linear(out_channels, num_classes)
         else:
-            self.fc = nn.Linear(len(self._swish1.out_type), num_classes)
+            self.fc = nn.Linear(len(self.invariant_map.out_type), num_classes)
 
 
     def forward(self, inputs):
         x = GroupTensor(inputs, self.input_field_type)
         # Stem
-        x = self._swish0(self._bn0(self._conv_stem(x)))
+        x = self._conv_stem(x)
         # Blocks
         for idx, restrict_or_MBBlock in enumerate(self._blocks):
             # if isinstance(restrict_or_MBBlock, Eq_NAS_Block):
@@ -211,7 +216,11 @@ class EquivariantNASNet(nn.Module):
 
         # Head
         x = self.restrict_last(x)
-        x = self._swish1(self._bn1(self._conv_head(x)))
+        # x = self._swish1(self._bn1(self._conv_head(x)))
+
+        # final batch norm and swish
+        x = self._swish2(self._bn2(x))
+
         # transfer to invariant if not already
         if hasattr(self, "invariant_map"):
             x = self.invariant_map(x)
