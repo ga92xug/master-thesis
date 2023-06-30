@@ -367,14 +367,12 @@ class FieldType:
 
         # build the subgroup
         subspace, _, _ = self.gspace.restrict(id)
-
         # restrict each different base representation in the fiber representation
         restricted_reprs = {}
         for r in self._unique_representations:
             restricted_reprs[r.name] = self.gspace.fibergroup.restrict_representation(
                 id, r
             )
-
         # for each field, retrieve the corresponding restricted representation
         fields = [restricted_reprs[r.name] for r in self.representations]
         # build the restricted fiber representation
