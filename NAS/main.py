@@ -218,7 +218,7 @@ class NAS:
             print(ax_data)
             # sync data to Ax
             if len(ax_data) == 0 or \
-                (len(ax_data) == 1 and ax_data["model_building_time"] < self.cfg.objective.max_building_time):
+                (len(ax_data) in [1, 2] and ax_data["model_building_time"] < self.cfg.objective.max_building_time):
                 # abandon trial
                 self.ax_client.abandon_trial(
                     trial_index=trial_meta_data["trial_index"], 

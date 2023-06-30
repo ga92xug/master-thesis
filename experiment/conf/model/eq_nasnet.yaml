@@ -29,8 +29,8 @@ cnn_expand_ratio: 6.0
 # 'r-1_k3_g0_o1']
 
 # fails
-blocks_args: ['r0_k3_g8_o1_s1', 
-'r0_k5_g2_o2_s1_n2_c-dconv_se0.5_sk-conv', 
-'r-1_k5_g2_o1_s2_n1_c-dconv_se0.0_sk-conv', 
-'r-1_k3_g2_o2_s2_n1_c-conv_se0.0_sk-conv', 
-'r-1_k5_g2_o1']
+blocks_args: ['r0_k5_g4_o2_s1', 
+'r0_k5_g4_o1_s1_n2_c-conv_se0.0_sk-identity', 
+'r0_k3_g2_o1_s2_n2_c-conv_se0.5_sk-identity', 
+'r0_k3_g1_o1_s2_n1_c-mbconv_se0.0_sk-conv', 
+'r-1_k5_g1_o2']

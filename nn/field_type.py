@@ -377,10 +377,8 @@ class FieldType:
 
         # for each field, retrieve the corresponding restricted representation
         fields = [restricted_reprs[r.name] for r in self.representations]
-
         # build the restricted fiber representation
         rrepr = subspace.type(*fields)
-
         return rrepr
 
     def sorted(self) -> "FieldType":
