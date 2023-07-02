@@ -94,7 +94,7 @@ class GroupPoolingReduction(EquivariantModule):
 
         """
 
-        assert input.type == self.in_type
+        assert input.type == self.in_type, f"Error! Input type must be {self.in_type}, but got {input.type}"
 
         #if self.reduction_factor == 1:
         #    return input
@@ -247,6 +247,6 @@ def parse_groups(string):
     else:
         raise ValueError("New group not found in the string.")
 
-    old_group = old_group_match.group(1) if old_group_match else None
+    old_group = old_group_match.group(1) if old_group_match else new_group
 
     return old_group

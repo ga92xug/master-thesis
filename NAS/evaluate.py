@@ -1,3 +1,4 @@
+import re
 import wandb
 from typing import List, Optional
 import numpy as np
@@ -11,6 +12,7 @@ from ax.modelbridge.factory import get_MOO_NEHVI
 # Plotting imports and initialization
 #from ax.plot.contour import interact_contour_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
+from zmq import METADATA
 from plot import interact_contour_plotly
 # resume wandb run
 # wandb.init(
@@ -19,6 +21,24 @@ from plot import interact_contour_plotly
 #     resume="allow",
 #     id="v0p3z512",  # resume the run using the saved run ID
 # )
+
+METADATA = {
+        "mnist_rot": {
+            "name": "MNIST-rot",
+            "point": [0.958, 86],
+            "label": "eq_wrn_16_4",
+        },
+        "cifar10": {
+            "name": "CIFAR-10",
+            "point": [0.9125, 226],
+            "label": "eq_wrn_16_4",
+        },
+        "unkown": {
+            "name": "Unknown",
+            "point": False,
+            "label": None,
+        },
+    }
 
 def evaluate(
         ax_client: AxClient,
@@ -40,12 +60,25 @@ def evaluate(
     wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, step=step, commit=True)
 
     # scalar mappable
-    fig = scalar_mappable(ax_client.experiment, title="Equivariant NAS on MNIST-rot", new_point=[0.958, 86], new_point_label="eq_wrn_16_4")
-    fig.show()
+    
+    fig = scalar_mappable(ax_client.experiment)
     wandb.log({"pareto_frontier_image": wandb.Image(fig)}, step=step, commit=True)
 
-
     # contour plots
+    valid_acc_contour_plot, gflops_contour_plot = get_contour_plots(
+        experiment=experiment,
+        data=data,
+        device=device,
+    )
+    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_contour_plot)}, step=step, commit=True)
+    wandb.log({"gflops_contour": wandb.Plotly(gflops_contour_plot)}, step=step, commit=True)
+
+
+def get_contour_plots(
+        experiment: AxClient,
+        data,
+        device,        
+):
     model = get_MOO_NEHVI(
         experiment=experiment, 
         data=data,
@@ -53,17 +86,13 @@ def evaluate(
     )
     valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False)
     gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True)
-    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_interact_contour_plotly)}, step=step, commit=True)
-    wandb.log({"gflops_contour": wandb.Plotly(gflops_interact_contour_plotly)}, step=step, commit=True)
-
-
-
+    return valid_acc_interact_contour_plotly, gflops_interact_contour_plotly
 
 def scalar_mappable(
         experiment,
-        title: str = "Equivariant NAS on MNIST-rot",
-        new_point: Optional[List[float]] = None,
-        new_point_label: Optional[str] = None,
+        title: str,
+        baseline_point: Optional[List[float]],
+        baseline_label: Optional[str],
         ):
     """
     This function creates a scatter plot of an experiment's data sorted by trial_index.
@@ -77,6 +106,14 @@ def scalar_mappable(
     :param new_point_label: A string representing the label of the new point. 
                             If None, 'eq_wrn_16_4' is used. Default is None.
     """
+    
+    meta_data = get_meta_information(experiment.name)
+    print("meta_data", meta_data)
+    name, point, label = meta_data["name"], meta_data["point"], meta_data["label"]
+
+    title = title if title else f"Equivariant NAS on {name}"
+    baseline_point = baseline_point if baseline_point else point
+    baseline_label = baseline_label if baseline_label else label
 
     # Convert experiment data to DataFrame and sort by trial_index
     df = exp_to_df(experiment).sort_values(by=["trial_index"])
@@ -102,16 +139,16 @@ def scalar_mappable(
     axes.set_ylabel("gflops")
 
     # Add a new point if given
-    if new_point:
-        new_point = np.array([new_point])
-        sc_new = axes.scatter(new_point[:, 0], new_point[:, 1], c='red', label=new_point_label if new_point_label else 'eq_wrn_16_4')
+    if baseline_point:
+        baseline_point = np.array([baseline_point])
+        sc_new = axes.scatter(baseline_point[:, 0], baseline_point[:, 1], c='red', label=baseline_label if baseline_label else 'eq_wrn_16_4')
 
         # Update the legend
         handles, labels = axes.get_legend_handles_labels()
-        handles = [h for h, l in zip(handles, labels) if l != (new_point_label if new_point_label else 'eq_wrn_16_4')]
-        labels = [l for l in labels if l != (new_point_label if new_point_label else 'eq_wrn_16_4')]
+        handles = [h for h, l in zip(handles, labels) if l != (baseline_label if baseline_label else 'eq_wrn_16_4')]
+        labels = [l for l in labels if l != (baseline_label if baseline_label else 'eq_wrn_16_4')]
         handles.append(sc_new)
-        labels.append(new_point_label if new_point_label else 'eq_wrn_16_4')
+        labels.append(baseline_label if baseline_label else 'eq_wrn_16_4')
         axes.legend(handles, labels)
 
     # Normalize the color bar
@@ -126,3 +163,18 @@ def scalar_mappable(
     cbar.ax.set_title("Iteration")
 
     return fig
+
+def get_meta_information(name: str):
+    result = match_substring(name)
+    if result:
+        return METADATA[result]
+    else:
+        return METADATA["unkown"]
+    
+def match_substring(string):
+    pattern = r'(mnist_rot|cifar10)_\d+'
+    match = re.match(pattern, string)
+    if match:
+        return match.group(1)
+    else:
+        return None

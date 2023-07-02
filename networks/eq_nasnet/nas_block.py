@@ -5,6 +5,7 @@ import torch
 from torch import batch_norm, nn
 from torch.nn import functional as F
 import sys
+
 sys.path.append('../networks') # add parent directory
 
 from .util import (
@@ -24,6 +25,7 @@ from networks.eq_convs import (
     Eq_Conv2dSamePadding,
     Eq_Conv2dSamePaddingChangeFactor,
 )
+from networks.gpool_reduction import GroupPoolingReduction
 
 from networks.util import (
     calculate_output_image_size, 
@@ -126,11 +128,18 @@ class Eq_NAS_Block(EquivariantModule):
         )
         self.out_type = self._conv2.out_type
 
+        #print("skip connection ", self.original_in_type.size, self._conv2.out_type.size)
+        #print("type ", self.original_in_type, self._conv2.out_type)
         # Skip connection
+        # if block_args.skip == "identity" and block_args.stride == 1 and \
+        #     in_channel_size == block_args.out_channel:
+        #     #print("skip identity")
+        #     self.shortcut = GroupPoolingReduction(self.original_in_type)
+
         if block_args.skip == "conv" \
             or block_args.stride > 1 \
             or self.original_in_type != self._conv2.out_type:
-
+            #print("skip conv")
             # for larger strides or group changes we have to use a conv layer
             batch_norm = BatchNorm(in_type=self.original_in_type, affine=False)
             shortcut = EquivariantConv(
@@ -155,6 +164,7 @@ class Eq_NAS_Block(EquivariantModule):
             raise ValueError(f"Unsupported skip connection type. \
                              Got: {block_args.skip}")
 
+        #print()
         
     def forward(self, inputs):
         x = inputs
@@ -179,6 +189,9 @@ class Eq_NAS_Block(EquivariantModule):
         
         # Skip connection
         if self.shortcut is not None:
+            # print("x", x.type)
+            # print("shortcut", self.shortcut(inputs).type)
+            # print("inputs", inputs.type)
             x = x + self.shortcut(inputs) # skip connection
         return x
 
@@ -210,7 +223,8 @@ class NAS_Block(nn.Module):
         self.expand_ratio = expand_ratio if block_args.conv_op == 'mbconv' else 1
 
         # Expansion phase
-        intermedite_channel_size = in_channel_size * self.expand_ratio
+        print("in_channel_size", in_channel_size)
+        intermedite_channel_size = int(round(in_channel_size * self.expand_ratio))
         if self.expand_ratio != 1:
             self._bn0 = nn.BatchNorm2d(num_features=in_channel_size)
             self._swish0 = nn.SiLU()
@@ -238,7 +252,8 @@ class NAS_Block(nn.Module):
 
         # Squeeze and Excitation layer
         if self.has_se:
-            num_squeezed_channels = max(1, int(self._block_args.input_filters * self._block_args.se_ratio))
+            num_squeezed_channels = max(1, int(intermedite_channel_size * self.block_args.se_ratio))
+            self._bn_se = nn.BatchNorm2d(num_features=intermedite_channel_size)
             self._se_reduce = Conv2dSamePadding(in_channels=intermedite_channel_size, out_channels=num_squeezed_channels, kernel_size=1)
             self._swish_se = nn.SiLU()
             self._se_expand = Conv2dSamePadding(in_channels=num_squeezed_channels, out_channels=intermedite_channel_size, kernel_size=1)
@@ -295,16 +310,17 @@ class NAS_Block(nn.Module):
         # Expansion and Depthwise Convolution
         x = inputs
         if self.expand_ratio != 1:
-            x = self._expand_conv(inputs)
-            x = self._bn0(x)
+            x = self._bn0(inputs)
             x = self._swish0(x)
+            x = self._expand_conv(x)
 
-        x = self._conv1(x)
         x = self._bn1(x)
         x = self._swish1(x)
+        x = self._conv1(x)
 
         # Squeeze and Excitation
         if self.has_se:
+            x = self._bn_se(x)
             x_squeezed = F.adaptive_avg_pool2d(x, 1)
             x_squeezed = self._se_reduce(x_squeezed)
             x_squeezed = self._swish_se(x_squeezed)
@@ -312,9 +328,10 @@ class NAS_Block(nn.Module):
             x = torch.sigmoid(x_squeezed) * x
 
         # Pointwise Convolution
-        x = self._conv2(x)
         x = self._bn2(x)
         x = self._swish2(x)
+        x = self._conv2(x)
+        
 
         # Skip connection
         if self.shortcut is not None:

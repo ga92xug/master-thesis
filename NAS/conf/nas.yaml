@@ -4,15 +4,15 @@ defaults:
 - search_space: cifar10
 - objective: cifar10
 
-training:
-  training.epochs: 1
-  training.steps_per_epoch: 10
+#training:
+#  training.epochs: 1
+#  training.steps_per_epoch: 10
 
-exp_name: cifar10_test
+exp_name: cifar10_3
 seed: 0
 
 generation:
-  num_total_trials: 50  # total evaluation budget
+  num_total_trials: 75  # total evaluation budget
   num_sobol_trials: 5
   num_fullbayesian_trials: -1
   batch_size: 1
@@ -26,7 +26,7 @@ runner:
   verbose: 1
 
 other:
-  evaluate_every: 25
+  evaluate_every: 5
   save_every: 1
   restart: True
   verbose: 1

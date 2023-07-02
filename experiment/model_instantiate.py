@@ -103,9 +103,12 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
     gflops = flops.total() / 1e9
-    #print(parameter_count_table(model))
+    
     if verbose >= 1:
         print(f'GFLOPs: {gflops:.2f}')
+    if verbose >= 3:
+        print(parameter_count_table(model))
+        print(flop_count_table(flops))
     return gflops
 
 

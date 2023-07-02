@@ -70,12 +70,16 @@ class Restriction_from_id(EquivariantModule):
         old_group_id = in_type.gspace._sg_id
 
         if old_group_id == group_id or \
-            (group_id[0] is not None and np.isclose(group_id[0], old_group_id[0]) and group_id[1] == old_group_id[1]):
+            ((group_id[0] is not None and old_group_id[0] is not None) \
+             and group_id[1] == old_group_id[1]):
             # no restriction
             #print("No restriction", group_id, old_group_id)
             self.restrict = nn.Identity()
             self.out_type = self.in_type
             return
+        else:
+            #print("Restriction", group_id, old_group_id)
+            pass
 
         if "C" in self.in_type.fibergroup.name:
             # cyclic group

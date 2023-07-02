@@ -143,10 +143,11 @@ class Eq_Search_Space:
         }
 
     def get_group(self, block_id):
+        lower_bound = 1 if block_id == 0 else 0
         return {
             "name": f"{block_id}_group",
             "type": "range",
-            "bounds": [0, len(self.choice_2_range_params["group"]) - 1],
+            "bounds": [lower_bound, len(self.choice_2_range_params["group"]) - 1],
             "value_type": "int",
         }
 
@@ -192,7 +193,6 @@ class Eq_Search_Space:
 
     def get_out_channels(self, block_id):
         bounds = [0, len(self.choice_2_range_params["out_channels"]) - 1]
-
         try:
             upper_bound = getattr(self.search_space_cfg, f"{block_id}_out_channels")
             bounds = bounds[:upper_bound]

@@ -173,7 +173,7 @@ class EquivariantNASNet(nn.Module):
             self._swish2 = nn.SiLU()
             
         elif self.restrict_last.setting == "group": 
-            """
+            
             self._bn1 = BatchNorm(in_type=self.field_type, affine=False)
             self._swish1 = Swish(in_type=self._bn1.out_type)
             self._conv_head = Eq_Conv2dSamePadding(
@@ -182,7 +182,7 @@ class EquivariantNASNet(nn.Module):
                 bias=False
             )
             self.field_type = self._conv_head.out_type
-            """
+            
             self._bn2 = BatchNorm(in_type=self.field_type, affine=False)
             self._swish2 = Swish(in_type=self._bn2.out_type)
             # Final linear layer
@@ -216,7 +216,7 @@ class EquivariantNASNet(nn.Module):
 
         # Head
         x = self.restrict_last(x)
-        # x = self._swish1(self._bn1(self._conv_head(x)))
+        x = self._conv_head(self._swish1(self._bn1(x)))
 
         # final batch norm and swish
         x = self._swish2(self._bn2(x))

@@ -250,9 +250,9 @@ class NAS:
                 if i % self.cfg.other.evaluate_every == 0 and i >= 1:
                     try:
                         evaluate(ax_client=self.ax_client, device=self.device, step=i)
-                    except:
+                    except Exception as e:
                         # the eval fails if not enough data is available
-                        print("Evaluation failed")
+                        print("Evaluation failed", e)
 
 
             # log metrics and print
