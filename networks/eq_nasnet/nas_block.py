@@ -158,7 +158,6 @@ class Eq_NAS_Block(EquivariantModule):
         elif block_args.skip == "pool":
             self.shortcut = EquivariantPool(
                 in_type=self.original_in_type,
-                stride=block_args.stride,
             )
         else:
             raise ValueError(f"Unsupported skip connection type. \
