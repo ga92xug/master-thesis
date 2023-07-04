@@ -143,7 +143,9 @@ class Eq_Search_Space:
         }
 
     def get_group(self, block_id):
-        lower_bound = 1 if block_id == 0 else 0
+        # the first block must have a group of at least 1
+        lower_bound = 1 if block_id == 0 and \
+              self.choice_2_range_params["group"][0] == 0 else 0
         return {
             "name": f"{block_id}_group",
             "type": "range",

@@ -68,19 +68,18 @@ args = ["model.kernel_layout=[7,7]", "model.padding=3",
 # group experiment
 global_args = [
         "model=eq_wrn", 
+        "model.group=dihedral",
         "training=cifar10-training",
         "wandb.tags=[G_CNN_exp2]",
         "wandb.group=G_CNN_exp2",
     ]
 
 # 3x3
-args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
-        "model.depth=16", "model.widen_factor=4", "wandb.notes=group_dihedral"]
-#run_command(args, global_args, test=False)
+args = ["model.depth=16", "model.widen_factor=4"]
+run_command(args, global_args, test="instantiation")
 
-args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=dihedral",
-        "model.depth=22", "model.widen_factor=6", "wandb.notes=group_dihedral"]
-#run_command(args, global_args, test=False)
+args = ["model.depth=22", "model.widen_factor=6"]
+run_command(args, global_args, test="instantiation")
 
 
 # rotation experiment
@@ -95,12 +94,12 @@ global_args = [
 args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation", 
         "model.rotation=12"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 args = ["model.kernel_layout=[5,5]", "model.padding=1", "model.group=cyclic",
         "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation",
         "model.rotation=12"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 
 # restriction experiment

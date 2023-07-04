@@ -208,19 +208,19 @@ def build_cifar10_loaders(batch_size,
     # load the dataset
     train_dataset = datasets.CIFAR10(
         root=DATA_DIR, train=True,
-        download=True, transform=train_transform,
+        download=False, transform=train_transform,
     )
     
     test_dataset = datasets.CIFAR10(
         root=DATA_DIR, train=False,
-        download=True, transform=valid_transform,
+        download=False, transform=valid_transform,
     )
 
     if validation:
         
         valid_dataset = datasets.CIFAR10(
             root=DATA_DIR, train=True,
-            download=True, transform=valid_transform,
+            download=False, transform=valid_transform,
         )
         num_train = len(train_dataset)
         indices = list(range(num_train))

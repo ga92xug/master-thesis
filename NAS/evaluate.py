@@ -1,4 +1,5 @@
 import re
+import torch
 import wandb
 from typing import List, Optional
 import numpy as np
@@ -42,7 +43,6 @@ METADATA = {
 
 def evaluate(
         ax_client: AxClient,
-        device: str,
         step: int,
         filepath: str = None,
 ):
@@ -53,16 +53,17 @@ def evaluate(
 
     experiment = ax_client.experiment
     data = experiment.fetch_data()
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
     # pareto frontier
     pareto_frontier = _pareto_frontier_scatter_2d_plotly(experiment)
     pareto_frontier
-    wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, step=step, commit=True)
+    wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, commit=True)
 
     # scalar mappable
     
     fig = scalar_mappable(ax_client.experiment)
-    wandb.log({"pareto_frontier_image": wandb.Image(fig)}, step=step, commit=True)
+    wandb.log({"pareto_frontier_image": wandb.Image(fig)}, commit=True)
 
     # contour plots
     valid_acc_contour_plot, gflops_contour_plot = get_contour_plots(
@@ -70,29 +71,30 @@ def evaluate(
         data=data,
         device=device,
     )
-    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_contour_plot)}, step=step, commit=True)
-    wandb.log({"gflops_contour": wandb.Plotly(gflops_contour_plot)}, step=step, commit=True)
+    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_contour_plot)}, commit=True)
+    wandb.log({"gflops_contour": wandb.Plotly(gflops_contour_plot)}, commit=True)
 
 
 def get_contour_plots(
         experiment: AxClient,
         data,
-        device,        
+        density: int = 10,
 ):
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     model = get_MOO_NEHVI(
         experiment=experiment, 
         data=data,
         device=device
     )
-    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False)
-    gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True)
+    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False, density=density)
+    gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True, density=density)
     return valid_acc_interact_contour_plotly, gflops_interact_contour_plotly
 
 def scalar_mappable(
         experiment,
-        title: str,
-        baseline_point: Optional[List[float]],
-        baseline_label: Optional[str],
+        title: str = None,
+        baseline_point: Optional[List[float]] = None,
+        baseline_label: Optional[str] = None,
         ):
     """
     This function creates a scatter plot of an experiment's data sorted by trial_index.
@@ -108,7 +110,6 @@ def scalar_mappable(
     """
     
     meta_data = get_meta_information(experiment.name)
-    print("meta_data", meta_data)
     name, point, label = meta_data["name"], meta_data["point"], meta_data["label"]
 
     title = title if title else f"Equivariant NAS on {name}"

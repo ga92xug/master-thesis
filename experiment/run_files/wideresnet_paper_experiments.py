@@ -14,32 +14,26 @@ global_args = [
 # experiment 1 Type of convolutions in residual block
 # params 2761013
 args = ["model.kernel_layout=[3,3]", "model.depth=16", "model.widen_factor=4", "wandb.notes=eq_wrn_baseline"]
-#run_command(args, global_args, test=False)
-
+run_command(args, global_args, test="instantiation")
 
 # params 2797573
 args = ["model.kernel_layout=[1,3,1]", "model.depth=16", "model.widen_factor=5.2"]
-#run_command(args, global_args, test=False)
-
+run_command(args, global_args, test="instantiation")
 
 # 
 args = ["model.kernel_layout=[3,1]", "model.depth=16", "model.widen_factor=5"]
-#run_command(args, global_args, test=False)
-
-
+run_command(args, global_args, test="instantiation")
 
 args = ["model.kernel_layout=[1,3]", "model.depth=16", "model.widen_factor=5"]
-#run_command(args, global_args, test=False)
-
+run_command(args, global_args, test="instantiation")
 
 # params 2707749
 args = ["model.kernel_layout=[3,1,1]", "model.depth=16", "model.widen_factor=5"]
-#run_command(args, global_args, test=False)
-
+run_command(args, global_args, test="instantiation")
 
 # params 2932597
 args = ["model.kernel_layout=[3,1,3]", "model.depth=16", "model.widen_factor=4"]
-#run_command(args, global_args, test=False)
+run_command(args, global_args, test="instantiation")
 
 
 
@@ -116,10 +110,10 @@ global_args = [
 
 
 args = ["model.depth=16,28,34,42", "model.widen_factor=2"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 args = ["model.depth=34", "model.widen_factor=1,2,4"]
-run_command(args, global_args, test=False)
+#run_command(args, global_args, test=False)
 
 args = ["model.depth=16", "model.widen_factor=4"]
 #run_command(args, global_args, test=False)

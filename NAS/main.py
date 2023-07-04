@@ -249,7 +249,7 @@ class NAS:
                 # Evaluate
                 if i % self.cfg.other.evaluate_every == 0 and i >= 1:
                     try:
-                        evaluate(ax_client=self.ax_client, device=self.device, step=i)
+                        evaluate(ax_client=self.ax_client, step=i)
                     except Exception as e:
                         # the eval fails if not enough data is available
                         print("Evaluation failed", e)
@@ -263,7 +263,7 @@ class NAS:
 
 
         # final evaluation
-        evaluate(ax_client=self.ax_client, device=self.device,step=i)
+        evaluate(ax_client=self.ax_client ,step=i)
 
     
     def get_next_trial(self):

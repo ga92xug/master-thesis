@@ -8,11 +8,11 @@ defaults:
 #  training.epochs: 1
 #  training.steps_per_epoch: 10
 
-exp_name: cifar10_3
-seed: 0
+exp_name: cifar10_without_group_0
+seed: 1
 
 generation:
-  num_total_trials: 75  # total evaluation budget
+  num_total_trials: 50  # total evaluation budget
   num_sobol_trials: 5
   num_fullbayesian_trials: -1
   batch_size: 1
@@ -28,7 +28,7 @@ runner:
 other:
   evaluate_every: 5
   save_every: 1
-  restart: True
+  restart: False
   verbose: 1
 
 wandb:

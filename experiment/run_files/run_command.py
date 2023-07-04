@@ -3,7 +3,7 @@ import sys
 import pathlib
 sys.path.append('experiment')
 #print("Add path", pathlib.Path(sys.path[-1]).absolute())
-from experiment.speed_test import extract_info_instantiate_network
+#from experiment.speed_test import extract_info_instantiate_network
 
 def run_command(args, global_args, test):
     global_args_test = global_args + [
@@ -13,18 +13,18 @@ def run_command(args, global_args, test):
     ]
     if test == "instantiation_capture":
         # only instantiate and test network
-        command = ["python", "experiment/network_instantiation.py", "-m"]
+        command = ["python", "experiment/model_instantiate.py", "-m"]
         command.extend(global_args_test)
         command.extend(args)
         output = subprocess.check_output(command, text=True)
         extract_info_instantiate_network(output, verbose=True)
         return output
     elif test == "instantiation":
-        command = ["python", "experiment/network_instantiation.py", "-m"]
+        command = ["python", "experiment/model_instantiate.py", "-m"]
         command.extend(global_args_test)
         command.extend(args)
         subprocess.run(command)
-    else:
+    elif test == False:
         # we run through the main training loop
         command = ["python", "experiment/main.py", "-m"]
         if test:
@@ -34,4 +34,6 @@ def run_command(args, global_args, test):
 
         command.extend(args)
         subprocess.run(command)
+    else:
+        raise ValueError("Unknown test type: {}".format(test))
     

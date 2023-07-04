@@ -6,13 +6,16 @@
 
 import re
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objs as go
+from ax.utils.stats.statstools import marginal_effects
+from plotly import subplots
 from ax.core.observation import ObservationFeatures
 from ax.modelbridge.base import ModelBridge
-from ax.plot.base import AxPlotConfig, AxPlotTypes, PlotData
+from ax.plot.base import AxPlotConfig, AxPlotTypes, PlotData, DECIMALS
 from ax.plot.color import BLUE_SCALE, GREEN_PINK_SCALE, GREEN_SCALE
 from ax.plot.helper import (
     axis_range,
@@ -78,6 +81,11 @@ def interact_contour_plotly(
     plot_data, _, _ = get_plot_data(
         model, generator_runs_dict or {}, {metric_name}, fixed_features=fixed_features
     )
+    #print("plot_data", type(plot_data), plot_data)
+    #for arm_name, plotInSampleArm in plot_data.in_sample.items():
+    #    mapper = [0,1,2,4,8,16]
+    #    plotInSampleArm.parameters["0_group"] = mapper[plotInSampleArm.parameters["0_group"]]
+    #print("plot_data", type(plot_data), plot_data)
 
     # TODO T38563759: Sort parameters by feature importances
     param_names = [parameter.name for parameter in range_parameters]
@@ -115,6 +123,7 @@ def interact_contour_plotly(
                 slice_values=slice_values,
                 fixed_features=fixed_features,
             )
+            # print("f_plt", f_plt)
             f_dict[param1][param2] = f_plt
             sd_dict[param1][param2] = sd_plt
 
@@ -572,3 +581,94 @@ def interact_contour_plotly(
     return go.Figure(data=traces, layout=layout)
     # return AxPlotConfig(config, plot_type=AxPlotTypes.INTERACT_CONTOUR)
 
+def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4):
+    """
+    Calculates and plots the marginal effects -- the effect of changing one
+    factor away from the randomized distribution of the experiment and fixing it
+    at a particular level.
+
+    Args:
+        model: Model to use for estimating effects
+        metric: The metric for which to plot marginal effects.
+
+    Returns:
+        AxPlotConfig of the marginal effects
+    """
+    plot_data, _, _ = get_plot_data(model, {}, {metric})
+
+    arm_dfs = []
+    for arm in plot_data.in_sample.values():
+        arm_df = pd.DataFrame(arm.parameters, index=[arm.name])
+        arm_df["mean"] = arm.y_hat[metric]
+        arm_df["sem"] = arm.se_hat[metric]
+        arm_dfs.append(arm_df)
+    effect_table = marginal_effects(pd.concat(arm_dfs, 0))
+
+    varnames = effect_table["Name"].unique()
+    print("type(varnames):", type(varnames))
+    #varnames = ['0_reflection' '0_group' '0_out_channels' '0_kernel_size' '1_reflection']
+    # pyre-fixme[33]: Given annotation cannot contain `Any`.
+    figures = []
+    for varnames_split in np.array_split(varnames, split_factor):
+        data: List[Any] = []
+        for varname in varnames_split:
+            var_df = effect_table[effect_table["Name"] == varname]
+            data += [
+                go.Bar(
+                    x=var_df["Level"],
+                    y=var_df["Beta"],
+                    error_y={"type": "data", "array": var_df["SE"]},
+                    name=varname,
+                )
+            ]
+        fig = subplots.make_subplots(
+            cols=len(varnames_split),
+            rows=1,
+            subplot_titles=list(varnames_split),
+            print_grid=False,
+            shared_yaxes=True,
+        )
+        for idx, item in enumerate(data):
+            fig.append_trace(item, 1, idx + 1)
+        fig.layout.showlegend = False
+        # fig.layout.margin = go.layout.Margin(l=2, r=2)
+        fig.layout.title = "Marginal Effects by Factor"
+        fig.layout.yaxis = {
+            "title": "% higher than experiment average",
+            "hoverformat": ".{}f".format(DECIMALS),
+        }
+        figures.append(fig)
+    return figures
+
+
+from ax.service.ax_client import AxClient
+from ax.modelbridge.factory import get_MOO_NEHVI 
+import torch
+def evaluate(
+        ax_client: AxClient,
+        filepath: str = None,
+):
+    assert ax_client is not None or filepath is not None, "Either ax_client or filepath must be provided"
+    # load ax client
+    if ax_client is None:
+        ax_client = AxClient.load_from_json_file(filepath=filepath)
+
+    experiment = ax_client.experiment
+    data = experiment.fetch_data()
+
+
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+
+    model = get_MOO_NEHVI(
+        experiment=experiment, 
+        data=data,
+        device=device
+    )
+    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False, density=2)
+
+
+if __name__ == "__main__":
+    evaluate(
+        ax_client=None,
+        filepath="NAS/data/cifar10_3/ax_client.json"
+        )
