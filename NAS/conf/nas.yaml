@@ -1,6 +1,5 @@
 defaults:
 - _self_
-- training: cifar10
 - search_space: cifar10
 - objective: cifar10
 
@@ -8,12 +7,16 @@ defaults:
 #  training.epochs: 1
 #  training.steps_per_epoch: 10
 
-exp_name: cifar10_without_group_0
-seed: 1
+exp_name: cifar10_0-group_0
+seed: 2
+
+training:
+  model: eq_nasnet
+  training: cifar10-training
 
 generation:
   num_total_trials: 50  # total evaluation budget
-  num_sobol_trials: 5
+  num_sobol_trials: 20
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: True
@@ -25,10 +28,12 @@ runner:
   script_path: "experiment/main.py"
   verbose: 1
 
+client:
+  restart: True
+  warm_start: cifar10_without_group_0
+
 other:
-  evaluate_every: 5
   save_every: 1
-  restart: False
   verbose: 1
 
 wandb:

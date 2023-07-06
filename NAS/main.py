@@ -100,7 +100,7 @@ class NAS:
                 self.cfg, resolve=True, throw_on_missing=True
             )
 
-        if not self.cfg.other.restart and os.path.exists(self.json_store["ax_client"]):
+        if not self.cfg.client.restart and os.path.exists(self.json_store["ax_client"]):
             self.ax_client = AxClient.load_from_json_file(filepath=self.json_store["ax_client"])
 
             # number of trials
@@ -141,7 +141,26 @@ class NAS:
             # Experiment
             self.init_experiment()        
 
-        
+    
+        if self.cfg.client.warm_start:
+            # we add the data from the previous client
+            old_client_file_path = f"NAS/data/{self.cfg.client.warm_start}/ax_client.json"
+            old_ax_client = AxClient.load_from_json_file(filepath=old_client_file_path)
+
+            data_df = old_ax_client.experiment.fetch_data().df
+            counter = 0
+            for idx, (index, trial) in enumerate(old_ax_client.experiment.trials.items()):
+                paramerization = trial.arm.parameters
+                raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_df[data_df["trial_index"] == index].iterrows()}
+                if len(raw_data) > 0:
+                    _parameterization, new_index = self.ax_client.attach_trial(parameters=paramerization)
+                    self.add_data(data=raw_data, trial_index=new_index, step=idx)
+                else:
+                    counter += 1
+
+            print("Number of trials without data: ", counter)
+            print("Added ", len(old_ax_client.experiment.trials) - counter, "trials to the experiment")
+
         self.run_id = self.run.id
     
     def init_experiment(self):
@@ -215,45 +234,8 @@ class NAS:
             ax_data, raw_data, = self.data_fetcher.fetch_trial_data(
                 trial_index=trial_meta_data["trial_index"])
 
-            print(ax_data)
             # sync data to Ax
-            if len(ax_data) == 0 or \
-                (len(ax_data) in [1, 2] and ax_data["model_building_time"] < self.cfg.objective.max_building_time):
-                # abandon trial
-                self.ax_client.abandon_trial(
-                    trial_index=trial_meta_data["trial_index"], 
-                )
-                wandb.log({"Abandon trial": 1}, step=i)
-                print("Abandon trial this behavior is not expected.")
-                quit()
-                i -= 1
-
-            elif len(ax_data) in [1, 2]:
-                # early stop trial 
-                # expected if the model building time exceeds the limit
-                self.ax_client.update_running_trial_with_intermediate_data(
-                    trial_index=trial_meta_data["trial_index"],
-                    raw_data=ax_data,
-
-                )
-                self.ax_client.stop_trial_early(
-                    trial_index=trial_meta_data["trial_index"],
-                )
-            else:
-                # complete trial
-                self.ax_client.complete_trial(
-                    trial_index=trial_meta_data["trial_index"], 
-                    raw_data=ax_data,
-                )
-
-                # Evaluate
-                if i % self.cfg.other.evaluate_every == 0 and i >= 1:
-                    try:
-                        evaluate(ax_client=self.ax_client, step=i)
-                    except Exception as e:
-                        # the eval fails if not enough data is available
-                        print("Evaluation failed", e)
-
+            self.add_data(data=ax_data, trial_index=trial_meta_data["trial_index"], step=i)
 
             # log metrics and print
             self.log(raw_data, generation_time, i)
@@ -265,13 +247,39 @@ class NAS:
         # final evaluation
         evaluate(ax_client=self.ax_client ,step=i)
 
+
+    def add_data(self, data, trial_index, step):
+
+        if len(data) == 0 or \
+            (len(data) in [1, 2] and data["model_building_time"] < self.cfg.objective.max_building_time):
+            # abandon trial
+            self.ax_client.abandon_trial(
+                trial_index=trial_index, 
+            )
+            wandb.log({"Abandon trial": 1}, step=step)
+            print("Abandon trial this behavior is not expected.")
+            quit()
+        elif len(data) in [1, 2]:
+            # early stop trial 
+            # expected if the model building time exceeds the limit
+            self.ax_client.update_running_trial_with_intermediate_data(
+                trial_index=trial_index,
+                raw_data=data,
+            )
+            self.ax_client.stop_trial_early(
+                trial_index=trial_index,
+            )
+        else:
+            # complete trial
+            self.ax_client.complete_trial(
+                trial_index=trial_index, 
+                raw_data=data,
+            )
     
+
     def get_next_trial(self):
         # get next trial
         start = timeit.default_timer()
-        # trial = ({
-        #     '0_reflection': 0, '0_group': 3, '0_out_channels': 3, '0_kernel_size': 1, '1_reflection': 0, '1_group': 1, '1_num_layers': 2, '1_conv_op': 'conv', '1_kernel_size': 1, '1_se_ratio': 0, '1_out_channels': 4, '2_reflection': 0, '2_group': 1, '2_num_layers': 1, '2_conv_op': 'conv', '2_kernel_size': 1, '2_se_ratio': 1, '2_out_channels': 1, '3_reflection': 0, '3_group': 1, '3_num_layers': 1, '3_conv_op': 'mbconv', '3_kernel_size': 1, '3_se_ratio': 0, '3_out_channels': 4, '4_reflection': -1, '4_group': 1, '4_out_channels': 3, '4_kernel_size': 0, '1_skip_op': 'no', '2_skip_op': 'identity', '3_skip_op': 'identity'
-        # }, 0)
         trial = self.ax_client.get_next_trial()
         stop = timeit.default_timer()
         generation_time = stop - start
@@ -324,8 +332,6 @@ class NAS:
         # object_to_json(self.generation_strategy)
         # generation_strategy_to_json(self.json_store["generation_strategy"], self.generation_strategy)
         #save_generation_strategy(self.generation_strategy)
-    
-    
 
 
 @hydra.main(config_path="conf", config_name="nas", version_base="1.2")

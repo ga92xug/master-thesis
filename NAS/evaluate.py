@@ -13,8 +13,8 @@ from ax.modelbridge.factory import get_MOO_NEHVI
 # Plotting imports and initialization
 #from ax.plot.contour import interact_contour_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
-from zmq import METADATA
-from plot import interact_contour_plotly
+from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
+from plot import interact_contour_plotly, plot_marginal_effects
 # resume wandb run
 # wandb.init(
 #     project="scaling-laws-nas_high_level", 
@@ -58,34 +58,49 @@ def evaluate(
     # pareto frontier
     pareto_frontier = _pareto_frontier_scatter_2d_plotly(experiment)
     pareto_frontier
-    wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, commit=True)
+    wandb.log({"pareto_frontier": wandb.Plotly(pareto_frontier)}, step=step, commit=True)
+    step += 1
 
     # scalar mappable
-    
     fig = scalar_mappable(ax_client.experiment)
-    wandb.log({"pareto_frontier_image": wandb.Image(fig)}, commit=True)
+    wandb.log({"pareto_frontier_image": wandb.Image(fig)}, step=step, commit=True)
+    step += 1
 
     # contour plots
-    valid_acc_contour_plot, gflops_contour_plot = get_contour_plots(
-        experiment=experiment,
-        data=data,
-        device=device,
-    )
-    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_contour_plot)}, commit=True)
-    wandb.log({"gflops_contour": wandb.Plotly(gflops_contour_plot)}, commit=True)
-
-
-def get_contour_plots(
-        experiment: AxClient,
-        data,
-        density: int = 10,
-):
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     model = get_MOO_NEHVI(
         experiment=experiment, 
         data=data,
         device=device
     )
+    valid_acc_contour_plot, gflops_contour_plot = get_contour_plots(
+        experiment=experiment,
+        data=data,
+        model=model,
+    )
+    wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_contour_plot)}, step=step, commit=True)
+    step += 1
+    wandb.log({"gflops_contour": wandb.Plotly(gflops_contour_plot)}, step=step, commit=True)
+    step += 1
+
+    # feature importance
+    feature_importance = plot_feature_importance_by_feature_plotly(model)
+    wandb.log({"feature_importance": wandb.Plotly(feature_importance)}, step=step, commit=True)
+    step += 1
+
+    # marginal effects
+    figures = plot_marginal_effects(model, "valid_acc")
+    for idx, fig in enumerate(figures):
+        wandb.log({f"{idx}_marginal_effects": wandb.Plotly(fig)}, step=step, commit=True)
+        step += 1
+
+
+def get_contour_plots(
+        experiment: AxClient,
+        data,
+        model,
+        density: int = 10,
+):
     valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False, density=density)
     gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True, density=density)
     return valid_acc_interact_contour_plotly, gflops_interact_contour_plotly
@@ -173,8 +188,8 @@ def get_meta_information(name: str):
         return METADATA["unkown"]
     
 def match_substring(string):
-    pattern = r'(mnist_rot|cifar10)_\d+'
-    match = re.match(pattern, string)
+    pattern = r'(mnist_rot|cifar10)'
+    match = re.search(pattern, string)
     if match:
         return match.group(1)
     else:

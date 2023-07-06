@@ -78,24 +78,22 @@ class Restriction_from_id(EquivariantModule):
             self.out_type = self.in_type
             return
         else:
-            #print("Restriction", group_id, old_group_id)
-            pass
-
-        if "C" in self.in_type.fibergroup.name:
-            # cyclic group
-            self.restrict = RestrictionModule(self.in_type, group_id[1])
-        elif "D" in self.in_type.fibergroup.name:
-            # dihedral group
-            self.restrict = RestrictionModule(self.in_type, group_id)
-            if group_id[0] is None:
-                # if we change from dihedral to cyclic group
-                self.restriction_correction_factor *= 2
-        else:  
-            ValueError("Only cyclic and dihedral groups are supported.")
-        
-        old_rotation = self.in_type.gspace._sg_id[1]
-        self.restriction_correction_factor *= old_rotation / group_id[1]
-        self.out_type = self.restrict.out_type
+            # restriction
+            if "C" in self.in_type.fibergroup.name:
+                # cyclic group
+                self.restrict = RestrictionModule(self.in_type, group_id[1])
+            elif "D" in self.in_type.fibergroup.name:
+                # dihedral group
+                self.restrict = RestrictionModule(self.in_type, group_id)
+                if group_id[0] is None:
+                    # if we change from dihedral to cyclic group
+                    self.restriction_correction_factor *= 2
+            else:  
+                ValueError("Only cyclic and dihedral groups are supported.")
+            
+            old_rotation = self.in_type.gspace._sg_id[1]
+            self.restriction_correction_factor *= old_rotation / group_id[1]
+            self.out_type = self.restrict.out_type
 
     def forward(self, x):
         return self.restrict(x)
@@ -145,7 +143,6 @@ class Restriction_Group_or_CNN(nn.Module):
             self.restrict = Restriction_from_id(in_type, group_id)
             self.out_type = self.restrict.out_type
 
-        
 
     def forward(self, x):
         if self.setting == "switch":

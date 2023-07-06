@@ -605,7 +605,6 @@ def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4
     effect_table = marginal_effects(pd.concat(arm_dfs, 0))
 
     varnames = effect_table["Name"].unique()
-    print("type(varnames):", type(varnames))
     #varnames = ['0_reflection' '0_group' '0_out_channels' '0_kernel_size' '1_reflection']
     # pyre-fixme[33]: Given annotation cannot contain `Any`.
     figures = []

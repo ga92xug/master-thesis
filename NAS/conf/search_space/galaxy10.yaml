@@ -1,5 +1,5 @@
 num_middle_blocks: 3
-strides: [1, 2, 2, 2]
+strides: [1, 1, 2, 2]
 reflection: [-1, 0]
 num_layers: [1, 2]
 choice_2_range_params:
