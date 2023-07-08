@@ -31,45 +31,14 @@ class Eq_Search_Space:
 
         self.parameter_constraints = self.get_constraints()
 
-        # convert dict to list
-        #self.parameters = dict_to_list(self.parameters)
-
-        #self.search_space = SearchSpace(parameters=self.parameters,
-        #                                parameter_constraints=self.constraints)
-
-    def get_constraints(self):
-        # currently output channels increase by [1.0, 2.0] at every block
-        # filter_size_increase = \
-        # [
-        #     OrderConstraint(
-        #             lower_parameter = f"{i-1}_filter_size",
-        #             upper_parameter = f"{i}_filter_size",
-        #     ) for i in range(1, self.blocks)
-        # ]
-        # group_decrease = []
-        # reflection_decrease = []
-        # for block_id, block_param_dict in self.parameters.items():
-        #     if block_id == 0:
-        #         # there is no constraint for the first block
-        #         continue
-        #     group_decrease.append(OrderConstraint(
-        #             upper_parameter = self.parameters[block_id-1]["group"],
-        #             lower_parameter = self.parameters[block_id]["group"],
-        #     ))
-        #     reflection_decrease.append(OrderConstraint(
-        #             upper_parameter = self.parameters[block_id-1]["reflection"],
-        #             lower_parameter = self.parameters[block_id]["reflection"],
-        #     ))
-        
+    def get_constraints(self):       
         parameter_constraints = []
+        strides = ""
 
         for block_id in range(0, self.num_middle_blocks+2):
             if block_id == 0:
-                # inital group must be larger than zero (otherwise we would train a CNN)
-                # initial_group_constraint = f"0_group >= 0"
-                # parameter_constraints.append(initial_group_constraint)
+                strides += f"{block_id}_stride"
                 continue
-
 
             # the group must never increase
             group_decrease_constraint = f"{block_id-1}_group >= {block_id}_group"
@@ -78,6 +47,16 @@ class Eq_Search_Space:
             # the reflection must never increase
             reflection_decrease_constraint = f"{block_id-1}_reflection >= {block_id}_reflection"
             parameter_constraints.append(reflection_decrease_constraint)
+
+            strides += f"+ {block_id}_stride"
+
+        try:
+            stride_constraint = f"{strides} >= {self.search_space_cfg.stride_constraint}"
+        except:
+            try:
+                tmp = self.search_space_cfg.strides
+            except:
+                raise Exception("We either need to define stride_constraint or strides in the config")
 
         return parameter_constraints
 
@@ -90,6 +69,7 @@ class Eq_Search_Space:
                 self.get_group(block_id),
                 self.get_out_channels(block_id),
                 self.get_kernel_size(block_id),
+                self.get_stride(block_id),
             ])
                                       
             #block_search_space["reflection"] = self.get_reflection(block_id)
@@ -104,6 +84,7 @@ class Eq_Search_Space:
                 self.get_group(block_id),
                 self.get_out_channels(block_id),
                 self.get_kernel_size(block_id),
+                self.get_stride(block_id),
             ])
             #block_search_space["reflection"] = self.get_reflection(block_id)
             #block_search_space["group"] = self.get_group(block_id)
@@ -121,6 +102,7 @@ class Eq_Search_Space:
                 self.get_se_ratio(block_id),
                 self.get_out_channels(block_id),
                 self.get_skip_op(block_id),
+                self.get_stride(block_id),
             ])
             #block_search_space["reflection"] = self.get_reflection(block_id)
             #block_search_space["group"] = self.get_group(block_id)
@@ -208,6 +190,23 @@ class Eq_Search_Space:
             "value_type": "int",
         }
         
+
+    def get_stride(self, block_id):
+        try:
+            # if we have declared strides in config, use them
+            stride = self.search_space_cfg.strides[block_id]
+            return {
+                "name": f"{block_id}_stride",
+                "type": "fixed",
+                "value": stride,
+            }
+        except:
+            return {
+                "name": f"{block_id}_stride",
+                "type": "range",
+                "bounds": list(self.choice_2_range_params["stride"]),
+                "value_type": "int",
+            }
 
     def get_search_space(self):
         return self.search_space

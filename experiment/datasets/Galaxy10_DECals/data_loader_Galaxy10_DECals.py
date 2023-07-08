@@ -47,6 +47,9 @@ def build_galaxy10_loaders(
         num_workers=8,
         augment=False,
         ):
+    
+    print("Galaxy10 dataset", "batch size", batch_size, "eval batch size", eval_batchsize)
+
     with h5py.File(dir, 'r') as F:
         images = np.array(F['images'])
         labels = np.array(F['ans'])

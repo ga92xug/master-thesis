@@ -334,7 +334,7 @@ def build_dataloaders(cfg):
             reshuffle=reshuffle
         )
     elif dataset == "imagenette":
-        resolution = cfg.dataset.resolution or None
+        resolution = cfg.training.dataset.resolution or None
         resolution_test = cfg.dataset.resolution_test or None
         train_loader, valid_loader, test_loader, n_inputs, n_outputs = data_loader_imagenette.build_imagenette_loaders(
             batch_size,
@@ -346,8 +346,8 @@ def build_dataloaders(cfg):
             resolution_test = resolution_test,
         ) 
     elif dataset == "Galaxy10_DECals":
-        resolution = cfg.dataset.resolution
-        dir = cfg.dataset.data_dir
+        resolution = cfg.training.dataset.resolution
+        dir = cfg.training.dataset.data_dir
         train_loader, valid_loader, test_loader, n_inputs, n_outputs = data_loader_Galaxy10_DECals.build_galaxy10_loaders(
             batch_size,
             eval_batch_size,

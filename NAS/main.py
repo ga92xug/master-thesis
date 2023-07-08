@@ -212,7 +212,7 @@ class NAS:
             wandb_mode=self.cfg.wandb.mode_runs,
             db_path=self.save_folder,
             choice_2_range_param=choice_2_range_params,
-            strides=list(self.cfg.search_space.strides),
+            #strides=list(self.cfg.search_space.strides),
             training_dict=training_dict,
             verbose=self.cfg.runner.verbose,
         )

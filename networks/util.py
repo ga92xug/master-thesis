@@ -139,6 +139,7 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
         equi_block: An equivariant convolutional block with a parameter count similar to
                     the normal convolutional block.
     """
+    out_channels = kwargs[channel_name]
     N = gspace.fibergroup.order()
     kwargs[channel_name] = kwargs[channel_name] / N
     if fix_params_mode in ["heuristic", "all"]:
@@ -149,7 +150,6 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
         warnings.warn("The number of channels is too small. Setting it to 1.")
         kwargs[channel_name] = 1
 
-    #print(f'Number of channels: {kwargs[channel_name]}')
     equi_block = type_equi_block(**kwargs)
     if fix_params_mode in ["heuristic", "no"]:
         return equi_block

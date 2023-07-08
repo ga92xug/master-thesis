@@ -4,7 +4,7 @@
 import wandb
 
 
-def encode_parameters(params, choice_2_range_params, strides):
+def encode_parameters(params, choice_2_range_params):
     """
     Encodes the parameters into a string representation.
 
@@ -26,6 +26,7 @@ def encode_parameters(params, choice_2_range_params, strides):
         kernel_size = choice_2_range_params['kernel_size'][params['%d_kernel_size' % i]]
         group = choice_2_range_params['group'][params['%d_group' % i]]
         out_channels = choice_2_range_params['out_channels'][params['%d_out_channels' % i]]
+        stride = params['%d_stride' % i]
 
         if i == blocks - 1:
             # last block
@@ -42,7 +43,7 @@ def encode_parameters(params, choice_2_range_params, strides):
                 'k%d' % kernel_size,
                 'g%d' % group,
                 'o%d' % out_channels,
-                's%d' % strides[i],
+                's%d' % stride,
             ]
 
             if i > 0:

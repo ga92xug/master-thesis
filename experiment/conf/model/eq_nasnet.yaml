@@ -15,11 +15,11 @@ cnn_expand_ratio: 6.0
 #blocks_args: ['r0_k5_g16_o1_s1', 'r-1_k3_g8_o1_s2_n3_c-mbconv_se0.25_sk-identity', 'r-1_k5_g2_o1']
 
 # eq_wrn_16_4
-# blocks_args: ['r-1_k5_g8_o1_s1', 
-# 'r-1_k3_g8_o1_s1_n2_c-conv_se0.0_sk-identity', 
-# 'r-1_k3_g4_o2_s2_n2_c-conv_se0.0_sk-identity', 
-# 'r-1_k3_g1_o2_s2_n2_c-conv_se0.0_sk-identity', 
-# 'r-1_k3_g1_o1']
+blocks_args: ['r-1_k5_g8_o1_s1', 
+'r-1_k3_g8_o1_s1_n2_c-conv_se0.0_sk-identity', 
+'r-1_k3_g4_o2_s2_n2_c-conv_se0.0_sk-identity', 
+'r-1_k3_g1_o2_s2_n2_c-conv_se0.0_sk-identity', 
+'r-1_k3_g1_o1']
 
 
 # test CNN
@@ -29,8 +29,4 @@ cnn_expand_ratio: 6.0
 # 'r-1_k3_g0_o1']
 
 # fails
-blocks_args: ['r-1_k5_g16_o1_s1', 
-'r-1_k3_g16_o1_s1_n2_c-dconv_se0.0_sk-identity', 
-'r-1_k3_g8_o1_s2_n1_c-conv_se0.0_sk-identity', 
-'r-1_k3_g1_o1_s2_n1_c-conv_se0.5_sk-conv', 
-'r-1_k5_g0_o2']
+#blocks_args: ['r0_k5_g16_o1_s1', 'r0_k3_g16_o2_s4_n1_c-dconv_se0.0_sk-conv', 'r0_k3_g8_o1_s0_n1_c-dconv_se0.0_sk-identity', 'r-1_k5_g8_o1_s2_n2_c-mbconv_se0.5_sk-identity', 'r-1_k3_g1_o1']

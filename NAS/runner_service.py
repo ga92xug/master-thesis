@@ -25,7 +25,7 @@ class HydraWandbRunner(Runner):
             wandb_mode: str, 
             db_path: str,
             choice_2_range_param: dict, 
-            strides: list, 
+            #strides: list, 
             training_dict: dict,
             verbose: int = 0,
         ):
@@ -49,7 +49,7 @@ class HydraWandbRunner(Runner):
         self.wandb_mode = wandb_mode
         self.db_path = db_path
         self.choice_2_range_param = choice_2_range_param
-        self.strides = strides
+        #self.strides = strides
         self.training_dict = training_dict
         self.verbose = verbose
         
@@ -59,8 +59,7 @@ class HydraWandbRunner(Runner):
 
         # encode the search space parameters
         encoded_params = encode_parameters(trial_params, 
-                                           self.choice_2_range_param, 
-                                           self.strides)
+                                           self.choice_2_range_param)
         if self.verbose >= 1: 
             print("trial_params", trial_params)
 
@@ -104,8 +103,7 @@ class HydraWandbRunner(Runner):
 
         # encode the search space parameters
         encoded_params = encode_parameters(trial_params, 
-                                           self.choice_2_range_param, 
-                                           self.strides)
+                                           self.choice_2_range_param)
         if self.verbose >= 1: 
             print("trial_params", trial_params)
 

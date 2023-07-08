@@ -1,13 +1,14 @@
 defaults:
 - _self_
-- training: mnist_rot
-- search_space: debug
-- objective: mnist_rot
+- search_space: galaxy10
+- objective: galaxy10
 
-exp_name: mnist_rot_test
+exp_name: galaxy10_test
 seed: 42
 
 training:
+  model: eq_nasnet
+  training: galaxy-training
   training.epochs: 1
   training.steps_per_epoch: 10
 
@@ -25,10 +26,12 @@ runner:
   script_path: "experiment/main.py"
   verbose: 1
 
+client:
+  restart: True
+  warm_start: null
+
 other:
-  evaluate_every: 5
   save_every: 1
-  restart: False
   verbose: 0
 
 wandb:

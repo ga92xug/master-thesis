@@ -44,6 +44,7 @@ def get_model(
         stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs, 
                             image_size, device=device, verbose=verbose)
     else:
+        print("image_size", image_size)
         # Set the maximum allowed execution time in seconds
         max_building_time = cfg.NAS.max_building_time
         max_gflops = cfg.NAS.max_gflops
