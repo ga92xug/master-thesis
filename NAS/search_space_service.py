@@ -7,10 +7,12 @@ from ax import (
 )
 from ax import ParameterType, RangeParameter, SearchSpace
 from ax.core import ParameterConstraint, OrderConstraint
+import numpy as np
 from omegaconf import OmegaConf
 import warnings
 
 from requests import get
+from torch import mul
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
@@ -33,11 +35,16 @@ class Eq_Search_Space:
 
     def get_constraints(self):       
         parameter_constraints = []
-        strides = ""
+        strides_constraint = ""
+        out_channels_constraint = ""
+        total_number_blocks = self.num_middle_blocks+2
+        out_channels_prefactor = np.linspace(total_number_blocks, 0, total_number_blocks)
+        out_channels_prefactor /= np.sum(out_channels_prefactor)
 
-        for block_id in range(0, self.num_middle_blocks+2):
+        for block_id in range(0, total_number_blocks):
             if block_id == 0:
-                strides += f"{block_id}_stride"
+                strides_constraint += f"{block_id}_stride"
+                out_channels_constraint += f"{out_channels_prefactor[block_id]}*{block_id}_out_channels"
                 continue
 
             # the group must never increase
@@ -48,15 +55,24 @@ class Eq_Search_Space:
             reflection_decrease_constraint = f"{block_id-1}_reflection >= {block_id}_reflection"
             parameter_constraints.append(reflection_decrease_constraint)
 
-            strides += f"+ {block_id}_stride"
+            strides_constraint += f" + {block_id}_stride"
+            out_channels_constraint += f" + {out_channels_prefactor[block_id]}*{block_id}_out_channels"
 
+            
+
+        # stride constraint
         try:
-            stride_constraint = f"{strides} >= {self.search_space_cfg.stride_constraint}"
+            stride_constraint = f"{strides_constraint} >= {self.search_space_cfg.constraints.min_stride}"
+            #parameter_constraints.append(stride_constraint)
         except:
             try:
                 tmp = self.search_space_cfg.strides
             except:
                 raise Exception("We either need to define stride_constraint or strides in the config")
+            
+        # out_channels constraint
+        out_channels_constraint += f" <= {self.search_space_cfg.constraints.max_out_channels}"
+        #parameter_constraints.append(out_channels_constraint)
 
         return parameter_constraints
 
@@ -192,21 +208,23 @@ class Eq_Search_Space:
         
 
     def get_stride(self, block_id):
-        try:
-            # if we have declared strides in config, use them
-            stride = self.search_space_cfg.strides[block_id]
-            return {
-                "name": f"{block_id}_stride",
-                "type": "fixed",
-                "value": stride,
-            }
-        except:
-            return {
-                "name": f"{block_id}_stride",
-                "type": "range",
-                "bounds": list(self.choice_2_range_params["stride"]),
-                "value_type": "int",
-            }
+        #try:
+        strides = list(self.search_space_cfg.strides)
+        # if we have declared strides in config, use them
+        stride = strides[block_id]
+        return {
+            "name": f"{block_id}_stride",
+            "type": "fixed",
+            "value": stride,
+        }
+        #except:
+        #    #print("stride: ", self.choice_2_range_params["stride"], len(self.choice_2_range_params["stride"]))
+        #    return {
+        #        "name": f"{block_id}_stride",
+        #        "type": "choice",
+        #        "values": self.choice_2_range_params["stride"],
+        #        "value_type": "str",
+        #    }
 
     def get_search_space(self):
         return self.search_space

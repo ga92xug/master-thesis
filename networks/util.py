@@ -277,3 +277,8 @@ def get_gspace_from_id(id):
                 f'Group id "{id}" is not know.'
             )
         return gspace
+
+
+if __name__ == "__main__":
+    gspace = flipRot2dOnR2(4)
+    print(gspace.fibergroup.regular_representation)

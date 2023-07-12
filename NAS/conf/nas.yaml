@@ -1,18 +1,17 @@
 defaults:
 - _self_
-- search_space: cifar10
-- objective: cifar10
+- search_space: galaxy10
+- objective: galaxy10
 
-#training:
-#  training.epochs: 1
-#  training.steps_per_epoch: 10
 
-exp_name: cifar10_0-group_0
-seed: 2
+exp_name: galaxy10_1
+seed: 42
 
 training:
   model: eq_nasnet
-  training: cifar10-training
+  training: galaxy-training
+  #training.epochs: 1
+  #training.steps_per_epoch: 10
 
 generation:
   num_total_trials: 50  # total evaluation budget
@@ -30,7 +29,7 @@ runner:
 
 client:
   restart: True
-  warm_start: cifar10_without_group_0
+  warm_start: galaxy10_test
 
 other:
   save_every: 1

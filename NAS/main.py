@@ -249,9 +249,9 @@ class NAS:
 
 
     def add_data(self, data, trial_index, step):
+        print("Add data: ", data)
 
-        if len(data) == 0 or \
-            (len(data) in [1, 2] and data["model_building_time"] < self.cfg.objective.max_building_time):
+        if len(data) == 0:
             # abandon trial
             self.ax_client.abandon_trial(
                 trial_index=trial_index, 
@@ -260,6 +260,9 @@ class NAS:
             print("Abandon trial this behavior is not expected.")
             quit()
         elif len(data) in [1, 2]:
+            if data["model_building_time"] < self.cfg.objective.max_building_time:
+                data["model_building_time"] = self.cfg.objective.max_building_time
+
             # early stop trial 
             # expected if the model building time exceeds the limit
             self.ax_client.update_running_trial_with_intermediate_data(
@@ -281,6 +284,9 @@ class NAS:
         # get next trial
         start = timeit.default_timer()
         trial = self.ax_client.get_next_trial()
+        #trial = (
+        #    {'0_reflection': 0, '0_group': 4, '0_out_channels': 0, '0_kernel_size': 0, '0_stride': 1, '1_reflection': 0, '1_group': 4, '1_num_layers': 1, '1_conv_op': 'mbconv', '1_kernel_size': 0, '1_se_ratio': 0, '1_out_channels': 3, '1_stride': 1, '2_reflection': 0, '2_group': 4, '2_num_layers': 1, '2_conv_op': 'dconv', '2_kernel_size': 0, '2_se_ratio': 0, '2_out_channels': 4, '2_stride': 1, '3_reflection': 0, '3_group': 2, '3_num_layers': 2, '3_conv_op': 'conv', '3_kernel_size': 1, '3_se_ratio': 1, '3_out_channels': 2, '3_stride': 2, '4_reflection': -1, '4_group': 0, '4_out_channels': 3, '4_kernel_size': 1, '4_stride': 1, '1_skip_op': 'identity', '2_skip_op': 'identity', '3_skip_op': 'identity'}
+        #,1)
         stop = timeit.default_timer()
         generation_time = stop - start
 

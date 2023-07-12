@@ -4,8 +4,8 @@ defaults:
 - dataset: galaxy10
 - scheduler: multi_step_lr 
 
-batch_size: 128                # Number of examples to process in a batch during training
-eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
+batch_size: 256                # Number of examples to process in a batch during training
+eval_batch_size: 256           # Number of examples to process in a batch during evaluation (default: batch_size)
 epochs: 50                    # Number of training epochs
 augment_train: False     
 

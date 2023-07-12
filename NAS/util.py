@@ -27,6 +27,7 @@ def encode_parameters(params, choice_2_range_params):
         group = choice_2_range_params['group'][params['%d_group' % i]]
         out_channels = choice_2_range_params['out_channels'][params['%d_out_channels' % i]]
         stride = params['%d_stride' % i]
+        #print('stride', stride)
 
         if i == blocks - 1:
             # last block
@@ -106,3 +107,4 @@ def init_wandb(run_id, cfg, wandb_config=None):
 
     run.log_code(".")
     return run
+
