@@ -3,7 +3,7 @@ import math
 import collections
 from typing import Tuple, Union
 import torch
-from torch import nn
+from torch import mul, nn
 from torch.nn import functional as F
 import sys
 
@@ -27,13 +27,13 @@ BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 def get_fixed_out_channels(
         out_channel: int,
-        rotation: int, 
+        N: int, 
     ):
-    if rotation == 0:
+    if N == 0:
         # CNN layer
         return out_channel
 
-    out_channel = (out_channel / rotation) * math.sqrt(rotation)
+    out_channel = (out_channel / N) * math.sqrt(N)
     out_channel = int(round(out_channel))
 
     # print(f"out_channel: {out_channel}")
@@ -50,11 +50,11 @@ def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, dept
             increase_factor *= width_coefficient
 
         out_channel = old_channels*increase_factor
-        
+
         blocks_args[i] = block_args._replace(out_channel=out_channel)
         old_channels = out_channel
         list_out_channel.append(out_channel)
-
+    
     print(f"list_out_channel: {list_out_channel}")
     return blocks_args
 
@@ -190,7 +190,7 @@ class BlockDecoder(object):
             # 0 - k-1 blocks have these params 
             kernel_size=                int(options['k']) if 'k' in options else None,
             stride=                     int(options['s']) if 's' in options else None,
-            out_channel=                int(options['o']) if 'o' in options else None,
+            out_channel=                float(options['o']) if 'o' in options else None,
             # only 1 - k-1 middle blocks have these params
             num_layers=                 int(options['n']) if 'n' in options else None,
             conv_op=                    str(options['c']) if 'c' in options else None,
@@ -240,7 +240,7 @@ class BlockDecoder(object):
         """
         
         for i, block in enumerate(blocks_args):
-            assert isinstance(block.out_channel, int) and block.out_channel > 0
+            assert block.out_channel > 0
             assert isinstance(block.kernel_size, int) and block.kernel_size > 0
             assert isinstance(block.group, int) and block.group >= 0
             assert isinstance(block.reflection, int) and block.reflection in [-1,0]

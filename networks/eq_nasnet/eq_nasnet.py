@@ -101,7 +101,7 @@ class EquivariantNASNet(nn.Module):
         print("Building stem")
         channel_size = get_fixed_out_channels(
                 out_channel = stem_args.out_channel,
-                rotation=stem_args.group,
+                N=self.gspace.fibergroup.order(),
             )
         self._conv_stem = Eq_Conv2dSamePadding(
             in_type=self.input_field_type,
@@ -150,14 +150,16 @@ class EquivariantNASNet(nn.Module):
         # Restrict
         group_id = get_group_id(last_block_args.reflection, last_block_args.group)
         self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)
-        #restriction_correction_factor = self.restrict_last.get_correction_factor()
         self.field_type = self.restrict_last.out_type
-
         
         # Head
+        if self.restrict_last.setting in ["cnn", "switch"]:
+            N = 0
+        else:
+            N = self.gspace.fibergroup.order()
         out_channels = get_fixed_out_channels(
                 out_channel = last_block_args.out_channel,
-                rotation=block_args.group,
+                N=N,
             )
         
         if self.restrict_last.setting in ["cnn", "switch"]:

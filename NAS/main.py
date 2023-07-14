@@ -84,7 +84,7 @@ class NAS:
             project=self.cfg.wandb.project,
             wandb_mode=self.cfg.wandb.mode,
             exp_name=self.cfg.exp_name,
-            max_gflops=self.cfg.objective.max_gflops,
+            max_gflops=self.cfg.objective.bounds.gflops,
             max_building_time=self.cfg.objective.max_building_time,
             db_location=self.save_folder,
         )
@@ -199,7 +199,7 @@ class NAS:
         # we have to convert the config to a dict because the config is not serializable
         # only matters for developer api
         training_dict = OmegaConf.to_container(self.cfg.training, resolve=True)
-        training_dict["NAS.max_gflops"] = self.cfg.objective.max_gflops
+        training_dict["NAS.max_gflops"] = self.cfg.objective.bounds.gflops
         training_dict["NAS.max_building_time"] = self.cfg.objective.max_building_time
         choice_2_range_params = OmegaConf.to_container(
             self.cfg.search_space.choice_2_range_params, resolve=True)
@@ -261,7 +261,7 @@ class NAS:
             quit()
         elif len(data) in [1, 2]:
             if data["model_building_time"] < self.cfg.objective.max_building_time:
-                data["model_building_time"] = self.cfg.objective.max_building_time
+                data["GFLOPs"] = self.cfg.objective.bounds.gflops
 
             # early stop trial 
             # expected if the model building time exceeds the limit

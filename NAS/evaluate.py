@@ -34,6 +34,11 @@ METADATA = {
             "point": [0.9125, 226],
             "label": "eq_wrn_16_4",
         },
+        "galaxy10": {
+            "name": "Galaxy10",
+            "point": [0.7998, 4084],
+            "label": "eq_wrn_16_4",
+        },
         "unkown": {
             "name": "Unknown",
             "point": False,
@@ -74,8 +79,6 @@ def evaluate(
         device=device
     )
     valid_acc_contour_plot, gflops_contour_plot = get_contour_plots(
-        experiment=experiment,
-        data=data,
         model=model,
     )
     wandb.log({"valid_acc_contour": wandb.Plotly(valid_acc_contour_plot)}, step=step, commit=True)
@@ -96,8 +99,6 @@ def evaluate(
 
 
 def get_contour_plots(
-        experiment: AxClient,
-        data,
         model,
         density: int = 10,
 ):

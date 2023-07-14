@@ -1,5 +1,6 @@
 import subprocess
 from ax import Runner
+from sympy import expand
 import wandb
 from hydra import compose, initialize
 from hydra.core.global_hydra import GlobalHydra
@@ -60,13 +61,16 @@ class HydraWandbRunner(Runner):
         # encode the search space parameters
         encoded_params = encode_parameters(trial_params, 
                                            self.choice_2_range_param)
-        if self.verbose >= 1: 
+        if self.verbose >= 3: 
             print("trial_params", trial_params)
-
 
         # Construct overrides
         overrides = []
-        overrides.extend([f"model.blocks_args={encoded_params}"])
+        dropout_rate = trial_params['-1_dropout_rate']
+        expand_ratio = trial_params['-1_expand_ratio']
+        overrides.extend([f"model.blocks_args={encoded_params}",
+                          f"model.dropout_rate={dropout_rate}",
+                          f"model.eq_expand_ratio={expand_ratio}"])
         # Append all training settings
         for key, value in self.training_dict.items():
             overrides.append(f"{key}={value}")
@@ -86,7 +90,6 @@ class HydraWandbRunner(Runner):
         GlobalHydra.instance().clear()
         with initialize(version_base="1.2", config_path="../experiment/conf"):
             cfg = compose(config_name="config", overrides=overrides)
-
         try:
             run_experiment_from_config(cfg)
         except Exception as e:
@@ -104,13 +107,17 @@ class HydraWandbRunner(Runner):
         # encode the search space parameters
         encoded_params = encode_parameters(trial_params, 
                                            self.choice_2_range_param)
-        if self.verbose >= 1: 
+        if self.verbose >= 3: 
             print("trial_params", trial_params)
 
         # Construct the command
         command = [self.command_prefix, self.script_path]
         # pass the encoded search space parameter
-        command.extend([f"model.blocks_args={encoded_params}"])
+        dropout_rate = trial_params['-1_dropout_rate']
+        expand_ratio = trial_params['-1_expand_ratio']
+        command.extend([f"model.blocks_args={encoded_params}",
+                          f"model.dropout_rate={dropout_rate}",
+                          f"model.eq_expand_ratio={expand_ratio}"])
         # Append all training settings
         for key, value in self.training_dict.items():
             command.append(f"{key}={value}")

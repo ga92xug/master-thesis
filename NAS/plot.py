@@ -605,12 +605,21 @@ def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4
     effect_table = marginal_effects(pd.concat(arm_dfs, 0))
 
     varnames = effect_table["Name"].unique()
+
+    print("array_split", np.array_split(varnames, split_factor))
+
+    # Extract group names using string manipulation
+    group_names = np.unique([varname.split('_')[1] for varname in varnames])
+
+    # Split varnames into smaller arrays based on group names
+    split_arrays_group_based = np.array([varnames[np.char.endswith(varnames, '_' + group)] for group in group_names])
     #varnames = ['0_reflection' '0_group' '0_out_channels' '0_kernel_size' '1_reflection']
     # pyre-fixme[33]: Given annotation cannot contain `Any`.
     figures = []
-    for varnames_split in np.array_split(varnames, split_factor):
+    for group_array in split_arrays_group_based:
         data: List[Any] = []
-        for varname in varnames_split:
+        group_array = np.sort(group_array)
+        for varname in group_array:
             var_df = effect_table[effect_table["Name"] == varname]
             data += [
                 go.Bar(
@@ -621,9 +630,9 @@ def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4
                 )
             ]
         fig = subplots.make_subplots(
-            cols=len(varnames_split),
+            cols=len(group_array),
             rows=1,
-            subplot_titles=list(varnames_split),
+            subplot_titles=list(group_array),
             print_grid=False,
             shared_yaxes=True,
         )

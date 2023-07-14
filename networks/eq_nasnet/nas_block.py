@@ -44,13 +44,14 @@ from nn import (
     ReLU,
     Swish,
     SequentialModule,
+    PointwiseDropout,
 )
 
 class Eq_NAS_Block(EquivariantModule):
     """
     Block with variable content based on block_args.
     """
-    def __init__(self, in_type, in_channel_size, block_args, image_size, 
+    def __init__(self, in_type: FieldType, in_channel_size, block_args, image_size, 
                  dropout_rate=0.0,
                  expand_ratio=2):
         """
@@ -65,11 +66,11 @@ class Eq_NAS_Block(EquivariantModule):
         
         intermedite_channel_size = get_fixed_out_channels(
                 out_channel=in_channel_size,
-                rotation=block_args.group,
+                N=in_type.gspace.fibergroup.order(),
             )
         end_channel_size = get_fixed_out_channels(
                 out_channel=block_args.out_channel,
-                rotation=block_args.group,
+                N=in_type.gspace.fibergroup.order(),
             )
 
         # Expansion phase
@@ -126,7 +127,8 @@ class Eq_NAS_Block(EquivariantModule):
             kernel_size=kernel_size,
             bias=False,
         )
-        self.out_type = self._conv2.out_type
+        self.dropout = PointwiseDropout(self._conv2.out_type, p=dropout_rate)
+        self.out_type = self.dropout.out_type
 
         #print("skip connection ", self.original_in_type.size, self._conv2.out_type.size)
         #print("type ", self.original_in_type, self._conv2.out_type)
@@ -138,7 +140,7 @@ class Eq_NAS_Block(EquivariantModule):
 
         if block_args.skip == "conv" \
             or block_args.stride > 1 \
-            or self.original_in_type != self._conv2.out_type:
+            or self.original_in_type != self.dropout.out_type:
             #print("skip conv")
             # for larger strides or group changes we have to use a conv layer
             batch_norm = BatchNorm(in_type=self.original_in_type, affine=False)
@@ -185,6 +187,9 @@ class Eq_NAS_Block(EquivariantModule):
         x = self._bn2(x)
         x = self._swish2(x)
         x = self._conv2(x)
+        
+        # Dropout
+        x = self.dropout(x)
         
         # Skip connection
         if self.shortcut is not None:

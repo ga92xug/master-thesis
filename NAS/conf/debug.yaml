@@ -14,7 +14,7 @@ training:
 
 generation:
   num_total_trials: 50  # total evaluation budget
-  num_sobol_trials: 3
+  num_sobol_trials: 1
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: False

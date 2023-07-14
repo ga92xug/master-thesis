@@ -3,7 +3,6 @@ import torch
 import sys
 import os
 
-
 sys.path.append(f"{os.getcwd()}")
 from nn import (
     rot2dOnR2,

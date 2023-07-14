@@ -23,13 +23,17 @@ class Eq_Search_Space:
         choice_2_range_params = OmegaConf.to_container(search_space_cfg.choice_2_range_params, resolve=True)
         self.choice_2_range_params = choice_2_range_params
         self.parameters = []
+        # global params
+        self.parameters.extend([
+            self.get_expand_ratio(),
+            self.get_dropout_rate(),
+        ])
 
         # block search space
         # block_id = 0 is the stem block
         # block_id = blocks+1 is the head block
         for block_id in range(0, self.num_middle_blocks+2):
             self.parameters.extend(self.per_block_search_space(block_id))
-
 
         self.parameter_constraints = self.get_constraints()
 
@@ -38,7 +42,7 @@ class Eq_Search_Space:
         strides_constraint = ""
         out_channels_constraint = ""
         total_number_blocks = self.num_middle_blocks+2
-        out_channels_prefactor = np.linspace(total_number_blocks, 0, total_number_blocks)
+        out_channels_prefactor = np.linspace(total_number_blocks, 1, total_number_blocks)
         out_channels_prefactor /= np.sum(out_channels_prefactor)
 
         for block_id in range(0, total_number_blocks):
@@ -58,12 +62,10 @@ class Eq_Search_Space:
             strides_constraint += f" + {block_id}_stride"
             out_channels_constraint += f" + {out_channels_prefactor[block_id]}*{block_id}_out_channels"
 
-            
-
         # stride constraint
         try:
             stride_constraint = f"{strides_constraint} >= {self.search_space_cfg.constraints.min_stride}"
-            #parameter_constraints.append(stride_constraint)
+            parameter_constraints.append(stride_constraint)
         except:
             try:
                 tmp = self.search_space_cfg.strides
@@ -72,7 +74,7 @@ class Eq_Search_Space:
             
         # out_channels constraint
         out_channels_constraint += f" <= {self.search_space_cfg.constraints.max_out_channels}"
-        #parameter_constraints.append(out_channels_constraint)
+        parameter_constraints.append(out_channels_constraint)
 
         return parameter_constraints
 
@@ -88,10 +90,6 @@ class Eq_Search_Space:
                 self.get_stride(block_id),
             ])
                                       
-            #block_search_space["reflection"] = self.get_reflection(block_id)
-            #block_search_space["group"] = self.get_group(block_id)
-            #block_search_space["out_channels"] = self.get_out_channels(block_id)
-            #block_search_space["kernel_size"] = self.get_kernel_size(block_id)
             return block_search_space
         
         elif block_id == self.num_middle_blocks+1:
@@ -102,10 +100,6 @@ class Eq_Search_Space:
                 self.get_kernel_size(block_id),
                 self.get_stride(block_id),
             ])
-            #block_search_space["reflection"] = self.get_reflection(block_id)
-            #block_search_space["group"] = self.get_group(block_id)
-            #block_search_space["out_channels"] = self.get_out_channels(block_id)
-            #block_search_space["kernel_size"] = self.get_kernel_size(block_id)
             return block_search_space
         
         else:
@@ -120,30 +114,23 @@ class Eq_Search_Space:
                 self.get_skip_op(block_id),
                 self.get_stride(block_id),
             ])
-            #block_search_space["reflection"] = self.get_reflection(block_id)
-            #block_search_space["group"] = self.get_group(block_id)
-            #block_search_space["num_layers"] = self.get_num_layers(block_id)
-            #block_search_space["conv_op"] = self.get_conv_op(block_id)
-            #block_search_space["kernel_size"] = self.get_kernel_size(block_id)
-            #block_search_space["se_ratio"] = self.get_se_ratio(block_id)
-            #block_search_space["out_channels"] = self.get_out_channels(block_id)
-            #block_search_space["skip_op"] = self.get_skip_op(block_id)
             return block_search_space
 
 
     def get_reflection(self, block_id):
-        bounds = list(self.search_space_cfg.reflection)
         return {
             "name": f"{block_id}_reflection",
             "type": "range",
-            "bounds": bounds,
+            "bounds": list(self.search_space_cfg.reflection),
             "value_type": "int",
         }
 
     def get_group(self, block_id):
         # the first block must have a group of at least 1
-        lower_bound = 1 if block_id == 0 and \
-              self.choice_2_range_params["group"][0] == 0 else 0
+        if block_id == 0 and self.choice_2_range_params["group"][0] == 0:
+            lower_bound = 1
+        else:
+            lower_bound = 0 
         return {
             "name": f"{block_id}_group",
             "type": "range",
@@ -152,80 +139,115 @@ class Eq_Search_Space:
         }
 
     def get_num_layers(self, block_id):
-        bounds = list(self.search_space_cfg.num_layers)
         return {
             "name": f"{block_id}_num_layers",
-            "type": "range",
-            "bounds": bounds,
+            "type": "choice",
+            "values": list(self.search_space_cfg.num_layers),
             "value_type": "int",
+            "is_ordered": True,
         }
 
     def get_conv_op(self, block_id):
         return {
             "name": f"{block_id}_conv_op",
             "type": "choice",
-            "values": ["conv", "dconv", "mbconv"],
+            "values": list(self.search_space_cfg.conv_op),
+            "value_type": "str",
             "is_ordered": True,
         }
 
     def get_kernel_size(self, block_id):
         return {
             "name": f"{block_id}_kernel_size",
-            "type": "range",
-            "bounds": [0, len(self.choice_2_range_params["kernel_size"]) - 1],
+            "type": "choice",
+            "values": list(self.search_space_cfg.kernel_size),
             "value_type": "int",
+            "is_ordered": True,
         }
 
     def get_se_ratio(self, block_id):
         return {
             "name": f"{block_id}_se_ratio",
-            "type": "range",
-            "bounds": [0, len(self.choice_2_range_params["se_ratio"]) - 1],
-            "value_type": "int",
+            "type": "choice",
+            "values": list(self.search_space_cfg.se_ratio),
+            "value_type": "float",
+            "is_ordered": True,
         }
 
     def get_skip_op(self, block_id):
         return {
             "name": f"{block_id}_skip_op",
             "type": "choice",
-            "values": ["identity", "conv"],
+            "values": list(self.search_space_cfg.skip_op),
+            "value_type": "str",
+            "is_ordered": True,
         }
 
     def get_out_channels(self, block_id):
-        bounds = [0, len(self.choice_2_range_params["out_channels"]) - 1]
-        try:
-            upper_bound = getattr(self.search_space_cfg, f"{block_id}_out_channels")
-            bounds = bounds[:upper_bound]
-        except:
-            pass
-
         return {
             "name": f"{block_id}_out_channels",
             "type": "range",
-            "bounds": bounds,
-            "value_type": "int",
+            "bounds": list(self.search_space_cfg.out_channels),
+            "value_type": "float",
+            "is_ordered": True,
         }
         
 
     def get_stride(self, block_id):
-        #try:
-        strides = list(self.search_space_cfg.strides)
-        # if we have declared strides in config, use them
-        stride = strides[block_id]
-        return {
-            "name": f"{block_id}_stride",
-            "type": "fixed",
-            "value": stride,
-        }
-        #except:
-        #    #print("stride: ", self.choice_2_range_params["stride"], len(self.choice_2_range_params["stride"]))
-        #    return {
-        #        "name": f"{block_id}_stride",
-        #        "type": "choice",
-        #        "values": self.choice_2_range_params["stride"],
-        #        "value_type": "str",
-        #    }
+        try:
+            # if we have declared strides in config, use them
+            strides = list(self.search_space_cfg.strides)
+            stride = strides[block_id]
+            return {
+                "name": f"{block_id}_stride",
+                "type": "fixed",
+                "value": stride,
+                "value_type": "int",
+            }
+        except:
+            return {
+                "name": f"{block_id}_stride",
+                "type": "range",
+                "bounds": list(self.search_space_cfg.stride),
+                "value_type": "int",
+                "is_ordered": True,
+            }
+        
 
+    def get_expand_ratio(self):
+        try:
+            return {
+                "name": f"-1_expand_ratio",
+                "type": "choice",
+                "values": list(self.search_space_cfg.expand_ratio),
+                "value_type": "int",
+                "is_ordered": True,
+            }
+        except:
+            return {
+                "name": f"-1_expand_ratio",
+                "type": "fixed",
+                "value": 2,
+                "value_type": "int",
+            }
+    
+    def get_dropout_rate(self):
+        try:
+            return {
+                "name": f"-1_dropout_rate",
+                "type": "choice",
+                "values": list(self.search_space_cfg.dropout_rate),
+                "value_type": "float",
+                "is_ordered": True,
+            }
+        except:
+            return {
+                "name": f"-1_dropout_rate",
+                "type": "fixed",
+                "value": 0.0,
+                "value_type": "float",
+            }
+        
     def get_search_space(self):
         return self.search_space
     
@@ -246,77 +268,3 @@ def dict_to_list(d):
             result.append(value)
     return result
 
-
-"""
-    def get_reflection(self, block_id):
-        return RangeParameter(
-                name=f"{block_id}_reflection",
-                lower=-1,
-                upper=0,
-                parameter_type=ParameterType.INT,
-                log_scale=False,
-            )
-    
-    def get_group(self, block_id):
-        return RangeParameter(
-                name=f"{block_id}_group",
-                lower=0,
-                upper=len(self.choice_2_range_params["group"])-1,
-                parameter_type=ParameterType.INT,
-                log_scale=False,
-            )
-    
-    def get_num_layers(self, block_id):
-        return RangeParameter(
-                name=f"{block_id}_num_layers",
-                lower=1,
-                upper=3,
-                parameter_type=ParameterType.INT,
-                log_scale=False,
-            )
-    
-    def get_conv_op(self, block_id):
-        return ChoiceParameter(
-                name=f"{block_id}_conv_op",
-                values=["conv", "dconv", "mbconv"],
-                parameter_type=ParameterType.STRING,
-                is_ordered=False,
-                sort_values=False,
-            )
-    
-    def get_kernel_size(self, block_id):
-        return RangeParameter(
-                name=f"{block_id}_kernel_size",
-                lower=0,
-                upper=len(self.choice_2_range_params["kernel_size"])-1,
-                parameter_type=ParameterType.INT,
-                log_scale=False,
-            )
-    
-    def get_se_ratio(self, block_id):
-        return RangeParameter(
-                name=f"{block_id}_se_ratio",
-                lower=0,
-                upper=len(self.choice_2_range_params["se_ratio"])-1,
-                parameter_type=ParameterType.INT,
-                log_scale=False,
-            )
-    
-    def get_skip_op(self, block_id):
-        return ChoiceParameter(
-                name=f"{block_id}_skip_op",
-                values=["identity", "no"], # "pool"
-                parameter_type=ParameterType.STRING,
-                is_ordered=False,
-                sort_values=False,
-            )
-    
-    def get_out_channels(self, block_id):
-        return RangeParameter(
-                name=f"{block_id}_out_channels",
-                lower=0,
-                upper=len(self.choice_2_range_params["out_channels"])-1,
-                parameter_type=ParameterType.INT,
-                log_scale=False,
-            )
-"""

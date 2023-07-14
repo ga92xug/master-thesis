@@ -51,8 +51,7 @@ def get_model(
 
         assert max_building_time > 0, "max_building_time must be greater than 0"
         logger.log({"model_building_time": max_building_time}, step=0, epoch=0)
-        # we currently don't restrict the gflops
-        # assert max_gflops > 0, "max_gflops must be greater than 0"
+        assert max_gflops > 0, "max_gflops must be greater than 0"
 
         # Define a function to handle the timeout
         def timeout_handler(signum, frame):
@@ -73,6 +72,8 @@ def get_model(
         gflops = get_gflops(model, cfg.training.batch_size, n_inputs,
                         image_size, device=device, verbose=verbose)
         logger.log({"GFLOPs": gflops}, step=0, epoch=0)
+        if gflops > max_gflops:
+            raise ValueError(f"GFLOPs {gflops} exceeds maximum allowed {max_gflops}")
 
     ############################################################################
     # Both NAS and non-NAS

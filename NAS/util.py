@@ -17,15 +17,15 @@ def encode_parameters(params, choice_2_range_params):
         str: The encoded string representation of the parameters.
     """
     # Number of blocks is determined by the highest numbered block in the keys of params
+
     blocks = max(int(key.split('_')[0]) for key in params.keys() if key.split('_')[0].isdigit()) + 1
     encoded_blocks = []
     
     for i in range(blocks):
-        # For each parameter that is in the choice_2_range_params, convert it back to its original value
         reflection = params['%d_reflection' % i]
-        kernel_size = choice_2_range_params['kernel_size'][params['%d_kernel_size' % i]]
+        kernel_size = params['%d_kernel_size' % i]
         group = choice_2_range_params['group'][params['%d_group' % i]]
-        out_channels = choice_2_range_params['out_channels'][params['%d_out_channels' % i]]
+        out_channels = params['%d_out_channels' % i]
         stride = params['%d_stride' % i]
         #print('stride', stride)
 
@@ -35,7 +35,7 @@ def encode_parameters(params, choice_2_range_params):
                 'r%d' % reflection,
                 'k%d' % kernel_size,
                 'g%d' % group,
-                'o%d' % out_channels,
+                'o%s' % out_channels,
             ]
         else:
             # start and middle blocks
@@ -43,14 +43,14 @@ def encode_parameters(params, choice_2_range_params):
                 'r%d' % reflection,
                 'k%d' % kernel_size,
                 'g%d' % group,
-                'o%d' % out_channels,
+                'o%s' % out_channels,
                 's%d' % stride,
             ]
 
             if i > 0:
                 num_layers = params['%d_num_layers' % i]
                 conv_op = params['%d_conv_op' % i]
-                se_ratio = choice_2_range_params['se_ratio'][params['%d_se_ratio' % i]]
+                se_ratio = params['%d_se_ratio' % i]
                 skip_op = params['%d_skip_op' % i]
                 
                 block_args.extend([
@@ -62,7 +62,7 @@ def encode_parameters(params, choice_2_range_params):
 
         encoded_blocks.append('_'.join(block_args))
 
-    
+    print('encoded_blocks', encoded_blocks)
     return encoded_blocks
 
 
