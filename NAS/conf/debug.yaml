@@ -8,6 +8,8 @@ seed: 42
 
 training:
   model: eq_nasnet
+  model.fixed_params: False
+  model.stem_channels: 24
   training: galaxy-training
   training.epochs: 1
   training.steps_per_epoch: 10

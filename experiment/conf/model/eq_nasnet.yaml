@@ -6,6 +6,7 @@ dropout_rate: 0.0
 depth_divisor: 8
 min_depth: 1
 stem_channels: 16 # same as wide_resnet 
+fixed_params: True
 eq_expand_ratio: 1.5
 cnn_expand_ratio: 6.0
 

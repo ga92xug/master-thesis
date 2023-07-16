@@ -12,7 +12,6 @@ from .util import (
     BlockArgs,
     BlockDecoder,
     get_increase_factor,
-    get_fixed_out_channels,
     round_repeats,
 )
 from networks import (
@@ -29,6 +28,7 @@ from networks.gpool_reduction import GroupPoolingReduction
 
 from networks.util import (
     calculate_output_image_size, 
+    adjusted_out_channels,
     get_fixed_params,
     get_group_id, 
     get_gspace_from_id, 
@@ -51,9 +51,16 @@ class Eq_NAS_Block(EquivariantModule):
     """
     Block with variable content based on block_args.
     """
-    def __init__(self, in_type: FieldType, in_channel_size, block_args, image_size, 
-                 dropout_rate=0.0,
-                 expand_ratio=2):
+    def __init__(
+            self, 
+            in_type: FieldType, 
+            in_channel_size, 
+            fixed_params, 
+            block_args, 
+            image_size, 
+            dropout_rate=0.0,
+            expand_ratio=2
+        ):
         """
         Args:
         block_args (namedtuple): BlockArgs, defined in utils.py.
@@ -64,13 +71,15 @@ class Eq_NAS_Block(EquivariantModule):
         self.original_in_type = in_type
         self.has_se = 0 < block_args.se_ratio < 1
         
-        intermedite_channel_size = get_fixed_out_channels(
+        intermedite_channel_size = adjusted_out_channels(
                 out_channel=in_channel_size,
                 N=in_type.gspace.fibergroup.order(),
+                fixed_params=fixed_params,
             )
-        end_channel_size = get_fixed_out_channels(
+        end_channel_size = adjusted_out_channels(
                 out_channel=block_args.out_channel,
                 N=in_type.gspace.fibergroup.order(),
+                fixed_params=fixed_params,
             )
 
         # Expansion phase

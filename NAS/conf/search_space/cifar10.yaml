@@ -1,5 +1,8 @@
 num_middle_blocks: 3
 
+dropout_rate: [0., 0.3 , 0.5]
+expand_ratio: [2, 4, 6]
+
 reflection: [-1, 0]
 num_layers: [1, 2]
 conv_op: ["conv", "dconv", "mbconv"]

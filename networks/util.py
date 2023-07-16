@@ -163,6 +163,23 @@ def get_fixed_params(type_equi_block, fix_params_mode, normal_block=None, gspace
     return equi_block
 
 
+def adjusted_out_channels(
+        out_channel: int,
+        N: int, 
+        fixed_params: bool = True,
+    ):
+    if N == 0:
+        # CNN layer
+        return out_channel
+
+    out_channel = (out_channel / N) 
+    if fixed_params:
+        out_channel *= math.sqrt(N)
+    out_channel = int(round(out_channel))
+
+    # print(f"out_channel: {out_channel}")
+    return out_channel
+
 def binary_search_fixed_params(type_equi_block, param_normal_block, channel_name, max_iterations, **kwargs):
     """
     Perform a binary search to find the optimal number of channels for the equivariant block

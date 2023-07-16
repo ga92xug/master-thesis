@@ -606,18 +606,34 @@ def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4
 
     varnames = effect_table["Name"].unique()
 
-    print("array_split", np.array_split(varnames, split_factor))
 
     # Extract group names using string manipulation
-    group_names = np.unique([varname.split('_')[1] for varname in varnames])
+    group_names = np.unique(["_".join(varname.split('_')[1:]) for varname in varnames])
 
     # Split varnames into smaller arrays based on group names
-    split_arrays_group_based = np.array([varnames[np.char.endswith(varnames, '_' + group)] for group in group_names])
+    varnames_str = np.char.mod('%s', varnames)
+    # Use a dictionary to store arrays for each group
+    split_arrays_group_based = {group: varnames_str[np.char.endswith(varnames_str, '_' + group)] for group in group_names}
+
+    # combine group arrays with length 1 into one array
+    final_arrays_group_based = {}
+    final_arrays_group_based["others"] = np.array([])
+    for group, group_array in split_arrays_group_based.items():
+        if len(group_array) != 1 and group != "others":
+            final_arrays_group_based[group] = group_array
+        else:
+            final_arrays_group_based["others"] = np.concatenate((final_arrays_group_based["others"], group_array))
+
+
     #varnames = ['0_reflection' '0_group' '0_out_channels' '0_kernel_size' '1_reflection']
     # pyre-fixme[33]: Given annotation cannot contain `Any`.
     figures = []
-    for group_array in split_arrays_group_based:
+    for group, group_array in final_arrays_group_based.items():
         data: List[Any] = []
+        if len(group_array) <= 1:
+            # if there is no other groups
+            continue
+
         group_array = np.sort(group_array)
         for varname in group_array:
             var_df = effect_table[effect_table["Name"] == varname]

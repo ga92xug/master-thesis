@@ -1,15 +1,17 @@
 defaults:
 - _self_
-- search_space: galaxy10
-- objective: galaxy10
+- search_space: mnist_rot
+- objective: mnist_rot
 
 
-exp_name: galaxy10_1
+exp_name: mnist-rot_2.1
 seed: 42
 
 training:
   model: eq_nasnet
-  training: galaxy-training
+  model.fixed_params: False
+  model.stem_channels: 16
+  training: mnist_rot-training
   #training.epochs: 1
   #training.steps_per_epoch: 10
 
@@ -29,7 +31,7 @@ runner:
 
 client:
   restart: True
-  warm_start: galaxy10_test
+  warm_start: null
 
 other:
   save_every: 1

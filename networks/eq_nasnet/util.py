@@ -25,20 +25,6 @@ BlockArgs = collections.namedtuple('BlockArgs', [
 # Set GlobalParams and BlockArgs's defaults
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
-def get_fixed_out_channels(
-        out_channel: int,
-        N: int, 
-    ):
-    if N == 0:
-        # CNN layer
-        return out_channel
-
-    out_channel = (out_channel / N) * math.sqrt(N)
-    out_channel = int(round(out_channel))
-
-    # print(f"out_channel: {out_channel}")
-    return out_channel
-
 def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, depth_divisor, min_depth):
     list_out_channel = []
     old_channels = initial_channel_size

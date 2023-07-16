@@ -30,7 +30,7 @@ METADATA = {
             "label": "eq_wrn_16_4",
         },
         "cifar10": {
-            "name": "CIFAR-10",
+            "name": "CIFAR10",
             "point": [0.9125, 226],
             "label": "eq_wrn_16_4",
         },
@@ -189,7 +189,7 @@ def get_meta_information(name: str):
         return METADATA["unkown"]
     
 def match_substring(string):
-    pattern = r'(mnist_rot|cifar10)'
+    pattern = r'(mnist_rot|cifar10|galaxy10)'
     match = re.search(pattern, string)
     if match:
         return match.group(1)

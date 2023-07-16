@@ -2,7 +2,6 @@ import math
 import re
 from typing import List, Tuple
 from matplotlib.pyplot import stem
-from numpy import block
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
@@ -12,7 +11,6 @@ from .util import (
     BlockArgs,
     BlockDecoder,
     get_increase_factor,
-    get_fixed_out_channels,
     round_repeats,
     get_channel_sizes,
 )
@@ -36,6 +34,7 @@ from networks.util import (
     get_group_id, 
     get_gspace_from_id, 
     get_param_count,
+    adjusted_out_channels,
 )
 
 from nn import (
@@ -62,6 +61,7 @@ class EquivariantNASNet(nn.Module):
             depth_divisor=8,
             min_depth=1,
             stem_channels=16,
+            fixed_params=True,
             eq_expand_ratio=2,
             cnn_expand_ratio=6,
             input_channels=3, 
@@ -80,6 +80,7 @@ class EquivariantNASNet(nn.Module):
         self.min_depth = min_depth
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
+        self.fixed_params = fixed_params
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
         self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient, depth_divisor, min_depth)
@@ -99,9 +100,10 @@ class EquivariantNASNet(nn.Module):
 
         # Stem
         print("Building stem")
-        channel_size = get_fixed_out_channels(
+        channel_size = adjusted_out_channels(
                 out_channel = stem_args.out_channel,
                 N=self.gspace.fibergroup.order(),
+                fixed_params=fixed_params,
             )
         self._conv_stem = Eq_Conv2dSamePadding(
             in_type=self.input_field_type,
@@ -157,7 +159,7 @@ class EquivariantNASNet(nn.Module):
             N = 0
         else:
             N = self.gspace.fibergroup.order()
-        out_channels = get_fixed_out_channels(
+        out_channels = adjusted_out_channels(
                 out_channel = last_block_args.out_channel,
                 N=N,
             )
@@ -256,7 +258,8 @@ class EquivariantNASNet(nn.Module):
         else:
             block = Eq_NAS_Block(
                     in_type=self.field_type,
-                    in_channel_size=self.prev_channel_size, 
+                    in_channel_size=self.prev_channel_size,
+                    fixed_params=self.fixed_params, 
                     block_args=block_args, 
                     image_size=image_size,
                     dropout_rate=self.dropout_rate,
