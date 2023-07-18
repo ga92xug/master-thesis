@@ -76,10 +76,10 @@ global_args = [
 
 # 3x3
 args = ["model.depth=16", "model.widen_factor=4"]
-run_command(args, global_args, test="instantiation")
+#run_command(args, global_args, test="instantiation")
 
 args = ["model.depth=22", "model.widen_factor=6"]
-run_command(args, global_args, test="instantiation")
+#run_command(args, global_args, test="instantiation")
 
 
 # rotation experiment
@@ -96,16 +96,15 @@ args = ["model.kernel_layout=[3,3]", "model.padding=1", "model.group=cyclic",
         "model.rotation=12"]
 #run_command(args, global_args, test=False)
 
-args = ["model.kernel_layout=[5,5]", "model.padding=1", "model.group=cyclic",
-        "model.depth=16", "model.widen_factor=4", "wandb.notes=rotation",
-        "model.rotation=12"]
+args = ["model.kernel_layout=[5,5]", "wandb.notes=param_constant",
+        "model.rotation=2,4,6,8,10,12,16,20", "model.widen_factor=2.5"]
 #run_command(args, global_args, test=False)
 
 
 # restriction experiment
 global_args = [
         "model=eq_wrn", 
-        "training=cifar10-training",
+        "training=mnist_rot-training, galaxy-training",
         # wandb
         "wandb.tags=[G_CNN_exp4]",
         "wandb.group=G_CNN_exp4",
@@ -114,8 +113,8 @@ global_args = [
 # 16_4
 args = ["model.depth=16", "model.widen_factor=4", 
         "wandb.notes=16_4_restriction_exp", 
-        "model.restrict=[invariant,invariant],[none,none],[halved,halved]"]
-#run_command(args, global_args, test=False)
+        "model.restrict=[invariant,invariant],[none,none],[halved,halved],[halved,invariant]"]
+run_command(args, global_args, test=False)
 # 28_6
 args = ["model.depth=28", "model.widen_factor=6", 
         "wandb.notes=28_6_restriction_exp", 

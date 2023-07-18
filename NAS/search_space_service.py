@@ -141,10 +141,9 @@ class Eq_Search_Space:
     def get_num_layers(self, block_id):
         return {
             "name": f"{block_id}_num_layers",
-            "type": "choice",
-            "values": list(self.search_space_cfg.num_layers),
+            "type": "range",
+            "bounds": list(self.search_space_cfg.num_layers),
             "value_type": "int",
-            "is_ordered": True,
         }
 
     def get_conv_op(self, block_id):
