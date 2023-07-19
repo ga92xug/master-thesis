@@ -1,0 +1,7 @@
+name: ISIC_2019             
+augment: False              
+reshuffle: True             
+workers: 8                 
+resolution: 256
+batch_size: 256
+eval_batchsize: 256 

@@ -18,6 +18,16 @@ from networks.util import cuda_memory_usage
 from experiment import utils
 from experiment import log
 
+from experiment.datasets.mnist_rot import data_loader_mnist_rot
+from experiment.datasets.mnist_fliprot import data_loader_mnist_fliprot
+from experiment.datasets.mnist12k import data_loader_mnist12k
+from experiment.datasets.cifar10 import data_loader_cifar10
+from experiment.datasets.cifar100 import data_loader_cifar100
+# from experiment.datasets.STL10 import data_loader_stl10
+# from experiment.datasets.STL10 import data_loader_stl10frac
+from experiment.datasets.imagenette import data_loader_imagenette
+from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
+
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
 #os.environ['TORCHDYNAMO_VERBOSE'] = '0'
@@ -77,7 +87,12 @@ class Experiment:
             # )
                
         # dataset
-        self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
+        try:
+            
+            self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
+        except:
+            self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
+
         
         # Loss function
         if self.n_outputs == 2:
@@ -108,7 +123,6 @@ class Experiment:
         # optimizer
         self._optimizer = hydra.utils.instantiate(cfg.training.optimizer, 
                                             params=self.model.parameters())
-
         
         # outpath
         # self.outpath = utils.out_path(cfg)

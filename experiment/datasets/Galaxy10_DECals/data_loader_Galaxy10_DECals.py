@@ -33,11 +33,6 @@ class Galaxy10Dataset(torch.utils.data.Dataset):
 
         return image, label
 
-    
-def to_categorical(y, num_classes):
-    """ 1-hot encodes a tensor """
-    return np.eye(num_classes, dtype='uint8')[y]
-
 
 def build_galaxy10_loaders(
         batch_size,
@@ -54,7 +49,6 @@ def build_galaxy10_loaders(
         images = np.array(F['images'])
         labels = np.array(F['ans'])
 
-    #labels = to_categorical(labels, 10)
     images = images.astype(np.uint8)
 
     # Split the data into train, val, and test arrays.
