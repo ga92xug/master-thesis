@@ -1,4 +1,4 @@
-_target_: experiment.datasets.Galaxy10_DECals.data_loader_Galaxy10_DECals
+_target_: experiment.datasets.Galaxy10_DECals.data_loader_Galaxy10_DECals.build_galaxy10_loaders
 name: "Galaxy10_DECals"             # The name of the dataset to use
 augment: False                 # Augment the training set with rotated images
 workers: 8                    # Number of jobs to load the dataset

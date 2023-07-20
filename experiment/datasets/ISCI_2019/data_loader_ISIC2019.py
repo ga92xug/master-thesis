@@ -76,7 +76,13 @@ def build_isic2019_loaders(
     n_inputs = 3
     n_classes = 8
 
-    return train_loader, val_loader, test_loader, n_inputs, n_classes
+    dataloaders = {
+        "train": train_loader,
+        "valid": val_loader,
+        "test": test_loader,
+    }
+
+    return dataloaders, n_inputs, n_classes
 
 
 

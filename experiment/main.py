@@ -90,11 +90,14 @@ class Experiment:
         try:
             self._dataloaders, n_inputs, self.n_outputs = hydra.utils.call(cfg.training.dataset)
             #self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
-            print("Stage 1: dataloaders built")
+            
         except Exception as e:
             print(e)
+            print("\nFailed --------------------------")
             self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
+            print("\nFailed --------------------------")
 
+        print("Stage 1: dataloaders built")
         
         # Loss function
         if self.n_outputs == 2:

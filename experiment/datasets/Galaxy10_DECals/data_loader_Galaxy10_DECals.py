@@ -36,19 +36,19 @@ class Galaxy10Dataset(torch.utils.data.Dataset):
 
 def build_galaxy10_loaders(
         batch_size,
-        eval_batchsize,
+        eval_batch_size,
         data_dir,
         name,
         resolution,
-        num_workers=8,
+        workers=8,
         augment=False,
-        ):
+    ):
     
-    print("Galaxy10 dataset", "batch size", batch_size, "eval batch size", eval_batchsize)
+    print("Galaxy10 dataset", "batch size", batch_size, "eval batch size", eval_batch_size)
 
     location = data_dir + name + "/Galaxy10_DECals.h5"
 
-    with h5py.File(data_dir, 'r') as F:
+    with h5py.File(location, 'r') as F:
         images = np.array(F['images'])
         labels = np.array(F['ans'])
 
@@ -98,29 +98,34 @@ def build_galaxy10_loaders(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=num_workers,
+        num_workers=workers,
         )
     val_dataloader = DataLoader(
         val_dataset,
-        batch_size=eval_batchsize,
+        batch_size=eval_batch_size,
         shuffle=False,
-        num_workers=num_workers,
+        num_workers=workers,
         )
     test_dataloader = DataLoader(
         test_dataset,
-        batch_size=eval_batchsize,
+        batch_size=eval_batch_size,
         shuffle=False,
-        num_workers=num_workers,
+        num_workers=workers,
         )
 
     n_inputs = 3
     n_classes = 10
-
-    return train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes
+    
+    dataloaders = {
+        "train": train_dataloader,
+        "valid": val_dataloader,
+        "test": test_dataloader,
+    }
+    return dataloaders, n_inputs, n_classes
 
 
 if __name__ == '__main__':
-    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_galaxy10_loaders(batch_size=128, eval_batchsize=16, data_dir= "../Data/frischs/datasets/Galaxy10_DECals/Galaxy10_DECals.h5", resolution=224, num_workers=8, augment=False)
+    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_galaxy10_loaders(batch_size=128, eval_batch_size=16, data_dir= "../Data/frischs/datasets/Galaxy10_DECals/Galaxy10_DECals.h5", resolution=224, workers=8, augment=False)
 
     for i, (images, labels) in enumerate(train_dataloader):
         print(images.shape)

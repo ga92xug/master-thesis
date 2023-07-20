@@ -353,7 +353,7 @@ def build_dataloaders(cfg):
             eval_batch_size,
             data_dir=dir,
             augment=augment,
-            num_workers=num_workers,
+            workers=num_workers,
             resolution=resolution,
         ) 
 
