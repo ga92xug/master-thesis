@@ -175,13 +175,13 @@ from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
 
 def build_dataloaders(cfg):
     dataset = cfg.training.dataset.name
-    batch_size = cfg.training.batch_size
+    batch_size = cfg.training.dataset.batch_size
     num_workers = cfg.training.dataset.workers
     drop_last_train = cfg.training.dataset.drop_last_train or False
     augment = cfg.training.dataset.augment or False
     validation = cfg.training.earlystop or True 
     reshuffle = cfg.training.dataset.reshuffle or False
-    eval_batch_size = cfg.training.eval_batch_size or None
+    eval_batch_size = cfg.training.dataset.eval_batch_size or None
     interpolation = cfg.training.dataset.interpolation or 2
     
     if eval_batch_size is None:
@@ -351,7 +351,7 @@ def build_dataloaders(cfg):
         train_loader, valid_loader, test_loader, n_inputs, n_outputs = data_loader_Galaxy10_DECals.build_galaxy10_loaders(
             batch_size,
             eval_batch_size,
-            dir=dir,
+            data_dir=dir,
             augment=augment,
             num_workers=num_workers,
             resolution=resolution,

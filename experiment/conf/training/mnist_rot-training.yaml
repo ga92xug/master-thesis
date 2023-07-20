@@ -4,8 +4,10 @@ defaults:
 - dataset: mnist_rot
 - scheduler: exponential
 
-batch_size: 64                # Number of examples to process in a batch during training
-eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+dataset:
+  batch_size: 64                # Number of examples to process in a batch during training
+  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+
 epochs: 40                    # Number of training epochs
 augment_train: False
 earlystop: False               # Whether to use early stopping based on a validation set     

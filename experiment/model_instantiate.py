@@ -41,7 +41,7 @@ def get_model(
 
         stats["model_building_time"] = model_building_time
         stats["param_count"] = get_param_count(model, in_mb=False, verbose=verbose)
-        stats["GFLOPs"] = get_gflops(model, cfg.training.batch_size, n_inputs, 
+        stats["GFLOPs"] = get_gflops(model, cfg.training.dataset.batch_size, n_inputs, 
                             image_size, device=device, verbose=verbose)
     else:
         print("image_size", image_size)
@@ -69,7 +69,7 @@ def get_model(
         logger.log({"model_building_time": model_building_time}, step=0, epoch=0)
         
         # flops
-        gflops = get_gflops(model, cfg.training.batch_size, n_inputs,
+        gflops = get_gflops(model, cfg.training.dataset.batch_size, n_inputs,
                         image_size, device=device, verbose=verbose)
         logger.log({"GFLOPs": gflops}, step=0, epoch=0)
         if gflops > max_gflops:

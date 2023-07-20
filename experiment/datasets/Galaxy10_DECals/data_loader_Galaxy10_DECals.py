@@ -37,7 +37,8 @@ class Galaxy10Dataset(torch.utils.data.Dataset):
 def build_galaxy10_loaders(
         batch_size,
         eval_batchsize,
-        dir,
+        data_dir,
+        name,
         resolution,
         num_workers=8,
         augment=False,
@@ -45,7 +46,9 @@ def build_galaxy10_loaders(
     
     print("Galaxy10 dataset", "batch size", batch_size, "eval batch size", eval_batchsize)
 
-    with h5py.File(dir, 'r') as F:
+    location = data_dir + name + "/Galaxy10_DECals.h5"
+
+    with h5py.File(data_dir, 'r') as F:
         images = np.array(F['images'])
         labels = np.array(F['ans'])
 
@@ -117,7 +120,7 @@ def build_galaxy10_loaders(
 
 
 if __name__ == '__main__':
-    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_galaxy10_loaders(batch_size=128, eval_batchsize=16, dir= "../Data/frischs/datasets/Galaxy10_DECals/Galaxy10_DECals.h5", resolution=224, num_workers=8, augment=False)
+    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_galaxy10_loaders(batch_size=128, eval_batchsize=16, data_dir= "../Data/frischs/datasets/Galaxy10_DECals/Galaxy10_DECals.h5", resolution=224, num_workers=8, augment=False)
 
     for i, (images, labels) in enumerate(train_dataloader):
         print(images.shape)

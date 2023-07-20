@@ -88,9 +88,11 @@ class Experiment:
                
         # dataset
         try:
-            
-            self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
-        except:
+            self._dataloaders, n_inputs, self.n_outputs = hydra.utils.call(cfg.training.dataset)
+            #self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
+            print("Stage 1: dataloaders built")
+        except Exception as e:
+            print(e)
             self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
 
         
