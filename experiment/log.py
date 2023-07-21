@@ -27,12 +27,13 @@ class Log():
             step: int, 
             epoch: int,
         ):
+        #print("to_log", to_log)
         if self.is_nas:
             # Log to DB
             self.aggregate_and_log_db(to_log, self.trial_index, epoch)
 
             # Prefix log entries
-            to_log = {self.prefix + key: value for key, value in to_log.items()}
+            #to_log = {self.prefix + key: value for key, value in to_log.items()}
         else:
             wandb.log(to_log, step=step)
 

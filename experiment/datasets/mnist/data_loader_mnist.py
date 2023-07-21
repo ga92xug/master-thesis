@@ -1,3 +1,4 @@
+from email.mime import image
 import numpy as np
 from PIL import Image
 import torch
@@ -110,7 +111,8 @@ def build_mnist_rot_loader(
 
     location = data_dir + name
     
-    dataset = MNIST_Dataset(data_dir=location, mode=mode ,transform=transform, reshuffle_seed=reshuffle_seed)
+    dataset = MNIST_Dataset(data_dir=location, name=name, mode=mode, 
+                            transform=transform, reshuffle_seed=reshuffle_seed)
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=batch_size,
@@ -167,7 +169,7 @@ def get_transform(name, mode, rot_interpol_augmentation, interpolation, coords):
     return own_transforms.Compose(transform), shuffle
 
 
-def build_mnist_rot_loaders(
+def build_mnist_loaders(
         batch_size,
         eval_batch_size,
         data_dir,
@@ -175,7 +177,7 @@ def build_mnist_rot_loaders(
         reshuffle,
         validation,
         augment,
-        num_workers=8, 
+        workers=8, 
         interpolation=0, 
         coords=False,
         drop_last_train=False,
@@ -195,7 +197,7 @@ def build_mnist_rot_loaders(
             data_dir=data_dir,
             name=name,
             mode=modes[0],
-            num_workers=num_workers,
+            num_workers=workers,
             rot_interpol_augmentation=augment,
             interpolation=interpolation,
             reshuffle_seed=seed,
@@ -207,10 +209,9 @@ def build_mnist_rot_loaders(
             data_dir=data_dir,
             name=name,
             mode=modes[1],
-            num_workers=num_workers,
+            num_workers=workers,
             rot_interpol_augmentation=False,
             interpolation=interpolation,
-            reshuffle_seed=seed,
             coords=coords,
         )
         test_loader, n_inputs, n_outputs = build_mnist_rot_loader(
@@ -218,10 +219,9 @@ def build_mnist_rot_loaders(
             data_dir=data_dir,
             name=name,
             mode="test",
-            num_workers=num_workers,
+            num_workers=workers,
             rot_interpol_augmentation=False,
             interpolation=interpolation,
-            reshuffle_seed=seed,
             coords=coords,
         )
 
@@ -230,5 +230,5 @@ def build_mnist_rot_loaders(
             "valid": valid_loader,
             "test": test_loader
         }
-
-        return  loaders, n_inputs, n_outputs, None
+        image_size = 28
+        return  loaders, n_inputs, image_size, n_outputs, None

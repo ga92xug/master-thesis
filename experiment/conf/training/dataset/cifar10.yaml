@@ -1,7 +1,0 @@
-_target_: experiment.datasets.cifar10.data_loader_mnist_rot.build_mnist_rot_loaders
-name: cifar10            
-augment: True                 # Augment the training set with rotated images
-reshuffle: True               # Reshuffle train and valid splits instead of using the default split
-drop_last_train: False       # Drop the last batch if it is smaller than the batch size
-resolution: 32
-resolution_frozen: True      # Freeze the resolution of the dataset since rescaling it is not wanted

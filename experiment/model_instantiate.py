@@ -8,7 +8,7 @@ import sys
 import os
 
 sys.path.append(f"{os.getcwd()}")
-from experiment.utils import build_dataloaders
+#from experiment.utils import build_dataloaders
 from networks.util import get_param_count
 from experiment.log import Log
 
@@ -130,7 +130,8 @@ def init_model(cfg, n_inputs, n_outputs, image_size, device):
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def test_instantiate(cfg: DictConfig) -> None:
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    _dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
+    #_dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
+    _dataloaders, n_inputs, n_outputs, normalize_weights  = hydra.utils.call(cfg.training.dataset)
     is_nas = cfg.NAS.trial_index != -1
     # model
     model, stats = get_model(

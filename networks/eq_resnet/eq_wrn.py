@@ -107,7 +107,7 @@ class EquivariantWideResNet(nn.Module):
                 bias=self.bias,
             )
         
-        self.set_name(depth=depth, k=k, kernel_layout=kernel_layout)
+        self.set_name(depth=depth, k=k, kernel_layout=kernel_layout, group=group, rotation=rotation)
 
         gspace = get_gspace_from_name(group, rotation)
         self.gspace = gspace
@@ -205,8 +205,9 @@ class EquivariantWideResNet(nn.Module):
             current_ratio = equi_param / norm_para
             print(f"Equivariant_WRN / WRN parameter ratio: {current_ratio:.3f}")
         elif self.fix_params_mode in ["no", "heuristic"]:
-            equi_param = get_param_count(self)
-            print(f"Equivariant_WRN params: {equi_param}")
+            pass
+            #equi_param = get_param_count(self)
+            #print(f"Equivariant_WRN params: {equi_param}")
             
 
     def _wide_layer(
@@ -278,7 +279,7 @@ class EquivariantWideResNet(nn.Module):
             if i != len(kernel_layout) - 1:
                 value += ","
 
-        self.name = f"eq_wrn_{depth}_{k:.2f}_K{value}_" 
+        self.name = f"eq_wrn_{depth}_{k:.1f}_K{value}_" 
         if group == "cyclic":
             group_id = "C"
         elif group == "dihedral":

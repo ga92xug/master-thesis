@@ -1,0 +1,6 @@
+_target_: experiment.datasets.mnist.data_loader_mnist.build_mnist_loaders
+augment: True                 # Augment the training set with rotated images
+interpolation: 2              # Type of interpolation to use for data augmentation
+reshuffle: True               # Reshuffle train and valid splits instead of using the default split
+validation: True
+drop_last_train: False       # Drop the last batch if it is smaller than the batch size

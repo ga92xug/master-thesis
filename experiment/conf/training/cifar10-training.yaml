@@ -1,10 +1,11 @@
 defaults:
 - _self_
 - optimizer: SGD
-- dataset: cifar10
+- dataset: cifar
 - scheduler: multi_step_lr
 
 dataset:
+  name: cifar10
   batch_size: 128                # Number of examples to process in a batch during training
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
 

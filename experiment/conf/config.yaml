@@ -11,7 +11,7 @@ training:
   accumulate: 1
   earlystop: False
   dataset:
-    data_dir: '../Data/frischs/datasets/'  # Path to the datasets        
+    data_dir: '../../Data/frischs/datasets/'  # Path to the datasets        
     workers: 8                    # Number of jobs to load the dataset
 
 # Other experiment's parameters

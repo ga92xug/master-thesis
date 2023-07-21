@@ -11,6 +11,7 @@ import math
 import torch
 import torch.nn as nn
 from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics import MetricCollection
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from experiment.model_instantiate import get_model
@@ -18,14 +19,8 @@ from networks.util import cuda_memory_usage
 from experiment import utils
 from experiment import log
 
-from experiment.datasets.mnist import data_loader_mnist_rot
-from experiment.datasets.mnist_fliprot import data_loader_mnist_fliprot
-from experiment.datasets.mnist12k import data_loader_mnist12k
-from experiment.datasets.cifar import data_loader_cifar10
-from experiment.datasets.cifar100 import data_loader_cifar100
-# from experiment.datasets.STL10 import data_loader_stl10
-# from experiment.datasets.STL10 import data_loader_stl10frac
-from experiment.datasets.imagenette import data_loader_imagenette
+from experiment.datasets.mnist import data_loader_mnist
+from experiment.datasets.cifar import data_loader_cifar
 from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
 
 
@@ -59,13 +54,12 @@ class Experiment:
         
         if not self.is_nas:
             # experiment name
-            self.expname = utils.exp_name(cfg) if cfg.wandb.give_name else None
 
             # normal training mode
             self.wandb_run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \
-                            mode=cfg.wandb.mode, name=self.expname, \
-                            notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+                            mode=cfg.wandb.mode, notes=cfg.wandb.notes, \
+                            tags=cfg.wandb.tags)
             self.wandb_run.log_code(".")
             
         else:
@@ -87,21 +81,12 @@ class Experiment:
             # )
                
         # dataset
-        try:
-            self._dataloaders, n_inputs, self.n_outputs, normalize_weights  = hydra.utils.call(cfg.training.dataset)
-            #self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
-            
-        except Exception as e:
-            print(e)
-            print("\nFailed --------------------------")
-            self._dataloaders, n_inputs, self.n_outputs = utils.build_dataloaders(cfg)
-            print("\nFailed --------------------------")
-
+        self._dataloaders, n_inputs, image_size, self.n_outputs, normalize_weights  = hydra.utils.call(cfg.training.dataset)
         print("Stage 1: dataloaders built")
         
         # Loss function
-        if normalize_weights is not None:
-            normalize_weights = torch.tensor(normalize_weights).to(self.device)
+        if normalize_weights is not None and isinstance(normalize_weights, list):
+            normalize_weights = torch.tensor(normalize_weights, dtype=torch.float32).to(self.device)
             if self.n_outputs == 2:
                 self._loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=normalize_weights)
             else:
@@ -114,32 +99,33 @@ class Experiment:
         
         # Metrics
         if self.n_outputs > 1:
+            self.train_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
+            self.valid_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             if normalize_weights is not None:
-                average = "weighted"
-            else:
-                average = "micro"
-            self.train_accuracy = MulticlassAccuracy(self.n_outputs, average=average).to(self.device)
-            self.valid_accuracy = MulticlassAccuracy(self.n_outputs, average=average).to(self.device)
+                self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="weighted").to(self.device)
+                self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="weighted").to(self.device)
+
+            self.train_metrics = MetricCollection(self.train_metrics)
+            self.valid_metrics = MetricCollection(self.valid_metrics)
         else:
             assert normalize_weights is not None, "Not implemented"    
-            self.train_accuracy = BinaryAccuracy().to(self.device)
-            self.valid_accuracy = BinaryAccuracy().to(self.device)
+            self.train_metrics = BinaryAccuracy().to(self.device)
+            self.valid_metrics = BinaryAccuracy().to(self.device)
 
         # model
-        self.model, stats = get_model(
+        self.model, _ = get_model(
             cfg=cfg, 
             n_inputs=n_inputs, 
             n_outputs=self.n_outputs, 
-            image_size=cfg.training.dataset.resolution,
+            image_size=image_size,
             device=self.device,
             logger=self.logger,
             verbose=self._verbose,
         )
-        try:
+        
+        if cfg.wandb.give_name:
             self.wandb_run.name = self.model.name
-        except:
-            # not every model implements name yet
-            pass
+        
         print("Stage 2: model built")
 
         # optimizer
@@ -206,12 +192,11 @@ class Experiment:
             # compute loss and accuracy
             n_samples += x.shape[0]
             loss = self._loss_function(y, t)
-            acc = self.train_accuracy(y.detach(), t.detach())    
+            metrics = self.train_metrics(y.detach(), t.detach())    
             train_loss_epoch += loss.item() * x.shape[0]
-            self.logger.log({"train": {"loss": loss, "acc": acc}}, step=self.global_step, epoch=self._epoch)
+            self.logger.log({"train": {"loss": loss} | metrics}, step=self.global_step, epoch=self._epoch)
             if self._verbose > 2:
-                print(f"Epoch {self._epoch} \
-                        loss: {loss.item():.3f}; acc: {acc:.3f}")
+                print(f"Epoch {self._epoch}: loss: {loss.item():.3f},", ', '.join([f'{key}: {value:.3f}' for key, value in metrics.items()]))
 
             # loss
             loss = loss / self.cfg.training.accumulate
@@ -241,23 +226,23 @@ class Experiment:
         end_time = datetime.datetime.now().timestamp()
         duration = end_time - start_time
         self.logger.log({"train": {"duration": duration}}, step=self.global_step, epoch=self._epoch)
-        utils.print_results(self.train_accuracy.compute(), train_loss_epoch / n_samples, duration, "TRAIN", self._epoch, self._verbose)
+        utils.print_results(self.train_metrics.compute(), train_loss_epoch / n_samples, duration, "TRAIN", self._epoch, self._verbose)
         
         # avoid wandb not logging duration bug
         self.global_step += 1
-        self.train_accuracy.reset()
+        self.train_metrics.reset()
         return
 
     def test(self):
         self.inference("test", confusion=True)
     
     def valid(self):
-        acc, loss, duration = self.inference("valid")
-        utils.print_results(acc, loss, duration, "VALID", self._epoch, self._verbose)
+        metrics, loss, duration = self.inference("valid")
+        utils.print_results(metrics, loss, duration, "VALID", self._epoch, self._verbose)
         
         # adapt learning rate
         if self._adapt_lr_in_validation:
-            self._lr_scheduler.step(acc)
+            self._lr_scheduler.step(metrics["acc"])
 
 
     @torch.no_grad()
@@ -281,7 +266,7 @@ class Experiment:
                 t_test_all.append(t_test.detach().cpu().numpy())
 
             n_samples += x_test.shape[0]
-            self.valid_accuracy(y_test, t_test)
+            self.valid_metrics(y_test, t_test)
             cumulative_loss += self._loss_function(y_test, t_test).item() * x_test.shape[0]
             
             del x_test
@@ -289,13 +274,13 @@ class Experiment:
             del t_test
         
         # log
-        acc = self.valid_accuracy.compute()
-        self.valid_accuracy.reset()
+        metrics = self.valid_metrics.compute()
+        self.valid_metrics.reset()
         loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()
         duration = float(endtime - starttime)
         self.logger.log(
-            {f"{split}": {"loss": loss, "acc": acc, "duration": duration}}, 
+            {f"{split}": {"loss": loss, "duration": duration} | metrics}, 
             step=self.global_step, epoch=self._epoch)
         if confusion:
             y_test_all = np.concatenate(y_test_all, axis=0)
@@ -304,7 +289,7 @@ class Experiment:
                         wandb.plot.confusion_matrix(probs=y_test_all,
                         y_true=t_test_all, \
                         class_names=list(range(self.n_outputs)))})
-        return acc, loss, duration
+        return metrics, loss, duration
     
     
     def iteration_over_epochs(self):

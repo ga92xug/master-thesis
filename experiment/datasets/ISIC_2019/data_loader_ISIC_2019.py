@@ -48,16 +48,13 @@ class ISICDataset(Dataset):
         return image, label
     
 
-
-
-
 def build_isic2019_loaders(
     batch_size,
-    eval_batchsize,
+    eval_batch_size,
     data_dir,
     name,
     resolution,
-    num_workers,
+    workers,
     should_normalize_weights,
     augment=False,
 ):
@@ -68,7 +65,8 @@ def build_isic2019_loaders(
     if should_normalize_weights:
         normalized_weights = get_normalize_weights(df)
     else:
-        normalized_weights = None
+        # to gather the weighted accuracy
+        normalized_weights = 1
 
     # Split the data
     train_df, val_test_df = train_test_split(df, test_size=0.20, random_state=42, stratify=df['label'])
@@ -78,13 +76,13 @@ def build_isic2019_loaders(
     transform = transforms.Compose([
         transforms.Resize((resolution, resolution)),
         transforms.ToTensor(),
-        #transforms.Normalize(mean=[0.6679, 0.5299, 0.5245], std=[0.1332, 0.1475, 0.1588]),
+        transforms.Normalize(mean=[0.6679, 0.5299, 0.5245], std=[0.1332, 0.1475, 0.1588]),
     ])
 
     # Create the DataLoaders
-    train_loader = DataLoader(ISICDataset(train_df, transform=transform), batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    val_loader = DataLoader(ISICDataset(val_df, transform=transform), batch_size=eval_batchsize, shuffle=False, num_workers=num_workers)
-    test_loader = DataLoader(ISICDataset(test_df, transform=transform), batch_size=eval_batchsize, shuffle=False, num_workers=num_workers)
+    train_loader = DataLoader(ISICDataset(train_df, transform=transform), batch_size=batch_size, shuffle=True, num_workers=workers)
+    val_loader = DataLoader(ISICDataset(val_df, transform=transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
+    test_loader = DataLoader(ISICDataset(test_df, transform=transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
 
     n_inputs = 3
     n_classes = 8
@@ -97,12 +95,12 @@ def build_isic2019_loaders(
 
     
 
-    return dataloaders, n_inputs, n_classes, normalized_weights
+    return dataloaders, n_inputs, resolution, n_classes, normalized_weights
 
 
 
 if __name__ == '__main__':
-    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_isic2019_loaders(batch_size=1024, eval_batchsize=16, data_dir= "../Data/frischs/datasets/", name="ISIC_2019", resolution=224, num_workers=8, augment=False)
+    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_isic2019_loaders(batch_size=1024, eval_batch_size=16, data_dir= "../Data/frischs/datasets/", name="ISIC_2019", resolution=224, workers=8, augment=False)
 
     max_val = 0
     for i, (images, labels) in enumerate(train_dataloader):

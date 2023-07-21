@@ -82,11 +82,12 @@ def allowed_usage_time(
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
 
 
-def print_results(acc, loss, duration, mode, epoch, verbose):
+def print_results(metrics, loss, duration, mode, epoch, verbose):
     if verbose:
         print('-'*100)
         print(f'{mode} Epoch: {epoch} lasted {duration:.3f} seconds')
-        print(f'Accuracy: {acc:.3f}; Loss: {loss:.3f}\n')
+        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items()])
+        print(f'{metrics}, loss: {loss:.3f}')
 
 
 ########################################################################################################################

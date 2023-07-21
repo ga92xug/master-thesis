@@ -55,13 +55,13 @@ class Cutout:
 
 
 
-def build_cifar10_loaders(
+def build_cifar_loaders(
         batch_size,
         eval_batch_size,
         data_dir,
         name,
         validation=True,
-        num_workers=8,
+        workers=8,
         augment=False,
         reshuffle=True,
     ):
@@ -139,22 +139,22 @@ def build_cifar10_loaders(
         
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, sampler=train_sampler,
-            num_workers=num_workers, pin_memory=True,
+            num_workers=workers, pin_memory=True,
         )
         valid_loader = DataLoader(
             valid_dataset, batch_size=eval_batch_size, sampler=valid_sampler,
-            num_workers=num_workers, pin_memory=True,
+            num_workers=workers, pin_memory=True,
         )
     else:
         train_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=True,
-            num_workers=num_workers, pin_memory=True,
+            num_workers=workers, pin_memory=True,
         )
         valid_loader = None
 
     test_loader = DataLoader(
         test_dataset, batch_size=eval_batch_size, shuffle=False,
-        num_workers=num_workers, pin_memory=True,
+        num_workers=workers, pin_memory=True,
     )
 
     loaders = {
@@ -163,15 +163,16 @@ def build_cifar10_loaders(
         "test": test_loader,
     }
     
-    return loaders, n_inputs, n_classes, None
+    image_size = 32
+    return loaders, n_inputs, image_size, n_classes, None
 
 
 if __name__ == "__main__":
-        train_loader, valid_loader, test_loader, n_inputs, n_classes = build_cifar10_loaders(
+        train_loader, valid_loader, test_loader, n_inputs, n_classes = build_cifar_loaders(
             batch_size=128,
             eval_batch_size=128,
             validation=True,
-            num_workers=8,
+            workers=8,
             augment=False,
             reshuffle=True,
         )

@@ -121,7 +121,7 @@ def build_galaxy10_loaders(
         "valid": val_dataloader,
         "test": test_dataloader,
     }
-    return dataloaders, n_inputs, n_classes
+    return dataloaders, n_inputs, resolution, n_classes, None
 
 
 if __name__ == '__main__':
