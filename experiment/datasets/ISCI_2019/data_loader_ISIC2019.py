@@ -45,6 +45,9 @@ class ISICDataset(Dataset):
             image = self.transform(image)
         return image, label
 
+
+
+
 def build_isic2019_loaders(
     batch_size,
     eval_batchsize,
