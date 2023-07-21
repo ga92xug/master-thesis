@@ -91,6 +91,8 @@ class EquivariantNASNet(nn.Module):
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
 
+        self.set_name()
+
         image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         
 
@@ -271,4 +273,9 @@ class EquivariantNASNet(nn.Module):
         return block
 
     
+    def set_name(self):
+        self.name = f"eq_nasnet" 
+
+        self.name += f"{self.gspace.fibergroup}{self.gspace.rotations_order}"
+        print(self.name)
 

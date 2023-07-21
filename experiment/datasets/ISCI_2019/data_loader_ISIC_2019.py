@@ -6,6 +6,8 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from PIL import Image
 
+from experiment.datasets.utils import get_normalize_weights
+
 def get_isic_df(
     dir: str,
     name: str,
@@ -44,6 +46,7 @@ class ISICDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image, label
+    
 
 def build_isic2019_loaders(
     batch_size,
@@ -51,11 +54,18 @@ def build_isic2019_loaders(
     data_dir,
     name,
     resolution,
-    num_workers=8,
+    num_workers,
+    should_normalize_weights,
     augment=False,
 ):
     # Load the dataframe
     df = get_isic_df(data_dir, name)
+
+    # normalize weights
+    if should_normalize_weights:
+        normalized_weights = get_normalize_weights(df)
+    else:
+        normalized_weights = None
 
     # Split the data
     train_df, val_test_df = train_test_split(df, test_size=0.20, random_state=42, stratify=df['label'])
@@ -82,7 +92,9 @@ def build_isic2019_loaders(
         "test": test_loader,
     }
 
-    return dataloaders, n_inputs, n_classes
+    
+
+    return dataloaders, n_inputs, n_classes, normalized_weights
 
 
 

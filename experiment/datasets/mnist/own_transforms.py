@@ -18,6 +18,32 @@ class Compose(transforms.Compose):
                 update_fct()
 
 
+class Rotate(object):
+    """ return image rotated by a random angle or zero degrees
+        an angle of zero still gives interpolation effects, should be applied to test set when train set is rotated by random angle
+    """
+    
+    def __init__(self, rng=None, interpolation=0):
+        self.rng = rng
+        assert interpolation in [0, 2, 3]  # NEAREST, BILINEAR, BICUBIC
+        self.interpolation = interpolation
+        self.update_randomization()
+    
+    def update_randomization(self):
+        if self.rng:
+            self.angle = self.rng.uniform(360)
+        else:
+            self.angle = 0
+    
+    def __call__(self, img):
+        """
+        :type  img: PIL.Image
+        :param img: image to be transformed
+        """
+        return img.rotate(angle=self.angle, resample=self.interpolation)
+
+
+
 class FlipRotate(object):
     """ return image randomly flipped and rotated by a random angle or zero degrees
         an angle of zero still gives interpolation effects, should be applied to test set when train set is rotated by random angle
@@ -120,7 +146,7 @@ class GrayToTensor(object):
         :param tensor: image tensor to which channel is added
         """
         # We have to do a copy since Numpy 1.16 see: https://stackoverflow.com/questions/39554660/np-arrays-being-immutable-assignment-destination-is-read-only/54308748#54308748
-        img = np.array(img, float32, copy=True)[np.newaxis, ...]  # add channel dimension
+        img = np.array(img, np.float32, copy=True)[np.newaxis, ...]  # add channel dimension
         return torch.from_numpy(img)
 
 
@@ -131,21 +157,21 @@ class CoordinateField(object):
         coords = [torch.arange(s) for s in shape]
         coords = torch.stack(torch.meshgrid(coords))
         coords = coords.to(dtype=torch.float)
-
+        
         l = len(shape)
         
         assert coords.shape == (l,) + shape, coords.shape
         
         coords = coords.reshape(l, -1)
-        
+
         coords -= coords.mean(dim=1, keepdim=True)
         coords /= coords.std(dim=1, keepdim=True)
-        
+
         coords = coords.reshape(l, *shape)
-        
+
         self.coords = coords
-        
-        self._expand_shape = tuple(-1 for _ in range(len(shape) + 1))
+
+        self._expand_shape = tuple(-1 for _ in range(len(shape)+1))
     
     def __call__(self, img):
         """
@@ -154,4 +180,8 @@ class CoordinateField(object):
         """
         return torch.cat([img, self.coords], dim=0)
 
+        
+        
+        
+    
 

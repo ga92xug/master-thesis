@@ -106,13 +106,9 @@ class EquivariantWideResNet(nn.Module):
                 drop_out=self.drop_out,
                 bias=self.bias,
             )
-        value = ""
-        for i, element in enumerate(kernel_layout):
-            value += str(element) 
-            if i != len(kernel_layout) - 1:
-                value += ","
+        
+        self.set_name(depth=depth, k=k, kernel_layout=kernel_layout)
 
-        print(f"Eq_WRN_{depth}_{k:.2f}_B({value})")
         gspace = get_gspace_from_name(group, rotation)
         self.gspace = gspace
 
@@ -274,3 +270,21 @@ class EquivariantWideResNet(nn.Module):
         x = self.classifier(x)
         return x
         
+
+    def set_name(self, depth, k, kernel_layout, group, rotation):
+        value = ""
+        for i, element in enumerate(kernel_layout):
+            value += str(element) 
+            if i != len(kernel_layout) - 1:
+                value += ","
+
+        self.name = f"eq_wrn_{depth}_{k:.2f}_K{value}_" 
+        if group == "cyclic":
+            group_id = "C"
+        elif group == "dihedral":
+            group_id = "D"
+        else:
+            ValueError("group not recognized")
+
+        self.name += f"{group_id}{rotation}"
+        print(self.name)

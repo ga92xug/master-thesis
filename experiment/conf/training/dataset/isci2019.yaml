@@ -1,7 +1,8 @@
+_target_: experiment.datasets.ISIC_2019.data_loader_ISIC_2019.build_isic2019_loaders
 name: ISIC_2019             
 augment: False              
 reshuffle: True             
 workers: 8                 
 resolution: 256
-batch_size: 256
-eval_batchsize: 256 
+
+should_normalize_weights: True
