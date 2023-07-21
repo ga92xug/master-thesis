@@ -93,53 +93,6 @@ def print_results(acc, loss, duration, mode, epoch, verbose):
 # Utilites to build paths and names in a standard way
 ########################################################################################################################
 
-def exp_name(cfg):
-    values = []
-    # model name
-    if "EquivariantWideResNet" in cfg.model._target_: 
-        values.append("eq_wrn")
-    elif "EquivariantResNet9" in cfg.model._target_:
-        values.append("res9")
-    elif "EquivariantMobileNetV2" in cfg.model._target_:
-        values.append("eq_mobv2")
-    elif "WideResNet" in cfg.model._target_: 
-        values.append("wrn")
-    else:
-        ValueError("Unknown model")
-
-    # depth
-    if "EquivariantWideResNet" in cfg.model._target_ or "WideResNet" in cfg.model._target_:
-        values.append(f"{cfg.model.depth}")
-    elif "EquivariantMobileNetV2" in cfg.model._target_ :
-        values.append(f"{cfg.model.depth_multiplier}")
-    
-    # width
-    if "EquivariantWideResNet" in cfg.model._target_ or "WideResNet" in cfg.model._target_:
-        values.append(f"{cfg.model.widen_factor}")
-    elif "EquivariantMobileNetV2" in cfg.model._target_ :
-        values.append(f"{cfg.model.width_multiplier}")
-    
-    # kernel size
-    if "EquivariantWideResNet" in cfg.model._target_ or "WideResNet" in cfg.model._target_:
-        if len(cfg.model.kernel_layout) == 3:
-            values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]})")
-        elif len(cfg.model.kernel_layout) == 2:
-            values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]})")
-        elif len(cfg.model.kernel_layout) == 1:
-            values.append(f"B({cfg.model.kernel_layout[0]})")
-        elif len(cfg.model.kernel_layout) == 4:
-            values.append(f"B({cfg.model.kernel_layout[0]},{cfg.model.kernel_layout[1]},{cfg.model.kernel_layout[2]},{cfg.model.kernel_layout[3]})")
-
-    if "Equivariant" in cfg.model._target_ and "nas" not in cfg.model._target_:
-        if cfg.model.group == "cyclic":
-            group = "C"
-        elif cfg.model.group == "dihedral":
-            group = "D"
-        values.append(f"{group}{cfg.model.rotation}")
-    # assert len(values) > 1, f"Experiment name should be at least a model and dataset, provided {values}"
-
-    return "_".join(values)
-
 
 def out_path(cfg):
     path = cfg.other.output_path

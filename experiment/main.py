@@ -135,7 +135,11 @@ class Experiment:
             logger=self.logger,
             verbose=self._verbose,
         )
-        self.wandb_run.name = self.model.name
+        try:
+            self.wandb_run.name = self.model.name
+        except:
+            # not every model implements name yet
+            pass
         print("Stage 2: model built")
 
         # optimizer
