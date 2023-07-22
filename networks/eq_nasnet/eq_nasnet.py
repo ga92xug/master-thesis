@@ -276,6 +276,6 @@ class EquivariantNASNet(nn.Module):
     def set_name(self):
         self.name = f"eq_nasnet" 
 
-        self.name += f"{self.gspace.fibergroup}{self.gspace.rotations_order}"
+        self.name += f"{self.gspace.fibergroup}"
         print(self.name)
 

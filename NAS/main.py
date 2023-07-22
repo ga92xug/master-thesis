@@ -14,6 +14,10 @@ from omegaconf import DictConfig, OmegaConf
 # Ax service
 from ax.service.ax_client import AxClient, ObjectiveProperties
 
+import logging
+from ax.utils.common.logger import ROOT_STREAM_HANDLER
+ROOT_STREAM_HANDLER.setLevel(logging.ERROR)
+
 #from ax import save, load
 from ax.core import Experiment, Data
 # Save and load json

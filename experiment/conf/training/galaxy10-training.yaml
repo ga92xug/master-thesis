@@ -5,10 +5,11 @@ defaults:
 - scheduler: multi_step_lr 
 
 epochs: 50
+accumulate: 2
 
 dataset:
-  batch_size: 256                # Number of examples to process in a batch during training
-  eval_batch_size: 256           # Number of examples to process in a batch during evaluation (default: batch_size)
+  batch_size: 128                # Number of examples to process in a batch during training
+  eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
 
 optimizer:
   lr: 0.01
