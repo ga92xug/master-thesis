@@ -54,53 +54,6 @@ class HydraWandbRunner(Runner):
         self.training_dict = training_dict
         self.verbose = verbose
         
-
-    def run_within_same_process(self, trial):
-        trial_params, trial_index = trial
-
-        # encode the search space parameters
-        encoded_params = encode_parameters(trial_params, 
-                                           self.choice_2_range_param)
-        if self.verbose >= 3: 
-            print("trial_params", trial_params)
-
-        # Construct overrides
-        overrides = []
-        dropout_rate = trial_params['-1_dropout_rate']
-        expand_ratio = trial_params['-1_expand_ratio']
-        overrides.extend([f"model.blocks_args={encoded_params}",
-                          f"model.dropout_rate={dropout_rate}",
-                          f"model.eq_expand_ratio={expand_ratio}"])
-        # Append all training settings
-        for key, value in self.training_dict.items():
-            overrides.append(f"{key}={value}")
-                
-        # pass wandb parameters
-        overrides.extend([f"wandb.entity={self.wandb_entity}",
-                        f"wandb.project={self.wandb_project}",
-                        f"+wandb.run_id={self.wandb_run_id}",
-                        f"wandb.mode={self.wandb_mode}"])
-
-        # pass trial index
-        overrides.extend([f"NAS.trial_index={trial_index}"])
-        # set verbose
-        overrides.extend([f"other.verbose={self.verbose}"])
-
-        # context initialization
-        GlobalHydra.instance().clear()
-        with initialize(version_base="1.2", config_path="../experiment/conf"):
-            cfg = compose(config_name="config", overrides=overrides)
-        try:
-            run_experiment_from_config(cfg)
-        except Exception as e:
-            print("Trial failed with exception:", e)
-        
-
-        # Return the trial metadata
-        return {
-            "trial_index": trial_index,
-        }
-
     def run(self, trial):
         trial_params, trial_index = trial
 
@@ -126,7 +79,8 @@ class HydraWandbRunner(Runner):
         command.extend([f"wandb.entity={self.wandb_entity}",
                         f"wandb.project={self.wandb_project}",
                         f"+wandb.run_id={self.wandb_run_id}",
-                        f"wandb.mode={self.wandb_mode}"])
+                        f"wandb.mode={self.wandb_mode}",
+                        f"wandb.give_name=False"])
 
         # pass trial index
         command.extend([f"NAS.trial_index={trial_index}",
@@ -187,3 +141,53 @@ class HydraWandbRunner(Runner):
         run_id = output.split("Wandb run id: ")[-1].strip()
 
         return run_id
+        
+
+    
+    def run_within_same_process(self, trial):
+        trial_params, trial_index = trial
+
+        # encode the search space parameters
+        encoded_params = encode_parameters(trial_params, 
+                                           self.choice_2_range_param)
+        if self.verbose >= 3: 
+            print("trial_params", trial_params)
+
+        # Construct overrides
+        overrides = []
+        dropout_rate = trial_params['-1_dropout_rate']
+        expand_ratio = trial_params['-1_expand_ratio']
+        overrides.extend([f"model.blocks_args={encoded_params}",
+                          f"model.dropout_rate={dropout_rate}",
+                          f"model.eq_expand_ratio={expand_ratio}"])
+        # Append all training settings
+        for key, value in self.training_dict.items():
+            overrides.append(f"{key}={value}")
+                
+        # pass wandb parameters
+        overrides.extend([f"wandb.entity={self.wandb_entity}",
+                        f"wandb.project={self.wandb_project}",
+                        f"+wandb.run_id={self.wandb_run_id}",
+                        f"wandb.mode={self.wandb_mode}"
+                        f"wandb.give_name=False"])
+
+        # pass trial index
+        overrides.extend([f"NAS.trial_index={trial_index}"])
+        # set verbose
+        overrides.extend([f"other.verbose={self.verbose}"])
+
+        # context initialization
+        GlobalHydra.instance().clear()
+        with initialize(version_base="1.2", config_path="../experiment/conf"):
+            cfg = compose(config_name="config", overrides=overrides)
+        try:
+            run_experiment_from_config(cfg)
+        except Exception as e:
+            print("Trial failed with exception:", e)
+        
+
+        # Return the trial metadata
+        return {
+            "trial_index": trial_index,
+        }
+

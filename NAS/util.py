@@ -106,8 +106,8 @@ def init_wandb(run_id, cfg, wandb_config=None):
             config=wandb_config,
         )
 
-    wandb_logger = logging.getLogger('wandb')
-    wandb_logger.setLevel(logging.ERROR)  # Set to ERROR to suppress most console output
+    # wandb_logger = logging.getLogger('wandb')
+    # wandb_logger.setLevel(logging.ERROR)  # Set to ERROR to suppress most console output
     run.log_code(".")
     return run
 

@@ -125,7 +125,6 @@ class Experiment:
         
         if cfg.wandb.give_name:
             self.wandb_run.name = self.model.name
-        
         print("Stage 2: model built")
 
         # optimizer
