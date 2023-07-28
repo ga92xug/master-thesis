@@ -42,8 +42,7 @@ class Eq_Search_Space:
         strides_constraint = ""
         out_channels_constraint = ""
         total_number_blocks = self.num_middle_blocks+2
-        out_channels_prefactor = np.linspace(total_number_blocks, 1, total_number_blocks)
-        out_channels_prefactor /= np.sum(out_channels_prefactor)
+        out_channels_prefactor = np.linspace(1, 0.1, total_number_blocks)
 
         for block_id in range(0, total_number_blocks):
             if block_id == 0:
@@ -156,10 +155,16 @@ class Eq_Search_Space:
         }
 
     def get_kernel_size(self, block_id):
+        if block_id == self.num_middle_blocks+1:
+            kernel_sizes = [0]
+            kernel_sizes.extend(list(self.search_space_cfg.kernel_size))
+        else:
+            kernel_sizes = list(self.search_space_cfg.kernel_size)
+
         return {
             "name": f"{block_id}_kernel_size",
             "type": "choice",
-            "values": list(self.search_space_cfg.kernel_size),
+            "values": kernel_sizes,
             "value_type": "int",
             "is_ordered": True,
         }

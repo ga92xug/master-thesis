@@ -163,6 +163,7 @@ class BlockDecoder(object):
         ops = block_string.split('_')
         options = {}
         for op in ops:
+            #print(op)
             splits = re.split(r'(?<=[a-zA-Z])(?=[^a-zA-Z])', op)
             splits[1] = re.sub(r'-(?=\D)', '', splits[1])
             #print(op, splits)
@@ -227,7 +228,7 @@ class BlockDecoder(object):
         
         for i, block in enumerate(blocks_args):
             assert block.out_channel > 0
-            assert isinstance(block.kernel_size, int) and block.kernel_size > 0
+            assert isinstance(block.kernel_size, int) and block.kernel_size >= 0
             assert isinstance(block.group, int) and block.group >= 0
             assert isinstance(block.reflection, int) and block.reflection in [-1,0]
 

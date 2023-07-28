@@ -84,6 +84,8 @@ class EquivariantConvChangeFactor(EquivariantModule):
         self.in_type = in_type  # declaration required by base class
 
         out_channels = int(round(change_factor * len(in_type)))
+        if out_channels < 1:
+            out_channels = 1
 
         # Cyclic and Dihedral Groups
         out_type = FieldType(
@@ -105,7 +107,7 @@ class EquivariantConvChangeFactor(EquivariantModule):
         self.trivials, self.gate = None, None
 
         self.out_type = self.conv.out_type
-        assert int(round(change_factor * len(in_type))) == len(self.out_type), f"{len(in_type)} * {change_factor} != {len(self.out_type)}"
+        #assert int(round(change_factor * len(in_type))) == len(self.out_type), f"{len(in_type)} * {change_factor} != {len(self.out_type)}"
 
     def forward(self, x):
         return self.conv(x)

@@ -120,8 +120,7 @@ class EquivariantNASNet(nn.Module):
 
         # Build blocks
         self._blocks = nn.ModuleList([])
-        # we start with the first block 
-        # block 0 is the stem
+        # block 0 is the stem, block -1 is the head
         for i, block_args in enumerate(self.blocks_args[1:-1]):
             print(f"Building block: {i+1}")
             # Update block input and output filters based on depth multiplier.
@@ -148,13 +147,14 @@ class EquivariantNASNet(nn.Module):
                 self._blocks.append(block)
 
 
-        # Build head
-        print("Building head")
         last_block_args = self.blocks_args[-1]
-        # Restrict
         group_id = get_group_id(last_block_args.reflection, last_block_args.group)
         self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)
-        self.field_type = self.restrict_last.out_type
+        if last_block_args.kernel_size != 0:
+            # Build head
+            print("Building head")
+            # Restrict
+            self.field_type = self.restrict_last.out_type
         
         # Head
         if self.restrict_last.setting in ["cnn", "switch"]:
@@ -179,15 +179,15 @@ class EquivariantNASNet(nn.Module):
             self._swish2 = nn.SiLU()
             
         elif self.restrict_last.setting == "group": 
-            
-            self._bn1 = BatchNorm(in_type=self.field_type, affine=False)
-            self._swish1 = Swish(in_type=self._bn1.out_type)
-            self._conv_head = Eq_Conv2dSamePadding(
-                in_type=self._swish1.out_type, 
-                out_channels=out_channels,
-                bias=False
-            )
-            self.field_type = self._conv_head.out_type
+            if last_block_args.kernel_size != 0:
+                self._bn1 = BatchNorm(in_type=self.field_type, affine=False)
+                self._swish1 = Swish(in_type=self._bn1.out_type)
+                self._conv_head = Eq_Conv2dSamePadding(
+                    in_type=self._swish1.out_type, 
+                    out_channels=out_channels,
+                    bias=False
+                )
+                self.field_type = self._conv_head.out_type
             
             self._bn2 = BatchNorm(in_type=self.field_type, affine=False)
             self._swish2 = Swish(in_type=self._bn2.out_type)
@@ -221,8 +221,9 @@ class EquivariantNASNet(nn.Module):
             x = restrict_or_MBBlock(x)
 
         # Head
-        x = self.restrict_last(x)
-        x = self._conv_head(self._swish1(self._bn1(x)))
+        if self.blocks_args[-1].kernel_size != 0:
+            x = self.restrict_last(x)
+            x = self._conv_head(self._swish1(self._bn1(x)))
 
         # final batch norm and swish
         x = self._swish2(self._bn2(x))

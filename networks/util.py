@@ -178,6 +178,9 @@ def adjusted_out_channels(
     out_channel = int(round(out_channel))
 
     # print(f"out_channel: {out_channel}")
+    if out_channel < 1:
+        print("The number of channels is too small. Setting it to 1.")
+        out_channel = 1
     return out_channel
 
 def binary_search_fixed_params(type_equi_block, param_normal_block, channel_name, max_iterations, **kwargs):

@@ -42,7 +42,7 @@ class TrialDataFetcher():
 
     def connect_to_db(self, reset: bool = False):
         """Establishes a connection to the database, deletes the table if it exists and creates a new one."""
-        print(f"Connecting to database at {self.db_file}")
+        #print(f"Connecting to database at {self.db_file}")
         self.conn = sqlite3.connect(self.db_file)
         self.cursor = self.conn.cursor()
         
@@ -121,6 +121,7 @@ class TrialDataFetcher():
                 #         raise ValueError(f"Trial {trial_index} has invalid {key} value: {val}. We only accept missing values if GFLOPs is above {self.max_gflops} and max_building_time is above {self.max_building_time}.")
                 #     #result_dict[key] = None
                     
+            #print(f"Found trial {trial_index} in database", result_dict)
             return result_dict
         else:
             return {}

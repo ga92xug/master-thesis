@@ -265,7 +265,9 @@ class NAS:
             quit()
         elif len(data) in [1, 2]:
             if data["model_building_time"] < self.cfg.objective.max_building_time:
-                data["GFLOPs"] = self.cfg.objective.bounds.gflops
+                wandb.log({"Bad trial": 1}, step=step)
+                #data["GFLOPs"] = self.cfg.objective.bounds.gflops
+                data["model_building_time"] = self.cfg.objective.max_building_time
 
             # early stop trial 
             # expected if the model building time exceeds the limit
