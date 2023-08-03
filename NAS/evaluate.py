@@ -15,13 +15,6 @@ from ax.modelbridge.factory import get_MOO_NEHVI
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 from plot import interact_contour_plotly, plot_marginal_effects
-# resume wandb run
-# wandb.init(
-#     project="scaling-laws-nas_high_level", 
-#     entity="ga92xug", 
-#     resume="allow",
-#     id="v0p3z512",  # resume the run using the saved run ID
-# )
 
 METADATA = {
         "mnist_rot": {
@@ -153,7 +146,7 @@ def scalar_mappable(
     sc = axes.scatter(train_obj[:, 0], train_obj[:,1], c=trial_index_values, alpha=0.8)
     axes.set_title(title)
     axes.set_xlabel("valid acc")
-    axes.set_ylabel("gflops")
+    axes.set_ylabel("GFLOPs")
 
     # Add a new point if given
     if baseline_point:

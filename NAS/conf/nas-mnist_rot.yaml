@@ -1,0 +1,44 @@
+defaults:
+- _self_
+- search_space: galaxy10
+- objective: mnist_rot
+
+
+exp_name: mnist_rot_2.2
+seed: 42
+
+training:
+  model: eq_nasnet
+  model.fixed_params: False
+  model.stem_channels: 16
+  training: mnist_rot-training
+  #training.epochs: 1
+  #training.steps_per_epoch: 10
+
+generation:
+  num_total_trials: 100  # total evaluation budget
+  num_sobol_trials: 25
+  num_fullbayesian_trials: -1
+  batch_size: 1
+  progress_bar: True
+  num_samples: 256
+  warmup_steps: 512
+  #num_botorch_trials: 15
+
+runner:
+  script_path: "experiment/main.py"
+  verbose: 1
+
+client:
+  restart: False
+  warm_start: null
+
+other:
+  save_every: 1
+  verbose: 1
+
+wandb:
+  entity: "ga92xug"
+  project: "scaling-laws-nas_high_level"
+  mode: online
+  mode_runs: disabled

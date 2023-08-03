@@ -30,11 +30,11 @@ cnn_expand_ratio: 6.0
 # 'r-1_k3_g0_o1']
 
 # fails
-blocks_args: ['r0_k5_g16_o1.625000224954762_s2', 
-'r0_k3_g8_o1.0000000433791643_s1_n1_c-conv_se0.0_sk-identity', 
-'r0_k3_g8_o3.9999999987765165_s1_n2_c-conv_se0.25_sk-identity', 
-'r-1_k5_g8_o3.9999993346843565_s2_n2_c-mbconv_se0.0_sk-conv', 
-'r-1_k3_g8_o1.0000000548925259']
+blocks_args: ['r0_k5_g16_o2.3706851995368163_s2', 
+'r0_k3_g16_o2.896593148814218_s2_n1_c-mbconv_se0.0_sk-conv', 
+'r-1_k5_g16_o1.0_s1_n1_c-dconv_se0.75_sk-no', 
+'r-1_k5_g16_o2.2598619124234056_s2_n1_c-mbconv_se0.25_sk-no', 
+'r-1_k5_g16_o1.0']
 # ['r0_k5_g16_o1.625000224954762_s2', 
 # 'r0_k3_g8_o1.0000000433791643_s1_n1_c-conv_se0.0_sk-identity', 
 # 'r0_k3_g8_o3.9999999987765165_s1_n2_c-conv_se0.25_sk-identity', 

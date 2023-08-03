@@ -104,15 +104,18 @@ class NAS:
                 self.cfg, resolve=True, throw_on_missing=True
             )
 
-        if not self.cfg.client.restart and os.path.exists(self.json_store["ax_client"]):
+        if not self.cfg.client.restart:
+            if not os.path.exists(self.json_store["ax_client"]):
+                ValueError("The ax_client.json file does not exist. Please set restart to True.")
+
             self.ax_client = AxClient.load_from_json_file(filepath=self.json_store["ax_client"])
 
             # number of trials
             self.ax_client.experiment.fetch_data()
             df = exp_to_df(self.ax_client.experiment).sort_values(by=["trial_index"])
             print(df)
-            count_trials = df[df['trial_status'] != 'ABANDONED'].shape[0]
-            self.num_trials = self.cfg.generation.num_total_trials - count_trials
+            self.count_trials = df[df['trial_status'] != 'ABANDONED'].shape[0]
+            self.num_trials = self.cfg.generation.num_total_trials - self.count_trials
 
             # Get run id from json store
             with open(self.json_store["wandb_run_id"], 'r') as f:
@@ -121,8 +124,9 @@ class NAS:
             # resume wandb run
             self.run = init_wandb(wandb_run_id, self.cfg)
             # connect to db
-            self.data_fetcher.connect_to_db(reset=False)
+            self.data_fetcher.connect_to_db(reset=False)  
         else:
+            self.count_trials = 0
             # Generation strategy
             self.init_generation_strategy()
             # setup ax client
@@ -225,8 +229,9 @@ class NAS:
     def main_optim_loop(self):
         # Running optimization trials
         for i in range(self.num_trials):
+            step = i + self.count_trials
             if self.cfg.other.verbose >= 1:
-                print(f"Trial: {i}")
+                print(f"Trial: {step}")
 
             # get next trial
             trial, generation_time = self.get_next_trial()
@@ -239,17 +244,17 @@ class NAS:
                 trial_index=trial_meta_data["trial_index"])
 
             # sync data to Ax
-            self.add_data(data=ax_data, trial_index=trial_meta_data["trial_index"], step=i)
+            self.add_data(data=ax_data, trial_index=trial_meta_data["trial_index"], step=step)
 
             # log metrics and print
-            self.log(raw_data, generation_time, i)
+            self.log(raw_data, generation_time, step)
             # Save
-            if i % self.cfg.other.save_every == 0:
+            if step % self.cfg.other.save_every == 0:
                 self.ax_client.save_to_json_file(filepath=self.json_store["ax_client"])
 
 
         # final evaluation
-        evaluate(ax_client=self.ax_client ,step=i)
+        evaluate(ax_client=self.ax_client ,step=step)
 
 
     def add_data(self, data, trial_index, step):
