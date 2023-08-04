@@ -58,8 +58,6 @@ class EquivariantNASNet(nn.Module):
             width_coefficient=1, 
             depth_coefficient=1,
             dropout_rate=0.2,
-            depth_divisor=8,
-            min_depth=1,
             stem_channels=16,
             fixed_params=True,
             eq_expand_ratio=2,

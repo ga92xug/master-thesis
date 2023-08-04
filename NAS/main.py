@@ -159,10 +159,11 @@ class NAS:
             counter = 0
             for idx, (index, trial) in enumerate(old_ax_client.experiment.trials.items()):
                 paramerization = trial.arm.parameters
-                raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_df[data_df["trial_index"] == index].iterrows()}
+                raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_df[data_df["trial_index"] == index].iterrows()}               
                 if len(raw_data) > 0:
                     _parameterization, new_index = self.ax_client.attach_trial(parameters=paramerization)
                     self.add_data(data=raw_data, trial_index=new_index, step=idx)
+                    #self.log(raw_data, 0, idx)
                 else:
                     counter += 1
 

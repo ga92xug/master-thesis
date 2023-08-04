@@ -84,30 +84,13 @@ def get_fixed_out_channels2(
 def get_increase_factor(
         increase_factor: float,
         width_coefficient, 
-        depth_divisor, 
-        min_depth
     ):
     multiplier = width_coefficient
     if multiplier == 1:
         #print(f"increase_factor: {increase_factor}")
         return increase_factor
-    
     else:
         return width_coefficient * increase_factor
-    
-    # TODO: modify the params names.
-    #       maybe the names (width_divisor,min_width)
-    #       are more suitable than (depth_divisor,min_depth).
-    divisor = depth_divisor
-    min_depth = min_depth
-    increase_factor *= multiplier
-    min_depth = min_depth or divisor  # pay attention to this line when using min_depth
-    # follow the formula transferred from official TensorFlow implementation
-    new_out_channels = max(min_depth, int(increase_factor + divisor / 2) // divisor * divisor)
-    if new_out_channels < 0.9:  # prevent rounding by more than 10%
-         new_out_channels += divisor
-    # new_filters /= rotation
-    return int(round(new_out_channels))
         
 
 

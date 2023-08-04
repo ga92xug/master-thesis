@@ -4,7 +4,7 @@ defaults:
 - objective: galaxy10
 
 
-exp_name: galaxy10_2.2
+exp_name: galaxy10_2.2.2
 seed: 42
 
 training:
@@ -16,8 +16,8 @@ training:
   #training.steps_per_epoch: 10
 
 generation:
-  num_total_trials: 100  # total evaluation budget
-  num_sobol_trials: 25
+  num_total_trials: 62  # total evaluation budget
+  num_sobol_trials: 5
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: True
@@ -31,7 +31,7 @@ runner:
 
 client:
   restart: True
-  warm_start: null
+  warm_start: galaxy10_2.2
 
 other:
   save_every: 1
