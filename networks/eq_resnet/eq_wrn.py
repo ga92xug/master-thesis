@@ -79,10 +79,6 @@ class EquivariantWideResNet(nn.Module):
         assert (depth - 4) % 6 == 0, "WideResNet depth should be 6n+4."
         self.fix_params_mode = fix_params_mode
         n = (depth - 4) / 6
-        if len(kernel_layout) == 1:
-            n = int(n * 2)
-        elif len(kernel_layout) == 4:
-            n = int(n / 2)
         k = widen_factor
 
         if drop_out > 0.0:

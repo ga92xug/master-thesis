@@ -4,8 +4,9 @@ defaults:
 - objective: galaxy10
 
 
-exp_name: galaxy10_2.2.2
+exp_name: galaxy10_2.2.3
 seed: 42
+evaluate_only: True
 
 training:
   model: eq_nasnet
@@ -16,8 +17,8 @@ training:
   #training.steps_per_epoch: 10
 
 generation:
-  num_total_trials: 62  # total evaluation budget
-  num_sobol_trials: 5
+  num_total_trials: 20  # total evaluation budget
+  num_sobol_trials: 0
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: True
@@ -30,8 +31,8 @@ runner:
   verbose: 1
 
 client:
-  restart: True
-  warm_start: galaxy10_2.2
+  restart: False
+  warm_start: null
 
 other:
   save_every: 1

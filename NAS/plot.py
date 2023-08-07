@@ -594,18 +594,27 @@ def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4
     Returns:
         AxPlotConfig of the marginal effects
     """
-    plot_data, _, _ = get_plot_data(model, {}, {metric})
 
+    plot_data, _, _ = get_plot_data(model, {}, {metric})
+    #print("plot_data", type(plot_data), plot_data)
     arm_dfs = []
     for arm in plot_data.in_sample.values():
         arm_df = pd.DataFrame(arm.parameters, index=[arm.name])
         arm_df["mean"] = arm.y_hat[metric]
         arm_df["sem"] = arm.se_hat[metric]
         arm_dfs.append(arm_df)
-    effect_table = marginal_effects(pd.concat(arm_dfs, 0))
+    
+    # For some arms the model can not generate predictions we drop them
+    concat_df = pd.concat(arm_dfs, 0)
+    nan_rows = concat_df.isnull().any(axis=1).sum()
+    not_nan_rows = concat_df.shape[0] - nan_rows
+    print("nan_rows", nan_rows, "not_nan_rows", not_nan_rows)
+    concat_df = concat_df.dropna(axis=0)
+
+
+    effect_table = marginal_effects(concat_df)
 
     varnames = effect_table["Name"].unique()
-
 
     # Extract group names using string manipulation
     group_names = np.unique(["_".join(varname.split('_')[1:]) for varname in varnames])
@@ -625,7 +634,6 @@ def plot_marginal_effects(model: ModelBridge, metric: str, split_factor: int = 4
             final_arrays_group_based["others"] = np.concatenate((final_arrays_group_based["others"], group_array))
 
 
-    #varnames = ['0_reflection' '0_group' '0_out_channels' '0_kernel_size' '1_reflection']
     # pyre-fixme[33]: Given annotation cannot contain `Any`.
     figures = []
     for group, group_array in final_arrays_group_based.items():

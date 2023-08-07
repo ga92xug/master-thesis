@@ -131,14 +131,14 @@ def init_model(cfg, n_inputs, n_outputs, image_size, device):
 def test_instantiate(cfg: DictConfig) -> None:
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     #_dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
-    _dataloaders, n_inputs, n_outputs, normalize_weights  = hydra.utils.call(cfg.training.dataset)
+    _dataloaders, n_inputs, image_size, n_outputs, normalize_weights  = hydra.utils.call(cfg.training.dataset)
     is_nas = cfg.NAS.trial_index != -1
     # model
     model, stats = get_model(
         cfg=cfg, 
         n_inputs=n_inputs, 
         n_outputs=n_outputs, 
-        image_size=cfg.training.dataset.resolution,
+        image_size=image_size,
         device=device,
         logger=None,
         verbose=0,

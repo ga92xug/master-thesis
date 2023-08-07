@@ -25,7 +25,7 @@ BlockArgs = collections.namedtuple('BlockArgs', [
 # Set GlobalParams and BlockArgs's defaults
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
-def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, depth_divisor, min_depth):
+def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient):
     list_out_channel = []
     old_channels = initial_channel_size
     for i, block_args in enumerate(blocks_args):

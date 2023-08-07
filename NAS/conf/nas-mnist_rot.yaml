@@ -6,6 +6,7 @@ defaults:
 
 exp_name: mnist_rot_2.2
 seed: 42
+evaluate_only: True
 
 training:
   model: eq_nasnet

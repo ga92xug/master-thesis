@@ -74,14 +74,12 @@ class EquivariantNASNet(nn.Module):
         self.width_coefficient = width_coefficient
         self.depth_coefficient = depth_coefficient
         self.dropout_rate = dropout_rate
-        self.depth_divisor = depth_divisor
-        self.min_depth = min_depth
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
         self.fixed_params = fixed_params
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
-        self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient, depth_divisor, min_depth)
+        self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)
         stem_args = blocks_args[0]
 
         # Get group spaces for specified rotations and flips

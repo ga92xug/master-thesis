@@ -19,7 +19,7 @@ from plot import interact_contour_plotly, plot_marginal_effects
 METADATA = {
         "mnist_rot": {
             "name": "MNIST-rot",
-            "point": [0.958, 86],
+            "point": [0.9885, 157],
             "label": "eq_wrn_16_4",
         },
         "cifar10": {
@@ -29,7 +29,7 @@ METADATA = {
         },
         "galaxy10": {
             "name": "Galaxy10",
-            "point": [0.7998, 4084],
+            "point": [0.8235, 6265],
             "label": "eq_wrn_16_4",
         },
         "unkown": {
@@ -85,10 +85,11 @@ def evaluate(
     step += 1
 
     # marginal effects
-    figures = plot_marginal_effects(model, "valid_acc")
-    for idx, fig in enumerate(figures):
-        wandb.log({f"{idx}_marginal_effects": wandb.Plotly(fig)}, step=step, commit=True)
-        step += 1
+    for metric in ["valid_acc", "gflops"]:
+        marginal_effects = plot_marginal_effects(model, metric)
+        for idx, fig in enumerate(marginal_effects):
+            wandb.log({f"{metric}_{idx}_marginal_effects": wandb.Plotly(fig)}, step=step, commit=True)
+            step += 1
 
 
 def get_contour_plots(
@@ -188,3 +189,9 @@ def match_substring(string):
         return match.group(1)
     else:
         return None
+
+if __name__ == "__main__":
+    # 6jqa39pv
+    
+
+    evaluate(ax_client=None, step=0, filepath="data/mnist_rot_2.2/ax_client.json")

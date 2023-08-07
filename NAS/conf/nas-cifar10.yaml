@@ -6,6 +6,7 @@ defaults:
 
 exp_name: cifar10_2.2
 seed: 42
+evaluate_only: True
 
 training:
   model: eq_nasnet

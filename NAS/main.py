@@ -148,27 +148,35 @@ class NAS:
             self.init_search_space()
             # Experiment
             self.init_experiment()        
-
     
-        if self.cfg.client.warm_start:
-            # we add the data from the previous client
-            old_client_file_path = f"NAS/data/{self.cfg.client.warm_start}/ax_client.json"
-            old_ax_client = AxClient.load_from_json_file(filepath=old_client_file_path)
+            if self.cfg.client.warm_start:
+                # we add the data from the previous client
+                old_client_file_path = f"NAS/data/{self.cfg.client.warm_start}/ax_client.json"
+                old_ax_client = AxClient.load_from_json_file(filepath=old_client_file_path)
 
-            data_df = old_ax_client.experiment.fetch_data().df
-            counter = 0
-            for idx, (index, trial) in enumerate(old_ax_client.experiment.trials.items()):
-                paramerization = trial.arm.parameters
-                raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_df[data_df["trial_index"] == index].iterrows()}               
-                if len(raw_data) > 0:
-                    _parameterization, new_index = self.ax_client.attach_trial(parameters=paramerization)
-                    self.add_data(data=raw_data, trial_index=new_index, step=idx)
-                    #self.log(raw_data, 0, idx)
-                else:
-                    counter += 1
+                data_df = old_ax_client.experiment.fetch_data().df
+                counter = 0
+                used_arm_names = set()
+                for idx, (index, trial) in enumerate(old_ax_client.experiment.trials.items()):
+                    paramerization = trial.arm.parameters
+                    if trial.arm.name in used_arm_names:
+                        print("Trial already added: ", trial.arm.name)
+                        continue
+                    else:
+                        used_arm_names.add(trial.arm.name)
+                    raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_df[data_df["trial_index"] == index].iterrows()}               
+                    if len(raw_data) > 0:
+                        try:
+                            _parameterization, new_index = self.ax_client.attach_trial(parameters=paramerization)
+                            self.add_data(data=raw_data, trial_index=new_index, step=idx)
+                        except:
+                            print("Could not attach trial: ", paramerization)
+                        #self.log(raw_data, 0, idx)
+                    else:
+                        counter += 1
 
-            print("Number of trials without data: ", counter)
-            print("Added ", len(old_ax_client.experiment.trials) - counter, "trials to the experiment")
+                print("Number of trials without data: ", counter)
+                print("Added ", len(old_ax_client.experiment.trials) - counter, "trials to the experiment")
 
         self.run_id = self.run.id
     
@@ -327,14 +335,17 @@ class NAS:
         #     # disable_progbar=True,  # Set to False to print a progress bar from MCMC
         # )
         # Models.SOBOL(search_space=self..search_space, seed=1234)
-        self.generation_strategy=GenerationStrategy(
-            name="SAASBO",
-            steps=[
+
+        steps = []
+        if self.cfg.generation.num_sobol_trials > 0:
+            steps.append(
                 GenerationStep(
                     model=Models.SOBOL,
                     num_trials=self.cfg.generation.num_sobol_trials
-                ),
-                GenerationStep(
+                )
+            )
+        steps.append(
+            GenerationStep(
                     model=Models.FULLYBAYESIANMOO,
                     num_trials=self.cfg.generation.num_fullbayesian_trials,
                     model_kwargs={
@@ -344,8 +355,12 @@ class NAS:
                         "disable_progbar": self.cfg.generation.progress_bar, # Set to False to print a progress bar from MCMC
                     },
                     max_parallelism=1,
-                ),
-            ],
+                )
+        )
+
+        self.generation_strategy=GenerationStrategy(
+            name="SAASBO",
+            steps=steps,
         )
         # object_to_json(self.generation_strategy)
         # generation_strategy_to_json(self.json_store["generation_strategy"], self.generation_strategy)
@@ -355,7 +370,10 @@ class NAS:
 @hydra.main(config_path="conf", config_name="nas", version_base="1.2")
 def run_NAS(cfg: DictConfig) -> None:
     nas = NAS(cfg)
-    nas.main_optim_loop()
+    if cfg.evaluate_only:
+        evaluate(ax_client=nas.ax_client, step=200)
+    else:
+        nas.main_optim_loop()
 
 
 if __name__ == "__main__":
