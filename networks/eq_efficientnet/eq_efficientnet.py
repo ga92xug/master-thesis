@@ -12,8 +12,8 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 import sys
 from torch import nn
-sys.path.append('../networks') # add parent directory
-from .eq_efficientnet_util import (
+#sys.path.append('../networks') # add parent directory
+from .util import (
     BlockDecoder,
     eq_drop_connect,
     eq_round_filters,

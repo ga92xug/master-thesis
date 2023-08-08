@@ -1,5 +1,6 @@
 import math
 import re
+import wandb
 from typing import List, Tuple
 from matplotlib.pyplot import stem
 from torch import nn
@@ -64,6 +65,7 @@ class EquivariantNASNet(nn.Module):
             cnn_expand_ratio=6,
             input_channels=3, 
             num_classes=10, 
+            **kwargs,
     ):
         print("Equivariant_NAS_Net")
         super().__init__()        
@@ -79,6 +81,14 @@ class EquivariantNASNet(nn.Module):
         self.fixed_params = fixed_params
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
+
+        # update the config for wandb
+        model_description = {}
+        for i, block_args in enumerate(blocks_args):
+            model_description[f"l{i}"] = block_args._asdict()
+        wandb.config.update({"model_description": model_description})
+        
+        # The channel sizes is first an increase factor. After that it is the number of channels
         self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)
         stem_args = blocks_args[0]
 

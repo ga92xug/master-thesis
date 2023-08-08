@@ -1,4 +1,4 @@
-_target_: networks.eq_efficientnet.EfficientNet
+_target_: networks.eq_efficientnet.efficientnet.EfficientNet
 global_params:
   width_coefficient: 1
   depth_coefficient: 1

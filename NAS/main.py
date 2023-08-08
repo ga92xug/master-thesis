@@ -1,14 +1,11 @@
-from copy import deepcopy
-from curses import raw
 import os
-from pdb import run
 import timeit
 import hydra
 import torch
 import wandb
 #os.environ["WANDB_SILENT"] = "true"
+
 import json
-import copy
 from omegaconf import DictConfig, OmegaConf
 
 # Ax service
@@ -115,7 +112,7 @@ class NAS:
             df = exp_to_df(self.ax_client.experiment).sort_values(by=["trial_index"])
             print(df)
             self.count_trials = df[df['trial_status'] != 'ABANDONED'].shape[0]
-            self.num_trials = self.cfg.generation.num_total_trials - self.count_trials
+            self.num_trials = self.cfg.generation.num_total_trials
 
             # Get run id from json store
             with open(self.json_store["wandb_run_id"], 'r') as f:
@@ -263,7 +260,7 @@ class NAS:
 
 
         # final evaluation
-        evaluate(ax_client=self.ax_client ,step=step)
+        evaluate(ax_client=self.ax_client, step=step)
 
 
     def add_data(self, data, trial_index, step):

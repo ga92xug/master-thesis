@@ -6,7 +6,7 @@ defaults:
 
 exp_name: galaxy10_2.2.3
 seed: 42
-evaluate_only: True
+evaluate_only: False
 
 training:
   model: eq_nasnet
@@ -17,7 +17,7 @@ training:
   #training.steps_per_epoch: 10
 
 generation:
-  num_total_trials: 20  # total evaluation budget
+  num_total_trials: 18  # total evaluation budget
   num_sobol_trials: 0
   num_fullbayesian_trials: -1
   batch_size: 1

@@ -168,6 +168,7 @@ class EfficientNet(nn.Module):
         # BlockArgs
         blocks_args = BlockDecoder.decode(blocks_args)
         self._blocks_args = blocks_args
+        self.name = "efficiennet"
 
         self.input_channels = input_channels
         # image_size = list(image_size)
@@ -417,7 +418,6 @@ def main(cfg: DictConfig) -> None:
     n_inputs = inp.shape[1]
     n_outputs = 10
     # depth, num_classes, widen_factor=1, dropRate=0.0
-    #net = EquivariantWideResNet()
     net = hydra.utils.instantiate(
             cfg.model,
             image_size=image_size,

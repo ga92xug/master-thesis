@@ -25,7 +25,10 @@ def encode_parameters(params, choice_2_range_params):
     for i in range(blocks):
         reflection = params['%d_reflection' % i]
         kernel_size = params['%d_kernel_size' % i]
-        group = choice_2_range_params['group'][params['%d_group' % i]]
+        try:
+            group = choice_2_range_params['group'][int(params['%d_group' % i])]
+        except:
+            group = "*"
         out_channels = params['%d_out_channels' % i]
         stride = params['%d_stride' % i]
         #print('stride', stride)
@@ -33,19 +36,19 @@ def encode_parameters(params, choice_2_range_params):
         if i == blocks - 1:
             # last block
             block_args = [
-                'r%d' % reflection,
-                'k%d' % kernel_size,
-                'g%d' % group,
+                'r%s' % reflection,
+                'k%s' % kernel_size,
+                'g%s' % group,
                 'o%s' % out_channels,
             ]
         else:
             # start and middle blocks
             block_args = [
-                'r%d' % reflection,
-                'k%d' % kernel_size,
-                'g%d' % group,
+                'r%s' % reflection,
+                'k%s' % kernel_size,
+                'g%s' % group,
                 'o%s' % out_channels,
-                's%d' % stride,
+                's%s' % stride,
             ]
 
             if i > 0:
@@ -55,7 +58,7 @@ def encode_parameters(params, choice_2_range_params):
                 skip_op = params['%d_skip_op' % i]
                 
                 block_args.extend([
-                    'n%d' % num_layers,
+                    'n%s' % num_layers,
                     'c-%s' % conv_op,
                     'se%s' % se_ratio,
                     'sk-%s' % skip_op,
@@ -63,7 +66,7 @@ def encode_parameters(params, choice_2_range_params):
 
         encoded_blocks.append('_'.join(block_args))
 
-    print('encoded_blocks', encoded_blocks)
+    #print('encoded_blocks', encoded_blocks)
     return encoded_blocks
 
 
@@ -86,7 +89,14 @@ def decode_single_block_parameters(encoded_params, block_number):
 
     return params
 
-
+def convert_to_number(val):
+    try:
+        if '.' in val:
+            return float(val)
+        else:
+            return int(val)
+    except ValueError:
+        return val
 
 def init_wandb(run_id, cfg, wandb_config=None):
     if run_id is not None:

@@ -7,6 +7,8 @@ from torch import mul, nn
 from torch.nn import functional as F
 import sys
 
+from NAS.util import convert_to_number
+
 sys.path.append('../networks') # add parent directory
 
 from nn import FieldType
@@ -22,6 +24,7 @@ CHANNELS_CONSTANT = 1
 BlockArgs = collections.namedtuple('BlockArgs', [
         'reflection', 'group', 'kernel_size', 'stride', 'out_channel',
         'num_layers', 'conv_op', 'se_ratio', 'skip'])
+
 # Set GlobalParams and BlockArgs's defaults
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
@@ -151,7 +154,9 @@ class BlockDecoder(object):
             splits[1] = re.sub(r'-(?=\D)', '', splits[1])
             #print(op, splits)
             key, value = splits
-            options[key] = value
+            options[key] = convert_to_number(value)
+
+            
 
         return BlockArgs(
             # all blocks have these params

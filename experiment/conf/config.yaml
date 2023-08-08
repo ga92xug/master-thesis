@@ -34,7 +34,7 @@ other:
 # WandB
 wandb:
   entity: ga92xug                # Name of the wandb entity default is your username
-  project: scaling-laws-eq         # Name of the wandb project
+  project: scaling-laws-eq_nasnet         # Name of the wandb project
   mode: online                  # For debugging disabled, online, offline
   watch: False                  # For detailed weight analysis
   # wandb_entity: Null          # Name of the wandb entity default is your username

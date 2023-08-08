@@ -48,8 +48,8 @@ global_args = [
 
 # kernel_layout = [3]
 args = ["model.kernel_layout=[3,3]", "model.depth=40", "model.widen_factor=1"]
-run_command(args, global_args, test=False)
-
+run_command(args, global_args, test=True)
+quit()
 # kernel_layout = [3]
 args = ["model.kernel_layout=[3]", "model.depth=76", "model.widen_factor=1"]
 run_command(args, global_args, test=False)
