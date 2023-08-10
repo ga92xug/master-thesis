@@ -5,12 +5,12 @@ depth_coefficient: 1
 dropout_rate: 0.0
 stem_channels: 16 # same as wide_resnet 
 fixed_params: True
-eq_expand_ratio: 6
+eq_expand_ratio: 4
 cnn_expand_ratio: 6.0
 
-#blocks_args: ['r0_k5_g2_o2_s2', 'r0_k3_g2_o2_s2_n1_c-dconv_se0.0_sk-identity', 'r0_k3_g1_o1_s2_n1_c-dconv_se0.25_sk-no', 'r-1_k5_g1_o1_s2_n2_c-mbconv_se0.0_sk-no']
-#blocks_args: ['r0_k5_g16_o1_s1', 'r0_k5_g8_o2_s2_n2_c-dconv_se0.0_sk-no', 'r0_k3_g2_o1_s2_n2_c-dconv_se0.0_sk-no', 'r0_k3_g2_o1_s2_n2_c-conv_se0.25_sk-identity', 'r0_k3_g1_o1']
-#blocks_args: ['r0_k5_g8_o1_s1', 'r0_k3_g8_o1_s2_n1_c-conv_se0.0_sk-identity', 'r0_k3_g8_o1_s2_n1_c-mbconv_se0.0_sk-identity', 'r-1_k5_g8_o1_s2_n1_c-mbconv_se0.5_sk-no', 'r-1_k5_g2_o1']
+# Strategy 2_0:
+blocks_args: ['r0.0_k5.0_g16_o1.630486_s2.0', 'r0.0_k3.0_g4_o1.014946_s1.0_n1.0_c-conv_se0.0_sk-identity', 'r0.0_k3_g4_o3.983971_s1.0_n2.0_c-conv_se0.25_sk-identity', 'r-1.0_k5.0_g4_o3.944093_s2_n2.0_c-mbconv_se0.0_sk-identity', 'r-1.0_k3.0_g4_o1.0']
+
 #blocks_args: ['r0_k5_g16_o1_s1', 'r-1_k3_g8_o1_s2_n3_c-mbconv_se0.25_sk-identity', 'r-1_k5_g2_o1']
 
 # eq_wrn_16_4
@@ -28,11 +28,11 @@ cnn_expand_ratio: 6.0
 # 'r-1_k3_g0_o1']
 
 # fails
-blocks_args: ['r0_k5_g16_o2.3706851995368163_s2', 
-'r0_k3_g16_o2.896593148814218_s2_n1_c-mbconv_se0.0_sk-conv', 
-'r-1_k5_g16_o1.0_s1_n1_c-dconv_se0.75_sk-no', 
-'r-1_k5_g16_o2.2598619124234056_s2_n1_c-mbconv_se0.25_sk-no', 
-'r-1_k5_g16_o1.0']
+# blocks_args: ['r0_k5_g16_o2.3706851995368163_s2', 
+# 'r0_k3_g16_o2.896593148814218_s2_n1_c-mbconv_se0.0_sk-conv', 
+# 'r-1_k5_g16_o1.0_s1_n1_c-dconv_se0.75_sk-no', 
+# 'r-1_k5_g16_o2.2598619124234056_s2_n1_c-mbconv_se0.25_sk-no', 
+# 'r-1_k5_g16_o1.0']
 # ['r0_k5_g16_o1.625000224954762_s2', 
 # 'r0_k3_g8_o1.0000000433791643_s1_n1_c-conv_se0.0_sk-identity', 
 # 'r0_k3_g8_o3.9999999987765165_s1_n2_c-conv_se0.25_sk-identity', 

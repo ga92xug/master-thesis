@@ -106,7 +106,6 @@ class Experiment:
             if normalize_weights is not None:
                 self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="weighted").to(self.device)
                 self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="weighted").to(self.device)
-                self.valid_metrics["acc_none"] = MulticlassAccuracy(self.n_outputs, average=None).to(self.device)
 
             self.train_metrics = MetricCollection(self.train_metrics)
             self.valid_metrics = MetricCollection(self.valid_metrics)
@@ -276,26 +275,7 @@ class Experiment:
             del t_test
         
         # log
-        tp, fp, tn, fn = self.valid_metrics["acc_none"]._final_state()
-        # micro average
-        tp = tp.sum(dim=0)
-        fn = fn.sum(dim=0)
-        micro = _safe_divide(tp, tp + fn)
-        print(f"micro: {micro}")
-
-        # weighted average
-        tp, fp, tn, fn = self.valid_metrics["acc_none"]._final_state()
-        score = _safe_divide(tp, tp + fn)
-        weights = tp + fn
-        print(f"weights: {weights}, weights.sum(-1, keepdim=True) {weights.sum(-1, keepdim=True)}")
-        weighted = _safe_divide(weights * score, weights.sum(-1, keepdim=True)).sum(-1)
-        print(f"weighted: {weighted}")
-
         metrics = self.valid_metrics.compute()
-        acc_none = metrics["acc_none"]
-        #print(f"acc_none: {acc_none}")
-        metrics = {k: v for k, v in metrics.items() if k != "acc_none"}
-
         self.valid_metrics.reset()
         loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()

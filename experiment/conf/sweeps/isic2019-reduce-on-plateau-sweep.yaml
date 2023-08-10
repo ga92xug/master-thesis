@@ -10,21 +10,21 @@ early_terminate:
 
 parameters:
   training.optimizer.lr:
-    min: 0.0001
+    min: 0.005
     max: 0.1
-  training.optimizer.weight_decay:
-    min: 0.000001
-    max: 0.001
-  model.drop_out:
-    min: 0.0
-    max: 0.5
-  training.scheduler.gamma:
-    min: 0.001 
-    max: 0.1
+  training.scheduler.patience:
+    min: 2 
+    max: 10
+  training.scheduler.factor:
+    min: 0.01
+    max: 0.9
 
 
 
 command:
   - python
   - ${program}
+  - training=isic2019-training-reduce
+  - wandb.tags=[sweep-isic-reduce]
+  #- project=scaling-laws-sweeps
   #- ${args_no_hyphens}
