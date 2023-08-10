@@ -1,0 +1,22 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: isic2019
+- scheduler: reduce_lr_on_plateau 
+
+epochs: 50
+accumulate: 2
+
+dataset:
+  batch_size: 128                # Number of examples to process in a batch during training
+  eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
+
+optimizer:
+  lr: 0.01
+  weight_decay: 1e-5
+  betas: [0.9,0.999]
+
+scheduler:
+  factor: 0.1
+  patience: 3
+  verbose: True

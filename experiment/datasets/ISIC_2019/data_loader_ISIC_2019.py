@@ -6,7 +6,11 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from PIL import Image
 
+import sys
+import os
+sys.path.append(f"{os.getcwd()}")
 from experiment.datasets.utils import get_normalize_weights
+
 
 def get_isic_df(
     dir: str,
@@ -100,12 +104,15 @@ def build_isic2019_loaders(
 
 
 if __name__ == '__main__':
-    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_isic2019_loaders(batch_size=1024, eval_batch_size=16, data_dir= "../Data/frischs/datasets/", name="ISIC_2019", resolution=224, workers=8, augment=False)
+    _dataloaders, n_inputs, image_size, n_outputs, normalize_weights = build_isic2019_loaders(batch_size=1024, eval_batch_size=16, data_dir= "../../Data/frischs/datasets/", name="ISIC_2019", resolution=224, workers=8, augment=False, should_normalize_weights=True)
+    train_dataloader = _dataloaders["train"]
+    valid_dataloader = _dataloaders["valid"]
+    test_dataloader = _dataloaders["test"]
 
     max_val = 0
     for i, (images, labels) in enumerate(train_dataloader):
         print(images.shape)
-        print(labels.shape)
+        print(labels)
 
         break
 

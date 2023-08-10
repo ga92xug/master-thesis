@@ -3,7 +3,7 @@ import wandb
 import pandas as pd
 
 import random
-random.seed(42)
+random.seed(0) # 42
 
 from ax.service.ax_client import AxClient, ObjectiveProperties
 from ax.service.utils.report_utils import exp_to_df
@@ -20,104 +20,9 @@ from NAS.util import encode_parameters, convert_to_number
 from experiment.run_files.run_command import run_command
 
 
-
-galaxy_client = AxClient.load_from_json_file(filepath="NAS/data/galaxy10_2.2.3/ax_client.json")
-cifar_client = AxClient.load_from_json_file(filepath="NAS/data/cifar10_2.2/ax_client.json")
-mnist_rot_client = AxClient.load_from_json_file(filepath="NAS/data/mnist_rot_2.2/ax_client.json")
-
-#pd.set_option('display.max_columns', None)
-galaxy_df = exp_to_df(galaxy_client.experiment)
-galaxy_df = galaxy_df.drop_duplicates(subset=['arm_name'], keep=False)
-#galaxy_df.sort_values(by=["valid_acc"], ascending=False).head(20)
-
-
-mnist_rot_df = exp_to_df(mnist_rot_client.experiment)
-mnist_rot_df = mnist_rot_df.drop_duplicates(subset=['arm_name'], keep=False)
-#mnist_rot_df.sort_values(by=["valid_acc"], ascending=False).head(20)
-
-
-cifar_df = exp_to_df(cifar_client.experiment)
-cifar_df = cifar_df.drop_duplicates(subset=['arm_name'], keep=False)
-#cifar_df.sort_values(by=["valid_acc"], ascending=False).head(20)
-
-
-def compute_weighted_average(top_n, valid_acc_weight=1):
-    weights = valid_acc_weight * top_n['valid_acc'] + (1 - valid_acc_weight) * top_n['gflops']
-    return weights / weights.sum()
-
-def summarize_top_n(df, n=20, valid_acc_weight=1, exclude_columns=None):
-    if exclude_columns is None:
-        exclude_columns = ['trial_index', 'arm_name', 'trial_status', 'generation_method', 'model_building_time', 'is_feasible']
-
-    top_n = df.nlargest(n, 'valid_acc')
-    weights = compute_weighted_average(top_n, valid_acc_weight)
-
-
-    summary = {}
-    for col in top_n.columns:
-        if col not in exclude_columns:
-            if pd.api.types.is_numeric_dtype(top_n[col]):
-                summary[col] = (top_n[col] * weights).sum()
-            else:
-                counts = top_n.groupby(col).apply(lambda x: (x['valid_acc'] * weights.loc[x.index]).sum())
-                summary_string = ""
-                for value, percentage in (counts / counts.sum() * 100).items():
-                    summary_string += f"{value}={int(percentage)}%; "
-                summary[col] = summary_string
-
-    summary_df = pd.DataFrame(summary, index=['top_n'])
-    return summary_df
-
-def plot_impact_of_weighted_average(df, n=20):
-    weights = [i/10 for i in range(11)]
-    results = []
-
-    for weight in weights:
-        summary_df = summarize_top_n(df, n=n, valid_acc_weight=weight)
-        results.append(summary_df.loc['top_n'].tolist())
-
-    results_df = pd.DataFrame(results, columns=summary_df.columns, index=weights)
-    results_df.plot(figsize=(10, 6), title="Impact of Weighted Averaging")
-    plt.xlabel("valid_acc_weight")
-    plt.ylabel("Value")
-    plt.show()
-
-# Sample usage
-n = 20
-summary_df = summarize_top_n(mnist_rot_df, n=n, valid_acc_weight=0.8)  # 0.8 is the weight for valid_acc in the averaging
-summary_df
-
-
-# List of DataFrames
-dataframes = [mnist_rot_df, cifar_df, galaxy_df]  # Replace these with your actual DataFrames
-dataset_names = ['mnist_rot', 'cifar', 'galaxy']
-valid_acc_weight = 0.9
-n = 20
-
-# Create a list of summary DataFrames
-summary_dfs = [summarize_top_n(df, n=n, valid_acc_weight=valid_acc_weight) for df in dataframes]
-
-# Set the dataset name as the index for each summary DataFrame
-for name, summary_df in zip(dataset_names, summary_dfs):
-    summary_df.index = [name]
-
-# Concatenate the summary DataFrames into one
-final_summary_df = pd.concat(summary_dfs)
-
-# Now you can print or use final_summary_df
-final_summary_df
-
-
-
-columns = final_summary_df.columns.tolist()
-columns.remove("gflops")
-columns.remove("valid_acc")
-columns
-config_str = "6	0.0	0	4.0	2	5.0	2.0	0.0	4.0	1.0	mbconv,conv	3.0	0.0,0.5	1.0,2.5	conv	1.0	0.0	*	2.0	conv	3	0.25,0.5 	3.8	no	1.0	-1	*	2	mbconv	5	0.0,0.5	1.0	conv	2	-1	*	1.0	3.0,5.0	2"
-config_list = []
-temp_item = ""
-
-
+columns = ['-1_expand_ratio', '-1_dropout_rate', '0_reflection', '0_group', '0_out_channels', '0_kernel_size', '0_stride', '1_reflection', '1_group', '1_num_layers', '1_conv_op', '1_kernel_size', '1_se_ratio', '1_out_channels', '1_skip_op', '1_stride', '2_reflection', '2_group', '2_num_layers', '2_conv_op', '2_kernel_size', '2_se_ratio', '2_out_channels', '2_skip_op', '2_stride', '3_reflection', '3_group', '3_num_layers', '3_conv_op', '3_kernel_size', '3_se_ratio', '3_out_channels', '3_skip_op', '3_stride', '4_reflection', '4_group', '4_out_channels', '4_kernel_size', '4_stride']
+config_str = "6	0.0	0	4.0	2	5.0	2.0	0.0	*	1.0	mbconv	3.0	0.0	1.0,2.5	conv	1.0	0.0	*	2.0	conv	3	0.25,0.5 	3.8	no	1.0	-1	*	2	mbconv	5	0.0,0.5	1.0	conv	2	-1	*	1.0	3.0,5.0	2"
+strategy_2_0 = "4	0.000000	0.000000	4	1.630486	5.0	2.0	0.000000	2	1.000000	conv	3.0	0.000000	1.014946	conv,identity	1.000000	0.000000	2	2.000000	conv	3	0.0	3.983971	identity	1.0	-1.000000	2	2.000000	mbconv	5.000000	0.000000	3.944093	conv,identity	2	-1.000000	1,2	1.0	3.000000	1.000000"
 
 config_list = []
 temp_item = ""
@@ -144,6 +49,7 @@ groups_for_datasets = {
     "cifar10": [4, 4, 2, 1, 1], # last might also be 0
     "mnist_rot": [4, 4, 4, 4, 4],
     "galaxy10": [4, 2, 2, 2, 2], # last might also be 1
+    "isic2019": [4, 2, 2, 2, 2],
 } 
 
 choice_2_range_params = {
@@ -170,7 +76,7 @@ def fill_group_based_on_dataset(config, dataset):
     return config
 
 # Number of runs
-num_runs = 5
+num_runs = 3
 
 # Keep track of random configurations
 random_configurations = []
@@ -199,10 +105,8 @@ for i in range(num_runs):
             f"wandb.tags=[eqnas_result_test_random]",
             f"wandb.notes={tag}",
             f"model.blocks_args={blocks_args}",
+            f"model.dropout_rate={random_config['-1_dropout_rate']}",
+            f"model.eq_expand_ratio={random_config['-1_expand_ratio']}",
         ]
-        
-        if dataset == "cifar10" and i == 0:
-            # already done
-            continue
 
         run_command(args, global_args, test=False, path="experiment/")

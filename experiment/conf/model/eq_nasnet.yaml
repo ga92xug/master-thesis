@@ -5,7 +5,7 @@ depth_coefficient: 1
 dropout_rate: 0.0
 stem_channels: 16 # same as wide_resnet 
 fixed_params: True
-eq_expand_ratio: 2
+eq_expand_ratio: 6
 cnn_expand_ratio: 6.0
 
 #blocks_args: ['r0_k5_g2_o2_s2', 'r0_k3_g2_o2_s2_n1_c-dconv_se0.0_sk-identity', 'r0_k3_g1_o1_s2_n1_c-dconv_se0.25_sk-no', 'r-1_k5_g1_o1_s2_n2_c-mbconv_se0.0_sk-no']

@@ -86,7 +86,12 @@ class EquivariantNASNet(nn.Module):
         model_description = {}
         for i, block_args in enumerate(blocks_args):
             model_description[f"l{i}"] = block_args._asdict()
-        wandb.config.update({"model_description": model_description})
+        
+        try:
+            wandb.config.update({"model_description": model_description})
+        except:
+            # if wandb is not initialized during NAS
+            pass
         
         # The channel sizes is first an increase factor. After that it is the number of channels
         self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)
