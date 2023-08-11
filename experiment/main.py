@@ -125,7 +125,9 @@ class Experiment:
             verbose=self._verbose,
         )
         
-        if cfg.wandb.give_name:
+        if isinstance(cfg.wandb.give_name, str):
+            self.wandb_run.name = cfg.wandb.give_name
+        elif cfg.wandb.give_name:
             self.wandb_run.name = self.model.name
         print("Stage 2: model built")
 
