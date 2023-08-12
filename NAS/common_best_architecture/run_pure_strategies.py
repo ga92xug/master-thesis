@@ -19,11 +19,13 @@ global_args = ["model=eq_nasnet"]
 for strategy_row in result_df.iterrows():
     strategy_name = "_".join(strategy_row[0].split('_')[1:])
     print(f"\nPure strategy: {strategy_name}")
-
     for dataset_row in result_df.iterrows():
-        
         dataset_name = "_".join(dataset_row[0].split('_')[1:])
         print(f"Dataset: {dataset_name}")
+
+        if strategy_name != "mnist_rot" and dataset_name == "mnist_rot":
+            continue
+        
         strategy_dict = strategy_row[1].to_dict()
         dataset_dict = dataset_row[1].to_dict()
 
@@ -44,8 +46,12 @@ for strategy_row in result_df.iterrows():
             f"wandb.give_name=pure_strategy_{strategy_name}"
         ]
 
-        run_command(args, global_args, test=False, path="experiment/")
+        if strategy_name == "galaxy10" and dataset_name == "cifar10":
+            run_command(args, global_args, test=False, path="experiment/")
+        elif strategy_name == "mnist_rot" and dataset_name == "galaxy10":
+            args.append("training.dataset.batch_size=64")
+            args.append("training.dataset.eval_batch_size=64")
+            args.append("training.accumulate=4")
+            run_command(args, global_args, test=False, path="experiment/")
 
-        break
-    break
         

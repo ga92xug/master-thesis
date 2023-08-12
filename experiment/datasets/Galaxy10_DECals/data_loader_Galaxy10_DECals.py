@@ -121,7 +121,10 @@ def build_galaxy10_loaders(
         "valid": val_dataloader,
         "test": test_dataloader,
     }
-    return dataloaders, n_inputs, resolution, n_classes, None
+
+    normalize_weight = 1
+
+    return dataloaders, n_inputs, resolution, n_classes, normalize_weight
 
 
 if __name__ == '__main__':

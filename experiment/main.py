@@ -1,4 +1,3 @@
-from re import M
 import sqlite3
 import time
 import numpy as np
@@ -29,6 +28,8 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 #os.environ['TORCHDYNAMO_VERBOSE'] = '0'
 #import torch._dynamo
 #torch._dynamo.config.suppress_errors = True
+
+from sklearn.metrics import balanced_accuracy_score, accuracy_score
 
 class Experiment:
     def __init__(self, cfg: DictConfig):
@@ -104,8 +105,8 @@ class Experiment:
             self.train_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             self.valid_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             if normalize_weights is not None:
-                self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="weighted").to(self.device)
-                self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="weighted").to(self.device)
+                self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
+                self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
 
             self.train_metrics = MetricCollection(self.train_metrics)
             self.valid_metrics = MetricCollection(self.valid_metrics)
@@ -240,8 +241,7 @@ class Experiment:
         self.inference("test", confusion=True)
     
     def valid(self):
-        metrics, loss, duration = self.inference("valid")
-        utils.print_results(metrics, loss, duration, "VALID", self._epoch, self._verbose)
+        metrics, _, _ = self.inference("valid", confusion=True)
         
         # adapt learning rate
         if self._adapt_lr_in_validation:
@@ -275,6 +275,8 @@ class Experiment:
             del x_test
             del y_test
             del t_test
+
+        
         
         # log
         metrics = self.valid_metrics.compute()
@@ -292,6 +294,15 @@ class Experiment:
                         wandb.plot.confusion_matrix(probs=y_test_all,
                         y_true=t_test_all, \
                         class_names=list(range(self.n_outputs)))})
+            
+        split = split.upper()
+        utils.print_results(metrics, loss, duration, split, self._epoch, self._verbose)
+
+        #balanced_acc_sklearn = balanced_accuracy_score(t_test_all, np.argmax(y_test_all, axis=1))
+        #acc_sklearn = accuracy_score(t_test_all, np.argmax(y_test_all, axis=1))
+        #print("sklearn balanced accuracy", balanced_acc_sklearn)
+        #print("sklearn accuracy", acc_sklearn)
+
         return metrics, loss, duration
     
     

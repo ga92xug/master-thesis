@@ -1,12 +1,12 @@
 defaults:
 - _self_
 - model: eq_wrn
-- training: isic2019-training
+- training: galaxy10-training
 
 # Dataset parameters        
 training:
   compile: False
-  steps_per_epoch: 2
+  steps_per_epoch: 10
   accumulate: 1
   earlystop: False
   dataset:
