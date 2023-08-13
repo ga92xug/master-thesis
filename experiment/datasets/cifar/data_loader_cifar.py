@@ -107,8 +107,6 @@ def build_cifar_loaders(
     else:
         raise ValueError("Unknown dataset name.")
     
-    n_inputs = 3
-
     # load the dataset
     train_dataset = dataset_class(
         root=location, train=True,
@@ -163,8 +161,8 @@ def build_cifar_loaders(
         "test": test_loader,
     }
     
-    image_size = 32
-    return loaders, n_inputs, image_size, n_classes, None
+    normalized_weights = None
+    return loaders, normalized_weights
 
 
 if __name__ == "__main__":

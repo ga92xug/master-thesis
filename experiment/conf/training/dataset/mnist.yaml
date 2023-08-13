@@ -4,3 +4,7 @@ interpolation: 2              # Type of interpolation to use for data augmentati
 reshuffle: True               # Reshuffle train and valid splits instead of using the default split
 validation: True
 drop_last_train: False       # Drop the last batch if it is smaller than the batch size
+
+n_in_channels: 1
+n_out_classes: 10
+resolution: 28

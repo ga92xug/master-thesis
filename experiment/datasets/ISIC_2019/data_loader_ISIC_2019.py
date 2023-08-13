@@ -37,16 +37,16 @@ def get_isic_df(
     return df
 
 class ISICDataset(Dataset):
-    def __init__(self, dataframe, transform=None):
-        self.dataframe = dataframe
+    def __init__(self, df, transform=None):
+        self.df = df
         self.transform = transform
 
     def __len__(self):
-        return len(self.dataframe)
+        return len(self.df)
 
     def __getitem__(self, idx):
-        image = Image.open(self.dataframe.iloc[idx, 0])
-        label = self.dataframe.iloc[idx, 1]
+        image = Image.open(self.df.iloc[idx, 0])
+        label = self.df.iloc[idx, 1]
         if self.transform:
             image = self.transform(image)
         return image, label
@@ -96,8 +96,6 @@ def build_isic2019_loaders(
         "valid": val_loader,
         "test": test_loader,
     }
-
-    
 
     return dataloaders, n_inputs, resolution, n_classes, normalized_weights
 

@@ -1,3 +1,4 @@
+from email.mime import image
 import sqlite3
 import time
 import numpy as np
@@ -83,7 +84,10 @@ class Experiment:
             # )
                
         # dataset
-        self._dataloaders, n_inputs, image_size, self.n_outputs, normalize_weights  = hydra.utils.call(cfg.training.dataset)
+        self._dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
+        n_inputs = cfg.training.dataset.n_in_channels
+        self.n_outputs = cfg.training.dataset.n_out_classes
+        image_size = cfg.training.dataset.resolution
         print("Stage 1: dataloaders built")
         
         # Loss function
@@ -237,11 +241,8 @@ class Experiment:
         self.train_metrics.reset()
         return
 
-    def test(self):
-        self.inference("test", confusion=True)
-    
     def valid(self):
-        metrics, _, _ = self.inference("valid", confusion=True)
+        metrics, _, _ = self.inference("valid", confusion=False)
         
         # adapt learning rate
         if self._adapt_lr_in_validation:
@@ -298,11 +299,6 @@ class Experiment:
         split = split.upper()
         utils.print_results(metrics, loss, duration, split, self._epoch, self._verbose)
 
-        #balanced_acc_sklearn = balanced_accuracy_score(t_test_all, np.argmax(y_test_all, axis=1))
-        #acc_sklearn = accuracy_score(t_test_all, np.argmax(y_test_all, axis=1))
-        #print("sklearn balanced accuracy", balanced_acc_sklearn)
-        #print("sklearn accuracy", acc_sklearn)
-
         return metrics, loss, duration
     
     
@@ -336,7 +332,7 @@ class Experiment:
         # Training done, evaluate on test set
         self.backup()
         if self.cfg.other.should_test:
-            self.test()
+            self.inference("test", confusion=True)
         
         if not self.is_nas:
             wandb.finish()

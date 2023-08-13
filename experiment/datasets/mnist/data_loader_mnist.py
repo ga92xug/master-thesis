@@ -121,13 +121,12 @@ def build_mnist_rot_loader(
         drop_last=drop_last,
         pin_memory=True
     )
-    n_inputs = 1
-    n_outputs = 10
     
     if coords:
         n_inputs += 2
 
-    return loader, n_inputs, n_outputs
+    normalized_weights = None
+    return loader
 
 
 def get_transform(name, mode, rot_interpol_augmentation, interpolation, coords):
@@ -192,7 +191,7 @@ def build_mnist_loaders(
         else:
             modes = ["trainval", None]
             
-        train_loader, _, _ = build_mnist_rot_loader(
+        train_loader = build_mnist_rot_loader(
             batch_size=batch_size,
             data_dir=data_dir,
             name=name,
@@ -204,7 +203,7 @@ def build_mnist_loaders(
             coords=coords,
             drop_last=drop_last_train,
         )
-        valid_loader, _, _ = build_mnist_rot_loader(
+        valid_loader = build_mnist_rot_loader(
             batch_size=eval_batch_size,
             data_dir=data_dir,
             name=name,
@@ -214,7 +213,7 @@ def build_mnist_loaders(
             interpolation=interpolation,
             coords=coords,
         )
-        test_loader, n_inputs, n_outputs = build_mnist_rot_loader(
+        test_loader = build_mnist_rot_loader(
             batch_size=eval_batch_size,
             data_dir=data_dir,
             name=name,
@@ -230,5 +229,6 @@ def build_mnist_loaders(
             "valid": valid_loader,
             "test": test_loader
         }
-        image_size = 28
-        return  loaders, n_inputs, image_size, n_outputs, None
+
+        normalized_weights = None
+        return  loaders, normalized_weights

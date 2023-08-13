@@ -52,7 +52,7 @@ from ax.modelbridge.registry import Models
 
 # Local
 from runner_service import HydraWandbRunner
-from search_space_service import Eq_Search_Space
+from search_space_service import Search_Space
 from fetch_trial_data import WandbMetric
 
 class NAS:
@@ -101,7 +101,7 @@ class NAS:
 
     def init_search_space(self):
         # search space
-        eq_search_space = Eq_Search_Space(
+        eq_search_space = Search_Space(
             cfg_choice_2_range_params=self.cfg.search_space.choice_2_range_params, 
             num_middle_blocks=self.cfg.search_space.num_middle_blocks
         )

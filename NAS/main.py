@@ -61,7 +61,7 @@ from evaluate import evaluate
 
 # Local
 from runner_service import HydraWandbRunner
-from search_space_service import Eq_Search_Space
+from search_space_service import Search_Space
 from fetch_trial_data import TrialDataFetcher
 from util import init_wandb
 
@@ -202,7 +202,7 @@ class NAS:
 
     def init_search_space(self):
         # search space
-        eq_search_space = Eq_Search_Space(
+        eq_search_space = Search_Space(
             search_space_cfg=self.cfg.search_space,
         )
         #self.search_space = eq_search_space.get_search_space()
@@ -243,7 +243,7 @@ class NAS:
             trial, generation_time = self.get_next_trial()
 
             # run trial
-            trial_meta_data =  self.hydra_wandb_runner.run(trial)
+            trial_meta_data = self.hydra_wandb_runner.run(trial)
 
             # fetch data
             ax_data, raw_data, = self.data_fetcher.fetch_trial_data(

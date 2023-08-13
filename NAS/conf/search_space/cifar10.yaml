@@ -15,5 +15,5 @@ choice_2_range_params:
     group: [1, 2, 4, 8, 16]
 
 constraints:
-    max_out_channels: 7
-    min_stride: 6
+    max_out_channels: 8
+    min_stride: 8

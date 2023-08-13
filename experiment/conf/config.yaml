@@ -1,8 +1,8 @@
 
 defaults:
 - _self_
-- model: eq_wrn
-- training: galaxy10-training
+- model: eq_nasnet
+- training: isic2019-training-reduce
 
 # Dataset parameters        
 training:

@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 from tqdm import tqdm
 import h5py
@@ -6,9 +7,28 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from PIL import Image
 
+import sys
+import os
+sys.path.append(f"{os.getcwd()}")
+from experiment.datasets.utils import get_normalize_weights
 
 MEAN = [0.01443392, 0.01443392, 0.01443392]
 STD = [0.12014125, 0.1125077, 0.10281154]
+
+def get_isic_df(
+    dir: str,
+    name: str,
+):
+    location = dir + name
+
+    with h5py.File(location, 'r') as F:
+        images = np.array(F['images'])
+        labels = np.array(F['ans'])
+
+    images = images.astype(np.uint8)
+
+    df = pd.DataFrame({"image": images, "label": labels})
+    return df
 
 class Galaxy10Dataset(torch.utils.data.Dataset):
     def __init__(self, images, labels, transform=None):
@@ -40,7 +60,8 @@ def build_galaxy10_loaders(
         data_dir,
         name,
         resolution,
-        workers=8,
+        workers,
+        should_normalize_weights,
         augment=False,
     ):
     
@@ -53,6 +74,12 @@ def build_galaxy10_loaders(
         labels = np.array(F['ans'])
 
     images = images.astype(np.uint8)
+
+    if should_normalize_weights:
+        normalized_weights = get_normalize_weights(pd.DataFrame({"label": labels}))
+    else:
+        # to gather the weighted accuracy
+        normalized_weights = 1
 
     # Split the data into train, val, and test arrays.
     np.random.seed(42)
@@ -122,14 +149,13 @@ def build_galaxy10_loaders(
         "test": test_dataloader,
     }
 
-    normalize_weight = 1
-
-    return dataloaders, n_inputs, resolution, n_classes, normalize_weight
+    return dataloaders, n_inputs, resolution, n_classes, normalized_weights
 
 
 if __name__ == '__main__':
-    train_dataloader, val_dataloader, test_dataloader, n_inputs, n_classes = build_galaxy10_loaders(batch_size=128, eval_batch_size=16, data_dir= "../Data/frischs/datasets/Galaxy10_DECals/Galaxy10_DECals.h5", resolution=224, workers=8, augment=False)
-
+    _dataloaders, n_inputs, image_size, n_outputs, normalize_weights = build_galaxy10_loaders(batch_size=128, eval_batch_size=16, data_dir= "../../Data/frischs/datasets/", name="Galaxy10_DECals", resolution=224, workers=8, augment=False, should_normalize_weights=True)
+    train_dataloader = _dataloaders["train"]
+    
     for i, (images, labels) in enumerate(train_dataloader):
         print(images.shape)
         print(labels.shape)

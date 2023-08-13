@@ -1,3 +1,7 @@
 _target_: experiment.datasets.cifar.data_loader_cifar.build_cifar_loaders
 augment: True                 # Augment the training set with rotated images
 reshuffle: True               # Reshuffle train and valid splits instead of using the default split
+
+n_in_channels: 3
+n_out_classes: 10
+resolution: 32

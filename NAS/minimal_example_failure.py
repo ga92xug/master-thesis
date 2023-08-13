@@ -1,33 +1,19 @@
-from ax import (
-    ChoiceParameter,
-    ParameterType,
-    RangeParameter,
-    SearchSpace,
-    ParameterConstraint,
-)
-from ax import ParameterType, RangeParameter, SearchSpace
-from ax.core import ParameterConstraint, OrderConstraint
+import torch
 import numpy as np
-from omegaconf import OmegaConf
-import warnings
+from ax.service.ax_client import AxClient, ObjectiveProperties
+from ax.modelbridge.generation_strategy import GenerationStep, GenerationStrategy
+from ax.modelbridge.registry import Models
 
-from requests import get
-from torch import mul
-warnings.filterwarnings("ignore", category=UserWarning)
+import logging
+from ax.utils.common.logger import ROOT_STREAM_HANDLER
+ROOT_STREAM_HANDLER.setLevel(logging.ERROR)
 
 
 class Search_Space:
-    def __init__(self, search_space_cfg):
-        self.search_space_cfg = search_space_cfg
-        self.num_middle_blocks = search_space_cfg.num_middle_blocks
-        choice_2_range_params = OmegaConf.to_container(search_space_cfg.choice_2_range_params, resolve=True)
-        self.choice_2_range_params = choice_2_range_params
+    def __init__(self, num_middle_blocks=3):
+        self.num_middle_blocks = num_middle_blocks
+        self.choice_2_range_params = {"group": [1, 2, 4, 8, 16]}
         self.parameters = []
-        # global params
-        self.parameters.extend([
-            self.get_expand_ratio(),
-            self.get_dropout_rate(),
-        ])
 
         # block search space
         # block_id = 0 is the stem block
@@ -62,17 +48,11 @@ class Search_Space:
             out_channels_constraint += f" + {out_channels_prefactor[block_id]}*{block_id}_out_channels"
 
         # stride constraint
-        try:
-            stride_constraint = f"{strides_constraint} >= {self.search_space_cfg.constraints.min_stride}"
-            parameter_constraints.append(stride_constraint)
-        except:
-            try:
-                tmp = self.search_space_cfg.strides
-            except:
-                raise Exception("We either need to define stride_constraint or strides in the config")
+        stride_constraint = f"{strides_constraint} >= {6}"
+        parameter_constraints.append(stride_constraint)
             
         # out_channels constraint
-        out_channels_constraint += f" <= {self.search_space_cfg.constraints.max_out_channels}"
+        out_channels_constraint += f" <= {6}"
         parameter_constraints.append(out_channels_constraint)
 
         return parameter_constraints
@@ -120,20 +100,15 @@ class Search_Space:
         return {
             "name": f"{block_id}_reflection",
             "type": "range",
-            "bounds": list(self.search_space_cfg.reflection),
+            "bounds": [-1, 0],
             "value_type": "int",
         }
 
     def get_group(self, block_id):
-        # the first block must have a group of at least 1
-        if block_id == 0 and self.choice_2_range_params["group"][0] == 0:
-            lower_bound = 1
-        else:
-            lower_bound = 0 
         return {
             "name": f"{block_id}_group",
             "type": "range",
-            "bounds": [lower_bound, len(self.choice_2_range_params["group"]) - 1],
+            "bounds": [0, len(self.choice_2_range_params["group"]) - 1],
             "value_type": "int",
         }
 
@@ -141,7 +116,7 @@ class Search_Space:
         return {
             "name": f"{block_id}_num_layers",
             "type": "range",
-            "bounds": list(self.search_space_cfg.num_layers),
+            "bounds": [1,2],
             "value_type": "int",
         }
 
@@ -149,22 +124,16 @@ class Search_Space:
         return {
             "name": f"{block_id}_conv_op",
             "type": "choice",
-            "values": list(self.search_space_cfg.conv_op),
+            "values": ["conv", "dconv", "mbconv"],
             "value_type": "str",
             "is_ordered": True,
         }
 
     def get_kernel_size(self, block_id):
-        if block_id == self.num_middle_blocks+1:
-            kernel_sizes = [0]
-            kernel_sizes.extend(list(self.search_space_cfg.kernel_size))
-        else:
-            kernel_sizes = list(self.search_space_cfg.kernel_size)
-
         return {
             "name": f"{block_id}_kernel_size",
             "type": "choice",
-            "values": kernel_sizes,
+            "values": [3,5],
             "value_type": "int",
             "is_ordered": True,
         }
@@ -173,7 +142,7 @@ class Search_Space:
         return {
             "name": f"{block_id}_se_ratio",
             "type": "choice",
-            "values": list(self.search_space_cfg.se_ratio),
+            "values": [0.25, 0.5, 0.75],
             "value_type": "float",
             "is_ordered": True,
         }
@@ -182,7 +151,7 @@ class Search_Space:
         return {
             "name": f"{block_id}_skip_op",
             "type": "choice",
-            "values": list(self.search_space_cfg.skip_op),
+            "values": ["no", "identity", "conv"],
             "value_type": "str",
             "is_ordered": True,
         }
@@ -191,66 +160,37 @@ class Search_Space:
         return {
             "name": f"{block_id}_out_channels",
             "type": "range",
-            "bounds": list(self.search_space_cfg.out_channels),
+            "bounds": [1.,4.],
             "value_type": "float",
             "is_ordered": True,
         }
         
-
     def get_stride(self, block_id):
-        try:
-            # if we have declared strides in config, use them
-            strides = list(self.search_space_cfg.strides)
-            stride = strides[block_id]
-            return {
-                "name": f"{block_id}_stride",
-                "type": "fixed",
-                "value": stride,
-                "value_type": "int",
-            }
-        except:
-            return {
-                "name": f"{block_id}_stride",
-                "type": "range",
-                "bounds": list(self.search_space_cfg.stride),
-                "value_type": "int",
-                "is_ordered": True,
-            }
+        return {
+            "name": f"{block_id}_stride",
+            "type": "range",
+            "bounds": [1, 2],
+            "value_type": "int",
+            "is_ordered": True,
+        }
         
 
     def get_expand_ratio(self):
-        try:
-            return {
-                "name": f"-1_expand_ratio",
-                "type": "choice",
-                "values": list(self.search_space_cfg.expand_ratio),
-                "value_type": "int",
-                "is_ordered": True,
-            }
-        except:
-            return {
-                "name": f"-1_expand_ratio",
-                "type": "fixed",
-                "value": 2,
-                "value_type": "int",
-            }
+        return {
+            "name": f"-1_expand_ratio",
+            "type": "choice",
+            "values": [2,4,6],
+            "value_type": "int",
+            "is_ordered": True,
+        }
     
     def get_dropout_rate(self):
-        try:
-            return {
-                "name": f"-1_dropout_rate",
-                "type": "choice",
-                "values": list(self.search_space_cfg.dropout_rate),
-                "value_type": "float",
-                "is_ordered": True,
-            }
-        except:
-            return {
-                "name": f"-1_dropout_rate",
-                "type": "fixed",
-                "value": 0.0,
-                "value_type": "float",
-            }
+        return {
+            "name": f"-1_dropout_rate",
+            "type": "fixed",
+            "value": 0.0,
+            "value_type": "float",
+        }
         
     def get_search_space(self):
         return self.search_space
@@ -262,13 +202,77 @@ class Search_Space:
         return self.parameter_constraints
 
 
-def dict_to_list(d):
-    result = []
-    for value in d.values():
-        #print(value)
-        if isinstance(value, dict):
-            result.extend(dict_to_list(value))
-        else:
-            result.append(value)
-    return result
+def generate_random_data():
+    # generate random data
+    data = {
+            "valid_acc": np.random.uniform(0.7, 0.9),
+            "gflops": np.random.uniform(100, 200),
+            "model_building_time": np.random.uniform(10, 100),
+        }
+    return data
 
+
+def main():
+        device = torch.device('cuda' if torch.cuda.is_available() \
+                                   else "cpu")
+        generation_strategy=GenerationStrategy(
+            name="SAASBO",
+            steps=[
+                GenerationStep(
+                    model=Models.SOBOL,
+                    num_trials=1
+                ),
+                GenerationStep(
+                    model=Models.FULLYBAYESIANMOO,
+                    num_trials=25,
+                    model_kwargs={
+                        "torch_device": device,
+                        "num_samples": 256,
+                        "warmup_steps": 512,
+                    },
+                    max_parallelism=1,
+                )
+            ],
+        )
+
+        ax_client = AxClient(
+                generation_strategy=generation_strategy,
+            )
+
+        eq_search_space = Search_Space()
+        parameter = eq_search_space.get_parameters()
+        parameter_constraints = eq_search_space.get_parameter_constraints()
+
+        ax_client.create_experiment(
+            parameters=parameter,
+            support_intermediate_data=True,
+            objectives={
+                # `threshold` arguments are optional
+                "valid_acc": ObjectiveProperties(
+                    minimize=False, 
+                    threshold=0.8
+                ), 
+                "gflops": ObjectiveProperties(
+                    minimize=True, 
+                    threshold=150
+                )
+            },
+            parameter_constraints=parameter_constraints,
+            tracking_metric_names=["model_building_time"],
+        )
+
+        for i in range(30):
+            print(f"Running trial {i}")
+            trial = ax_client.get_next_trial()
+            _, trial_index = trial
+
+            data = generate_random_data()
+
+            ax_client.complete_trial(
+                    trial_index=trial_index, 
+                    raw_data=data,
+                )
+            
+        
+if __name__ == "__main__":
+    main()
