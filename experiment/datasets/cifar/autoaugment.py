@@ -31,6 +31,8 @@ from PIL import Image, ImageEnhance, ImageOps
 import numpy as np
 import random
 
+import torch
+
 
 
 class CIFAR10Policy(object):
@@ -154,4 +156,42 @@ class SubPolicy(object):
     def __call__(self, img):
         if random.random() < self.p1: img = self.operation1(img, self.magnitude1)
         if random.random() < self.p2: img = self.operation2(img, self.magnitude2)
+        return img
+
+
+class Cutout:
+    
+    """Randomly mask out a patch from an image.
+    Args:
+        size (int): The size of the square patch.
+    """
+    def __init__(self, size):
+        self.size = size
+    
+    def __call__(self, img):
+        """
+        Args:
+            img (Tensor): Tensor image
+        Returns:
+            Tensor: Image with a hole of dimension size x size cut out of it.
+        """
+        h = img.size(1)
+        w = img.size(2)
+        
+        mask = np.ones((h, w), np.float32)
+        
+        y = np.random.randint(h)
+        x = np.random.randint(w)
+        
+        y1 = np.clip(y - self.size // 2, 0, h)
+        y2 = np.clip(y + self.size // 2, 0, h)
+        x1 = np.clip(x - self.size // 2, 0, w)
+        x2 = np.clip(x + self.size // 2, 0, w)
+        
+        mask[y1: y2, x1: x2] = 0.
+        
+        mask = torch.from_numpy(mask)
+        mask = mask.expand_as(img)
+        img = img * mask
+        
         return img

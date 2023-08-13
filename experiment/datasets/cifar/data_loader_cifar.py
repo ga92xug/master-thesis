@@ -1,4 +1,6 @@
 
+from configparser import Interpolation
+from pyrsistent import v
 import torch
 import numpy as np
 
@@ -17,49 +19,10 @@ import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
 
-from autoaugment import CIFAR10Policy
+from experiment.datasets.cifar.autoaugment import CIFAR10Policy, Cutout
 
 MEAN = np.array([125.3, 123.0, 113.9]) / 255.0  # = np.array([0.49137255, 0.48235294, 0.44666667])
 STD = np.array([63.0, 62.1, 66.7]) / 255.0  # = np.array([0.24705882, 0.24352941, 0.26156863])
-
-
-class Cutout:
-    
-    """Randomly mask out a patch from an image.
-    Args:
-        size (int): The size of the square patch.
-    """
-    def __init__(self, size):
-        self.size = size
-    
-    def __call__(self, img):
-        """
-        Args:
-            img (Tensor): Tensor image
-        Returns:
-            Tensor: Image with a hole of dimension size x size cut out of it.
-        """
-        h = img.size(1)
-        w = img.size(2)
-        
-        mask = np.ones((h, w), np.float32)
-        
-        y = np.random.randint(h)
-        x = np.random.randint(w)
-        
-        y1 = np.clip(y - self.size // 2, 0, h)
-        y2 = np.clip(y + self.size // 2, 0, h)
-        x1 = np.clip(x - self.size // 2, 0, w)
-        x2 = np.clip(x + self.size // 2, 0, w)
-        
-        mask[y1: y2, x1: x2] = 0.
-        
-        mask = torch.from_numpy(mask)
-        mask = mask.expand_as(img)
-        img = img * mask
-        
-        return img
-
 
 
 def build_cifar_loaders(
@@ -67,26 +30,25 @@ def build_cifar_loaders(
         eval_batch_size,
         data_dir,
         name,
+        channel_wise_mean_images,
+        channel_wise_std_images,
         validation=True,
         workers=8,
         augment=False,
+        rotation=False,
         reshuffle=True,
     ):
 
     location = data_dir + name + "/"
     
-
-    
     # define transforms
-    normalize = transforms.Normalize(
-        mean=MEAN,
-        std=STD,
-    )
+    normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
+
     valid_transform = transforms.Compose([
         transforms.ToTensor(),
         normalize,
     ])
-    
+
     if augment:
         train_transform = transforms.Compose([
             transforms.RandomCrop(32, padding=4),
@@ -104,13 +66,14 @@ def build_cifar_loaders(
             normalize,
         ])
     
+    if rotation:
+        train_transform.transforms.insert(0, transforms.RandomRotation((0,360), Interpolation.BILINEAR))
+        valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Interpolation.BILINEAR))
     
     if name == "cifar10":
         dataset_class = datasets.CIFAR10
-        n_classes = 10
     elif name == "cifar100":
         dataset_class = datasets.CIFAR100
-        n_classes = 100
     else:
         raise ValueError("Unknown dataset name.")
     

@@ -51,42 +51,18 @@ class Custom_Dataset(Dataset):
         return image, label
 
 def build_loaders(
+    images, 
+    labels,
+    transform,
     batch_size,
     eval_batch_size,
-    data_dir,
-    name,
-    resolution,
     workers,
-    should_normalize_weights,
-    channel_wise_mean_images,
-    channel_wise_std_images,
-    augment=False,
-    **kwargs,
 ):
     random_seed = 42
-    # Get the data
-    images, labels = globals()[f"get_{name}"](data_dir, name)
-
-    # images should have this form (N, C, H, W)
-    # assert images.shape[1] in [1,3], "Images should have 1,3 channels"
-
-    # normalize weights
-    if should_normalize_weights:
-        normalized_weights = get_normalize_weights(labels)
-    else:
-        # to gather the weighted accuracy
-        normalized_weights = 1
 
     # Split the data
     train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
     test_images, val_images, test_labels, val_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=0.5, random_state=random_seed, stratify=val_test_labels)
-
-    # Define the transformations
-    transform = transforms.Compose([
-        transforms.Resize((resolution, resolution)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
-    ])
 
     # Create the DataLoaders
     train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=transform), batch_size=batch_size, shuffle=True, num_workers=workers)
@@ -99,14 +75,23 @@ def build_loaders(
         "test": test_loader,
     }
 
-    return dataloaders, normalized_weights
+    return dataloaders
 
 
 def get_Galaxy10_DECals(
-    dir: str,
+    data_dir: str,
     name: str,
+    resolution: int,
+    should_normalize_weights: bool,
+    channel_wise_mean_images: list,
+    channel_wise_std_images: list,
+    batch_size: int,
+    eval_batch_size: int,
+    workers: int,
+    augment: bool,
+    **kwargs,
 ):
-    location = dir + name + "/Galaxy10_DECals.h5"
+    location = data_dir + name + "/Galaxy10_DECals.h5"
     #print("location: ", location)
     with h5py.File(location, 'r') as F:
         images = np.array(F['images'])
@@ -114,16 +99,38 @@ def get_Galaxy10_DECals(
 
     images = images.astype(np.uint8)
 
+    # Define the transformations
+    transform = transforms.Compose([
+        transforms.Resize((resolution, resolution)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
+    ])
 
+    # normalize weights
+    if should_normalize_weights:
+        normalized_weights = get_normalize_weights(labels)
+    else:
+        # to gather the weighted accuracy
+        normalized_weights = 1
 
-    return images, labels
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
+    return dataloaders, normalized_weights
 
 
 def get_ISIC_2019(
-    dir: str,
+    data_dir: str,
     name: str,
+    resolution: int,
+    should_normalize_weights: bool,
+    channel_wise_mean_images: list,
+    channel_wise_std_images: list,
+    batch_size: int,
+    eval_batch_size: int,
+    workers: int,
+    augment: bool,
+    **kwargs,
 ):
-    location = dir + name
+    location = data_dir + name
     # these files you download
     ground_truth = location + '/ISIC_2019_Training_GroundTruth.csv'
     images = location + '/ISIC_2019_Training_Input'
@@ -144,10 +151,26 @@ def get_ISIC_2019(
     labels = df['label'].values
     images = df['name'].values
     #images = df['name'].apply(lambda file_location: np.array(Image.open(file_location)).astype(np.uint8)).values
-    return images, labels
+    
+    # Define the transformations
+    transform = transforms.Compose([
+        transforms.Resize((resolution, resolution)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
+    ])
+
+    # normalize weights
+    if should_normalize_weights:
+        normalized_weights = get_normalize_weights(labels)
+    else:
+        # to gather the weighted accuracy
+        normalized_weights = 1
+
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
+    return dataloaders, normalized_weights
 
 
-@hydra.main(config_path="../conf", config_name="config", version_base="1.2")
+@hydra.main(config_path="../../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     #print(cfg)
     dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
