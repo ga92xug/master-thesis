@@ -67,6 +67,9 @@ def build_loaders(
     # Get the data
     images, labels = globals()[f"get_{name}"](data_dir, name)
 
+    # images should have this form (N, C, H, W)
+    # assert images.shape[1] in [1,3], "Images should have 1,3 channels"
+
     # normalize weights
     if should_normalize_weights:
         normalized_weights = get_normalize_weights(labels)
@@ -110,6 +113,8 @@ def get_Galaxy10_DECals(
         labels = np.array(F['ans'])
 
     images = images.astype(np.uint8)
+
+
 
     return images, labels
 

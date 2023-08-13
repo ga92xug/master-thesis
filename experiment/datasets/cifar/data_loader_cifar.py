@@ -10,7 +10,14 @@ from torch.utils.data import DataLoader
 #import sys
 #sys.path.append('../cifar10') # add parent directory
 
-from .autoaugment import CIFAR10Policy
+
+import sys
+import os
+
+os.environ['HYDRA_FULL_ERROR'] = '1'
+sys.path.append(f"{os.getcwd()}")
+
+from autoaugment import CIFAR10Policy
 
 MEAN = np.array([125.3, 123.0, 113.9]) / 255.0  # = np.array([0.49137255, 0.48235294, 0.44666667])
 STD = np.array([63.0, 62.1, 66.7]) / 255.0  # = np.array([0.24705882, 0.24352941, 0.26156863])
@@ -166,21 +173,25 @@ def build_cifar_loaders(
 
 
 if __name__ == "__main__":
-        train_loader, valid_loader, test_loader, n_inputs, n_classes = build_cifar_loaders(
+        loaders, _ = build_cifar_loaders(
             batch_size=128,
             eval_batch_size=128,
+            data_dir='../../Data/frischs/datasets/',
+            name="cifar10",
             validation=True,
             workers=8,
             augment=False,
             reshuffle=True,
         )
+
+        train_loader = loaders["train"]
+        valid_loader = loaders["valid"]
+        test_loader = loaders["test"]
         
         print(len(train_loader.dataset))
         print(len(valid_loader.dataset))
         print(len(test_loader.dataset))
     
-        print(n_inputs)
-        print(n_classes)
     
         for i, (images, labels) in enumerate(train_loader):
             print(images.shape)

@@ -1,0 +1,11 @@
+_target_: experiment.datasets.dataloader.build_loaders
+name: "Galaxy10_DECals"             # The name of the dataset to use
+augment: False                 # Augment the training set with rotated images
+workers: 8                    # Number of jobs to load the dataset
+resolution: 96
+
+should_normalize_weights: False
+#channel_wise_mean_images: [0.01443392, 0.01443392, 0.01443392]
+#channel_wise_std_images: [0.12014125, 0.1125077, 0.10281154]
+n_in_channels: 3
+n_out_classes: 2
