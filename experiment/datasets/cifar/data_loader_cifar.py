@@ -66,21 +66,20 @@ def build_cifar_loaders(
         channel_wise_std_images,
         workers=8,
         augment=False,
-        rotation=False,
         reshuffle=True,
         **kwargs,
     ):
     # the rotated cifar datasets are named "cifar10_rot" and "cifar100_rot"
     if len(name.split("_")) == 2:
-        name, rot = name.split("_")
+        name, _ = name.split("_")
+        rotation = True
     elif len(name.split("_")) == 1:
         name = name
-        rot = None
+        rotation = False
     else:
         raise ValueError("Unknown dataset name.")
     
     assert name in ["cifar10", "cifar100"], "Unknown dataset name."
-    assert (rot is None or rotation) and (not rotation or rot is not None), "if rotation is True, the dataset name must be 'cifar10_rot' or 'cifar100_rot' and if False no addition"
 
     location = data_dir + name + "/"
     

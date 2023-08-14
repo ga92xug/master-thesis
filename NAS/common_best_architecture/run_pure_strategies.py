@@ -3,7 +3,6 @@ import sys
 import os
 # issue with https://github.com/pytorch/pytorch/issues/37377
 os.environ["MKL_THREADING_LAYER"]="GNU"
-print(f"current working directory: {os.getcwd()}")
 sys.path.append(f"{os.getcwd()}")
 from NAS.util import encode_parameters
 from experiment.run_files.run_command import run_command
@@ -55,3 +54,5 @@ for strategy_row in result_df.iterrows():
             args.append("training.dataset.rotation=True")
             args.append("training.dataset.name=cifar10_rot")
             run_command(args, global_args, test=False, path="experiment/")
+
+
