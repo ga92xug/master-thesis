@@ -1,0 +1,34 @@
+program: experiment/main.py
+method: bayes
+metric:
+  goal: maximize
+  name: valid.acc
+
+early_terminate:
+  type: hyperband
+  min_iter: 4
+
+parameters:
+  training.optimizer.lr:
+    min: 0.005
+    max: 0.1
+  training.optimizer.weight_decay:
+    min: 0.000001
+    max: 0.0001
+  training.scheduler.patience:
+    min: 2 
+    max: 10
+  training.scheduler.factor:
+    min: 0.01
+    max: 0.9
+  
+command:
+  - python
+  - ${program}
+  - training=imagenette-training
+  - wandb.tags=[sweep-imagenette-reduce]
+  - wandb.project=scaling-laws-sweeps
+  - model=eq_nasnet
+  - wandb.give_name=False
+
+# wandb sweep --project scaling-laws-sweeps experiment/conf/sweeps/imagenette-reduce-on-plateau-sweep.yaml

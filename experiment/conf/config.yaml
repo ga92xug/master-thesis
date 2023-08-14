@@ -1,8 +1,8 @@
 
 defaults:
 - _self_
-- model: eq_nasnet
-- training: isic2019-training-reduce
+- model: eq_wrn
+- training: cifar-training
 
 # Dataset parameters        
 training:

@@ -12,3 +12,5 @@ datasets/currently_unused
 outputs/
 
 e2cnn_old_files/
+
+datasets/old_files/

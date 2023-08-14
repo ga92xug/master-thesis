@@ -5,7 +5,7 @@
 
 import numpy as np
 
-location = "../Data/frischs/mnist_rot/"
+location = "../../Data/frischs/datasets/mnist_rot/"
 f = open(location + "mnist_all_rotation_normalized_float_test.amat", "r")
 
 test = []
@@ -72,7 +72,7 @@ def preprocess(dataset, flip_all=False):
     
     return {"images": images, "labels": labels}
 
-location = "../Data/frischs/mnist_rot/"
+location = "../../Data/frischs/datasets/mnist_rot/"
 f = open(location + "mnist_all_rotation_normalized_float_test.amat", "r")
 
 test = []

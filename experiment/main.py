@@ -20,11 +20,6 @@ from networks.util import cuda_memory_usage
 from experiment import utils
 from experiment import log
 
-from experiment.datasets.mnist import data_loader_mnist
-from experiment.datasets.cifar import data_loader_cifar
-from experiment.datasets.Galaxy10_DECals import data_loader_Galaxy10_DECals
-
-
 os.environ['HYDRA_FULL_ERROR'] = '1'
 #os.environ['TORCHDYNAMO_VERBOSE'] = '0'
 #import torch._dynamo

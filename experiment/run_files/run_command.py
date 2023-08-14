@@ -1,7 +1,8 @@
 import subprocess
+import os
 import sys
-import pathlib
 sys.path.append('experiment')
+os.environ['HYDRA_FULL_ERROR'] = '1'
 #print("Add path", pathlib.Path(sys.path[-1]).absolute())
 #from experiment.speed_test import extract_info_instantiate_network
 

@@ -20,11 +20,8 @@ parameters:
     max: 0.9
 
 
-
 command:
   - python
   - ${program}
   - training=isic2019-training-reduce
   - wandb.tags=[sweep-isic-reduce]
-  #- project=scaling-laws-sweeps
-  #- ${args_no_hyphens}

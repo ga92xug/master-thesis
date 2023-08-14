@@ -1,7 +1,12 @@
-name: 'imagenette'             # The name of the dataset to use
+_target_: experiment.datasets.imagenette.data_loader.build_loaders
+name: imagenette             
 batch_size: 128
-eval_batchsize: 64
+eval_batch_size: 128
 augment: False                 # Augment the training set with rotated images
-drop_last_train: False       # Drop the last batch if it is smaller than the batch size
 resolution: 108
-resolution_test: True
+workers: 8                 
+
+channel_wise_mean_images: [0.46947703 0.4485053  0.41963148]
+channel_wise_std_images: [0.26470295 0.25778037 0.27517328]
+n_in_channels: 3
+n_out_classes: 10

@@ -22,34 +22,6 @@ from experiment.datasets.utils import get_normalize_weights
 #from experiment import dataloader
 
 
-class Custom_Dataset(Dataset):
-    def __init__(self, images, labels, transform=None):
-        super().__init__()
-        self.images = images
-        self.labels = labels
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
-        image = self.images[index]
-        label = self.labels[index]
-
-        if isinstance(image, str):
-            image = Image.open(image)
-        elif isinstance(image, np.ndarray):
-            image = Image.fromarray(image)
-        else:
-            raise RuntimeError("Unknown image type")
-
-        if self.transform is not None:
-            image = self.transform(image)
-
-        label = torch.tensor(label, dtype=torch.int64)
-
-        return image, label
-
 def build_loaders(
     images, 
     labels,
@@ -59,9 +31,6 @@ def build_loaders(
     workers,
 ):
     random_seed = 42
-
-    # images should have this form (N, C, H, W)
-    assert images.shape[1] in [1,3], "Images should have 1,3 channels"
 
     # Split the data
     train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
@@ -81,8 +50,8 @@ def build_loaders(
     return dataloaders
 
 
-def get_Galaxy10_DECals(
-    dir: str,
+def get_wilds(
+    data_dir: str,
     name: str,
     resolution: int,
     should_normalize_weights: bool,
@@ -91,8 +60,10 @@ def get_Galaxy10_DECals(
     batch_size: int,
     eval_batch_size: int,
     workers: int,
+    augment: bool,
+    **kwargs,
 ):
-    location = dir + name + "/Galaxy10_DECals.h5"
+    location = data_dir + name + "/Galaxy10_DECals.h5"
     #print("location: ", location)
     with h5py.File(location, 'r') as F:
         images = np.array(F['images'])
@@ -102,7 +73,7 @@ def get_Galaxy10_DECals(
 
     # Define the transformations
     transform = transforms.Compose([
-        transforms.Resize(resolution),
+        transforms.Resize((resolution, resolution)),
         transforms.ToTensor(),
         transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
     ])
@@ -115,13 +86,11 @@ def get_Galaxy10_DECals(
         normalized_weights = 1
 
     dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
-
-
     return dataloaders, normalized_weights
 
 
 def get_ISIC_2019(
-    dir: str,
+    data_dir: str,
     name: str,
     resolution: int,
     should_normalize_weights: bool,
@@ -130,8 +99,10 @@ def get_ISIC_2019(
     batch_size: int,
     eval_batch_size: int,
     workers: int,
+    augment: bool,
+    **kwargs,
 ):
-    location = dir + name
+    location = data_dir + name
     # these files you download
     ground_truth = location + '/ISIC_2019_Training_GroundTruth.csv'
     images = location + '/ISIC_2019_Training_Input'
@@ -155,7 +126,7 @@ def get_ISIC_2019(
     
     # Define the transformations
     transform = transforms.Compose([
-        transforms.Resize(resolution),
+        transforms.Resize((resolution, resolution)),
         transforms.ToTensor(),
         transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
     ])
@@ -170,7 +141,7 @@ def get_ISIC_2019(
     dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
     return dataloaders, normalized_weights
 
-    
+
 @hydra.main(config_path="../../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     #print(cfg)

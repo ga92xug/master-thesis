@@ -4,8 +4,17 @@ from PIL import Image
 import torch
 import torch.utils.data as data
 from torchvision import transforms
+import hydra
+from omegaconf import DictConfig
 
-from . import own_transforms
+import sys
+import os
+
+os.environ['HYDRA_FULL_ERROR'] = '1'
+sys.path.append(f"{os.getcwd()}")
+
+from experiment.datasets.mnist import own_transforms
+
 
 
 class MNIST_Dataset(data.Dataset):
@@ -99,6 +108,7 @@ def build_mnist_rot_loader(
         interpolation=0, 
         reshuffle_seed=None, 
         coords=False,
+        **kwargs,
     ):
     """  """
     if mode is None:
@@ -180,6 +190,7 @@ def build_mnist_loaders(
         interpolation=0, 
         coords=False,
         drop_last_train=False,
+        **kwargs,
 ):
         if reshuffle:
             seed = np.random.randint(0, 100000)
@@ -232,3 +243,23 @@ def build_mnist_loaders(
 
         normalized_weights = None
         return  loaders, normalized_weights
+
+@hydra.main(config_path="../../conf", config_name="config", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    #print(cfg)
+    dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
+
+    train_dataloader = dataloaders["train"]
+    valid_dataloader = dataloaders["valid"]
+    test_dataloader = dataloaders["test"]
+
+    max_val = 0
+    for i, (images, labels) in enumerate(train_dataloader):
+        print(images.shape)
+        print(labels)
+
+        break
+    
+
+if __name__ == "__main__":
+    main()

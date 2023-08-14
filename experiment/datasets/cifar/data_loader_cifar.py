@@ -1,6 +1,4 @@
 
-from configparser import Interpolation
-from pyrsistent import v
 import torch
 import numpy as np
 
@@ -8,6 +6,7 @@ from torchvision import datasets
 from torchvision import transforms
 from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
+from PIL import Image
 
 #import sys
 #sys.path.append('../cifar10') # add parent directory
@@ -25,6 +24,39 @@ MEAN = np.array([125.3, 123.0, 113.9]) / 255.0  # = np.array([0.49137255, 0.4823
 STD = np.array([63.0, 62.1, 66.7]) / 255.0  # = np.array([0.24705882, 0.24352941, 0.26156863])
 
 
+def get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment=False, rotation=False):
+    if "cifar" in name:
+        # define transforms
+        normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
+
+        valid_transform = transforms.Compose([
+            transforms.ToTensor(),
+            normalize,
+        ])
+
+        if augment:
+            train_transform = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                CIFAR10Policy(),
+                transforms.ToTensor(),
+                Cutout(16),
+                normalize,
+            ])
+        else:
+            train_transform = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                normalize,
+            ])
+        
+        if rotation:
+            train_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
+            valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
+        
+        return train_transform, valid_transform
+
 def build_cifar_loaders(
         batch_size,
         eval_batch_size,
@@ -32,43 +64,27 @@ def build_cifar_loaders(
         name,
         channel_wise_mean_images,
         channel_wise_std_images,
-        validation=True,
         workers=8,
         augment=False,
         rotation=False,
         reshuffle=True,
+        **kwargs,
     ):
+    # the rotated cifar datasets are named "cifar10_rot" and "cifar100_rot"
+    if len(name.split("_")) == 2:
+        name, rot = name.split("_")
+    elif len(name.split("_")) == 1:
+        name = name
+        rot = None
+    else:
+        raise ValueError("Unknown dataset name.")
+    
+    assert name in ["cifar10", "cifar100"], "Unknown dataset name."
+    assert (rot is None or rotation) and (not rotation or rot is not None), "if rotation is True, the dataset name must be 'cifar10_rot' or 'cifar100_rot' and if False no addition"
 
     location = data_dir + name + "/"
     
-    # define transforms
-    normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
-
-    valid_transform = transforms.Compose([
-        transforms.ToTensor(),
-        normalize,
-    ])
-
-    if augment:
-        train_transform = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            CIFAR10Policy(),
-            transforms.ToTensor(),
-            Cutout(16),
-            normalize,
-        ])
-    else:
-        train_transform = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),
-            transforms.RandomHorizontalFlip(),
-            transforms.ToTensor(),
-            normalize,
-        ])
-    
-    if rotation:
-        train_transform.transforms.insert(0, transforms.RandomRotation((0,360), Interpolation.BILINEAR))
-        valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Interpolation.BILINEAR))
+    train_transform, valid_transform = get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment, rotation)
     
     if name == "cifar10":
         dataset_class = datasets.CIFAR10
@@ -76,49 +92,31 @@ def build_cifar_loaders(
         dataset_class = datasets.CIFAR100
     else:
         raise ValueError("Unknown dataset name.")
-    
-    # load the dataset
-    train_dataset = dataset_class(
-        root=location, train=True,
-        download=False, transform=train_transform,
-    )
-    
-    test_dataset = dataset_class(
-        root=location, train=False,
-        download=False, transform=valid_transform,
-    )
 
-    if validation:
-        
-        valid_dataset = dataset_class(
-            root=location, train=True,
-            download=False, transform=valid_transform,
-        )
-        num_train = len(train_dataset)
-        indices = list(range(num_train))
-        split = int(np.floor(0.2 * num_train))
-        
-        if reshuffle:
-            np.random.shuffle(indices)
-        
-        train_idx, valid_idx = indices[split:], indices[:split]
-        train_sampler = SubsetRandomSampler(train_idx)
-        valid_sampler = SubsetRandomSampler(valid_idx)
-        
-        train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, sampler=train_sampler,
-            num_workers=workers, pin_memory=True,
-        )
-        valid_loader = DataLoader(
-            valid_dataset, batch_size=eval_batch_size, sampler=valid_sampler,
-            num_workers=workers, pin_memory=True,
-        )
-    else:
-        train_loader = DataLoader(
-            train_dataset, batch_size=batch_size, shuffle=True,
-            num_workers=workers, pin_memory=True,
-        )
-        valid_loader = None
+    # load the dataset
+    train_dataset = dataset_class(root=location, train=True, download=False, transform=train_transform)
+    valid_dataset = dataset_class(root=location, train=True, download=False, transform=valid_transform)
+    test_dataset = dataset_class(root=location, train=False, download=False, transform=valid_transform)
+
+    num_train = len(train_dataset)
+    indices = list(range(num_train))
+    split = int(np.floor(0.2 * num_train))
+    
+    if reshuffle:
+        np.random.shuffle(indices)
+    
+    train_idx, valid_idx = indices[split:], indices[:split]
+    train_sampler = SubsetRandomSampler(train_idx)
+    valid_sampler = SubsetRandomSampler(valid_idx)
+    
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, sampler=train_sampler,
+        num_workers=workers, pin_memory=True,
+    )
+    valid_loader = DataLoader(
+        valid_dataset, batch_size=eval_batch_size, sampler=valid_sampler,
+        num_workers=workers, pin_memory=True,
+    )
 
     test_loader = DataLoader(
         test_dataset, batch_size=eval_batch_size, shuffle=False,
@@ -140,8 +138,9 @@ if __name__ == "__main__":
             batch_size=128,
             eval_batch_size=128,
             data_dir='../../Data/frischs/datasets/',
-            name="cifar10",
-            validation=True,
+            name="cifar100",
+            channel_wise_mean_images=MEAN,
+            channel_wise_std_images=STD,
             workers=8,
             augment=False,
             reshuffle=True,
@@ -173,46 +172,3 @@ if __name__ == "__main__":
     
         print("Done")
     
-        # print(train_loader.dataset[0][0].shape)
-        # print(train_loader.dataset[0][1].shape)
-        # print(train_loader.dataset[0][1])
-    
-        # print(valid_loader.dataset[0][0].shape)
-        # print(valid_loader.dataset[0][1].shape)
-        # print(valid_loader.dataset[0][1])
-    
-        # print(test_loader.dataset[0][0].shape)
-        # print(test_loader.dataset[0][1].shape)
-        # print(test_loader.dataset[0][1])
-    
-        # print(len(train_loader.dataset))
-        # print(len(valid_loader.dataset))
-        # print(len(test_loader.dataset))
-    
-        # print(n_inputs)
-        # print(n_classes)
-    
-        # for i, (images, labels) in enumerate(train_loader):
-        #     print(images.shape)
-        #     print(labels.shape)
-        #     break
-    
-        # for i, (images, labels) in enumerate(valid_loader):
-        #     print(images.shape)
-        #     print(labels.shape)
-        #     break
-    
-        # for i, (images, labels) in enumerate(test_loader):
-        #     print(images.shape)
-        #     print(labels.shape)
-        #     break
-    
-        # print("Done")
-    
-        # print(train_loader.dataset[0][0].shape)
-        # print(train_loader.dataset[0][1].shape)
-        # print(train_loader.dataset[0][1])
-    
-        # print(valid_loader.dataset[0][0].shape)
-        # print(valid_loader.dataset[0][1].shape)
-        # print(valid_loader.dataset
