@@ -1,11 +1,8 @@
-######################################################################
-# Encode the parameters of the search space into block_args structure for Eq_NASNet
-
-import logging
 import wandb
 
-
-def encode_parameters(params, choice_2_range_params):
+def encode_parameters(params, choice_2_range_params : dict = {
+        "group": [1, 2, 4, 8, 16],
+    }):
     """
     Encodes the parameters into a string representation.
 
@@ -88,6 +85,10 @@ def decode_single_block_parameters(encoded_params, block_number):
         })
 
     return params
+
+def convert_dict_to_hydra_string(dictionary: dict):
+    key_value_comma = ",".join([f'{key}:{value}' for key, value in dictionary.items()])
+    return f'{{{key_value_comma}}}'
 
 def convert_to_number(val):
     try:

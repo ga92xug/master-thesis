@@ -15,6 +15,7 @@ from .util import (
     round_repeats,
     get_channel_sizes,
 )
+from NAS.util import encode_parameters
 from networks.eq_restriction import Restriction_Group_or_CNN
 from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_Block, NAS_Block
 
@@ -79,7 +80,14 @@ class EquivariantNASNet(nn.Module):
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
         self.fixed_params = fixed_params
+
         # BlockArgs
+        blocks_args_config = kwargs.get("blocks_args_dict", None)
+        if blocks_args_config is not None:
+            # passed the config as a dict, ignore the default blocks_args
+            # the encoder is informed about the conversion of the group
+            blocks_args = encode_parameters(blocks_args_config)
+        
         blocks_args = BlockDecoder.decode(blocks_args)
 
         # update the config for wandb
