@@ -1,4 +1,3 @@
-from pdb import run
 import sys
 sys.path.append('../run_files') # add parent directory
 from run_command import run_command

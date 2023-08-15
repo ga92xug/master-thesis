@@ -5,11 +5,11 @@ defaults:
 - scheduler: reduce_lr_on_plateau 
 
 epochs: 50
-accumulate: 2
+accumulate: 4
 
 dataset:
-  batch_size: 128                # Number of examples to process in a batch during training
-  eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
+  batch_size: 64                # Number of examples to process in a batch during training
+  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
 
 optimizer:
   lr: 0.01

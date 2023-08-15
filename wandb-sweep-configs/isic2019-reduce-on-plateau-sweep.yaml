@@ -2,7 +2,7 @@ program: experiment/main.py
 method: bayes
 metric:
   goal: maximize
-  name: valid.acc
+  name: valid.acc_weighted
 
 early_terminate:
   type: hyperband
@@ -18,6 +18,11 @@ parameters:
   training.scheduler.factor:
     min: 0.01
     max: 0.9
+  training.dataset.should_normalize_weights:
+    distribution: categorical
+    values:
+      - True
+      - False
 
 
 command:
@@ -25,3 +30,4 @@ command:
   - ${program}
   - training=isic2019-training-reduce
   - wandb.tags=[sweep-isic-reduce]
+  - model=eq_nasnet
