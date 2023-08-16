@@ -1,9 +1,9 @@
-_target_: experiment.datasets.general.data_loader.get_Galaxy10_DECals
-name: "Galaxy10_DECals"             # The name of the dataset to use
+_target_: experiment.datasets.domain_shift.data_loader.get_loaders
+name: iwildcam
 augment: False                 # Augment the training set with rotated images
 resolution: 108
 
-should_normalize_weights: False
+
 channel_wise_mean_images: [0.01443392, 0.01443392, 0.01443392]
 channel_wise_std_images: [0.12014125, 0.1125077, 0.10281154]
 n_in_channels: 3

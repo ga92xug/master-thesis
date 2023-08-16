@@ -10,7 +10,8 @@ import hydra
 from omegaconf import DictConfig
 #import cv2
 
-import h5py
+from wilds.common.data_loaders import get_train_loader, get_eval_loader
+from wilds import get_dataset
 import numpy as np
 
 import sys
@@ -50,7 +51,7 @@ def build_loaders(
     return dataloaders
 
 
-def get_wilds(
+def get_loaders(
     data_dir: str,
     name: str,
     resolution: int,
@@ -63,13 +64,8 @@ def get_wilds(
     augment: bool,
     **kwargs,
 ):
-    location = data_dir + name + "/Galaxy10_DECals.h5"
-    #print("location: ", location)
-    with h5py.File(location, 'r') as F:
-        images = np.array(F['images'])
-        labels = np.array(F['ans'])
-
-    images = images.astype(np.uint8)
+    location = data_dir + name
+    dataset = get_dataset('iwildcam', root_dir=location, download=False)
 
     # Define the transformations
     transform = transforms.Compose([
@@ -79,13 +75,19 @@ def get_wilds(
     ])
 
     # normalize weights
-    if should_normalize_weights:
-        normalized_weights = get_normalize_weights(labels)
-    else:
-        # to gather the weighted accuracy
-        normalized_weights = 1
+    normalized_weights = None
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
+    train_data = dataset.get_subset("train",transform=transform)
+    val_data = dataset.get_subset("val",transform=transform)
+    train_loader = get_train_loader("standard", train_data, batch_size=batch_size)
+    val_loader = get_eval_loader("standard", val_data, batch_size=eval_batch_size)
+
+    dataloaders = {
+        "train": train_loader,
+        "valid": val_loader,
+        "test": val_loader,
+    }
+
     return dataloaders, normalized_weights
 
 

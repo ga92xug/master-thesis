@@ -1,13 +1,21 @@
 defaults:
 - _self_
 - optimizer: Adam
-- dataset: mnist
+- dataset: mnist_rot
 - scheduler: exponential
 
 dataset:
-  batch_size: 64                # Number of examples to process in a batch during training
-  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
-  name: mnist_rot             
+  # same for all mnist
+  _target_: experiment.datasets.mnist.data_loader_mnist.build_mnist_loaders
+  batch_size: 64                
+  eval_batch_size: 64           
+  augment: True                 # Augment the training set with rotated images
+  interpolation: 2              # Type of interpolation to use for data augmentation
+  reshuffle: True               # Reshuffle train and valid splits instead of using the default split
+  validation: True
+  n_in_channels: 1
+  n_out_classes: 10
+  resolution: 28             
 
 epochs: 40                    # Number of training epochs
 augment_train: False

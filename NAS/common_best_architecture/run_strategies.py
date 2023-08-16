@@ -21,7 +21,7 @@ def get_adjusted_dict(
         "cifar10": "cifar10",
         "cifar10_rot": "mnist_rot",
         "galaxy10": "galaxy10",
-        "mnist": "cifar10",
+        "mnist12k": "cifar10",
         "mnist_rot": "mnist_rot",
         "ISIC_2019": "galaxy10"
     }
@@ -89,14 +89,12 @@ def start_run(
 
     while retry_count < max_retries:
         try:
-            run_command(args, global_args, test=True, path="experiment/")
+            run_command(args, global_args, test=False, path="experiment/")
             break
             #batch_size = get_batch_size_from_args(args)  # Replace with the actual way to get batch size from args
-            
         except Exception as e:
             print(f"Exception: {e}")
-            print("\nhere\n")
-            if dataset == "galaxy10":
+            if dataset in ["galaxy10", "ISIC_2019"]:
                 batch_size = batch_size // 2
                 accumulate = accumulate * 2
                 
@@ -163,8 +161,7 @@ def runs_to_skip(
     # Skip these temporarily
     if (dataset == "cifar10_rot" and strategy_name == "mnist_rot" and adjust_group) or \
         (dataset == "cifar10_rot" and strategy_name == "mnist_rot" and not adjust_group) or \
-        (dataset == "mnist" and strategy_name == "cifar10" and not adjust_group):
-        print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
+        print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran"):
         return True
     
     return False
@@ -173,16 +170,17 @@ def runs_to_skip(
 
 def main():
     # datasets = ["cifar10", "cifar10_rot", "galaxy10", "mnist", "mnist_rot"] #  "ISIC_2019"
+    # datasets = ["mnist12k", "ISIC_2019"]
     strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
 
     for adjust_group in [True, False]:
         if adjust_group:
-            datasets = ["cifar10_rot", "mnist"]
+            continue
         else:
-            datasets = ["cifar10", "cifar10_rot", "mnist", "mnist_rot", "galaxy10"]
+            datasets = ["galaxy10"]
+            # datasets = ["cifar10", "cifar10_rot", "mnist12k", "mnist_rot", "galaxy10"]
 
         strategies_on_datasets(datasets, strategies_df, adjust_group)
-        break
 
 
 

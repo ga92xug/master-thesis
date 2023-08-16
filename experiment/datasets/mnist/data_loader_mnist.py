@@ -97,17 +97,15 @@ class MNIST_Dataset(data.Dataset):
         return len(self.labels)
 
 
-def build_mnist_rot_loader(
+def build_mnist_loader(
         batch_size,
         data_dir,
         name,
         mode, 
         num_workers=8,
-        drop_last=False, 
         rot_interpol_augmentation=False, 
         interpolation=0, 
         reshuffle_seed=None, 
-        coords=False,
         **kwargs,
     ):
     """  """
@@ -117,7 +115,7 @@ def build_mnist_rot_loader(
     assert mode in ['train', 'valid', 'trainval', 'test']
     assert reshuffle_seed is None or (mode != "test" and mode != 'trainval')
 
-    transform, shuffle = get_transform(name=name, mode=mode, rot_interpol_augmentation=rot_interpol_augmentation, interpolation=interpolation, coords=coords)
+    transform, shuffle = get_transform(name=name, mode=mode, rot_interpol_augmentation=rot_interpol_augmentation, interpolation=interpolation)
 
     location = data_dir + name
     
@@ -128,52 +126,39 @@ def build_mnist_rot_loader(
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        drop_last=drop_last,
         pin_memory=True
     )
     
-    if coords:
-        n_inputs += 2
-
-    normalized_weights = None
     return loader
 
 
-def get_transform(name, mode, rot_interpol_augmentation, interpolation, coords):
+def get_transform(name, mode, rot_interpol_augmentation, interpolation):
     rng = np.random.RandomState(42)
+    transform = [own_transforms.GrayToTensor()]
 
     if name == "mnist_rot":
         class_transform = own_transforms.Rotate
     elif name == "mnist_fliprot":
         class_transform = own_transforms.FlipRotate
+    elif name == "mnist12k":
+        shuffle = False
+        if mode in ['train', 'trainval']:
+            shuffle = True
+            if rot_interpol_augmentation:
+                transform.insert(0, transforms.RandomRotation(5))
+        return own_transforms.Compose(transform), shuffle
     
-    transform = []
+    # for mnist_rot and mnist_fliprot
     if mode in ['valid', 'test']:
         shuffle = False
         if rot_interpol_augmentation:
-            transform = [
-                class_transform(rng=None, interpolation=interpolation),  # only resamples image
-                own_transforms.GrayToTensor()
-            ]
-        else:
-            transform = [own_transforms.GrayToTensor()]
+            transform.insert(0, class_transform(rng=None, interpolation=interpolation))
     elif mode in ['train', 'trainval']:
         shuffle = True
         if rot_interpol_augmentation:
-            transform = [
-                class_transform(rng=rng, interpolation=interpolation),
-                own_transforms.GrayToTensor()
-            ]
-            
-        else:
-            transform = [
-                own_transforms.GrayToTensor()
-            ]
+            transform.insert(0, class_transform(rng=rng, interpolation=interpolation))
     else:
         raise ValueError('unknown mode for building mnist_rot loader')
-    
-    if coords:
-        transform += [own_transforms.CoordinateField((28, 28))]
     
     return own_transforms.Compose(transform), shuffle
 
@@ -188,8 +173,6 @@ def build_mnist_loaders(
         augment,
         workers=8, 
         interpolation=0, 
-        coords=False,
-        drop_last_train=False,
         **kwargs,
 ):
         if reshuffle:
@@ -202,7 +185,7 @@ def build_mnist_loaders(
         else:
             modes = ["trainval", None]
             
-        train_loader = build_mnist_rot_loader(
+        train_loader = build_mnist_loader(
             batch_size=batch_size,
             data_dir=data_dir,
             name=name,
@@ -211,10 +194,8 @@ def build_mnist_loaders(
             rot_interpol_augmentation=augment,
             interpolation=interpolation,
             reshuffle_seed=seed,
-            coords=coords,
-            drop_last=drop_last_train,
         )
-        valid_loader = build_mnist_rot_loader(
+        valid_loader = build_mnist_loader(
             batch_size=eval_batch_size,
             data_dir=data_dir,
             name=name,
@@ -222,9 +203,8 @@ def build_mnist_loaders(
             num_workers=workers,
             rot_interpol_augmentation=False,
             interpolation=interpolation,
-            coords=coords,
         )
-        test_loader = build_mnist_rot_loader(
+        test_loader = build_mnist_loader(
             batch_size=eval_batch_size,
             data_dir=data_dir,
             name=name,
@@ -232,7 +212,6 @@ def build_mnist_loaders(
             num_workers=workers,
             rot_interpol_augmentation=False,
             interpolation=interpolation,
-            coords=coords,
         )
 
         loaders = {

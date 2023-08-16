@@ -17,7 +17,7 @@ def run_command(args, global_args, test, path="experiment/"):
         command = ["python", path + "model_instantiate.py", "-m"]
         command.extend(global_args_test)
         command.extend(args)
-        subprocess.run(command)
+        subprocess.run(command, check=True)
     else:
         # we run through the main training loop
         command = ["python", path + "main.py", "-m"]
@@ -27,5 +27,6 @@ def run_command(args, global_args, test, path="experiment/"):
             command.extend(global_args)
 
         command.extend(args)
-        subprocess.run(command)
+        subprocess.run(command, check=True)
+
     

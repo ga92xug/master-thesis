@@ -10,6 +10,7 @@ accumulate: 2
 dataset:
   batch_size: 128                # Number of examples to process in a batch during training
   eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
+  workers: 8                     
 
 optimizer:
   lr: 0.01
