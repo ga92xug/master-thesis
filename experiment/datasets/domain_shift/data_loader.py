@@ -91,59 +91,6 @@ def get_loaders(
     return dataloaders, normalized_weights
 
 
-def get_ISIC_2019(
-    data_dir: str,
-    name: str,
-    resolution: int,
-    should_normalize_weights: bool,
-    channel_wise_mean_images: list,
-    channel_wise_std_images: list,
-    batch_size: int,
-    eval_batch_size: int,
-    workers: int,
-    augment: bool,
-    **kwargs,
-):
-    location = data_dir + name
-    # these files you download
-    ground_truth = location + '/ISIC_2019_Training_GroundTruth.csv'
-    images = location + '/ISIC_2019_Training_Input'
-
-    df = pd.read_csv(ground_truth)
-    
-    for label in df.columns[1:]:
-        df.loc[df[label] == 1.0, 'label'] = label
-
-
-    #create instance of label encoder
-    lab = LabelEncoder()
-    df['label'] = lab.fit_transform(df['label'])
-        
-    df.rename(columns={'image': 'name'}, inplace=True)
-    df['name'] = df['name'].apply(lambda x: "{}/{}.jpg".format(images,x))
-    df = df[['name', 'label']]
-    labels = df['label'].values
-    images = df['name'].values
-    #images = df['name'].apply(lambda file_location: np.array(Image.open(file_location)).astype(np.uint8)).values
-    
-    # Define the transformations
-    transform = transforms.Compose([
-        transforms.Resize((resolution, resolution)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
-    ])
-
-    # normalize weights
-    if should_normalize_weights:
-        normalized_weights = get_normalize_weights(labels)
-    else:
-        # to gather the weighted accuracy
-        normalized_weights = 1
-
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
-    return dataloaders, normalized_weights
-
-
 @hydra.main(config_path="../../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
     #print(cfg)
