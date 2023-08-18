@@ -1,5 +1,5 @@
+from typing import List
 import re
-from turtle import st
 import pandas as pd
 import sys
 import os
@@ -12,10 +12,9 @@ from experiment.run_files.run_command import run_command
 
 def get_adjusted_dict(
         dataset_name: str, 
-        strategies_df: pd.DataFrame,
         strategy_name: str,
         strategy_dict: dict,
-        adjust_group: bool,
+        adjust_list: List[str],
     ):
     map_strategies_2_replacement_groups = {
         "cifar10": "cifar10",
@@ -23,21 +22,41 @@ def get_adjusted_dict(
         "galaxy10": "galaxy10",
         "mnist12k": "cifar10",
         "mnist_rot": "mnist_rot",
-        "ISIC_2019": "galaxy10"
+        "isic2019": "galaxy10"
     }
+
     replacement_group = map_strategies_2_replacement_groups[dataset_name]
     replacement_group_strategy = "strategy_" + replacement_group
 
-    if replacement_group != strategy_name and adjust_group:
-        adjusted = "_group_adjusted"
+    if replacement_group != strategy_name and len(adjust_list) > 0:
+        pure_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
 
-        replacement_group_strategy_row = strategies_df.loc[[replacement_group_strategy]]
+        replacement_group_strategy_row = pure_strategies_df.loc[[replacement_group_strategy]]
         replacement_group_strategy_dict = replacement_group_strategy_row.squeeze().to_dict()
 
-        # we replace the (X_reflection, X_group) of strategy with the one of dataset
-        for key in strategy_dict.keys():
-            if '_reflection' in key or '_group' in key:
-                strategy_dict[key] = replacement_group_strategy_dict[key]
+        adjusted = ""
+        for to_adjust in adjust_list:
+            
+            adjusted += "_" + to_adjust
+
+            if to_adjust == "group":
+                # we have to adjust the reflection and the group
+                to_adjust = ["_reflection", "_group"]
+            
+
+            # we replace the (X_reflection, X_group) of strategy with the one of dataset
+            for key in strategy_dict.keys():
+                if isinstance(to_adjust, list):
+                    for adjust in to_adjust:
+                        if adjust in key:
+                            strategy_dict[key] = replacement_group_strategy_dict[key]
+                elif isinstance(to_adjust, str):
+                    if to_adjust in key:
+                        strategy_dict[key] = replacement_group_strategy_dict[key]
+                else:
+                    raise ValueError("adjust_list should be a list of strings or a string")
+
+        adjusted += "_adjusted"
 
     else:
         adjusted = ""
@@ -60,15 +79,15 @@ def get_training_args(
         f'model.eq_expand_ratio={strategy_dict["-1_expand_ratio"]}',
         f'+model.replacement_group_strategy={replacement_group_strategy}',
         f'+model.blocks_args_dict={convert_dict_to_hydra_string(strategy_dict)}',
-        f'wandb.give_name=pure_strategy_{strategy_name}{adjusted}',
+        f'wandb.give_name=strategy_{strategy_name}{adjusted}',
     ]
 
     if dataset == "cifar10_rot":
         training_name = "cifar10"
         args.append('training.dataset.name=cifar10_rot')
-    elif dataset == "mnist":
-        training_name = "mnist_rot"
-        args.append("training.dataset.name=mnist")
+    elif "mnist" in dataset:
+        training_name = "mnist"
+        args.append(f"training.dataset.name={dataset}")
     else:
         training_name = dataset
 
@@ -90,11 +109,12 @@ def start_run(
     while retry_count < max_retries:
         try:
             run_command(args, global_args, test=False, path="experiment/")
+            #print("Run successful")
             break
             #batch_size = get_batch_size_from_args(args)  # Replace with the actual way to get batch size from args
         except Exception as e:
             print(f"Exception: {e}")
-            if dataset in ["galaxy10", "ISIC_2019"]:
+            if dataset in ["galaxy10", "isic2019", "stl10"]:
                 batch_size = batch_size // 2
                 accumulate = accumulate * 2
                 
@@ -113,7 +133,7 @@ def start_run(
 def strategies_on_datasets(
        datasets: list,
        strategies_df: pd.DataFrame,
-       adjust_group: bool, 
+       adjust: str, 
     ):    
     global_args = ["model=eq_nasnet"]
 
@@ -122,11 +142,11 @@ def strategies_on_datasets(
         for strategy_row in strategies_df.iterrows():
             strategy_name = "_".join(strategy_row[0].split('_')[1:])
             
-            if runs_to_skip(dataset, strategy_name, adjust_group):
+            if runs_to_skip(dataset, strategy_name, adjust):
                 continue
             
             strategy_dict = strategy_row[1].to_dict()
-            strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(dataset, strategies_df, strategy_name, strategy_dict, adjust_group)
+            strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(dataset, strategy_name, strategy_dict, adjust)
             if replacement_group_strategy != "":
                 tmp_string = f" replaced: {replacement_group_strategy}"
             else:
@@ -146,6 +166,40 @@ def strategies_on_datasets(
 
             start_run(args, global_args, dataset)
 
+def strategy_on_datasets(
+       datasets: list,
+       strategy_name: str,
+       strategy_dict: dict,
+       adjust_list: List[str], 
+    ):    
+    global_args = ["model=eq_nasnet"]
+
+    for dataset in datasets:
+        print(f"Dataset: {dataset}")
+        
+        if runs_to_skip(dataset, strategy_name, adjust_list):
+            continue
+        
+        strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(dataset, strategy_name, strategy_dict, adjust_list)
+        if replacement_group_strategy != "":
+            tmp_string = f" replaced: {replacement_group_strategy}"
+        else:
+            tmp_string = ""
+        print(f"Strategy: {strategy_name}{adjusted}{tmp_string}")
+        
+        args = get_training_args(
+            dataset,
+            strategy_name,
+            adjusted,
+            replacement_group_strategy,
+            strategy_dict,
+        )
+            
+        #print(f"Strategy dict: {strategy_dict}")
+        #print(f"Args: {args}")
+
+        start_run(args, global_args, dataset)
+
 def runs_to_skip(
         dataset: str,
         strategy_name: str,
@@ -159,30 +213,44 @@ def runs_to_skip(
     
     ############################################################################
     # Skip these temporarily
-    if (dataset == "cifar10_rot" and strategy_name == "mnist_rot" and adjust_group) or \
-        (dataset == "cifar10_rot" and strategy_name == "mnist_rot" and not adjust_group) or \
-        print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran"):
+    if (dataset == "galaxy10" and strategy_name == "mnist_rot" and not adjust_group):
+        print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
         return True
     
     return False
 
 
-
 def main():
-    # datasets = ["cifar10", "cifar10_rot", "galaxy10", "mnist", "mnist_rot"] #  "ISIC_2019"
+    # datasets = ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"] #  "ISIC_2019"
     # datasets = ["mnist12k", "ISIC_2019"]
     strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
 
-    for adjust_group in [True, False]:
-        if adjust_group:
-            continue
-        else:
-            datasets = ["galaxy10"]
-            # datasets = ["cifar10", "cifar10_rot", "mnist12k", "mnist_rot", "galaxy10"]
+    for strategy in strategies_df.index:
+        for adjust in [["group", "out_channels"]]:
+            if adjust:
+                datasets = ["mnist12k"]
+            else:
+                datasets = ["mnist12k", "galaxy10"]
+                # datasets = ["cifar10", "cifar10_rot", "mnist12k", "mnist_rot", "galaxy10"]
 
-        strategies_on_datasets(datasets, strategies_df, adjust_group)
+            strategy_on_datasets(datasets, strategies_df, adjust)
+
+
+def main_iter_over_strategies():
+    datasets = ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"] #  "ISIC_2019"
+    # datasets = ["mnist12k", "ISIC_2019"]
+    strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/strategy_mixed.csv', index_col=0)
+
+    for strategy in strategies_df.index:
+        if strategy != "Strategy_fix_1_0":
+            continue
+        print(f"\nStrategy: {strategy}")
+        for adjust_list in [["group", "out_channels"]]:
+            
+            strategy_dict = strategies_df.loc[[strategy]].squeeze().to_dict()
+            strategy_on_datasets(datasets, strategy, strategy_dict, adjust_list)
 
 
 
 if __name__ == "__main__":
-    main()
+    main_iter_over_strategies()

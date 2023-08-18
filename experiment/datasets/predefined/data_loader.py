@@ -18,22 +18,22 @@ import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
 
-from experiment.datasets.cifar.autoaugment import CIFAR10Policy, Cutout
+from experiment.datasets.predefined.autoaugment import CIFAR10Policy, Cutout
 
 MEAN = np.array([125.3, 123.0, 113.9]) / 255.0  # = np.array([0.49137255, 0.48235294, 0.44666667])
 STD = np.array([63.0, 62.1, 66.7]) / 255.0  # = np.array([0.24705882, 0.24352941, 0.26156863])
 
 
 def get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment=False, rotation=False):
+    # define transforms
+    normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
+
+    valid_transform = transforms.Compose([
+        transforms.ToTensor(),
+        normalize,
+    ])
+    
     if "cifar" in name:
-        # define transforms
-        normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
-
-        valid_transform = transforms.Compose([
-            transforms.ToTensor(),
-            normalize,
-        ])
-
         if augment:
             train_transform = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),
@@ -50,14 +50,33 @@ def get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augm
                 transforms.ToTensor(),
                 normalize,
             ])
-        
-        if rotation:
-            train_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
-            valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
-        
-        return train_transform, valid_transform
 
-def build_cifar_loaders(
+    elif name == "stl10":
+        if augment:
+            train_transform = transforms.Compose([
+                transforms.RandomCrop(96, padding=12),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                # Cutout(32),
+                Cutout(60),
+                normalize,
+            ])
+        else:
+            train_transform = transforms.Compose([
+                transforms.ToTensor(),
+                # Cutout(24),
+                Cutout(48),
+                normalize,
+            ])
+        
+    if rotation:
+        train_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
+        valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
+    
+    return train_transform, valid_transform
+
+
+def build_loaders(
         batch_size,
         eval_batch_size,
         data_dir,
@@ -79,23 +98,32 @@ def build_cifar_loaders(
     else:
         raise ValueError("Unknown dataset name.")
     
-    assert name in ["cifar10", "cifar100"], "Unknown dataset name."
+    assert name in ["cifar10", "cifar100", "stl10"], "Unknown dataset name."
 
     location = data_dir + name + "/"
     
     train_transform, valid_transform = get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment, rotation)
     
-    if name == "cifar10":
-        dataset_class = datasets.CIFAR10
-    elif name == "cifar100":
-        dataset_class = datasets.CIFAR100
+    # load the dataset
+    if "cifar" in name:
+        if name == "cifar10":
+            dataset_class = datasets.CIFAR10
+        elif name == "cifar100":
+            dataset_class = datasets.CIFAR100
+        
+        train_dataset = dataset_class(root=location, train=True, download=False, transform=train_transform)
+        valid_dataset = dataset_class(root=location, train=True, download=False, transform=valid_transform)
+        test_dataset = dataset_class(root=location, train=False, download=False, transform=valid_transform)
+
+    elif name == "stl10":
+        train_dataset = datasets.STL10(root=location, split="train", download=False, transform=train_transform)
+        valid_dataset = datasets.STL10(root=location, split="train", download=False, transform=valid_transform)
+        test_dataset = datasets.STL10(root=location, split="test", download=False, transform=valid_transform)
     else:
         raise ValueError("Unknown dataset name.")
 
-    # load the dataset
-    train_dataset = dataset_class(root=location, train=True, download=False, transform=train_transform)
-    valid_dataset = dataset_class(root=location, train=True, download=False, transform=valid_transform)
-    test_dataset = dataset_class(root=location, train=False, download=False, transform=valid_transform)
+
+    
 
     num_train = len(train_dataset)
     indices = list(range(num_train))
@@ -133,11 +161,11 @@ def build_cifar_loaders(
 
 
 if __name__ == "__main__":
-        loaders, _ = build_cifar_loaders(
+        loaders, _ = build_loaders(
             batch_size=128,
             eval_batch_size=128,
             data_dir='../../Data/frischs/datasets/',
-            name="cifar100",
+            name="stl10",
             channel_wise_mean_images=MEAN,
             channel_wise_std_images=STD,
             workers=8,
@@ -171,3 +199,10 @@ if __name__ == "__main__":
     
         print("Done")
     
+
+"""
+@hydra.main(config_path="../../conf", config_name="config", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    #print(cfg)
+    dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
+"""

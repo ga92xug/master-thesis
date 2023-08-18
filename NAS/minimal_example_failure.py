@@ -259,6 +259,7 @@ def main():
             },
             parameter_constraints=parameter_constraints,
             tracking_metric_names=["model_building_time"],
+            #metric_definitions={"model_building_time": "cumulative"},
         )
 
         for i in range(30):

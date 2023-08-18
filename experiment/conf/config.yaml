@@ -2,7 +2,7 @@
 defaults:
 - _self_
 - model: eq_wrn
-- training: cifar-training
+- training: cifar10-training
 
 # Dataset parameters        
 training:
