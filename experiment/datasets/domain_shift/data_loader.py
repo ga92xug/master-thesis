@@ -1,3 +1,4 @@
+from importlib import metadata
 import random
 import torch
 from torch.utils.data import Dataset, DataLoader
@@ -22,40 +23,10 @@ sys.path.append(f"{os.getcwd()}")
 from experiment.datasets.utils import get_normalize_weights
 #from experiment import dataloader
 
-
-def build_loaders(
-    images, 
-    labels,
-    transform,
-    batch_size,
-    eval_batch_size,
-    workers,
-):
-    random_seed = 42
-
-    # Split the data
-    train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
-    test_images, val_images, test_labels, val_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=0.5, random_state=random_seed, stratify=val_test_labels)
-
-    # Create the DataLoaders
-    train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=transform), batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_loader = DataLoader(Custom_Dataset(val_images, val_labels, transform=transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
-    test_loader = DataLoader(Custom_Dataset(test_images, test_labels, transform=transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
-
-    dataloaders = {
-        "train": train_loader,
-        "valid": val_loader,
-        "test": test_loader,
-    }
-
-    return dataloaders
-
-
 def get_loaders(
     data_dir: str,
     name: str,
     resolution: int,
-    should_normalize_weights: bool,
     channel_wise_mean_images: list,
     channel_wise_std_images: list,
     batch_size: int,
@@ -101,7 +72,7 @@ def main(cfg: DictConfig) -> None:
     test_dataloader = dataloaders["test"]
 
     max_val = 0
-    for i, (images, labels) in enumerate(train_dataloader):
+    for i, (images, labels, metadata) in enumerate(train_dataloader):
         print(images.shape)
         print(labels)
 
