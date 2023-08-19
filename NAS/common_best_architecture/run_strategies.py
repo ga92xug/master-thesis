@@ -29,7 +29,7 @@ def get_adjusted_dict(
     }
 
     replacement_group = map_strategies_2_replacement_groups[dataset_name]
-    replacement_group_strategy = "strategy_" + replacement_group
+    replacement_group_strategy = "strategy_pure_" + replacement_group
 
     if replacement_group != strategy_name and len(adjust_list) > 0:
         pure_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
@@ -77,7 +77,7 @@ def get_training_args(
 
     # Create a new run
     args = [
-        f'wandb.tags=[eqnasnet,find_best,pure_strategy]',
+        f'wandb.tags=[SE_test]',
         f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
         f'model.eq_expand_ratio={strategy_dict["-1_expand_ratio"]}',
         f'+model.replacement_group_strategy={replacement_group_strategy}',
@@ -111,7 +111,7 @@ def start_run(
 
     while retry_count < max_retries:
         try:
-            #run_command(args, global_args, test=True, path="experiment/")
+            run_command(args, global_args, test=False, path="experiment/")
             print("Run successful")
             break
             #batch_size = get_batch_size_from_args(args)  # Replace with the actual way to get batch size from args
@@ -206,19 +206,24 @@ def strategy_on_datasets(
 def runs_to_skip(
         dataset: str,
         strategy_name: str,
-        adjust_group: bool,
+        adjust: List[str],
     ):
     ############################################################################
     # Always skip these 
-    if dataset == strategy_name and not adjust_group:
-        print(f"Skipping Strategy: {strategy_name} on {dataset}, since same with no group adjustment")
-        return True
+    #if dataset == strategy_name and not adjust_group:
+    #    print(f"Skipping Strategy: {strategy_name} on {dataset}, since same with no group adjustment")
+    #    return True
     
     ############################################################################
     # Skip these temporarily
-    if (dataset == "galaxy10" and strategy_name == "mnist_rot" and not adjust_group):
-        print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
-        return True
+    if dataset == "galaxy10":
+        if strategy_name != "strategy_pure_galaxy10" or len(adjust) > 1:
+        #print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
+            return True
+
+    if "cifar" in dataset:
+        if "fix" not in strategy_name or len(adjust) < 2:
+            return True
     
     return False
 
@@ -241,11 +246,14 @@ def main():
 
 def iter_over_strategies(cfg: DictConfig):
     datasets = list(cfg.datasets) #  "ISIC_2019"
-    strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/strategy_mixed.csv', index_col=0)
+    pure_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
+    mixed_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/mixed_strategies.csv', index_col=0)
+    strategies_df = pd.concat([pure_strategies_df, mixed_strategies_df])
 
     for strategy in cfg.strategies:
         print(f"\nStrategy: {strategy}")
         for adjust_list in cfg.adjust_lists:
+
             strategy_dict = strategies_df.loc[[strategy]].squeeze().to_dict()
             strategy_on_datasets(datasets, strategy, strategy_dict, adjust_list)
 
