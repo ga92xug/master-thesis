@@ -15,7 +15,6 @@ dataset:
 optimizer:
   lr: 0.01
   weight_decay: 1e-6
-  betas: [0.9,0.999]
 
 scheduler:
   gamma: 0.02

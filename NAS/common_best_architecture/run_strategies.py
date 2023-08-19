@@ -1,4 +1,7 @@
 from typing import List
+import wandb
+import hydra
+from omegaconf import DictConfig, OmegaConf
 import re
 import pandas as pd
 import sys
@@ -108,8 +111,8 @@ def start_run(
 
     while retry_count < max_retries:
         try:
-            run_command(args, global_args, test=False, path="experiment/")
-            #print("Run successful")
+            #run_command(args, global_args, test=True, path="experiment/")
+            print("Run successful")
             break
             #batch_size = get_batch_size_from_args(args)  # Replace with the actual way to get batch size from args
         except Exception as e:
@@ -236,21 +239,31 @@ def main():
             strategy_on_datasets(datasets, strategies_df, adjust)
 
 
-def main_iter_over_strategies():
-    datasets = ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"] #  "ISIC_2019"
-    # datasets = ["mnist12k", "ISIC_2019"]
+def iter_over_strategies(cfg: DictConfig):
+    datasets = list(cfg.datasets) #  "ISIC_2019"
     strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/strategy_mixed.csv', index_col=0)
 
-    for strategy in strategies_df.index:
-        if strategy != "Strategy_fix_1_0":
-            continue
+    for strategy in cfg.strategies:
         print(f"\nStrategy: {strategy}")
-        for adjust_list in [["group", "out_channels"]]:
-            
+        for adjust_list in cfg.adjust_lists:
             strategy_dict = strategies_df.loc[[strategy]].squeeze().to_dict()
             strategy_on_datasets(datasets, strategy, strategy_dict, adjust_list)
 
 
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+def main(cfg: DictConfig) -> None:
+    wandb_config = OmegaConf.to_container(
+        cfg, resolve=True, throw_on_missing=True
+    )
+    wandb_run = wandb.init(
+        project=cfg.wandb.project, config=wandb_config, \
+        job_type="run_strategies", mode=cfg.wandb.mode, notes=cfg.wandb.notes, \
+        tags=cfg.wandb.tags
+    )
+    wandb_run.log_code(".")
+    wandb.finish()
+    iter_over_strategies(cfg)
+
 
 if __name__ == "__main__":
-    main_iter_over_strategies()
+    main()

@@ -16,4 +16,4 @@ earlystop: False               # Whether to use early stopping based on a valida
 
 scheduler:
   milestones: [300,400,600,800]
-  gamma: 0.5
+  gamma: 0.2

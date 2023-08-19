@@ -13,7 +13,7 @@ parameters:
     min: 0.005
     max: 0.1
   training.scheduler.patience:
-    min: 2 
+    min: 6 
     max: 10
   training.scheduler.factor:
     min: 0.01
@@ -30,4 +30,5 @@ command:
   - ${program}
   - training=isic2019-training-reduce
   - wandb.tags=[sweep-isic-reduce]
-  - model=eq_nasnet
+  - model=eq_wrn
+  - model.restrict=[halved,halved]

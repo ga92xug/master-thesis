@@ -62,21 +62,6 @@ class Experiment:
             
         else:
             pass
-            # console logging is a problem when running 2 wandb runs in parallel
-            # so we disable it https://github.com/wandb/wandb/issues/4872
-            # os.environ['WANDB_CONSOLE']="off"
-            # os.environ['WANDB_DISABLE_SERVICE']='true'
-            # os.environ["WANDB_SILENT"] = "true"
-            # # during NAS we reinit
-            # self.wandb_run = wandb.init(
-            #     id = cfg.wandb.run_id, 
-            #     resume = "allow", 
-            #     project = cfg.wandb.project, 
-            #     entity = cfg.wandb.entity,
-            #     mode = cfg.wandb.mode,
-            #     notes = cfg.wandb.notes,
-            #     tags = cfg.wandb.tags
-            # )
                
         # dataset
         self._dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)

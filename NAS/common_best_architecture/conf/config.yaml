@@ -1,0 +1,11 @@
+
+strategies: [Strategy_fix_1_0]
+datasets: ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"]
+adjust_lists: [["group", "out_channels"]]
+
+
+wandb:
+  project: scaling-laws-eqnasnet
+  mode: disabled
+  notes: null
+  tags: null
