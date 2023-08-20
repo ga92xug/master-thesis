@@ -217,15 +217,16 @@ def runs_to_skip(
     ############################################################################
     # Skip these temporarily
     if dataset == "galaxy10":
-        if strategy_name != "strategy_pure_galaxy10" or len(adjust) > 1:
+        if (strategy_name == "strategy_pure_galaxy10" and len(adjust) == 1) or \
+            ("fix" in strategy_name and len(adjust) == 2):
         #print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
-            return True
+            return False
 
     if "cifar" in dataset:
-        if "fix" not in strategy_name or len(adjust) < 2:
-            return True
+        if "fix" in strategy_name and len(adjust) == 3:
+            return False
     
-    return False
+    return True
 
 
 def main():

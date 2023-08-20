@@ -22,6 +22,29 @@ from experiment.datasets.utils import get_normalize_weights
 #from experiment import dataloader
 
 
+def split_without_stratify(images, labels, random_seed):
+    # Split the data into train, val, and test arrays.
+    np.random.seed(random_seed)
+    indices = np.arange(len(images))
+    np.random.shuffle(indices)
+    split = int(len(images) * 0.8)
+    train_indices = indices[:split]
+    val_indices = indices[split:split + int(len(images) * 0.1)]
+    test_indices = indices[split + int(len(images) * 0.1):]
+
+    train_images = images[train_indices]
+    train_labels = labels[train_indices]
+    val_images = images[val_indices]
+    val_labels = labels[val_indices]
+    test_images = images[test_indices]
+    test_labels = labels[test_indices]
+    return train_images, train_labels, val_images, val_labels, test_images, test_labels
+
+def split_with_stratify(images, labels, random_seed):
+    train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
+    test_images, val_images, test_labels, val_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=0.5, random_state=random_seed, stratify=val_test_labels)
+    return train_images, train_labels, val_images, val_labels, test_images, test_labels
+
 class Custom_Dataset(Dataset):
     def __init__(self, images, labels, transform=None):
         super().__init__()
@@ -57,12 +80,11 @@ def build_loaders(
     batch_size,
     eval_batch_size,
     workers,
+    split_function,
 ):
     random_seed = 42
-
-    # Split the data
-    train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
-    test_images, val_images, test_labels, val_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=0.5, random_state=random_seed, stratify=val_test_labels)
+    # Split the data into train, val, and test arrays.
+    train_images, train_labels, val_images, val_labels, test_images, test_labels = split_function(images, labels, random_seed=random_seed)
 
     # Create the DataLoaders
     train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=transform), batch_size=batch_size, shuffle=True, num_workers=workers)
@@ -113,7 +135,7 @@ def get_Galaxy10_DECals(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_without_stratify)
     return dataloaders, normalized_weights
 
 
@@ -166,7 +188,7 @@ def get_ISIC_2019(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers)
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify)
     return dataloaders, normalized_weights
 
 

@@ -4,7 +4,7 @@ strategies: [strategy_pure_galaxy10, strategy_fix_1_0]
 # datasets: ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"]
 datasets: ["galaxy10", "cifar10", "cifar10_rot"]
 #adjust_lists: [["group", "out_channels"]]
-adjust_lists: [["group"], ["group", "out_channels", "se_ratio"]]
+adjust_lists: [["group"], ["group", "out_channels"], ["group", "out_channels", "se_ratio"]]
 
 wandb:
   project: scaling-laws-eqnasnet
