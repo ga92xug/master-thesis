@@ -1,10 +1,20 @@
 
 #strategies: [Strategy_fix_1_0]
-strategies: [strategy_pure_galaxy10, strategy_fix_1_0]
-# datasets: ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"]
-datasets: ["galaxy10", "cifar10", "cifar10_rot"]
-#adjust_lists: [["group", "out_channels"]]
-adjust_lists: [["group"], ["group", "out_channels"], ["group", "out_channels", "se_ratio"]]
+strategies: [strategy_fix_1_0, strategy_pure_galaxy10, strategy_pure_mnist_rot, strategy_pure_cifar10]
+# datasets: [cifar10, cifar10_rot, galaxy10, mnist12k, mnist_rot]
+datasets: [isic2019, stl10]
+#adjust_lists: [[group, out_channels]]
+adjust_lists: [[group, out_channels], [], [group]]
+
+map_strategies_2_replacement_groups: {
+  cifar10: cifar10,
+  cifar10_rot: mnist_rot,
+  galaxy10: galaxy10,
+  mnist12k: cifar10,
+  mnist_rot: mnist_rot,
+  isic2019: galaxy10,
+  stl10: cifar10,
+}
 
 wandb:
   project: scaling-laws-eqnasnet

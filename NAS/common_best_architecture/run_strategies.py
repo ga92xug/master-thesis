@@ -14,21 +14,14 @@ from experiment.run_files.run_command import run_command
 
 
 def get_adjusted_dict(
+        cfg: DictConfig,
         dataset_name: str, 
         strategy_name: str,
         strategy_dict: dict,
         adjust_list: List[str],
     ):
-    map_strategies_2_replacement_groups = {
-        "cifar10": "cifar10",
-        "cifar10_rot": "mnist_rot",
-        "galaxy10": "galaxy10",
-        "mnist12k": "cifar10",
-        "mnist_rot": "mnist_rot",
-        "isic2019": "galaxy10"
-    }
-
-    replacement_group = map_strategies_2_replacement_groups[dataset_name]
+    
+    replacement_group = cfg.map_strategies_2_replacement_groups[dataset_name]
     replacement_group_strategy = "strategy_pure_" + replacement_group
 
     if replacement_group != strategy_name and len(adjust_list) > 0:
@@ -112,7 +105,7 @@ def start_run(
     while retry_count < max_retries:
         try:
             run_command(args, global_args, test=False, path="experiment/")
-            print("Run successful")
+            #print("Run successful")
             break
             #batch_size = get_batch_size_from_args(args)  # Replace with the actual way to get batch size from args
         except Exception as e:
@@ -134,9 +127,10 @@ def start_run(
 
 
 def strategies_on_datasets(
-       datasets: list,
-       strategies_df: pd.DataFrame,
-       adjust: str, 
+        cfg: DictConfig, 
+        datasets: list,
+        strategies_df: pd.DataFrame,
+        adjust: str, 
     ):    
     global_args = ["model=eq_nasnet"]
 
@@ -149,7 +143,7 @@ def strategies_on_datasets(
                 continue
             
             strategy_dict = strategy_row[1].to_dict()
-            strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(dataset, strategy_name, strategy_dict, adjust)
+            strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(cfg, dataset, strategy_name, strategy_dict, adjust)
             if replacement_group_strategy != "":
                 tmp_string = f" replaced: {replacement_group_strategy}"
             else:
@@ -170,10 +164,11 @@ def strategies_on_datasets(
             start_run(args, global_args, dataset)
 
 def strategy_on_datasets(
-       datasets: list,
-       strategy_name: str,
-       strategy_dict: dict,
-       adjust_list: List[str], 
+        cfg: DictConfig,
+        datasets: list,
+        strategy_name: str,
+        strategy_dict: dict,
+        adjust_list: List[str], 
     ):    
     global_args = ["model=eq_nasnet"]
 
@@ -183,7 +178,7 @@ def strategy_on_datasets(
         if runs_to_skip(dataset, strategy_name, adjust_list):
             continue
         
-        strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(dataset, strategy_name, strategy_dict, adjust_list)
+        strategy_dict, replacement_group_strategy, adjusted = get_adjusted_dict(cfg, dataset, strategy_name, strategy_dict, adjust_list)
         if replacement_group_strategy != "":
             tmp_string = f" replaced: {replacement_group_strategy}"
         else:
@@ -210,21 +205,27 @@ def runs_to_skip(
     ):
     ############################################################################
     # Always skip these 
-    #if dataset == strategy_name and not adjust_group:
-    #    print(f"Skipping Strategy: {strategy_name} on {dataset}, since same with no group adjustment")
-    #    return True
+    if dataset in strategy_name and len(adjust) > 0:
+        print(f"Skipping Strategy: {strategy_name} on {dataset}, since same with no group adjustment")
+        return True
     
     ############################################################################
     # Skip these temporarily
-    if dataset == "galaxy10":
-        if (strategy_name == "strategy_pure_galaxy10" and len(adjust) == 1) or \
-            ("fix" in strategy_name and len(adjust) == 2):
-        #print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
-            return False
+    if "fix" in strategy_name and len(adjust) > 1:
+        return False
+    
+    if "pure" in strategy_name and len(adjust) <= 1:
+        return False
 
-    if "cifar" in dataset:
-        if "fix" in strategy_name and len(adjust) == 3:
-            return False
+    #if dataset == "galaxy10":
+    #    if (strategy_name == "strategy_pure_galaxy10" and len(adjust) == 1) or \
+    #        ("fix" in strategy_name and len(adjust) == 2):
+    #    #print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
+    #        return False
+
+    #if "cifar" in dataset:
+    #    if "fix" in strategy_name and len(adjust) == 3:
+    #        return False
     
     return True
 
@@ -256,7 +257,7 @@ def iter_over_strategies(cfg: DictConfig):
         for adjust_list in cfg.adjust_lists:
 
             strategy_dict = strategies_df.loc[[strategy]].squeeze().to_dict()
-            strategy_on_datasets(datasets, strategy, strategy_dict, adjust_list)
+            strategy_on_datasets(cfg, datasets, strategy, strategy_dict, adjust_list)
 
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")

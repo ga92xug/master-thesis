@@ -9,7 +9,7 @@ dataset:
   batch_size: 128                # Number of examples to process in a batch during training
   eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
 
-epochs: 1000                    # Number of training epochs
+epochs: 500                    # Number of training epochs
 augment_train: False
 earlystop: False               # Whether to use early stopping based on a validation set     
 

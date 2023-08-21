@@ -5,7 +5,7 @@ augment: False
 workers: 8                 
 resolution: 108
 
-should_normalize_weights: False
+should_normalize_weights: True
 channel_wise_mean_images: [0.6679, 0.5299, 0.5245]
 channel_wise_std_images: [0.1332, 0.1475, 0.1588]
 n_in_channels: 3

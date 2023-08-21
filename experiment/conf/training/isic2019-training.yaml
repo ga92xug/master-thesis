@@ -2,7 +2,7 @@ defaults:
 - _self_
 - optimizer: Adam
 - dataset: isic2019
-- scheduler: multi_step_lr 
+- scheduler: reduce_lr_on_plateau 
 
 epochs: 50
 accumulate: 2
@@ -12,9 +12,10 @@ dataset:
   eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
 
 optimizer:
-  lr: 0.01
+  lr: 0.005
   weight_decay: 1e-5
 
 scheduler:
-  gamma: 0.02
-  milestones: [0, 10, 20, 30, 40]
+  factor: 0.5
+  patience: 10
+  verbose: True
