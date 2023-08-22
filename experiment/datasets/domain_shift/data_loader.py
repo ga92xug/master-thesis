@@ -36,7 +36,7 @@ def get_loaders(
     **kwargs,
 ):
     location = data_dir + name
-    dataset = get_dataset('iwildcam', root_dir=location, download=False)
+    dataset = get_dataset(name, root_dir=location, download=False)
 
     # Define the transformations
     transform = transforms.Compose([

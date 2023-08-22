@@ -68,6 +68,7 @@ class Experiment:
         n_inputs = cfg.training.dataset.n_in_channels
         self.n_outputs = cfg.training.dataset.n_out_classes
         image_size = cfg.training.dataset.resolution
+        self.distribution_shift = cfg.training.dataset.distribution_shift
         print("Stage 1: dataloaders built")
         
         # Loss function
@@ -168,7 +169,15 @@ class Experiment:
             wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
 
         # 1 epoch
-        for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
+        for batch_idx, out_dataloader in enumerate(self._dataloaders["train"]):
+            
+            if len(out_dataloader) == 2:
+                x, t = out_dataloader
+            elif len(out_dataloader) == 3:
+                # domain shift
+                x, t, _ = out_dataloader
+            else:
+                raise ValueError("Dataloader should return 2 or 3 values")
             
 
             if self._verbose > 3:
@@ -235,51 +244,67 @@ class Experiment:
     def inference(self, split, log=True, confusion=False):
         starttime = datetime.datetime.now().timestamp()
         self.model.eval()
-        if confusion:
-            y_test_all = []
-            t_test_all = []
+        if confusion or self.distribution_shift:
+            y_all = []
+            t_all = []
+            meta_data_all = []
         
         cumulative_loss = 0.
         n_samples = 0
-        for _, (x_test, t_test) in enumerate(self._dataloaders[split]):
-            x_test = x_test.to(self.device)
-            t_test = t_test.to(self.device)
-            
-            y_test = self.model(x_test)
-            
-            if confusion:
-                y_test_all.append(y_test.detach().cpu().numpy())
-                t_test_all.append(t_test.detach().cpu().numpy())
+        for _, out_dataloader in enumerate(self._dataloaders[split]):
+            if len(out_dataloader) == 2:
+                x, t = out_dataloader
+                meta_data = None
+            elif len(out_dataloader) == 3:
+                # domain shift
+                x, t, meta_data = out_dataloader
+            else:
+                raise ValueError("Dataloader should return 2 or 3 values")
 
-            n_samples += x_test.shape[0]
-            self.valid_metrics(y_test, t_test)
-            cumulative_loss += self._loss_function(y_test, t_test).item() * x_test.shape[0]
+            x = x.to(self.device)
+            t = t.to(self.device)
+            y = self.model(x)
             
-            del x_test
-            del y_test
-            del t_test
+            if confusion or self.distribution_shift:
+                y_all.append(y.detach().cpu().numpy())
+                t_all.append(t.detach().cpu().numpy())
+                meta_data_all.append(meta_data)
 
-        
+            n_samples += x.shape[0]
+            self.valid_metrics(y, t)
+            cumulative_loss += self._loss_function(y, t).item() * x.shape[0]
+            
+            del x
+            del y
+            del t
+            del meta_data
+
         # log
-        metrics = self.valid_metrics.compute()
-        self.valid_metrics.reset()
+        if confusion or self.distribution_shift:
+            y_all = np.concatenate(y_all, axis=0)
+            t_all = np.concatenate(t_all, axis=0)
+
         loss = float(cumulative_loss / n_samples)        
         endtime = datetime.datetime.now().timestamp()
         duration = float(endtime - starttime)
+        if not self.distribution_shift:
+            metrics = self.valid_metrics.compute()
+            self.valid_metrics.reset()
+        else:
+            meta_data_all = np.concatenate(meta_data_all, axis=0)
+            y_all = np.argmax(y_all, axis=1)
+            metrics = self._dataloaders[split].dataset.eval(torch.tensor(y_all), torch.tensor(t_all), torch.tensor(meta_data_all))[0]
+
         self.logger.log(
             {f"{split}": {"loss": loss, "duration": duration} | metrics}, 
             step=self.global_step, epoch=self._epoch)
+
         if confusion:
-            y_test_all = np.concatenate(y_test_all, axis=0)
-            t_test_all = np.concatenate(t_test_all, axis=0)
-            wandb.log({"confusion_matrix": \
-                        wandb.plot.confusion_matrix(probs=y_test_all,
-                        y_true=t_test_all, \
-                        class_names=list(range(self.n_outputs)))})
-            
+            wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
+        
+        # print
         split = split.upper()
         utils.print_results(metrics, loss, duration, split, self._epoch, self._verbose)
-
         return metrics, loss, duration
     
     

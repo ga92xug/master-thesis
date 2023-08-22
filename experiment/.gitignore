@@ -7,6 +7,9 @@ datasets/currently_unused
 !datasets/*/*.sh
 !datasets/*.py
 
+!*.ipynb
+
+
 !conf/*
 
 outputs/

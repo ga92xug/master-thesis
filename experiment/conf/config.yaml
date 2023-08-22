@@ -13,6 +13,7 @@ training:
   dataset:
     data_dir: '../../Data/frischs/datasets/'  # Path to the datasets        
     workers: 8                    # Number of jobs to load the dataset
+    distribution_shift: False
 
 # Other experiment's parameters
 other:

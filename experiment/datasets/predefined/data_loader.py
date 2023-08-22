@@ -83,6 +83,8 @@ def build_loaders(
         name,
         channel_wise_mean_images,
         channel_wise_std_images,
+        perturbation_test = False,
+        perturbation_location = None,
         workers=8,
         augment=False,
         reshuffle=True,
@@ -144,6 +146,9 @@ def build_loaders(
         valid_dataset, batch_size=eval_batch_size, sampler=valid_sampler,
         num_workers=workers, pin_memory=True,
     )
+
+    if perturbation_test:
+        location + perturbation_location
 
     test_loader = DataLoader(
         test_dataset, batch_size=eval_batch_size, shuffle=False,

@@ -1,5 +1,5 @@
 _target_: experiment.datasets.dataloader.build_loaders
-name: "Galaxy10_DECals"             # The name of the dataset to use
+name: camelyon17             # The name of the dataset to use
 augment: False                 # Augment the training set with rotated images
 workers: 8                    # Number of jobs to load the dataset
 resolution: 96
