@@ -184,7 +184,7 @@ class NAS:
             support_intermediate_data=True,
             objectives={
                 # `threshold` arguments are optional
-                "valid_acc": ObjectiveProperties(
+                "valid_acc_weighted": ObjectiveProperties(
                     minimize=False, 
                     threshold=self.cfg.objective.bounds.valid_acc
                 ), 

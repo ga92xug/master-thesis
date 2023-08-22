@@ -169,6 +169,8 @@ class Experiment:
 
         # 1 epoch
         for batch_idx, (x, t) in enumerate(self._dataloaders["train"]):
+            
+
             if self._verbose > 3:
                 print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
             
@@ -258,7 +260,6 @@ class Experiment:
             del t_test
 
         
-        
         # log
         metrics = self.valid_metrics.compute()
         self.valid_metrics.reset()
@@ -341,16 +342,6 @@ def run_experiment_from_config(cfg: DictConfig) -> None:
     utils.allowed_usage_time(cfg.other.gpu_time_limit)
     exp = Experiment(cfg)
     exp.iteration_over_epochs()
-
-def _safe_divide(num, denom):
-    """Safe division, by preventing division by zero.
-
-    Additionally casts to float if input is not already to secure backwards compatibility.
-    """
-    denom[denom == 0.0] = 1
-    num = num if num.is_floating_point() else num.float()
-    denom = denom if denom.is_floating_point() else denom.float()
-    return num / denom
 
 
 if __name__ == "__main__":

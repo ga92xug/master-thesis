@@ -42,7 +42,7 @@ class Log():
             if isinstance(sub_dict, dict):
                 for sub_key, value in sub_dict.items():
                     new_key = f"{key}_{sub_key}"
-                    if new_key in ['valid_acc', 'train_duration', 'valid_duration']:
+                    if new_key in ['valid_acc_weighted', 'train_duration', 'valid_duration']:
                         # For 'valid_acc', 'train_duration', and 'valid_duration', only update the value if it's the last epoch
                         if epoch == self.max_epochs - 1:
                             self.trial_data[new_key] = value
@@ -59,7 +59,7 @@ class Log():
             if isinstance(value, torch.Tensor):
                 to_log[key] = value.item()
                 
-        keys_to_log = ['trial_index', 'GFLOPs', 'valid_acc', 'train_duration', 'valid_duration', "model_building_time"]
+        keys_to_log = ['trial_index', 'GFLOPs', 'valid_acc_weighted', 'train_duration', 'valid_duration', "model_building_time"]
         values = [trial_index] + [to_log.get(key) for key in keys_to_log[1:]]
 
         query = f"INSERT OR REPLACE INTO run_metrics ({', '.join(keys_to_log)}) VALUES ({', '.join(['?'] * len(keys_to_log))})"

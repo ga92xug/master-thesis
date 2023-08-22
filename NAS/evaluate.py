@@ -85,7 +85,7 @@ def evaluate(
     step += 1
 
     # marginal effects
-    for metric in ["valid_acc", "gflops"]:
+    for metric in ["valid_acc_weighted", "gflops"]:
         marginal_effects = plot_marginal_effects(model, metric)
         for idx, fig in enumerate(marginal_effects):
             wandb.log({f"{metric}_{idx}_marginal_effects": wandb.Plotly(fig)}, step=step, commit=True)
@@ -96,7 +96,7 @@ def get_contour_plots(
         model,
         density: int = 10,
 ):
-    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False, density=density)
+    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc_weighted", lower_is_better=False, density=density)
     gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True, density=density)
     return valid_acc_interact_contour_plotly, gflops_interact_contour_plotly
 
@@ -130,7 +130,7 @@ def scalar_mappable(
     df = exp_to_df(experiment).sort_values(by=["trial_index"])
     
     # Extract required data columns
-    outcomes = df[["valid_acc", "gflops"]].values
+    outcomes = df[["valid_acc_weighted", "gflops"]].values
 
     # Create figure and axes for the plot
     fig, axes = plt.subplots(1, 1, figsize=(8,6))

@@ -1,10 +1,10 @@
 defaults:
 - _self_
-- search_space: cifar10
-- objective: cifar10
+- search_space: galaxy10
+- objective: galaxy10
 
 
-exp_name: cifar10_5blocks
+exp_name: galaxy10_5blocks
 seed: 42
 evaluate_only: False
 
@@ -12,7 +12,7 @@ training:
   model: eq_nasnet
   model.fixed_params: False
   model.stem_channels: 16
-  training: cifar10-training
+  training: galaxy10-training
   training.epochs: 1
   training.steps_per_epoch: 10
 

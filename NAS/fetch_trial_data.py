@@ -58,7 +58,7 @@ class TrialDataFetcher():
             CREATE TABLE IF NOT EXISTS run_metrics (
                 trial_index TEXT PRIMARY KEY,
                 gflops REAL,
-                valid_acc REAL,
+                valid_acc_weighted REAL,
                 train_duration REAL,
                 valid_duration REAL,
                 model_building_time REAL
@@ -84,7 +84,7 @@ class TrialDataFetcher():
 
 
     def split_dict(self, initial_dict):
-        ax_metrics = ["gflops", "valid_acc", "model_building_time"]
+        ax_metrics = ["gflops", "valid_acc_weighted", "model_building_time"]
         selected_dict = {}
         remaining_dict = {}
 
@@ -108,7 +108,7 @@ class TrialDataFetcher():
 
         if result is not None:
             result_dict = {}
-            for key, val in zip(['gflops', 'valid_acc', 'train_duration', 'valid_duration', 'model_building_time'], result[1:]):
+            for key, val in zip(['gflops', 'valid_acc_weighted', 'train_duration', 'valid_duration', 'model_building_time'], result[1:]):
                 if key == 'model_building_time' and val is None:
                     ValueError(f"Trial {trial_index} does not have model_building_time data.")
                 

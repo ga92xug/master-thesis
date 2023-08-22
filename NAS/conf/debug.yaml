@@ -3,13 +3,15 @@ defaults:
 - search_space: galaxy10
 - objective: galaxy10
 
-exp_name: galaxy10_test
+
+exp_name: galaxy10_5blocks_test
 seed: 42
+evaluate_only: False
 
 training:
   model: eq_nasnet
   model.fixed_params: False
-  model.stem_channels: 24
+  model.stem_channels: 16
   training: galaxy10-training
   training.epochs: 1
   training.steps_per_epoch: 10
@@ -34,7 +36,7 @@ client:
 
 other:
   save_every: 1
-  verbose: 0
+  verbose: 1
 
 wandb:
   entity: "ga92xug"

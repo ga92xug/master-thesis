@@ -696,7 +696,7 @@ def evaluate(
         data=data,
         device=device
     )
-    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc", lower_is_better=False, density=2)
+    valid_acc_interact_contour_plotly = interact_contour_plotly(model, metric_name="valid_acc_weighted", lower_is_better=False, density=2)
 
 
 if __name__ == "__main__":
