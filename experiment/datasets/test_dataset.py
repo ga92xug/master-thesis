@@ -23,7 +23,6 @@ def main(cfg: DictConfig) -> None:
     for i, (images, labels) in enumerate(train_dataloader):
         print(images.shape)
         print(labels)
-
         break
     
 
