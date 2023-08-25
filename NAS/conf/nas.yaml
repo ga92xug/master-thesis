@@ -1,10 +1,10 @@
 defaults:
 - _self_
-- search_space: galaxy10
+- search_space: galaxy10-3blocks
 - objective: galaxy10
 
 
-exp_name: galaxy10_5blocks
+exp_name: galaxy10_weighted
 seed: 42
 evaluate_only: False
 
@@ -13,12 +13,12 @@ training:
   model.fixed_params: False
   model.stem_channels: 16
   training: galaxy10-training
-  training.epochs: 1
-  training.steps_per_epoch: 10
+  #training.epochs: 1
+  #training.steps_per_epoch: 10
 
 generation:
-  num_total_trials: 50  # total evaluation budget
-  num_sobol_trials: 25
+  num_total_trials: 100  # total evaluation budget
+  num_sobol_trials: 25 # 25
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: True
@@ -41,5 +41,5 @@ other:
 wandb:
   entity: "ga92xug"
   project: "scaling-laws-nas_high_level"
-  mode: disabled
+  mode: online # online
   mode_runs: disabled

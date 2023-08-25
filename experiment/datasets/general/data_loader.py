@@ -142,7 +142,7 @@ def get_Galaxy10_DECals(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_without_stratify)
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify)
     return dataloaders, normalized_weights
 
 

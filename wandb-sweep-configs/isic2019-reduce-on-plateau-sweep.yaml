@@ -10,12 +10,15 @@ early_terminate:
 
 parameters:
   training.optimizer.lr:
+    distribution: log_uniform
     min: 0.005
     max: 0.1
   training.scheduler.patience:
+    distribution: int_uniform
     min: 6 
     max: 10
   training.scheduler.factor:
+    distribution: log_uniform
     min: 0.01
     max: 0.9
   training.dataset.should_normalize_weights:
