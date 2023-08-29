@@ -20,9 +20,13 @@ def main(cfg: DictConfig) -> None:
     valid_dataloader = dataloaders["valid"]
     test_dataloader = dataloaders["test"]
 
+    #print("len(train_dataloader.dataset): ", len(train_dataloader.dataset))
+    #print("len(valid_dataloader.dataset): ", len(valid_dataloader.dataset))
+    #print("len(test_dataloader.dataset): ", len(test_dataloader.dataset))
+
     for i, (images, labels) in enumerate(train_dataloader):
         print(images.shape)
-        print(labels)
+        print(labels.shape)
         break
     
 

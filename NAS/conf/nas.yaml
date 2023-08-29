@@ -4,7 +4,7 @@ defaults:
 - objective: galaxy10
 
 
-exp_name: galaxy10_weighted
+exp_name: galaxy10_weighted_folder
 seed: 42
 evaluate_only: False
 
@@ -17,8 +17,8 @@ training:
   #training.steps_per_epoch: 10
 
 generation:
-  num_total_trials: 100  # total evaluation budget
-  num_sobol_trials: 25 # 25
+  num_total_trials: 41  # total evaluation budget
+  num_sobol_trials: 0 # 25
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: True
@@ -32,7 +32,7 @@ runner:
 
 client:
   restart: True
-  warm_start: null
+  warm_start: galaxy10_weighted_2
 
 other:
   save_every: 1
@@ -41,5 +41,5 @@ other:
 wandb:
   entity: "ga92xug"
   project: "scaling-laws-nas_high_level"
-  mode: online # online
+  mode: disabled # online
   mode_runs: disabled

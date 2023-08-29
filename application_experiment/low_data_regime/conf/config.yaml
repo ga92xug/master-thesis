@@ -1,1 +1,42 @@
+# 
+
 learning_rate: loguniform(1e-4, 0.1)
+
+
+program: experiment/main.py
+method: bayes
+metric:
+  goal: maximize
+  name: valid.acc_weighted
+
+early_terminate:
+  type: hyperband
+  min_iter: 10
+
+parameters:
+  training.optimizer.lr:
+    distribution: log_uniform
+    min: 0.005
+    max: 0.1
+  training.scheduler.patience:
+    distribution: int_uniform
+    min: 6 
+    max: 10
+  training.scheduler.factor:
+    distribution: log_uniform
+    min: 0.01
+    max: 0.9
+  training.dataset.should_normalize_weights:
+    distribution: categorical
+    values:
+      - True
+      - False
+
+
+command:
+  - python
+  - ${program}
+  - training=isic2019-training-reduce
+  - wandb.tags=[sweep-isic-reduce]
+  - model=eq_wrn
+  - model.restrict=[halved,halved]

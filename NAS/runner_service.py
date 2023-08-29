@@ -22,7 +22,6 @@ class HydraWandbRunner(Runner):
             script_path: str, 
             wandb_entity: str, 
             wandb_project: str,
-            wandb_run_id: str, 
             wandb_mode: str, 
             db_path: str,
             choice_2_range_param: dict, 
@@ -46,7 +45,6 @@ class HydraWandbRunner(Runner):
         self.script_path = script_path
         self.wandb_entity = wandb_entity
         self.wandb_project = wandb_project
-        self.wandb_run_id = wandb_run_id
         self.wandb_mode = wandb_mode
         self.db_path = db_path
         self.choice_2_range_param = choice_2_range_param
@@ -78,7 +76,6 @@ class HydraWandbRunner(Runner):
         # pass wandb parameters
         command.extend([f"wandb.entity={self.wandb_entity}",
                         f"wandb.project={self.wandb_project}",
-                        f"+wandb.run_id={self.wandb_run_id}",
                         f"wandb.mode={self.wandb_mode}",
                         f"wandb.give_name=False"])
 
@@ -167,7 +164,6 @@ class HydraWandbRunner(Runner):
         # pass wandb parameters
         overrides.extend([f"wandb.entity={self.wandb_entity}",
                         f"wandb.project={self.wandb_project}",
-                        f"+wandb.run_id={self.wandb_run_id}",
                         f"wandb.mode={self.wandb_mode}"
                         f"wandb.give_name=False"])
 

@@ -1,4 +1,5 @@
 
+import re
 from sklearn.model_selection import train_test_split
 import torch
 import numpy as np
@@ -85,9 +86,13 @@ class CIFAR_C(Dataset):
         return accs
 
 
-def stratified_subset_indices(dataset, train_size, val_size, random_seed=42):
+def stratified_subset_indices(dataset, reduction_factor, num_classes, random_seed=42):
     num_train = len(dataset)
-    assert train_size + val_size <= num_train, "train_size + val_size must be smaller than the total number of samples."
+    total_images = num_train * reduction_factor
+    total_images_per_class = np.round(total_images / num_classes).astype(int)
+
+    assert total_images_per_class >= 50, "total_images_per_class must be at least 50."
+    assert reduction_factor < 1.0 and reduction_factor > 0.0, "reduction_size must be between 0.0 and 1.0."
 
     class_indices = {}
     for idx, (_, label) in enumerate(dataset):
@@ -97,8 +102,10 @@ def stratified_subset_indices(dataset, train_size, val_size, random_seed=42):
     
     train_indices_all = []
     val_indices_all = []
+    train_images_per_class = int(round(total_images_per_class * 0.6))
+    val_images_per_class = total_images_per_class - train_images_per_class
     for class_label, indices in class_indices.items():
-        train_indices_one_class, val_indices_one_class = train_test_split(indices, train_size=train_size, test_size=val_size, random_state=random_seed)
+        train_indices_one_class, val_indices_one_class = train_test_split(indices, train_size=train_images_per_class, test_size=val_images_per_class, random_state=random_seed)
         train_indices_all.extend(train_indices_one_class)
         val_indices_all.extend(val_indices_one_class)
     
@@ -171,9 +178,10 @@ def build_loaders(
         name,
         channel_wise_mean_images,
         channel_wise_std_images,
+        n_out_classes,
         perturbation_test = False,
         perturbation_location = None,
-        train_val_sizes=None,
+        reduction_factor=None,
         workers=8,
         augment=False,
         reshuffle=True,
@@ -219,7 +227,7 @@ def build_loaders(
     else:
         raise ValueError("Unknown dataset name.")
 
-    if train_val_sizes is None:
+    if reduction_factor is None or reduction_factor == 1.0:
         num_train = len(train_dataset)
         indices = list(range(num_train))
         split = int(np.floor(0.2 * num_train))
@@ -229,11 +237,14 @@ def build_loaders(
 
         train_idx, valid_idx = indices[split:], indices[:split]
     else:
-        train_idx, valid_idx = stratified_subset_indices(train_dataset, train_size=train_val_sizes[0], val_size=train_val_sizes[1], random_seed=42)
+        train_idx, valid_idx = stratified_subset_indices(train_dataset, reduction_factor=reduction_factor, num_classes=n_out_classes, random_seed=42)
 
     
     train_sampler = SubsetRandomSampler(train_idx)
     valid_sampler = SubsetRandomSampler(valid_idx)
+
+    print("len(train_sampler): ", len(train_sampler))
+    print("len(valid_sampler): ", len(valid_sampler))
     
     train_loader = DataLoader(
         train_dataset, batch_size=batch_size, sampler=train_sampler,
