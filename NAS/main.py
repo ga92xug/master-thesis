@@ -1,7 +1,9 @@
+from hmac import new
 from itertools import count
 import os
 import timeit
 import hydra
+from numpy import save
 import torch
 import wandb
 #os.environ["WANDB_SILENT"] = "true"
@@ -108,7 +110,15 @@ def warm_start(old_client_name: str, new_client: AxClient, initial: bool = False
     return count_trials
 
 
-def add_data(ax_client: AxClient, data: dict, trial_index: int, step: int, max_building_time: int):
+def add_data(
+        ax_client: AxClient, 
+        data: dict, 
+        trial_index: int, 
+        step: int, 
+        max_building_time: int,
+        current_version: int = 0,
+    ):
+    new_client = None
     print("Add data: ", data)
     if len(data) == 0:
         # abandon trial
@@ -142,28 +152,79 @@ def add_data(ax_client: AxClient, data: dict, trial_index: int, step: int, max_b
     if exp_to_df(ax_client.experiment).duplicated().any():
         # repeated trails bug https://github.com/facebook/Ax/issues/1704
         print("Repeated trials")
-        init_new_ax_client(
-            data_fetcher=None, 
-            restart_folder=None, 
-            save_folder=None, 
-            current_version=None, 
-            wandb_run_id=None, 
-            initial=False
-        )
+        restart_ax_client(current_version=current_version)
+        current_version += 1
+    
+    return new_client, current_version 
+
+def count_trials(ax_client: AxClient):
+    global cfg
+    df = exp_to_df(ax_client.experiment).sort_values(by=["trial_index"])
+    df = df[df['trial_status'] != 'ABANDONED']
+
+    count_manual = df[df["generation_method"] == "Manual"].drop_duplicates(subset=["arm_name"]).shape[0]
+    count_sobol = df[df["generation_method"] == "Sobol"].drop_duplicates(subset=["arm_name"]).shape[0]
+    count_full_bayesian = df[df["generation_method"] == "FullyBayesianMOO"].drop_duplicates(subset=["arm_name"]).shape[0]
+    count_duplicates =  df['arm_name'].duplicated().sum()
+
+    if cfg.generation.num_sobol_trials <= count_manual:
+        count_sobol = count_sobol + cfg.generation.num_sobol_trials
+        count_manual_bayesian = count_manual - cfg.generation.num_sobol_trials
+        count_full_bayesian = count_full_bayesian + count_manual_bayesian
+    else:
+        count_sobol = count_sobol + count_manual
+        print("This case probably does not happen since the optimization never fails for sobol trials")
+
+    count_all_trials = count_sobol + count_full_bayesian
+    counts = {
+        "all_trials": count_all_trials,
+        "sobol": count_sobol,
+        "full_bayesian": count_full_bayesian,
+        "duplicates": count_duplicates,
+    }
+    
+    return counts
+
+def restart_ax_client(
+        current_version: int,
+    ):
+    global save_folder
+
+    old_client_name = f"{save_folder}/ax_client_{current_version}.json"
+    old_ax_client = AxClient.load_from_json_file(filepath=old_client_name)
+    counts = count_trials(ax_client=old_ax_client)
+
+    if counts["sobol"] >= cfg.generation.num_sobol_trials:
+        num_sobol_trials = 0
+    else:
+        num_sobol_trials = cfg.generation.num_sobol_trials - counts["sobol"]
+
+    # Generation strategy
+    generation_strategy = init_generation_strategy(num_sobol_trials)
+    # setup ax client
+    ax_client = AxClient(
+        generation_strategy=generation_strategy,
+        random_seed=cfg.seed,
+    )
+    num_trials = cfg.generation.num_total_trials
+    old_client_name = f"{save_folder}/ax_client_{current_version}.json"
+
+    # Experiment
+    init_experiment(cfg=cfg, ax_client=ax_client)        
+    count_trials = warm_start(old_client_name=old_client_name, new_client=ax_client)
+    return ax_client, count_trials, num_trials
 
 
 def init_new_ax_client(
-        #cfg: DictConfig, 
         data_fetcher: TrialDataFetcher, 
         restart_folder: str,
-        save_folder: str,
-        current_version: int, 
-        wandb_run_id: str, 
-        initial: bool = False,
     ):
     global cfg
+    global save_folder
+    restart_folder = cfg.client.restart
+    wandb_save_path = f"{save_folder}/wandb_run_id.json"
 
-    if not cfg.client.restart and initial:
+    if not restart_folder:
         if not os.path.exists(restart_folder):
             ValueError("The ax_client.json file does not exist. Please set restart to True.")
 
@@ -177,33 +238,31 @@ def init_new_ax_client(
         num_trials = cfg.generation.num_total_trials
 
         # Get run id from json store
-        with open(wandb_run_id, 'r') as f:
+        with open(wandb_save_path, 'r') as f:
             wandb_run_id = json.load(f)['wandb_run_id']
         
         # resume wandb run
-        run = init_wandb(wandb_run_id, cfg)
+        _ = init_wandb(wandb_run_id, cfg)
         # connect to db
         data_fetcher.connect_to_db(reset=False)
         return ax_client, count_trials, num_trials
-    
-    # Generation strategy
-    generation_strategy = init_generation_strategy()
-    # setup ax client
-    ax_client = AxClient(
-        generation_strategy=generation_strategy,
-        random_seed=cfg.seed,
-    )
-
-    if initial:
+    else:
+        # Generation strategy
+        generation_strategy = init_generation_strategy()
+        # setup ax client
+        ax_client = AxClient(
+            generation_strategy=generation_strategy,
+            random_seed=cfg.seed,
+        )
+        # wandb
         wandb_config = OmegaConf.to_container(
             cfg, resolve=True, throw_on_missing=True
         )
-        # init wandb
         run = init_wandb(run_id=None, cfg=cfg, wandb_config=wandb_config)
         # connect to db
         data_fetcher.connect_to_db(reset=True)
         # Save the run_id
-        with open(wandb_run_id, 'w') as f:
+        with open(wandb_save_path, 'w') as f:
             json.dump({'wandb_run_id': run.id}, f)
 
         num_trials = cfg.generation.num_total_trials
@@ -211,23 +270,14 @@ def init_new_ax_client(
         # Experiment
         init_experiment(cfg=cfg, ax_client=ax_client)        
         if cfg.client.warm_start:
+            # we want to keep the same cfg settings the script should know how to warm start
             count_trials = warm_start(old_client_name=cfg.client.warm_start, new_client=ax_client)
-
-    else:
-        num_trials = cfg.generation.num_total_trials
-        old_client_name = f"{save_folder}/ax_client_{current_version}.json"
-
-        # Experiment
-        init_experiment(cfg=cfg, ax_client=ax_client)        
-        count_trials = warm_start(old_client_name=old_client_name, new_client=ax_client)
-
     
-
     return ax_client, count_trials, num_trials
 
-
-
-def init_generation_strategy():
+def init_generation_strategy(
+        passed_sobol_trials: int = None,
+    ):
     ######################################################################
     # Choosing the Generation Strategy
     # taken from https://github.com/facebook/Ax/issues/1454
@@ -236,11 +286,12 @@ def init_generation_strategy():
     device = torch.device('cuda' if torch.cuda.is_available() \
                                else "cpu")
     steps = []
-    if cfg.generation.num_sobol_trials > 0:
+    num_sobol_trials = passed_sobol_trials if passed_sobol_trials is not None else cfg.generation.num_sobol_trials
+    if num_sobol_trials > 0:
         steps.append(
             GenerationStep(
                 model=Models.SOBOL,
-                num_trials=cfg.generation.num_sobol_trials
+                num_trials=num_sobol_trials
             )
         )
     steps.append(
@@ -262,8 +313,9 @@ def init_generation_strategy():
     )
     return generation_strategy
 
-def init_runner(save_folder: str):
+def init_runner():
     global cfg
+    global save_folder
     # we have to convert the config to a dict because the config is not serializable
     # only matters for developer api
     training_dict = OmegaConf.to_container(cfg.training, resolve=True)
@@ -283,7 +335,6 @@ def init_runner(save_folder: str):
         training_dict=training_dict,
         verbose=cfg.runner.verbose,
     )
-
 
 def init_experiment(ax_client: AxClient):
     global cfg
@@ -330,18 +381,17 @@ def get_next_trial(ax_client: AxClient):
     generation_time = stop - start
     return trial, generation_time
 
-
 def main_optim_loop(
         count_trials: int, 
         num_trials: int, 
         ax_client: AxClient,
         hydra_wandb_runner: HydraWandbRunner,
         data_fetcher: TrialDataFetcher,
-        save_folder: str,
-        current_version: int,
         ):
     global cfg
+    global save_folder
     verbose = cfg.other.verbose
+    current_version = 0
     ax_client_save_path = f"{save_folder}/ax_client_{current_version}.json"
 
     # Running optimization trials
@@ -360,28 +410,77 @@ def main_optim_loop(
             trial_index=trial_meta_data["trial_index"])
 
         # sync data to Ax
-        potential_new_client = add_data(ax_client=ax_client, data=ax_data, trial_index=trial_meta_data["trial_index"], step=count_trials, max_building_time=cfg.objective.max_building_time)
-        if potential_new_client is not None:
-            current_version += 1
+        potential_new_client, new_version = add_data(ax_client=ax_client, data=ax_data, trial_index=trial_meta_data["trial_index"], step=count_trials, max_building_time=cfg.objective.max_building_time)
+        if new_version != current_version:
+            current_version = new_version
             ax_client_save_path = f"{save_folder}/ax_client_{current_version}.json"
             # if len(exp_to_df(ax_client.experiment)) 
             ax_client = potential_new_client
             # Save
             ax_client.save_to_json_file(filepath=ax_client_save_path)
 
-
         # log metrics and print
         log(raw_data, generation_time, count_trials)
+
         # Save
         if count_trials % cfg.other.save_every == 0:
             ax_client.save_to_json_file(filepath=ax_client_save_path)
+
+        if current_version > 1:
+            # check if restarting was successful
+            # number of trials improved
+            previous_2_client_name = f"{save_folder}/ax_client_{current_version - 2}.json"
+            previous_2_ax_client = AxClient.load_from_json_file(filepath=previous_2_client_name)
+            previous_2_counts = count_trials(ax_client=previous_2_ax_client)
+            current_counts = count_trials(ax_client=ax_client)
+
+            if current_counts["all_trials"] > previous_2_counts["all_trials"]:
+                print("Restarting was not successful")
+                quit()
 
 
     # final evaluation
     evaluate(ax_client=ax_client, step=count_trials)
 
+def start_NAS():
+    global cfg
+    global save_folder
+    save_folder = f"NAS/data/{cfg.exp_name}"
+    os.makedirs(save_folder, exist_ok=True)
+
+    # Data fetcher
+    data_fetcher = TrialDataFetcher(
+        entity=cfg.wandb.entity,
+        project=cfg.wandb.project,
+        wandb_mode=cfg.wandb.mode,
+        exp_name=cfg.exp_name,
+        max_gflops=cfg.objective.bounds.gflops,
+        max_building_time=cfg.objective.max_building_time,
+        db_location=save_folder,
+    )
+
+    # Hydra wandb runner
+    hydra_wandb_runner = init_runner(save_folder=save_folder)
+    
+    # init ax client
+    ax_client, count_trials, num_trials = init_new_ax_client(
+        data_fetcher=data_fetcher, 
+        save_folder=save_folder,
+    )
+
+    # start optimization loop
+    main_optim_loop(
+        count_trials=count_trials, 
+        num_trials=num_trials, 
+        ax_client=ax_client,
+        hydra_wandb_runner=hydra_wandb_runner,
+        data_fetcher=data_fetcher,
+        save_folder=save_folder,
+    )    
+
+
 @hydra.main(config_path="conf", config_name="nas", version_base="1.2")
-def run_NAS(config: DictConfig) -> None:
+def main(config: DictConfig) -> None:
     global cfg
     cfg = config
     #nas = NAS(cfg)
@@ -389,34 +488,8 @@ def run_NAS(config: DictConfig) -> None:
         pass
         #evaluate(ax_client=nas.ax_client, step=200)
     else:
-        save_folder = f"NAS/data/{cfg.exp_name}"
-        current_version = 0
-        os.makedirs(save_folder, exist_ok=True)
-        # Data fetcher
-        data_fetcher = TrialDataFetcher(
-            entity=cfg.wandb.entity,
-            project=cfg.wandb.project,
-            wandb_mode=cfg.wandb.mode,
-            exp_name=cfg.exp_name,
-            max_gflops=cfg.objective.bounds.gflops,
-            max_building_time=cfg.objective.max_building_time,
-            db_location=save_folder,
-        )
-        # Hydra wandb runner
-        hydra_wandb_runner = init_runner(save_folder=save_folder)
-
-            
-
-        main_optim_loop(
-            count_trials=0,
-            num_trials=cfg.generation.num_total_trials,
-            ax_client=ax_client,
-            hydra_wandb_runner=hydra_wandb_runner,
-            data_fetcher=data_fetcher,
-            save_folder=save_folder,
-
-        )
+        start_NAS()
 
 
 if __name__ == "__main__":
-    run_NAS()
+    main()
