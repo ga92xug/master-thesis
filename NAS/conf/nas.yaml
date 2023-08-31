@@ -13,17 +13,17 @@ training:
   model.fixed_params: False
   model.stem_channels: 16
   training: galaxy10-training
-  #training.epochs: 1
-  #training.steps_per_epoch: 10
+  training.epochs: 1
+  training.steps_per_epoch: 10
 
 generation:
-  num_total_trials: 41  # total evaluation budget
+  num_total_trials: 35  # total evaluation budget
   num_sobol_trials: 0 # 25
   num_fullbayesian_trials: -1
   batch_size: 1
   progress_bar: True
-  num_samples: 256
-  warmup_steps: 512
+  num_samples: 4 #256
+  warmup_steps: 8 #512
   #num_botorch_trials: 15
 
 runner:

@@ -1,9 +1,7 @@
-from hmac import new
-from itertools import count
 import os
+import random
 import timeit
 import hydra
-from numpy import save
 import torch
 import wandb
 #os.environ["WANDB_SILENT"] = "true"
@@ -70,9 +68,11 @@ from util import init_wandb
 
 
 def warm_start(old_client_name: str, new_client: AxClient, initial: bool = False):
+    global cfg
     # we add the data from the previous client
     old_client_file_path = f"NAS/data/{old_client_name}/ax_client.json"
     old_ax_client = AxClient.load_from_json_file(filepath=old_client_file_path)
+    _ = get_count_trials(ax_client=old_ax_client)
 
     df = exp_to_df(old_ax_client.experiment).sort_values(by=["trial_index"])
     # remove sobol trials only for this experiment
@@ -90,23 +90,23 @@ def warm_start(old_client_name: str, new_client: AxClient, initial: bool = False
         elif trial.arm.name in remove_sobol and initial:
             print("Trial from sobol: ", trial.arm.name)
             continue
-        else:
-            used_arm_names.add(trial.arm.name)
-        raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_individual[data_individual["trial_index"] == index].iterrows()}               
-        if len(raw_data) > 0:
+            
+        data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_individual[data_individual["trial_index"] == index].iterrows()}               
+        if len(data) > 0:
             try:
                 _parameterization, new_index = new_client.attach_trial(parameters=paramerization)
-                add_data(ax_client=new_client, data=raw_data, trial_index=new_index, step=idx, max_building_time=None)
+                add_data(ax_client=new_client, data=data, trial_index=new_index, step=idx, max_building_time=cfg.objective.max_building_time, verbose=0)
+                used_arm_names.add(trial.arm.name)
             except:
-                print("Could not attach trial: ", paramerization)
+                print("Could not attach trial: ", trial.arm.name)
+
             #self.log(raw_data, 0, idx)
         else:
             counter += 1
     count_trials = len(new_client.experiment.trials) + 1
-    print("Number of trials without data: ", counter)
+    print("Warm start number of trials without data: ", counter)
     print("Added ", len(new_client.experiment.trials), "trials to the experiment")
-    quit()
-
+    print("Warm start number of trials: ", count_trials)
     return count_trials
 
 
@@ -117,9 +117,12 @@ def add_data(
         step: int, 
         max_building_time: int,
         current_version: int = 0,
+        verbose: int = 1,
     ):
     new_client = None
-    print("Add data: ", data)
+    if verbose >= 1:
+        print("Add data: ", data)
+
     if len(data) == 0:
         # abandon trial
         ax_client.abandon_trial(
@@ -148,16 +151,23 @@ def add_data(
             trial_index=trial_index, 
             raw_data=data,
         )
+
+    log(data, step)
+
     
-    if exp_to_df(ax_client.experiment).duplicated().any():
+
+    
+    if exp_to_df(ax_client.experiment)["arm_name"].duplicated().any():
         # repeated trails bug https://github.com/facebook/Ax/issues/1704
         print("Repeated trials")
-        restart_ax_client(current_version=current_version)
+        ax_client, count_trials, num_trials = restart_ax_client(current_version=current_version)
         current_version += 1
+        return ax_client, current_version + 1, count_trials, num_trials
     
-    return new_client, current_version 
+    return ax_client, current_version, None, None
 
-def count_trials(ax_client: AxClient):
+
+def get_count_trials(ax_client: AxClient, verbose: int = 1):
     global cfg
     df = exp_to_df(ax_client.experiment).sort_values(by=["trial_index"])
     df = df[df['trial_status'] != 'ABANDONED']
@@ -182,6 +192,11 @@ def count_trials(ax_client: AxClient):
         "full_bayesian": count_full_bayesian,
         "duplicates": count_duplicates,
     }
+    if verbose >= 1:
+        print("Number of trials: ", count_all_trials)
+        print("Number of sobol trials: ", count_sobol)
+        print("Number of full bayesian trials: ", count_full_bayesian)
+        print("Number of duplicates: ", count_duplicates)
     
     return counts
 
@@ -192,7 +207,7 @@ def restart_ax_client(
 
     old_client_name = f"{save_folder}/ax_client_{current_version}.json"
     old_ax_client = AxClient.load_from_json_file(filepath=old_client_name)
-    counts = count_trials(ax_client=old_ax_client)
+    counts = get_count_trials(ax_client=old_ax_client)
 
     if counts["sobol"] >= cfg.generation.num_sobol_trials:
         num_sobol_trials = 0
@@ -217,7 +232,6 @@ def restart_ax_client(
 
 def init_new_ax_client(
         data_fetcher: TrialDataFetcher, 
-        restart_folder: str,
     ):
     global cfg
     global save_folder
@@ -266,13 +280,14 @@ def init_new_ax_client(
             json.dump({'wandb_run_id': run.id}, f)
 
         num_trials = cfg.generation.num_total_trials
-
+        count_trials = 0
         # Experiment
-        init_experiment(cfg=cfg, ax_client=ax_client)        
+        init_experiment(ax_client=ax_client)        
         if cfg.client.warm_start:
             # we want to keep the same cfg settings the script should know how to warm start
-            count_trials = warm_start(old_client_name=cfg.client.warm_start, new_client=ax_client)
+            count_trials = warm_start(old_client_name=cfg.client.warm_start, new_client=ax_client, initial=True)
     
+    _ = get_count_trials(ax_client=ax_client)
     return ax_client, count_trials, num_trials
 
 def init_generation_strategy(
@@ -366,11 +381,15 @@ def init_experiment(ax_client: AxClient):
         #is_test=True,
     )
 
-def log(raw_data, generation_time, step, verbose: int = 0):
-    raw_data["generation_time"] = generation_time
-    wandb.log(raw_data, step=step, commit=True)
+def log(
+        data: dict, 
+        step: int, 
+        verbose: int = 0
+    ):
+    wandb.log(data, step=step, commit=True)
+    generation_time = data.get("generation_time", None)
 
-    if verbose >= 2:
+    if verbose >= 2 and generation_time is not None:
         print(f"Generation time: {generation_time:.2f} seconds")
 
 def get_next_trial(ax_client: AxClient):
@@ -387,7 +406,7 @@ def main_optim_loop(
         ax_client: AxClient,
         hydra_wandb_runner: HydraWandbRunner,
         data_fetcher: TrialDataFetcher,
-        ):
+    ):
     global cfg
     global save_folder
     verbose = cfg.other.verbose
@@ -408,14 +427,16 @@ def main_optim_loop(
         # fetch data
         ax_data, raw_data, = data_fetcher.fetch_trial_data(
             trial_index=trial_meta_data["trial_index"])
+        raw_data["generation_time"] = generation_time
 
         # sync data to Ax
-        potential_new_client, new_version = add_data(ax_client=ax_client, data=ax_data, trial_index=trial_meta_data["trial_index"], step=count_trials, max_building_time=cfg.objective.max_building_time)
+        potential_new_client, new_version, potential_count_trials, potiential_num_trials = add_data(ax_client=ax_client, data=ax_data, raw_data=raw_data, trial_index=trial_meta_data["trial_index"], step=count_trials, max_building_time=cfg.objective.max_building_time)
         if new_version != current_version:
             current_version = new_version
             ax_client_save_path = f"{save_folder}/ax_client_{current_version}.json"
-            # if len(exp_to_df(ax_client.experiment)) 
             ax_client = potential_new_client
+            count_trials = potential_count_trials
+            num_trials = potiential_num_trials
             # Save
             ax_client.save_to_json_file(filepath=ax_client_save_path)
 
@@ -425,6 +446,27 @@ def main_optim_loop(
         # Save
         if count_trials % cfg.other.save_every == 0:
             ax_client.save_to_json_file(filepath=ax_client_save_path)
+
+        # Test
+        if count_trials > 41 and count_trials % 2 != 0:
+            print("Test")
+            print("Test number of trials: ", len(ax_client.experiment.trials))
+            print("Test: ", exp_to_df(ax_client.experiment).sort_values(by=["trial_index"]).tail(4))
+            # add repeated trials
+            data_df = ax_client.experiment.fetch_data().df
+            for index, trial in ax_client.experiment.trials.items():
+                # only add last 
+                if index != trial_index:
+                    continue
+                paramerization = trial.arm.parameters
+                raw_data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_df[data_df["trial_index"] == index].iterrows()}
+
+                _parameterization, new_index = ax_client.attach_trial(parameters=paramerization, arm_name=trial.arm.name)
+                ax_client.complete_trial(trial_index=new_index,raw_data=raw_data)
+            
+            print("Test added trials")
+            print("Test number of trials: ", len(ax_client.experiment.trials))
+            print("Test: ", exp_to_df(ax_client.experiment).sort_values(by=["trial_index"]).tail(4))
 
         if current_version > 1:
             # check if restarting was successful
@@ -437,7 +479,6 @@ def main_optim_loop(
             if current_counts["all_trials"] > previous_2_counts["all_trials"]:
                 print("Restarting was not successful")
                 quit()
-
 
     # final evaluation
     evaluate(ax_client=ax_client, step=count_trials)
@@ -460,12 +501,11 @@ def start_NAS():
     )
 
     # Hydra wandb runner
-    hydra_wandb_runner = init_runner(save_folder=save_folder)
+    hydra_wandb_runner = init_runner()
     
     # init ax client
     ax_client, count_trials, num_trials = init_new_ax_client(
         data_fetcher=data_fetcher, 
-        save_folder=save_folder,
     )
 
     # start optimization loop
@@ -475,7 +515,6 @@ def start_NAS():
         ax_client=ax_client,
         hydra_wandb_runner=hydra_wandb_runner,
         data_fetcher=data_fetcher,
-        save_folder=save_folder,
     )    
 
 
