@@ -77,10 +77,7 @@ class TrialDataFetcher():
 
         # Attempt to fetch data from local DB
         run_data = self._fetch_from_db(trial_index)
-        # split the data since we only want to do bayesian optimization on the ax metrics
-        ax_dict, remaining_dict = self.split_dict(run_data) 
-
-        return ax_dict, run_data
+        return run_data
 
 
     def split_dict(self, initial_dict):
