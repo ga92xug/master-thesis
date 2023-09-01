@@ -13,8 +13,8 @@ training:
   model.fixed_params: False
   model.stem_channels: 16
   training: galaxy10-training
-  training.epochs: 1
-  training.steps_per_epoch: -1
+  #training.epochs: 1
+  #training.steps_per_epoch: -1
 
 generation:
   num_total_trials: 100  # total evaluation budget
@@ -37,8 +37,8 @@ client:
 other:
   save_every: 1
   verbose: 1
-  debug: True
-  fake_duplicate_trials: True
+  debug: False
+  fake_duplicate_trials: False
 
 wandb:
   entity: "ga92xug"

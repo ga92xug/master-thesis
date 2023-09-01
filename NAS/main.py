@@ -509,7 +509,7 @@ def main_optim_loop(
             previous_2_client_name = f"{save_folder}/ax_client_{current_version - 2}.json"
             previous_2_ax_client = AxClient.load_from_json_file(filepath=previous_2_client_name)
             previous_2_counts = get_count_trials(ax_client=previous_2_ax_client)
-            current_counts = count_trials(ax_client=ax_client)
+            current_counts = get_count_trials(ax_client=ax_client)
 
             if current_counts["all_trials"] > previous_2_counts["all_trials"]:
                 print("Restarting was not successful")
