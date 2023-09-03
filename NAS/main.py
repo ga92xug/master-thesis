@@ -68,14 +68,15 @@ from fetch_trial_data import TrialDataFetcher
 from util import init_wandb
 
 
-def warm_start(old_client_name: str, new_client: AxClient, initial: bool = False):
+def warm_start(old_client_name: str, new_client: AxClient, max_building_time: int = None, initial: bool = False):
     """
     add the data from the previous client
     """
-    global cfg
-    if os.path.exists(old_client_name):
-        old_client_file_path = old_client_name
-    elif os.path.exists(f"NAS/data/{old_client_name}/ax_client.json"):
+    if max_building_time is None:
+        global cfg
+        max_building_time = cfg.objective.max_building_time
+
+    if os.path.exists(f"NAS/data/{old_client_name}/ax_client.json"):
         # backward compatibility
         old_client_file_path = f"NAS/data/{old_client_name}/ax_client.json"
     else:
@@ -107,7 +108,7 @@ def warm_start(old_client_name: str, new_client: AxClient, initial: bool = False
         if len(data) > 0:
             try:
                 _parameterization, new_index = new_client.attach_trial(parameters=paramerization)
-                add_data(ax_client=new_client, data=data, trial_index=new_index, step=idx, max_building_time=cfg.objective.max_building_time, verbose=0, data_fetcher=None)
+                add_data(ax_client=new_client, data=data, trial_index=new_index, step=idx, max_building_time=max_building_time, verbose=0, data_fetcher=None)
                 used_arm_names.add(trial.arm.name)
             except:
                 print("Could not attach trial: ", trial.arm.name)
@@ -181,8 +182,10 @@ def add_data(
     return new_client, current_version, None, None
 
 
-def get_count_trials(ax_client: AxClient, verbose: int = 0):
-    global cfg
+def get_count_trials(ax_client: AxClient, num_sobol_trials: int = None, verbose: int = 0):
+    if num_sobol_trials is None:
+        global cfg
+        num_sobol_trials = cfg.generation.num_sobol_trials
     if len(exp_to_df(ax_client.experiment)) == 0:
         return {
             "all_trials": 0,
@@ -198,9 +201,9 @@ def get_count_trials(ax_client: AxClient, verbose: int = 0):
     count_full_bayesian = df[df["generation_method"] == "FullyBayesianMOO"].drop_duplicates(subset=["arm_name"]).shape[0]
     count_duplicates =  df['arm_name'].duplicated().sum()
 
-    if cfg.generation.num_sobol_trials <= count_manual:
-        count_sobol = count_sobol + cfg.generation.num_sobol_trials
-        count_manual_bayesian = count_manual - cfg.generation.num_sobol_trials
+    if num_sobol_trials <= count_manual:
+        count_sobol = count_sobol + num_sobol_trials
+        count_manual_bayesian = count_manual - num_sobol_trials
         count_full_bayesian = count_full_bayesian + count_manual_bayesian
     else:
         count_sobol = count_sobol + count_manual
@@ -408,6 +411,10 @@ def log(
         step: int, 
         verbose: int = 0
     ):
+    for key, value in data.items():
+        if len(value) > 1:
+            data[key] = value[0]
+
     wandb.log(data, step=step, commit=True)
     generation_time = data.get("generation_time", None)
 
@@ -422,18 +429,19 @@ def get_next_trial(ax_client: AxClient):
     generation_time = stop - start
     return trial, generation_time
 
-def get_largest_saved_version_ax_client():
-    global save_folder
+def get_largest_saved_version_ax_client(folder: str = None):
+    if folder is None:
+        global save_folder
+        folder = save_folder
     # get the largest version
     version = 0
-    for file in os.listdir(save_folder):
+    for file in os.listdir(folder):
         if file.startswith("ax_client_"):
             file_version = int(file.split("_")[-1].split(".")[0])
             if file_version > version:
                 version = file_version
     print("Largest version: ", version)
     return version
-
 
 def add_fake_duplicate_trials(ax_client: AxClient, index: int):
     global cfg
@@ -511,9 +519,13 @@ def main_optim_loop(
             previous_2_counts = get_count_trials(ax_client=previous_2_ax_client)
             current_counts = get_count_trials(ax_client=ax_client)
 
-            if current_counts["all_trials"] > previous_2_counts["all_trials"]:
+            if current_counts["all_trials"] <= previous_2_counts["all_trials"]:
                 print("Restarting was not successful")
                 quit()
+            else:
+                print("Restarting was successful")
+                print("Previous 2 counts: ", previous_2_counts)
+                print("Current counts: ", current_counts)
         
         count_trials += 1
 
