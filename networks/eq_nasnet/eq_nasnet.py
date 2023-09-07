@@ -114,7 +114,6 @@ class EquivariantNASNet(nn.Module):
 
         image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         
-
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * input_channels
         )

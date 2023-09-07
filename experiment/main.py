@@ -52,7 +52,6 @@ class Experiment:
         
         if not self.is_nas:
             # experiment name
-
             # normal training mode
             self.wandb_run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \

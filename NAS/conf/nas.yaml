@@ -4,7 +4,7 @@ defaults:
 - objective: galaxy10
 
 
-exp_name: galaxy10_weighted_folder
+exp_name: galaxy10_weighted_folder_2
 seed: 42
 evaluate_only: False
 
@@ -32,7 +32,7 @@ runner:
 
 client:
   restart: True
-  warm_start: galaxy10_weighted_2
+  warm_start: galaxy10_weighted_folder
 
 other:
   save_every: 1
@@ -43,5 +43,5 @@ other:
 wandb:
   entity: "ga92xug"
   project: "scaling-laws-nas_high_level"
-  mode: disabled # online
+  mode: online # online
   mode_runs: disabled

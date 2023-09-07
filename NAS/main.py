@@ -79,6 +79,8 @@ def warm_start(old_client_name: str, new_client: AxClient, max_building_time: in
     if os.path.exists(f"NAS/data/{old_client_name}/ax_client.json"):
         # backward compatibility
         old_client_file_path = f"NAS/data/{old_client_name}/ax_client.json"
+    elif os.path.exists(old_client_name):
+        old_client_file_path = old_client_name
     else:
         largest_version = get_largest_saved_version_ax_client()
         old_client_file_path = f"NAS/data/{old_client_name}/ax_client_{largest_version}.json"
@@ -412,7 +414,7 @@ def log(
         verbose: int = 0
     ):
     for key, value in data.items():
-        if len(value) > 1:
+        if isinstance(value, list) or isinstance(value, tuple):
             data[key] = value[0]
 
     wandb.log(data, step=step, commit=True)
@@ -521,7 +523,7 @@ def main_optim_loop(
 
             if current_counts["all_trials"] <= previous_2_counts["all_trials"]:
                 print("Restarting was not successful")
-                quit()
+                #quit()
             else:
                 print("Restarting was successful")
                 print("Previous 2 counts: ", previous_2_counts)
