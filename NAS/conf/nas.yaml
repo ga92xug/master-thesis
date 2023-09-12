@@ -1,10 +1,10 @@
 defaults:
 - _self_
-- search_space: galaxy10-5blocks
-- objective: galaxy10-5blocks
+- search_space: galaxy10-3blocks
+- objective: isic2019
 
 
-exp_name: galaxy10_5blocks_weighted_folder_2
+exp_name: isic2019
 seed: 42
 evaluate_only: False
 
@@ -12,7 +12,7 @@ training:
   model: eq_nasnet
   model.fixed_params: False
   model.stem_channels: 16
-  training: galaxy10-training
+  training: isic2019-training
   #training.epochs: 1
   #training.steps_per_epoch: -1
 
@@ -32,7 +32,7 @@ runner:
 
 client:
   restart: True
-  warm_start: galaxy10_5blocks_weighted_folder
+  warm_start: null
 
 other:
   save_every: 1
