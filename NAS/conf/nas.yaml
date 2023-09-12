@@ -1,10 +1,10 @@
 defaults:
 - _self_
-- search_space: galaxy10-3blocks
-- objective: galaxy10
+- search_space: galaxy10-5blocks
+- objective: galaxy10-5blocks
 
 
-exp_name: galaxy10_weighted_folder_2
+exp_name: galaxy10_5blocks_weighted_folder_2
 seed: 42
 evaluate_only: False
 
@@ -18,7 +18,7 @@ training:
 
 generation:
   num_total_trials: 100  # total evaluation budget
-  num_sobol_trials: 0 # 25
+  num_sobol_trials: 25 # 25
   num_fullbayesian_trials: -1
   batch_size: 1
   disable_progbar: True
@@ -28,11 +28,11 @@ generation:
 
 runner:
   script_path: "experiment/main.py"
-  verbose: 1
+  verbose: 2
 
 client:
   restart: True
-  warm_start: galaxy10_weighted_folder
+  warm_start: galaxy10_5blocks_weighted_folder
 
 other:
   save_every: 1

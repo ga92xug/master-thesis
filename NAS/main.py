@@ -19,27 +19,6 @@ ROOT_STREAM_HANDLER.setLevel(logging.ERROR)
 
 #from ax import save, load
 from ax.core import Experiment, Data
-# Save and load json
-# from ax.storage.json_store.save import save_experiment
-# from ax.storage.json_store.load import load_experiment
-# from ax.storage.json_store.decoder import generation_strategy_from_json
-# from ax.storage.json_store.encoder import object_to_json
-#from ax.storage.json_store.encoder import generation_strategy_to_json
-# Storage with sqa
-from ax.storage.sqa_store.structs import DBSettings
-from ax.storage.sqa_store.db import (
-    get_engine, create_all_tables, 
-    init_engine_and_session_factory,
-)
-from ax.storage.sqa_store.delete import delete_experiment
-from ax.storage.sqa_store.save import save_experiment, save_generation_strategy
-from ax.storage.registry_bundle import RegistryBundle
-from ax.storage.sqa_store.sqa_config import SQAConfig
-from ax.storage.sqa_store.load import (
-    load_experiment, 
-    load_generation_strategy_by_experiment_name,
-)
-
 # Objective
 from ax.core import MultiObjective, Objective, ObjectiveThreshold
 from ax.core.optimization_config import MultiObjectiveOptimizationConfig
@@ -91,7 +70,7 @@ def warm_start(old_client_name: str, new_client: AxClient, max_building_time: in
 
     df = exp_to_df(old_ax_client.experiment).sort_values(by=["trial_index"])
     # remove sobol trials only for this experiment
-    remove_sobol = df[df["generation_method"] == "Sobol"].drop_duplicates(subset=["arm_name"])["arm_name"].values
+    # remove_sobol = df[df["generation_method"] == "Sobol"].drop_duplicates(subset=["arm_name"])["arm_name"].values
 
     data_individual = old_ax_client.experiment.fetch_data().df
     counter = 0
@@ -101,10 +80,10 @@ def warm_start(old_client_name: str, new_client: AxClient, max_building_time: in
         if trial.arm.name in used_arm_names:
             print("Trial already added: ", trial.arm.name)
             continue
-        elif trial.arm.name in remove_sobol and initial:
-            print("Trial from sobol: ", trial.arm.name)
-            #pass
-            continue
+        # elif trial.arm.name in remove_sobol and initial:
+        #     print("Trial from sobol: ", trial.arm.name)
+        #     #pass
+        #     continue
             
         data = {row["metric_name"]: (row["mean"], row["sem"]) for _index, row in data_individual[data_individual["trial_index"] == index].iterrows()}               
         if len(data) > 0:
@@ -118,7 +97,7 @@ def warm_start(old_client_name: str, new_client: AxClient, max_building_time: in
             #self.log(raw_data, 0, idx)
         else:
             counter += 1
-    count_trials = len(new_client.experiment.trials) + 1
+    count_trials = len(new_client.experiment.trials) 
     print("Warm start\n  number of trials without data:", counter, "\n  added:", len(new_client.experiment.trials))
     return count_trials
 
@@ -134,7 +113,7 @@ def add_data(
         verbose: int = 1,
     ):
     ax_data_keys = ["gflops", "valid_acc_weighted", "model_building_time"]
-    ax_data = {k: data[k] for k in ax_data_keys}
+    ax_data = {k: data[k] for k in data if k in ax_data_keys}
 
     new_client = None
     if verbose >= 1:
@@ -313,6 +292,7 @@ def init_new_ax_client(
             # we want to keep the same cfg settings the script should know how to warm start
             count_trials = warm_start(old_client_name=cfg.client.warm_start, new_client=ax_client, initial=True)
     
+
     _ = get_count_trials(ax_client=ax_client)
     return ax_client, count_trials, num_trials
 
@@ -473,6 +453,7 @@ def main_optim_loop(
     verbose = cfg.other.verbose
     current_version = get_largest_saved_version_ax_client()
     ax_client_save_path = f"{save_folder}/ax_client_{current_version}.json"
+    ax_client.save_to_json_file(filepath=ax_client_save_path)
 
     print("count_trials: ", count_trials, "/", num_trials)
 
@@ -581,6 +562,7 @@ def main(config: DictConfig) -> None:
         cfg.generation.num_samples = 16 #128
         cfg.generation.warmup_steps = 32 # 256
         cfg.generation.disable_progbar = False
+        cfg.generation.num_sobol_trials = 2
         # Temporarily disable struct mode to add params
         #OmegaConf.set_struct(cfg.training, False)
         #cfg.training.training.epochs = 1

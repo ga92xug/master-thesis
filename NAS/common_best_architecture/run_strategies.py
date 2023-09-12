@@ -70,7 +70,7 @@ def get_training_args(
 
     # Create a new run
     args = [
-        f'wandb.tags=[SE_test]',
+        #f'wandb.tags=[SE_test]',
         f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
         f'model.eq_expand_ratio={strategy_dict["-1_expand_ratio"]}',
         f'+model.replacement_group_strategy={replacement_group_strategy}',
@@ -211,11 +211,11 @@ def runs_to_skip(
     
     ############################################################################
     # Skip these temporarily
-    if "fix" in strategy_name and len(adjust) > 1:
-        return False
-    
-    if "pure" in strategy_name and len(adjust) <= 1:
-        return False
+    # if "fix" in strategy_name and len(adjust) > 1:
+    #     return False
+    # 
+    # if "pure" in strategy_name and len(adjust) <= 1:
+    #     return False
 
     #if dataset == "galaxy10":
     #    if (strategy_name == "strategy_pure_galaxy10" and len(adjust) == 1) or \
@@ -227,10 +227,10 @@ def runs_to_skip(
     #    if "fix" in strategy_name and len(adjust) == 3:
     #        return False
     
-    return True
+    return False
 
 
-def main():
+def old_main():
     # datasets = ["cifar10", "cifar10_rot", "galaxy10", "mnist12k", "mnist_rot"] #  "ISIC_2019"
     # datasets = ["mnist12k", "ISIC_2019"]
     strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
@@ -248,12 +248,12 @@ def main():
 
 def iter_over_strategies(cfg: DictConfig):
     datasets = list(cfg.datasets) #  "ISIC_2019"
-    pure_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
-    mixed_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/mixed_strategies.csv', index_col=0)
-    strategies_df = pd.concat([pure_strategies_df, mixed_strategies_df])
+    pure_strategies_df = pd.read_csv('../../dev2/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
+    #mixed_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/mixed_strategies.csv', index_col=0)
+    #strategies_df = pd.concat([pure_strategies_df, mixed_strategies_df])
+    strategies_df = pure_strategies_df
 
     for strategy in cfg.strategies:
-        print(f"\nStrategy: {strategy}")
         for adjust_list in cfg.adjust_lists:
 
             strategy_dict = strategies_df.loc[[strategy]].squeeze().to_dict()

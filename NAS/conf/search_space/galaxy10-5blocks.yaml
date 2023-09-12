@@ -1,4 +1,4 @@
-num_middle_blocks: 1
+num_middle_blocks: 4
 
 dropout_rate: [0., 0.2 ,0.3, 0.4, 0.5]
 expand_ratio: [2, 4, 6]
@@ -15,5 +15,5 @@ choice_2_range_params:
     group: [1, 2, 4, 8, 16]
 
 constraints:
-    max_out_channels: 8
-    min_stride: 8
+    max_out_channels: 7
+    min_stride: 6

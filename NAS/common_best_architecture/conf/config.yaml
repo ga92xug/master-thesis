@@ -1,10 +1,10 @@
 
 #strategies: [Strategy_fix_1_0]
-strategies: [strategy_fix_1_0, strategy_pure_galaxy10, strategy_pure_mnist_rot, strategy_pure_cifar10]
-# datasets: [cifar10, cifar10_rot, galaxy10, mnist12k, mnist_rot]
-datasets: [isic2019, stl10]
+strategies: [pure_galaxy10]
+datasets: [galaxy10, isic2019,cifar10, cifar10_rot, mnist12k, mnist_rot]
+#datasets: [isic2019, stl10]
 #adjust_lists: [[group, out_channels]]
-adjust_lists: [[group, out_channels], [], [group]]
+adjust_lists: [[]]
 
 map_strategies_2_replacement_groups: {
   cifar10: cifar10,
@@ -19,5 +19,5 @@ map_strategies_2_replacement_groups: {
 wandb:
   project: scaling-laws-eqnasnet
   mode: disabled
-  notes: null
-  tags: null
+  notes: new_galaxy10
+  tags: new_galaxy10
