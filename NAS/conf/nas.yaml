@@ -4,7 +4,7 @@ defaults:
 - objective: isic2019
 
 
-exp_name: isic2019
+exp_name: isic2019_3
 seed: 42
 evaluate_only: False
 
@@ -18,7 +18,7 @@ training:
 
 generation:
   num_total_trials: 100  # total evaluation budget
-  num_sobol_trials: 25 # 25
+  num_sobol_trials: 0 # 25
   num_fullbayesian_trials: -1
   batch_size: 1
   disable_progbar: True
@@ -32,7 +32,7 @@ runner:
 
 client:
   restart: True
-  warm_start: null
+  warm_start: isic2019_2
 
 other:
   save_every: 1

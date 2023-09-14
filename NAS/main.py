@@ -214,12 +214,11 @@ def restart_ax_client(
     old_ax_client = AxClient.load_from_json_file(filepath=old_client_name)
     counts = get_count_trials(ax_client=old_ax_client)
 
-    if counts["sobol"] >= cfg.generation.num_sobol_trials:
-        num_sobol_trials = 0
-    else:
-        num_sobol_trials = cfg.generation.num_sobol_trials - counts["sobol"]
+    num_sobol_trials = min(cfg.generation.num_sobol_trials - counts["sobol"], 0)
+    print("num_sobol_trials: ", num_sobol_trials)
 
     # Generation strategy
+    num_sobol_trials 
     generation_strategy = init_generation_strategy(num_sobol_trials)
     # setup ax client
     ax_client = AxClient(
