@@ -1,4 +1,5 @@
 import random
+import re
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -40,14 +41,12 @@ def split_without_stratify(images, labels, random_seed):
     test_labels = labels[test_indices]
     return train_images, train_labels, val_images, val_labels, test_images, test_labels
 
-def split_with_stratify(images, labels, random_seed, train_val_sizes=None):
-    if train_val_sizes is None:
+def split_with_stratify(images, labels, random_seed, reduction_factor=None):
+    if reduction_factor is None or reduction_factor == 1.0:
         train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
         test_images, val_images, test_labels, val_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=0.5, random_state=random_seed, stratify=val_test_labels)
     else:
-        max_value_label = max(labels)
-        print("max_value_label: ", max_value_label, "set(labels): ", set(train_val_sizes))
-        train_val_images, test_images, train_val_labels, test_labels = train_test_split(*[images, labels], train_size=sum(train_val_sizes) * max_value_label, random_state=random_seed, stratify=labels)
+        train_val_images, test_images, train_val_labels, test_labels = train_test_split(*[images, labels], train_size=reduction_factor, random_state=random_seed, stratify=labels)
         train_images, val_images, train_labels, val_labels = train_test_split(*[train_val_images, train_val_labels], train_size=0.6, test_size=0.4, random_state=random_seed, stratify=train_val_labels)
     return train_images, train_labels, val_images, val_labels, test_images, test_labels
 
@@ -157,7 +156,7 @@ def get_ISIC_2019(
     eval_batch_size: int,
     workers: int,
     augment: bool,
-    train_val_sizes=None,
+    reduction_factor=None,
     **kwargs,
 ):
     location = data_dir + name
@@ -196,7 +195,7 @@ def get_ISIC_2019(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify, train_val_sizes=train_val_sizes)
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify, train_val_sizes=reduction_factor)
     return dataloaders, normalized_weights
 
 

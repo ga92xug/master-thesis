@@ -135,6 +135,10 @@ class Experiment:
         self.steps_per_epoch = cfg.training.steps_per_epoch
 
         # adapt learning rate
+        if "CosineAnnealingLR" in cfg.training.scheduler._target_:
+            OmegaConf.set_readonly(cfg, False) 
+            cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * cfg.training.epochs
+            OmegaConf.set_readonly(cfg, True) 
         self._lr_scheduler = hydra.utils.instantiate(cfg.training.scheduler, 
                                             optimizer=self._optimizer)
         print("Stage 3: optimizer built")

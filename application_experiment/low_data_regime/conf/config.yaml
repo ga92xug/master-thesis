@@ -1,42 +1,32 @@
-# 
+defaults:
+- _self_
+- sweep_config: cifar10
 
-learning_rate: loguniform(1e-4, 0.1)
+num_trials: 20
 
+sweep_config:
+  program: experiment/main.py
+  method: bayes
 
-program: experiment/main.py
-method: bayes
-metric:
-  goal: maximize
-  name: valid.acc_weighted
+  metric:
+    goal: maximize
+    # name specified in the sweep-config
 
-early_terminate:
-  type: hyperband
-  min_iter: 10
+  early_terminate:
+    type: hyperband
+    # min_iter specified in the sweep-config
 
-parameters:
-  training.optimizer.lr:
-    distribution: log_uniform
-    min: 0.005
-    max: 0.1
-  training.scheduler.patience:
-    distribution: int_uniform
-    min: 6 
-    max: 10
-  training.scheduler.factor:
-    distribution: log_uniform
-    min: 0.01
-    max: 0.9
-  training.dataset.should_normalize_weights:
-    distribution: categorical
-    values:
-      - True
-      - False
+  # parameters specified in the sweep-config
 
+  # model
 
-command:
-  - python
-  - ${program}
-  - training=isic2019-training-reduce
-  - wandb.tags=[sweep-isic-reduce]
-  - model=eq_wrn
-  - model.restrict=[halved,halved]
+  # percentage
+  percentage:
+    values: 1, 10, 25, 50, 100
+
+  command:
+    - python
+    - ${program}
+    - model=eq_wrn
+    # same as for sweep where we searched HP for the normal data regime
+    - model.restrict=[halved,halved]

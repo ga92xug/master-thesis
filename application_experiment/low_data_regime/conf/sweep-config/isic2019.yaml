@@ -1,0 +1,18 @@
+# cifar10 low data regime
+name: isic2019
+
+epochs: 50
+
+metric:
+  name: valid.acc_weighted
+
+parameters:
+  training.optimizer.lr:
+    distribution: log_uniform
+    min: 0.0001
+    max: 0.1
+  # ADAM with 1e-5 = 0.00001 original weight decay
+  training.optimizer.weight_decay:
+    distribution: log_uniform
+    min: 0.00001 
+    max: 0.1

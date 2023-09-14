@@ -4,16 +4,22 @@ defaults:
 - dataset: cifar
 - scheduler: multi_step_lr
 
+epochs: 100                    
+
 dataset:
   name: cifar10
-  batch_size: 128                # Number of examples to process in a batch during training
-  eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
+  batch_size: 128                
+  eval_batch_size: 128     
+  augment: True                 
+  reshuffle: True               
+  perturbation_test: False
+  perturbation_location: CIFAR-10-C
+  reduction_factor: 1.0                       
 
-epochs: 100                    # Number of training epochs
-augment_train: False
-earlystop: False               # Whether to use early stopping based on a validation set     
-
+optimizer:
+  lr: 0.1                       
+  weight_decay: 0.0005
 
 scheduler:
-  milestones: [60]
+  milestones: [60, 120, 180]
   gamma: 0.2
