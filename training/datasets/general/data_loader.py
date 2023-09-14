@@ -19,7 +19,7 @@ import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
 #print("current working directory: ", os.getcwd())
-from experiment.datasets.utils import get_normalize_weights
+from training.datasets.utils import get_normalize_weights
 #from experiment import dataloader
 
 

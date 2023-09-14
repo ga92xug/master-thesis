@@ -13,9 +13,9 @@ import sys
 import re
 sys.path.append('..') # add parent directory
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-from experiment.speed_test import extract_info_instantiate_network, main
+from training.speed_test import extract_info_instantiate_network, main
 from scaling.util import plot_model_data, binary_search_over_model_scaling
-from experiment.run_files.run_command import run_command
+from training.run_files.run_command import run_command
 
 def main():
     global_args = [

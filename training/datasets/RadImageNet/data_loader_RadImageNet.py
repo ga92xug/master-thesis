@@ -6,7 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from PIL import Image
 
-from experiment.datasets.utils import get_normalize_weights
+from training.datasets.utils import get_normalize_weights
 
 def get_isic_df(
     dir: str,

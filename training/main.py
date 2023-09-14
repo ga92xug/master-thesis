@@ -15,10 +15,10 @@ from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 from torchmetrics import MetricCollection
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-from experiment.model_instantiate import get_model
+from training.model_instantiate import get_model
 from networks.util import cuda_memory_usage
-from experiment import utils
-from experiment import log
+from training import utils
+from training import log
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
 #os.environ['TORCHDYNAMO_VERBOSE'] = '0'

@@ -7,7 +7,7 @@ import wandb
 from matplotlib import pyplot as plt, ticker
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from experiment.speed_test import main
+from training.speed_test import main
 
 title_size = 12
 label_size = 10

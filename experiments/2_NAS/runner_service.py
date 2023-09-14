@@ -9,7 +9,7 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 
-from experiment.main import run_experiment_from_config
+from training.main import run_experiment_from_config
 
 # local imports
 from util import encode_parameters

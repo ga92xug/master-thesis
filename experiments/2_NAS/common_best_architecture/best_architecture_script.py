@@ -17,7 +17,7 @@ sys.path.append('../experiment')
 sys.path.append('../../NAS')
 #from networks.eq_nasnet.eq_nasnet import EquivariantNASNet
 from NAS.util import encode_parameters, convert_to_number
-from experiment.run_files.run_command import run_command
+from training.run_files.run_command import run_command
 
 
 columns = ['-1_expand_ratio', '-1_dropout_rate', '0_reflection', '0_group', '0_out_channels', '0_kernel_size', '0_stride', '1_reflection', '1_group', '1_num_layers', '1_conv_op', '1_kernel_size', '1_se_ratio', '1_out_channels', '1_skip_op', '1_stride', '2_reflection', '2_group', '2_num_layers', '2_conv_op', '2_kernel_size', '2_se_ratio', '2_out_channels', '2_skip_op', '2_stride', '3_reflection', '3_group', '3_num_layers', '3_conv_op', '3_kernel_size', '3_se_ratio', '3_out_channels', '3_skip_op', '3_stride', '4_reflection', '4_group', '4_out_channels', '4_kernel_size', '4_stride']

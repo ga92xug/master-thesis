@@ -10,7 +10,7 @@ import os
 sys.path.append(f"{os.getcwd()}")
 #from experiment.utils import build_dataloaders
 from networks.util import get_param_count
-from experiment.log import Log
+from training.log import Log
 
 CUDA_CREATE_MULTIPLIER = 2.0
 CUDA_CALCULATE_MULTIPLIER = 1.2

@@ -10,7 +10,7 @@ import os
 os.environ["MKL_THREADING_LAYER"]="GNU"
 sys.path.append(f"{os.getcwd()}")
 from NAS.util import encode_parameters, convert_dict_to_hydra_string
-from experiment.run_files.run_command import run_command
+from training.run_files.run_command import run_command
 
 
 def get_adjusted_dict(

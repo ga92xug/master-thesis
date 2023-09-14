@@ -13,7 +13,7 @@ import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
 
-from experiment.datasets.mnist import own_transforms
+from training.datasets.mnist import own_transforms
 
 
 
