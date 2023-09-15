@@ -1,4 +1,4 @@
-_target_: experiment.datasets.general.data_loader.get_Galaxy10_DECals
+_target_: training.datasets.general.data_loader.get_Galaxy10_DECals
 name: "Galaxy10_DECals"             # The name of the dataset to use
 augment: False                 # Augment the training set with rotated images
 resolution: 108

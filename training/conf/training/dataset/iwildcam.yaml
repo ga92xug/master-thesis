@@ -1,4 +1,4 @@
-_target_: experiment.datasets.domain_shift.data_loader.get_loaders
+_target_: training.datasets.domain_shift.data_loader.get_loaders
 name: iwildcam
 augment: False                 # Augment the training set with rotated images
 resolution: 108

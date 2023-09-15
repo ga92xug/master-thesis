@@ -6,7 +6,7 @@ defaults:
 
 dataset:
   # same for all mnist
-  _target_: experiment.datasets.mnist.data_loader_mnist.build_mnist_loaders
+  _target_: training.datasets.mnist.data_loader_mnist.build_mnist_loaders
   batch_size: 64                
   eval_batch_size: 64           
   augment: True                 # Augment the training set with rotated images

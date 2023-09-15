@@ -1,4 +1,4 @@
-_target_: experiment.datasets.imagenette.data_loader.build_loaders
+_target_: training.datasets.imagenette.data_loader.build_loaders
 name: imagenette             
 batch_size: 128
 eval_batch_size: 128

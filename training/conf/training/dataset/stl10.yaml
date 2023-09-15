@@ -1,4 +1,4 @@
-_target_: experiment.datasets.predefined.data_loader.build_loaders
+_target_: training.datasets.predefined.data_loader.build_loaders
 augment: True                 # Augment the training set with rotated images
 reshuffle: True               # Reshuffle train and valid splits instead of using the default split
 

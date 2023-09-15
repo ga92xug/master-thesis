@@ -86,11 +86,11 @@ def build_loaders(
     eval_batch_size,
     workers,
     split_function,
-    train_val_sizes=None,
+    reduction_factor=1.0,
 ):
     random_seed = 42
     # Split the data into train, val, and test arrays.
-    train_images, train_labels, val_images, val_labels, test_images, test_labels = split_function(images, labels, random_seed=random_seed, train_val_sizes=train_val_sizes)
+    train_images, train_labels, val_images, val_labels, test_images, test_labels = split_function(images, labels, random_seed=random_seed, reduction_factor=reduction_factor)
 
     # Create the DataLoaders
     train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=transform), batch_size=batch_size, shuffle=True, num_workers=workers)
@@ -195,7 +195,7 @@ def get_ISIC_2019(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify, train_val_sizes=reduction_factor)
+    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify, reduction_factor=reduction_factor)
     return dataloaders, normalized_weights
 
 
