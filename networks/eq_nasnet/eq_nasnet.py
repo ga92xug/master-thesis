@@ -74,8 +74,6 @@ class EquivariantNASNet(nn.Module):
         assert image_size is not None, 'Please provide image size'
         assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
-        self.width_coefficient = width_coefficient
-        self.depth_coefficient = depth_coefficient
         self.dropout_rate = dropout_rate
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
@@ -145,7 +143,7 @@ class EquivariantNASNet(nn.Module):
             block_args = block_args._replace(
                 num_layers=round_repeats(
                     block_args.num_layers, 
-                    self.depth_coefficient
+                    depth_coefficient
                 ),
             )
             group_id = get_group_id(block_args.reflection, block_args.group)

@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 sys.path.append(f"{os.getcwd()}")
 from experiments.run_command import run_command
@@ -14,7 +15,7 @@ global_args = {
     "model.restrict": "[none,none]",
     "model.depth": 16,
     "model.widen_factor": 2,
-    "training.dataset.resolution": 96*2,
+    "training.dataset.resolution": 96,
     # training
     "training": "isic2019-training",
     "training.dataset.batch_size": 32,
@@ -22,30 +23,12 @@ global_args = {
     "training.accumulate": 1,
 }
 
-# baseline
-#  :  468 GFLOPs    
-args = {
-    "wandb.tags": "[isic2019-baseline]",
-}
-run_command(args, global_args, test="instantiation")
 
-quit()
-# odd even resolution
-for seed in range(3):
-    for i, resolution in enumerate([96, 95]):
-        args = {
-            "wandb.tags": f"[isic2019-resolution_odd, resolution-{resolution}]",
-            "training.dataset.resolution": resolution,
-            "other.seed": seed,
-        }
-        run_command(args, global_args, test=False)
+
 
 # Depth 
-# 22: 0730 GFLOPs
 # 28: 0992 GFLOPs
-# 34: 1254 GFLOPs
-# 40: 1517 GFLOPs
-# 46: 1779 GFLOPs
+# compound scaling every 12 layers ca. +500 GFLOPs
 for i, depth in enumerate([28, 40]):
     args = {
         "wandb.tags": "[isic2019-depth_scaling]",
@@ -75,10 +58,28 @@ for i, width in enumerate([3, 5]):
 # 160: 1297 GFLOPs
 # 192: 1868 GFLOPs
 # 224: 2542 GFLOPs
-for i, resolution in enumerate([160, 224]):
+for i, resolution in enumerate([144]):
     args = {
         "wandb.tags": "[isic2019-resolution_scaling]",
         "training.dataset.resolution": resolution,
         "wandb.notes": f"r{i}",
     }
-    #run_command(args, global_args, test="instantiation")
+    run_command(args, global_args, test="instantiation")
+
+
+
+depth_list = [16, 22]
+resolution_list = [96, 144]
+
+
+for depth in depth_list:
+    for resolution in resolution_list:
+        for i, width in enumerate([3, 5]):
+            args = {
+                "wandb.tags": "[isic2019-width_resolution_scaling]",
+                "model.widen_factor": width,
+                "model.depth": depth,
+                "training.dataset.resolution": resolution,
+                "wandb.notes": f"w{width}_d{depth}_r{resolution}",
+            }
+            # run_command(args, global_args, test="instantiation")

@@ -311,7 +311,8 @@ def init_generation_strategy(
         steps.append(
             GenerationStep(
                 model=Models.SOBOL,
-                num_trials=num_sobol_trials
+                num_trials=num_sobol_trials,
+                should_deduplicate=True,
             )
         )
     steps.append(
@@ -325,6 +326,7 @@ def init_generation_strategy(
                     "disable_progbar": cfg.generation.disable_progbar, # Set to False to print a progress bar from MCMC
                 },
                 max_parallelism=1,
+                should_deduplicate=True,
             )
     )
     generation_strategy=GenerationStrategy(

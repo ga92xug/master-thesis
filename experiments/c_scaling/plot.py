@@ -23,14 +23,14 @@ def create_subplot(ax, flops, accuracy, xlabel, ylabel, labels=None):
     ax.set_xlim(np.min(flops) - 0.5, np.max(flops) + 1)
 
     # Set the y-axis limits to be slightly larger than the range of accuracy values.
-    ax.set_ylim(np.min(accuracy) - 0.1, np.max(accuracy) + 0.1)
+    ax.set_ylim(np.min(accuracy) - 1, np.max(accuracy) + 1)
 
     # Label individual points
     if labels is not None:
         for label, x, y in zip(labels, flops, accuracy):
-            ax.annotate(label, (x, y), textcoords="offset points", xytext=(+5, -20), ha='center')
+            ax.annotate(label, (x, y), textcoords="offset points", xytext=(+5, -15), ha='center')
 
-def scaling_individual(
+def plot_scaling_individual(
         flops: List[float], 
         accuracy: List[float], 
         xlabel: str = "GFLOPs", 
@@ -62,26 +62,37 @@ def scaling_individual(
     # Adjust the subplot spacing.
     fig.tight_layout()
 
-def scaling_compound(
+def plot_scaling_compound_baseline(
         flops_lists: List[List[float]],
         accuracy_lists: List[List[float]],
         xlabel: str = "GFLOPs",
         ylabel: str = "ISIC 2019 Valid Acc (%)",
         legend_labels: List[str] = None
     ):
-    fig, ax = plt.subplots(figsize=(3, 3))
+    fig, ax = plt.subplots(figsize=(6, 4))  # Adjust the figure size as needed
 
-    for i, (flops, accuracy) in enumerate(zip(flops_lists, accuracy_lists)):
+    # Calculate the final accuracy for each plot
+    final_accs = [accuracy[-1] for accuracy in accuracy_lists]
+
+    # Sort the plots based on final accuracy in descending order
+    sorted_indices = sorted(range(len(final_accs)), key=lambda i: final_accs[i], reverse=True)
+
+    # Define linestyles for different plots based on their final accuracy
+    linestyles = ['-', '--', '-.', ':']  # You can extend this list for more line styles
+
+    for i, idx in enumerate(sorted_indices):
+        flops = flops_lists[idx]
+        accuracy = accuracy_lists[idx]
+        linestyle = linestyles[i % len(linestyles)]  # Cycle through linestyles
         color = plt.cm.tab10(i)
-        ax.plot(flops, accuracy, color=color, marker='o', linestyle='-', markersize=5)
+        ax.plot(flops, accuracy, color=color, marker='o', linestyle=linestyle, markersize=5)
 
     if legend_labels:
-        plt.legend(legend_labels, loc='lower right')
+        plt.legend([legend_labels[i] for i in sorted_indices], loc='lower right')
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
 
-    #plt.grid(True)
     plt.tight_layout()
 
 
@@ -99,6 +110,6 @@ def generate_fake_log_increasing_acc(start_value, common_ratio, n_terms):
 
   sequence = [start_value]
   for i in range(1, n_terms):
-    new_point = sequence[-1] + log(sequence[-1], i * common_ratio) / common_ratio
+    new_point = sequence[-1] + log(sequence[-1], i * common_ratio) / common_ratio + np.random.normal(0, 1)
     sequence.append(new_point)
   return sequence
