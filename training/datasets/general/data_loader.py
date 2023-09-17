@@ -1,5 +1,3 @@
-import random
-import re
 import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
@@ -8,7 +6,7 @@ from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from PIL import Image
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 #import cv2
 
 import h5py
@@ -16,6 +14,7 @@ import numpy as np
 
 import sys
 import os
+from training.datasets import own_transforms
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
 #print("current working directory: ", os.getcwd())
@@ -81,7 +80,8 @@ class Custom_Dataset(Dataset):
 def build_loaders(
     images, 
     labels,
-    transform,
+    train_transform,
+    valid_transform,
     batch_size,
     eval_batch_size,
     workers,
@@ -93,9 +93,9 @@ def build_loaders(
     train_images, train_labels, val_images, val_labels, test_images, test_labels = split_function(images, labels, random_seed=random_seed, reduction_factor=reduction_factor)
 
     # Create the DataLoaders
-    train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=transform), batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_loader = DataLoader(Custom_Dataset(val_images, val_labels, transform=transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
-    test_loader = DataLoader(Custom_Dataset(test_images, test_labels, transform=transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
+    train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=train_transform), batch_size=batch_size, shuffle=True, num_workers=workers)
+    val_loader = DataLoader(Custom_Dataset(val_images, val_labels, transform=valid_transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
+    test_loader = DataLoader(Custom_Dataset(test_images, test_labels, transform=valid_transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
 
     dataloaders = {
         "train": train_loader,
@@ -104,6 +104,42 @@ def build_loaders(
     }
 
     return dataloaders
+
+def get_transforms(
+    resolution: int,
+    augment: bool or dict,
+    channel_wise_mean_images: list,
+    channel_wise_std_images: list,
+    ) -> transforms.Compose:
+
+    transform_list = [
+        transforms.Resize((resolution, resolution)),
+    ]
+
+    if isinstance(augment, DictConfig):
+        augment = OmegaConf.to_container(
+            augment, resolve=True, throw_on_missing=True
+        )
+
+    if augment:
+        if isinstance(augment, dict):
+            for key, value in augment.items():
+                if "Own" in key:
+                    # random rotation does not allow for discrete choices
+                    transform_list.append(getattr(own_transforms, key)(**value))
+                else:
+                    transform_list.append(getattr(transforms, key)(**value))
+        elif isinstance(augment, bool):
+            NotImplementedError("Bool Augmentation is not implemented yet")
+        else:
+            raise RuntimeError("Unknown Augmentation Type")
+
+    transform_list.extend([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
+                           ])
+
+    return transforms.Compose(transform_list)
 
 
 def get_Galaxy10_DECals(
@@ -128,11 +164,8 @@ def get_Galaxy10_DECals(
     images = images.astype(np.uint8)
 
     # Define the transformations
-    transform = transforms.Compose([
-        transforms.Resize((resolution, resolution)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
-    ])
+    train_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
+    valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
 
     # normalize weights
     if should_normalize_weights:
@@ -141,7 +174,7 @@ def get_Galaxy10_DECals(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify)
+    dataloaders = build_loaders(images, labels, train_transform, valid_transform, batch_size, eval_batch_size, workers, split_with_stratify)
     return dataloaders, normalized_weights
 
 
@@ -159,17 +192,17 @@ def get_ISIC_2019(
     reduction_factor=None,
     **kwargs,
 ):
+    assert resolution <= 450, "The maximum resolution for ISIC_2019 is 450x450 since the minimum height is 450"
+
     location = data_dir + name
     # these files you download
     ground_truth = location + '/ISIC_2019_Training_GroundTruth.csv'
     images = location + '/ISIC_2019_Training_Input'
 
     df = pd.read_csv(ground_truth)
-    
     for label in df.columns[1:]:
         df.loc[df[label] == 1.0, 'label'] = label
-
-
+    
     #create instance of label encoder
     lab = LabelEncoder()
     df['label'] = lab.fit_transform(df['label'])
@@ -182,11 +215,8 @@ def get_ISIC_2019(
     #images = df['name'].apply(lambda file_location: np.array(Image.open(file_location)).astype(np.uint8)).values
     
     # Define the transformations
-    transform = transforms.Compose([
-        transforms.Resize((resolution, resolution)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
-    ])
+    train_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
+    valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
 
     # normalize weights
     if should_normalize_weights:
@@ -195,7 +225,7 @@ def get_ISIC_2019(
         # to gather the weighted accuracy
         normalized_weights = 1
 
-    dataloaders = build_loaders(images, labels, transform, batch_size, eval_batch_size, workers, split_with_stratify, reduction_factor=reduction_factor)
+    dataloaders = build_loaders(images, labels, train_transform, valid_transform, batch_size, eval_batch_size, workers, split_with_stratify, reduction_factor=reduction_factor)
     return dataloaders, normalized_weights
 
 

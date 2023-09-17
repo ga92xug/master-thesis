@@ -14,10 +14,10 @@ global_args = {
     "model.restrict": "[none,none]",
     "model.depth": 16,
     "model.widen_factor": 2,
-    "training.dataset.resolution": 96,
     # training
     "training": "isic2019-training",
-    "training.dataset.batch_size": 32,
+    "training.dataset.resolution": 96,
+    "training.dataset.batch_sfrom experiments.b_NAS.util import convert_dict_to_hydra_stringize": 32,
     "training.dataset.eval_batch_size": 32,
     "training.accumulate": 1,
 }

@@ -1,6 +1,8 @@
 import subprocess
 import os
 import sys
+
+from experiments.util import convert_dict_to_hydra_string
 sys.path.append('experiment')
 os.environ['HYDRA_FULL_ERROR'] = '1'
 #print("Add path", pathlib.Path(sys.path[-1]).absolute())
@@ -28,7 +30,7 @@ def run_command(
         print(duplicate_keys)
     
     # combine args and global_args, args have priority
-    command_args = {**global_args, **args}
+    command_args_dict = {**global_args, **args}
 
     if test:
         global_args_test = {
@@ -36,10 +38,10 @@ def run_command(
             "training.steps_per_epoch": 10,
             "training.epochs": 1,
         }
-        command_args = {**command_args, **global_args_test}
+        command_args_dict = {**command_args_dict, **global_args_test}
 
     # convert to list
-    command_args = [f"{k}={v}" for k, v in command_args.items()]
+    command_args = [f"{k}={v if not isinstance(v, dict) else convert_dict_to_hydra_string(v)}" for k, v in command_args_dict.items()]
 
 
     if test == "instantiation":

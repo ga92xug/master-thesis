@@ -9,7 +9,8 @@ import os
 # issue with https://github.com/pytorch/pytorch/issues/37377
 os.environ["MKL_THREADING_LAYER"]="GNU"
 sys.path.append(f"{os.getcwd()}")
-from NAS.util import encode_parameters, convert_dict_to_hydra_string
+from NAS.util import encode_parameters
+from experiments.util import convert_dict_to_hydra_string
 from training.run_files.run_command import run_command
 
 

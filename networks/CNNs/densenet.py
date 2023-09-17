@@ -148,8 +148,9 @@ class DenseNet(nn.Module):
         drop_rate: float = 0,
         memory_efficient: bool = False,
     ) -> None:
-
         super().__init__()
+
+        self.name = "densenet"
 
         # First convolution
         self.features = nn.Sequential(
