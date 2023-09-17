@@ -1,6 +1,3 @@
-from email.mime import image
-import sqlite3
-import time
 import numpy as np
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
@@ -173,15 +170,7 @@ class Experiment:
 
         # 1 epoch
         for batch_idx, out_dataloader in enumerate(self._dataloaders["train"]):
-            
-            if len(out_dataloader) == 2:
-                x, t = out_dataloader
-            elif len(out_dataloader) == 3:
-                # domain shift
-                x, t, _ = out_dataloader
-            else:
-                raise ValueError("Dataloader should return 2 or 3 values")
-            
+            x, t, _ = utils.get_out_dataloader(out_dataloader)            
 
             if self._verbose > 3:
                 print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
@@ -255,15 +244,8 @@ class Experiment:
         cumulative_loss = 0.
         n_samples = 0
         for _, out_dataloader in enumerate(self._dataloaders[split]):
-            if len(out_dataloader) == 2:
-                x, t = out_dataloader
-                meta_data = None
-            elif len(out_dataloader) == 3:
-                # domain shift
-                x, t, meta_data = out_dataloader
-            else:
-                raise ValueError("Dataloader should return 2 or 3 values")
-
+            x, t, meta_data = utils.get_out_dataloader(out_dataloader)
+        
             x = x.to(self.device)
             t = t.to(self.device)
             y = self.model(x)

@@ -1,4 +1,4 @@
-_target_: training.datasets.dataloader.build_loaders
+_target_: training.datasets.domain_shift.data_loader.get_loaders
 name: camelyon17             # The name of the dataset to use
 augment: False                 # Augment the training set with rotated images
 workers: 8                    # Number of jobs to load the dataset

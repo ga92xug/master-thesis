@@ -7,7 +7,7 @@ import datetime
 import hydra
 import signal
 
-from typing import List
+from typing import List, Tuple
 
 import torch
 
@@ -89,6 +89,17 @@ def print_results(metrics, loss, duration, mode, epoch, verbose):
         metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items()])
         print(f'{metrics}, loss: {loss:.3f}')
 
+def get_out_dataloader(out_dataloader: Tuple):
+    if len(out_dataloader) == 2:
+        x, t = out_dataloader
+        meta_data = None
+    elif len(out_dataloader) == 3:
+        # domain shift
+        x, t, meta_data = out_dataloader
+    else:
+        raise ValueError("Dataloader should return 2 or 3 values")
+    
+    return x, t, meta_data
 
 ########################################################################################################################
 # Utilites to build paths and names in a standard way
