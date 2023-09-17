@@ -1,11 +1,9 @@
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from PIL import Image
-import hydra
 from omegaconf import DictConfig, OmegaConf
 #import cv2
 
@@ -20,6 +18,9 @@ from training.datasets.utils import get_normalize_weights, get_transforms
 
 
 def split_without_stratify(images, labels, random_seed):
+    """
+    Not used anymore. Only to reproduce old results.
+    """
     # Split the data into train, val, and test arrays.
     np.random.seed(random_seed)
     indices = np.arange(len(images))
@@ -49,10 +50,14 @@ def split_with_stratify(images, labels, random_seed, reduction_factor=None):
 class Custom_Dataset(Dataset):
     def __init__(self, images, labels, transform=None):
         super().__init__()
+        assert len(images) == len(labels), "images and labels should have the same length"
+        assert isinstance(images[0], np.ndarray) or isinstance(images[0], str), "images should be a list of numpy arrays or a list of strings"
+
         self.images = images
         self.labels = labels
         self.transform = transform
 
+        
     def __len__(self):
         return len(self.images)
 
@@ -71,7 +76,6 @@ class Custom_Dataset(Dataset):
             image = self.transform(image)
 
         label = torch.tensor(label, dtype=torch.int64)
-
         return image, label
 
 def build_loaders(
@@ -116,6 +120,8 @@ def get_Galaxy10_DECals(
     augment: bool,
     **kwargs,
 ):
+    assert resolution <= 256, "The maximum resolution for Galaxy10_DECals is 256"
+
     location = data_dir + name + "/Galaxy10_DECals.h5"
     #print("location: ", location)
     with h5py.File(location, 'r') as F:
@@ -129,11 +135,7 @@ def get_Galaxy10_DECals(
     valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
 
     # normalize weights
-    if should_normalize_weights:
-        normalized_weights = get_normalize_weights(labels)
-    else:
-        # to gather the weighted accuracy
-        normalized_weights = 1
+    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
 
     dataloaders = build_loaders(images, labels, train_transform, valid_transform, batch_size, eval_batch_size, workers, split_with_stratify)
     return dataloaders, normalized_weights
@@ -173,18 +175,13 @@ def get_ISIC_2019(
     df = df[['name', 'label']]
     labels = df['label'].values
     images = df['name'].values
-    #images = df['name'].apply(lambda file_location: np.array(Image.open(file_location)).astype(np.uint8)).values
     
     # Define the transformations
     train_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
     valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
 
     # normalize weights
-    if should_normalize_weights:
-        normalized_weights = get_normalize_weights(labels)
-    else:
-        # to gather the weighted accuracy
-        normalized_weights = 1
+    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
 
     dataloaders = build_loaders(images, labels, train_transform, valid_transform, batch_size, eval_batch_size, workers, split_with_stratify, reduction_factor=reduction_factor)
     return dataloaders, normalized_weights
