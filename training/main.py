@@ -3,7 +3,7 @@ np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
 import os
 import datetime
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, OmegaConf, open_dict
 import wandb
 import math
 import torch
@@ -132,11 +132,9 @@ class Experiment:
         self.steps_per_epoch = cfg.training.steps_per_epoch
 
         # adapt learning rate
-        print("cfg.training.scheduler", cfg.training.scheduler)
-        if "CosineAnnealingLR" in cfg.training.scheduler:
-            OmegaConf.set_readonly(cfg, False) 
-            cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * cfg.training.epochs
-            OmegaConf.set_readonly(cfg, True) 
+        if "CosineAnnealingLR" in cfg.training.scheduler._target_:
+            with open_dict(cfg):
+                cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * cfg.training.epochs
         self._lr_scheduler = hydra.utils.instantiate(cfg.training.scheduler, 
                                             optimizer=self._optimizer)
         print("Stage 3: optimizer built")

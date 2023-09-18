@@ -32,6 +32,9 @@ sweep_config:
     - model=${model}
     - training=${sweep_config.name}-training
     - training.epochs=${sweep_config.epochs}
-    - training.scheduler=cosine_annealing_lr
+    # there is no better way to change the scheduler since the training specifies some of the scheduler params
+    # https://github.com/facebookresearch/hydra/issues/2227 easier replacement issue
+    - ~training.scheduler  
+    - +training.scheduler._target_=torch.optim.lr_scheduler.CosineAnnealingLR
     # same as for sweep where we searched HP for the normal data regime
     #- model.restrict=[halved,halved]

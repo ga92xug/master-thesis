@@ -6,8 +6,6 @@ from omegaconf import DictConfig, OmegaConf
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
-# 500 epochs 1% data - 100 epochs 100% data
-
 def prepare_sweep_config(
         config_dict: dict,
     ):
