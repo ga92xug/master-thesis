@@ -17,7 +17,7 @@ global_args = {
 ################################
 # from here on we have to adjust
 ################################
-    "training": "isic2019-training",
+    "training": "camelyon17-training",
     "training.dataset.resolution": 96,
     "training.dataset.batch_size": 32,
     "training.dataset.eval_batch_size": 32,

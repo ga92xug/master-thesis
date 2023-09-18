@@ -29,8 +29,7 @@ other:
   time_limit: null              # Maximum time limit for training (in Minutes)
   should_test: False
   gpu_time_limit: False
-
-
+  debug: False
 
 # WandB
 wandb:

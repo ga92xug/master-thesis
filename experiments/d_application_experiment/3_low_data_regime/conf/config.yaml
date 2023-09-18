@@ -2,11 +2,16 @@ defaults:
 - _self_
 - sweep_config: cifar10
 
-num_trials: 20
+# model
+model: densenet
+
+# percentage
+percentage: 25 # 1, 10, , 50, 100
 
 sweep_config:
-  program: experiment/main.py
+  program: training/main.py
   method: bayes
+  run_cap: 1
 
   metric:
     goal: maximize
@@ -14,19 +19,19 @@ sweep_config:
 
   early_terminate:
     type: hyperband
-    # min_iter specified in the sweep-config
+    # min_iter 10% of epochs -> done in script
 
   # parameters specified in the sweep-config
 
-  # model
+  project: SL-Application
 
-  # percentage
-  percentage:
-    values: 1, 10, 25, 50, 100
 
   command:
     - python
-    - ${program}
-    - model=eq_wrn
+    - ${sweep_config.program}
+    - model=${model}
+    - training=${sweep_config.name}-training
+    - training.epochs=${sweep_config.epochs}
+    - training.scheduler=cosine_annealing_lr
     # same as for sweep where we searched HP for the normal data regime
-    - model.restrict=[halved,halved]
+    #- model.restrict=[halved,halved]

@@ -132,7 +132,8 @@ class Experiment:
         self.steps_per_epoch = cfg.training.steps_per_epoch
 
         # adapt learning rate
-        if "CosineAnnealingLR" in cfg.training.scheduler._target_:
+        print("cfg.training.scheduler", cfg.training.scheduler)
+        if "CosineAnnealingLR" in cfg.training.scheduler:
             OmegaConf.set_readonly(cfg, False) 
             cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * cfg.training.epochs
             OmegaConf.set_readonly(cfg, True) 
@@ -341,6 +342,14 @@ class Experiment:
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
+    if cfg.other.debug:
+        print("Debug mode")
+        #OmegaConf.set_struct(cfg.training, False)
+        cfg.training.epochs = 1
+        cfg.training.steps_per_epoch = 10
+        #OmegaConf.set_struct(cfg.training, True)
+        cfg.wandb.mode = "disabled"
+
     # check if we are allowed to run
     utils.allowed_usage_time(cfg.other.gpu_time_limit)
     exp = Experiment(cfg)

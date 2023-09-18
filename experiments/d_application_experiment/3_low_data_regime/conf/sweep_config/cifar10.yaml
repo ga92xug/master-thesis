@@ -1,20 +1,22 @@
 # cifar10 low data regime
 name: cifar10
 
-epochs: 100
+epochs: 200 # 300
 
 metric:
   name: valid.acc
 
+
+
 parameters:
   # SGD with 0.1 original learning rate 
   training.optimizer.lr:
-    distribution: log_uniform
+    distribution: log_uniform_values
     min: 0.005
     max: 0.2
   # SGD with 0.0005 original weight decay
   training.optimizer.weight_decay:
-    distribution: log_uniform
+    distribution: log_uniform_values
     min: 0.00001
     max: 0.01
 
