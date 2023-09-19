@@ -42,6 +42,6 @@ other:
 
 wandb:
   entity: "ga92xug"
-  project: "scaling-laws-nas_high_level"
+  project: "SL-NAS-high-level"
   mode: online # online
   mode_runs: disabled

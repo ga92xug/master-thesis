@@ -1,5 +1,4 @@
 import os
-from pyexpat import model
 import sys
 sys.path.append(f"{os.getcwd()}")
 from experiments.run_command import run_command

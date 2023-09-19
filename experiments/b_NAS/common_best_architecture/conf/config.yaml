@@ -17,7 +17,7 @@ map_strategies_2_replacement_groups: {
 }
 
 wandb:
-  project: scaling-laws-eqnasnet
+  project: SL-NAS-common-best
   mode: disabled
   notes: new_galaxy10
   tags: new_galaxy10

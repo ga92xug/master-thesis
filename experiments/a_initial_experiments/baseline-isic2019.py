@@ -1,15 +1,25 @@
+import os
 import sys
-sys.path.append('../run_files') # add parent directory
-from run_command import run_command
+sys.path.append(f"{os.getcwd()}")
+from experiments.run_command import run_command
 
-global_args = []
+global_args = [
+    "training=isic2019-training",
+]
 args = [
-        "training=cifar10-training",
-        "training.dataset.name=cifar10_rot",
-        # [halved,none]
-        "model.restrict=[none,none],[none,halved],[halved,halved]",
-        "wandb.tags=[eq_wrn,baseline_cifar10_rot]",
-    ]
+    "model=eq_wrn",
+    "model.restrict=[none,none]",
+
+    "wandb.project=SL-baselines",
+    "wandb.tags=[eq_wrn,isic2019]",
+]
 
 run_command(args, global_args, test=False)
 
+args = [
+    "model=densenet",
+
+    "wandb.project=SL-baselines",
+    "wandb.tags=[densenet,isic2019]",
+]
+run_command(args, global_args, test=False)

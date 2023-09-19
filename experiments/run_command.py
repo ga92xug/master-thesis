@@ -33,12 +33,7 @@ def run_command(
     command_args_dict = {**global_args, **args}
 
     if test:
-        global_args_test = {
-            "wandb.mode": "disabled",
-            "training.steps_per_epoch": 10,
-            "training.epochs": 1,
-        }
-        command_args_dict = {**command_args_dict, **global_args_test}
+        command_args_dict["other.debug"] = True 
 
     # convert to list
     command_args = [f"{k}={v if not isinstance(v, dict) else convert_dict_to_hydra_string(v)}" for k, v in command_args_dict.items()]

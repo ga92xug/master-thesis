@@ -36,5 +36,6 @@ sweep_config:
     # https://github.com/facebookresearch/hydra/issues/2227 easier replacement issue
     - ~training.scheduler  
     - +training.scheduler._target_=torch.optim.lr_scheduler.CosineAnnealingLR
+    - other.debug=False
     # same as for sweep where we searched HP for the normal data regime
     #- model.restrict=[halved,halved]
