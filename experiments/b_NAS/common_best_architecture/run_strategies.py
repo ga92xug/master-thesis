@@ -71,13 +71,14 @@ def get_training_args(
 
     # Create a new run
     args = [
-        f'other.debug=True',
+        #f'other.debug=True',
         #f'wandb.tags=[SE_test]',
-        f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
+        #f'model.dropout_rate={0.0}',
+        #f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
         f'model.eq_expand_ratio={strategy_dict["-1_expand_ratio"]}',
         f'+model.replacement_group_strategy={replacement_group_strategy}',
         f'+model.blocks_args_dict={convert_dict_to_hydra_string(strategy_dict)}',
-        f'wandb.give_name=strategy_{strategy_name}{adjusted}',
+        f'wandb.give_name=strategy_{strategy_name}{adjusted}', #_dropout_0.0',
     ]
 
     if dataset == "cifar10_rot":
@@ -251,9 +252,11 @@ def old_main():
 def iter_over_strategies(cfg: DictConfig):
     datasets = list(cfg.datasets) #  "ISIC_2019"
     pure_strategies_df = pd.read_csv(cfg.data_dir + 'pure_strategies.csv', index_col=0)
+    all_other_strategies_df = pd.read_csv(cfg.data_dir + 'strategies.csv', index_col=0)
     #mixed_strategies_df = pd.read_csv(cfg.data_dir + 'mixed_strategies.csv', index_col=0)
     #strategies_df = pd.concat([pure_strategies_df, mixed_strategies_df])
-    strategies_df = pure_strategies_df
+    strategies_df = pd.concat([pure_strategies_df, all_other_strategies_df])
+    #strategies_df = pure_strategies_df
     
 
     for strategy in cfg.strategies:

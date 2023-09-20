@@ -1,5 +1,7 @@
 import signal
+from typing import List
 import hydra
+from hydra import compose, initialize
 import timeit
 import torch
 from omegaconf import DictConfig
@@ -127,8 +129,7 @@ def init_model(cfg, n_inputs, n_outputs, image_size, device):
     return model, model_building_time
     
 
-@hydra.main(config_path="conf", config_name="config", version_base="1.2")
-def test_instantiate(cfg: DictConfig) -> None:
+def test_instantiate(cfg: DictConfig):
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     #_dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
     dataloaders, normalize_weights  = hydra.utils.call(cfg.training.dataset)
@@ -148,6 +149,19 @@ def test_instantiate(cfg: DictConfig) -> None:
     )
     print(stats)
 
+    return model, dataloaders
+
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+def hydra_main(cfg: DictConfig) -> None:
+    test_instantiate(cfg)
+
+
+def hydra_compose(overrides: List[str]):
+    with initialize(config_path="conf", version_base="1.2"):
+        cfg = compose(config_name="config", overrides=overrides)
+        model, dataloaders = test_instantiate(cfg)
+
+    return model, dataloaders
 
 if __name__ == "__main__":
-    test_instantiate()
+    hydra_main()

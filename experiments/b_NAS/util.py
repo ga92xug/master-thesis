@@ -1,5 +1,8 @@
+import pandas as pd
 import wandb
 import os
+from ax.service.ax_client import AxClient
+from ax.service.utils.report_utils import exp_to_df
 
 def encode_parameters(params, choice_2_range_params : dict = {
         "group": [1, 2, 4, 8, 16],
@@ -143,3 +146,23 @@ def get_largest_saved_version_ax_client(folder: str = None):
 
     print("Largest version: ", version, result)
     return version, result
+
+def get_ax_client_from_folder(
+        folder: str, 
+        path: str = "../../Data/frischs/NAS_data_save/"
+    ) -> AxClient:
+    
+    location = os.path.join(path, folder)
+    _, name = get_largest_saved_version_ax_client(location)
+    filepath = os.path.join(location, name)
+    ax_client = AxClient.load_from_json_file(filepath=filepath)
+    return ax_client
+
+def show_experiment_ordered_frame(client: AxClient) -> pd.DataFrame:
+    df = exp_to_df(client.experiment)
+    df = df.drop_duplicates(subset=['arm_name'], keep=False)
+    if "valid_acc_weighted" in df.columns:
+        df = df.sort_values(by=["valid_acc_weighted"], ascending=False)
+    else:
+        df = df.sort_values(by=["valid_acc"], ascending=False)
+    return df

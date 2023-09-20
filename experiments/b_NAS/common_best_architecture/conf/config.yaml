@@ -2,9 +2,9 @@
 data_dir: experiments/b_NAS/data/common_best_architecture/
 
 #strategies: [Strategy_fix_1_0]
-strategies: [pure_isic2019]
-datasets: [isic2019, galaxy10, mnist_rot, cifar10, cifar10_rot]
-#datasets: [isic2019, stl10]
+strategies: [pure_isic2019_99_not_adjusted]
+#datasets: [galaxy10, mnist_rot, cifar10_rot] # cifar10 with group adjustment
+datasets: [isic2019]
 #adjust_lists: [[group, out_channels]]
 adjust_lists: [[]]
 
