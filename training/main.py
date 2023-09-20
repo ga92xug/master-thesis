@@ -22,8 +22,6 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 #import torch._dynamo
 #torch._dynamo.config.suppress_errors = True
 
-from sklearn.metrics import balanced_accuracy_score, accuracy_score
-
 class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()

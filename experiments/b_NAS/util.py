@@ -1,4 +1,5 @@
 import wandb
+import os
 
 def encode_parameters(params, choice_2_range_params : dict = {
         "group": [1, 2, 4, 8, 16],
@@ -122,3 +123,23 @@ def init_wandb(run_id, cfg, wandb_config=None):
     run.log_code(".")
     return run
 
+def get_largest_saved_version_ax_client(folder: str = None):
+    if folder is None:
+        global save_folder
+        folder = save_folder
+    # get the largest version
+    version = -1
+    result = None
+    for file in os.listdir(folder):
+        if file.startswith("ax_client_"):
+            file_version = int(file.split("_")[-1].split(".")[0])
+            if file_version > version:
+                version = file_version
+                result = file
+        
+        if file == "ax_client.json":
+            result = file
+            version = 0
+
+    print("Largest version: ", version, result)
+    return version, result

@@ -1,7 +1,7 @@
 
 #strategies: [Strategy_fix_1_0]
-strategies: [pure_galaxy10]
-datasets: [cifar10, cifar10_rot]
+strategies: [pure_isic2019]
+datasets: [isic2019, galaxy10, mnist_rot, cifar10, cifar10_rot]
 #datasets: [isic2019, stl10]
 #adjust_lists: [[group, out_channels]]
 adjust_lists: [[]]

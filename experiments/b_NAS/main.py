@@ -44,7 +44,7 @@ from evaluate import evaluate
 from runner_service import HydraWandbRunner
 from search_space_service import Search_Space
 from fetch_trial_data import TrialDataFetcher
-from util import init_wandb
+from util import init_wandb, get_largest_saved_version_ax_client
 
 
 def warm_start(old_client_name: str, new_client: AxClient, max_building_time: int = None, initial: bool = False):
@@ -61,8 +61,8 @@ def warm_start(old_client_name: str, new_client: AxClient, max_building_time: in
     elif os.path.exists(old_client_name):
         old_client_file_path = old_client_name
     else:
-        largest_version = get_largest_saved_version_ax_client()
-        old_client_file_path = f"NAS/data/{old_client_name}/ax_client_{largest_version}.json"
+        _, largest_name = get_largest_saved_version_ax_client()
+        old_client_file_path = f"NAS/data/{old_client_name}/{largest_name}"
 
     old_ax_client = AxClient.load_from_json_file(filepath=old_client_file_path)
     old_client_counts = get_count_trials(ax_client=old_ax_client)
@@ -412,19 +412,6 @@ def get_next_trial(ax_client: AxClient):
     generation_time = stop - start
     return trial, generation_time
 
-def get_largest_saved_version_ax_client(folder: str = None):
-    if folder is None:
-        global save_folder
-        folder = save_folder
-    # get the largest version
-    version = 0
-    for file in os.listdir(folder):
-        if file.startswith("ax_client_"):
-            file_version = int(file.split("_")[-1].split(".")[0])
-            if file_version > version:
-                version = file_version
-    print("Largest version: ", version)
-    return version
 
 def add_fake_duplicate_trials(ax_client: AxClient, index: int):
     global cfg
@@ -452,8 +439,8 @@ def main_optim_loop(
     global cfg
     global save_folder
     verbose = cfg.other.verbose
-    current_version = get_largest_saved_version_ax_client()
-    ax_client_save_path = f"{save_folder}/ax_client_{current_version}.json"
+    current_version, name = get_largest_saved_version_ax_client()
+    ax_client_save_path = f"{save_folder}/{name}"
     ax_client.save_to_json_file(filepath=ax_client_save_path)
 
     print("count_trials: ", count_trials, "/", num_trials)
