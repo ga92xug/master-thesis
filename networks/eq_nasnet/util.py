@@ -6,11 +6,9 @@ import torch
 from torch import mul, nn
 from torch.nn import functional as F
 import sys
-
-from NAS.util import convert_to_number
-
-sys.path.append('../networks') # add parent directory
-
+import os
+sys.path.append(f"{os.getcwd()}")
+from experiments.b_NAS.util import convert_to_number
 from nn import FieldType
 
 CHANNELS_CONSTANT = 1

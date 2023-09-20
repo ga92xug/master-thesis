@@ -9,9 +9,9 @@ import os
 # issue with https://github.com/pytorch/pytorch/issues/37377
 os.environ["MKL_THREADING_LAYER"]="GNU"
 sys.path.append(f"{os.getcwd()}")
-from NAS.util import encode_parameters
+#from experiments.b_NAS.util import encode_parameters
 from experiments.util import convert_dict_to_hydra_string
-from training.run_files.run_command import run_command
+from experiments.run_command import run_command
 
 
 def get_adjusted_dict(
@@ -26,7 +26,7 @@ def get_adjusted_dict(
     replacement_group_strategy = "strategy_pure_" + replacement_group
 
     if replacement_group != strategy_name and len(adjust_list) > 0:
-        pure_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
+        pure_strategies_df = pd.read_csv(cfg.data_dir + 'pure_strategies.csv', index_col=0)
 
         replacement_group_strategy_row = pure_strategies_df.loc[[replacement_group_strategy]]
         replacement_group_strategy_dict = replacement_group_strategy_row.squeeze().to_dict()
@@ -71,6 +71,7 @@ def get_training_args(
 
     # Create a new run
     args = [
+        f'other.debug=True',
         #f'wandb.tags=[SE_test]',
         f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
         f'model.eq_expand_ratio={strategy_dict["-1_expand_ratio"]}',
@@ -105,7 +106,7 @@ def start_run(
 
     while retry_count < max_retries:
         try:
-            run_command(args, global_args, test=False, path="experiment/")
+            run_command(args, global_args, test=False)
             #print("Run successful")
             break
             #batch_size = get_batch_size_from_args(args)  # Replace with the actual way to get batch size from args
@@ -249,10 +250,11 @@ def old_main():
 
 def iter_over_strategies(cfg: DictConfig):
     datasets = list(cfg.datasets) #  "ISIC_2019"
-    pure_strategies_df = pd.read_csv('../../dev2/scaling-laws-ecnn/NAS/data/common_best_architecture/pure_strategies.csv', index_col=0)
-    #mixed_strategies_df = pd.read_csv('../../dev1/scaling-laws-ecnn/NAS/data/common_best_architecture/mixed_strategies.csv', index_col=0)
+    pure_strategies_df = pd.read_csv(cfg.data_dir + 'pure_strategies.csv', index_col=0)
+    #mixed_strategies_df = pd.read_csv(cfg.data_dir + 'mixed_strategies.csv', index_col=0)
     #strategies_df = pd.concat([pure_strategies_df, mixed_strategies_df])
     strategies_df = pure_strategies_df
+    
 
     for strategy in cfg.strategies:
         for adjust_list in cfg.adjust_lists:

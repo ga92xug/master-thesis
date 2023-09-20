@@ -4,8 +4,9 @@ import os
 # issue with https://github.com/pytorch/pytorch/issues/37377
 os.environ["MKL_THREADING_LAYER"]="GNU"
 sys.path.append(f"{os.getcwd()}")
-from NAS.util import encode_parameters
-from training.run_files.run_command import run_command
+from experiments.b_NAS.util import encode_parameters
+from experiments.run_command import run_command
+
 
 choice_2_range_params = {
     "group": [1, 2, 4, 8, 16],

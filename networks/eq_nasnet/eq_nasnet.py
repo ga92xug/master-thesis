@@ -6,7 +6,8 @@ from matplotlib.pyplot import stem
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
-sys.path.append('../networks') # add parent directory
+import os
+sys.path.append(f"{os.getcwd()}")
 
 from .util import (
     BlockArgs,
@@ -15,7 +16,7 @@ from .util import (
     round_repeats,
     get_channel_sizes,
 )
-from NAS.util import encode_parameters
+from experiments.b_NAS.util import encode_parameters
 from networks.eq_restriction import Restriction_Group_or_CNN
 from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_Block, NAS_Block
 

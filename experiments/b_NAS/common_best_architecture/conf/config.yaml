@@ -1,4 +1,6 @@
 
+data_dir: experiments/b_NAS/data/common_best_architecture/
+
 #strategies: [Strategy_fix_1_0]
 strategies: [pure_isic2019]
 datasets: [isic2019, galaxy10, mnist_rot, cifar10, cifar10_rot]
