@@ -16,7 +16,7 @@ global_args = {
     "training.dataset.batch_size": 32,
     "training.dataset.eval_batch_size": 32,
     "training.accumulate": 1,
-    "training.epochs": 50*4,
+    "training.epochs": 50,
 }
 
 # ECNN model
@@ -29,7 +29,7 @@ ecnn_args = {
 
 # CNN
 augmentation = {
-    #"RandomHorizontalFlip": {"p": 0.5},
+    "RandomHorizontalFlip": {"p": 0.5},
     "Own_RandomRotation": {"degrees": [0,90,180,270]},
 }
 
@@ -39,7 +39,9 @@ for augment in [augmentation]:
         "model": "densenet",
         # augmentation
         "training.dataset.augment": augment,
-
+        "training.epochs": 50*16,
+        # wandb notes
+        "wandb.notes": "densenet augmentation * 16",
     }
     run_command(cnn_args, global_args, test=False)
 

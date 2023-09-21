@@ -298,7 +298,42 @@ def get_gspace_from_id(id):
             )
         return gspace
 
+def compare_dicts(dict1, dict2):
+    # Find keys that are unique to each dictionary
+    keys_unique_to_dict1 = set(dict1.keys()) - set(dict2.keys())
+    keys_unique_to_dict2 = set(dict2.keys()) - set(dict1.keys())
+
+    # Find keys that are common to both dictionaries
+    common_keys = set(dict1.keys()) & set(dict2.keys())
+
+    # Initialize a dictionary to store the differences
+    differences = {}
+
+    # Check for differing values in common keys
+    for key in common_keys:
+        if dict1[key] != dict2[key]:
+            differences[key] = (dict1[key], dict2[key])
+
+    # Print the results
+    print("Keys unique to dict1:", keys_unique_to_dict1)
+    print("Keys unique to dict2:", keys_unique_to_dict2)
+    print("Key-Value differences:", differences)
+
+from collections.abc import MutableMapping
+
+def flatten_dict(dictionary, parent_key='', separator='_'):
+    items = []
+    for key, value in dictionary.items():
+        new_key = str(parent_key) + str(separator) + str(key) if parent_key != "" else key
+        if isinstance(value, MutableMapping):
+            items.extend(flatten_dict(value, new_key, separator=separator).items())
+        else:
+            items.append((new_key, value))
+    return dict(items)
 
 if __name__ == "__main__":
-    gspace = flipRot2dOnR2(4)
-    print(gspace.fibergroup.regular_representation)
+    nested_dict = {0: {'bla': 1, 'blu': 2}}
+    flattened_dict = flatten_dict(nested_dict)
+    print(flattened_dict)
+    #gspace = flipRot2dOnR2(4)
+    #print(gspace.fibergroup.regular_representation)

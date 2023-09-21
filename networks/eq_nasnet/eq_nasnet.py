@@ -1,5 +1,7 @@
 import math
 import re
+from numpy import block
+from requests import get
 import wandb
 from typing import List, Tuple
 from matplotlib.pyplot import stem
@@ -16,7 +18,7 @@ from .util import (
     round_repeats,
     get_channel_sizes,
 )
-from experiments.b_NAS.util import encode_parameters
+from networks.eq_nasnet.util import encode_parameters
 from networks.eq_restriction import Restriction_Group_or_CNN
 from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_Block, NAS_Block
 
@@ -38,6 +40,8 @@ from networks.util import (
     get_gspace_from_id, 
     get_param_count,
     adjusted_out_channels,
+    compare_dicts,
+    flatten_dict,
 )
 
 from nn import (
@@ -53,10 +57,21 @@ from nn import (
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
+
+def get_blocks_args(blocks_args_new:dict):
+    [BlockArgs(**block_args_new) for block_args_new in blocks_args_new.values()]
+    blocks_args = []
+    for level, block_args_new in blocks_args_new.items():
+        block_args = BlockArgs(**block_args_new)
+        blocks_args.append(block_args)
+    return blocks_args
+
+
 class EquivariantNASNet(nn.Module):
     def __init__(
             self, 
-            blocks_args, 
+            blocks_args_dict,
+            #blocks_args, 
             image_size,
             width_coefficient=1, 
             depth_coefficient=1,
@@ -71,36 +86,19 @@ class EquivariantNASNet(nn.Module):
     ):
         print("Equivariant_NAS_Net")
         super().__init__()        
-        blocks_args = list(blocks_args)
+        #blocks_args = list(blocks_args)
         assert image_size is not None, 'Please provide image size'
-        assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
-        assert len(blocks_args) > 0, 'block args must be greater than 0'
+        #assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
+        #assert len(blocks_args) > 0, 'block args must be greater than 0'
         self.dropout_rate = dropout_rate
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
         self.fixed_params = fixed_params
 
         # BlockArgs
-        blocks_args_config = kwargs.get("blocks_args_dict", None)
-        print("blocks_args_config: ", blocks_args_config)
-        if blocks_args_config is not None:
-            # passed the config as a dict, ignore the default blocks_args
-            # the encoder is informed about the conversion of the group
-            blocks_args = encode_parameters(blocks_args_config)
-        
-        blocks_args = BlockDecoder.decode(blocks_args)
-        print("blocks_args: ", blocks_args)
-
-        # update the config for wandb
-        model_description = {}
-        for i, block_args in enumerate(blocks_args):
-            model_description[f"l{i}"] = block_args._asdict()
-        
-        try:
-            wandb.config.update({"model_description": model_description})
-        except:
-            # if wandb is not initialized during NAS
-            pass
+        print("block_args_dict", blocks_args_dict)
+        blocks_args = [BlockArgs(**block_args_dict) for block_args_dict in blocks_args_dict.values()]
+        BlockDecoder()._check_valid_blocks_args(blocks_args)
         
         # The channel sizes is first an increase factor. After that it is the number of channels
         self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)

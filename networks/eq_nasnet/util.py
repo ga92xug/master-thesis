@@ -109,6 +109,136 @@ def round_repeats(repeats, depth_coefficient):
         return repeats
     return int(math.ceil(multiplier * repeats))
 
+
+def encode_parameters_old(params: dict, nas_encoded: bool = True, choice_2_range_params : dict = {
+        "group": [1, 2, 4, 8, 16],
+    }):
+    """
+    Encodes the parameters into a string representation. If group_encoded is True, the group parameter is encoded as a number from 0 to 4, otherwise it is encoded as a number from 1 to 16.
+
+    Args:
+        params (dict): A dictionary containing the parameters.
+        choice_2_range_params (dict): A dictionary containing the discrete 
+            choices for some of the params.
+
+    Returns:
+        str: The encoded string representation of the parameters.
+    """
+    # Number of blocks is determined by the highest numbered block in the keys of params
+
+    num_blocks = max(int(key.split('_')[0]) for key in params.keys() if key.split('_')[0].isdigit()) + 1
+    encoded_blocks = []
+    
+    for i in range(num_blocks):
+        reflection = params['%d_reflection' % i]
+        kernel_size = params['%d_kernel_size' % i]
+        if nas_encoded:
+            # group is encoded as a number from 0 to 4
+            try:
+                group = choice_2_range_params['group'][int(params['%d_group' % i])]
+            except:
+                group = "*"
+        else:
+            # group is encoded as a number from 1 to 16
+            group = params['%d_group' % i]
+        out_channels = params['%d_out_channels' % i]
+        stride = params['%d_stride' % i]
+        #print('stride', stride)
+
+        if i == num_blocks - 1:
+            # last block
+            block_args = [
+                'r%s' % reflection,
+                'k%s' % kernel_size,
+                'g%s' % group,
+                'o%s' % out_channels,
+            ]
+        else:
+            # start and middle blocks
+            block_args = [
+                'r%s' % reflection,
+                'k%s' % kernel_size,
+                'g%s' % group,
+                'o%s' % out_channels,
+                's%s' % stride,
+            ]
+
+            if i > 0:
+                num_layers = params['%d_num_layers' % i]
+                conv_op = params['%d_conv_op' % i]
+                se_ratio = params['%d_se_ratio' % i]
+                skip_op = params['%d_skip_op' % i]
+                
+                block_args.extend([
+                    'n%s' % num_layers,
+                    'c-%s' % conv_op,
+                    'se%s' % se_ratio,
+                    'sk-%s' % skip_op,
+                ])
+
+        encoded_blocks.append('_'.join(block_args))
+
+    return encoded_blocks
+
+def encode_parameters(
+        params: dict, 
+        nas_encoded: bool = True, 
+        choice_2_range_params : dict = {"group": [1, 2, 4, 8, 16]},
+        nas_key_2_eq_nasnet_key: dict = {
+            # the names changed slightly
+            "skip_op": "skip",
+            "out_channels": "out_channel",  
+            # the names that did not change
+            "reflection": "reflection",
+            "group": "group",
+            "num_layers": "num_layers",
+            "conv_op": "conv_op",
+            "kernel_size": "kernel_size",
+            "se_ratio": "se_ratio",
+            "stride": "stride",
+
+        },
+    ):
+    """
+    Encodes the parameters into a dict representation. If group_encoded is True, the group parameter is encoded as a number from 0 to 4, otherwise it is encoded as a number from 1 to 16.
+
+    Args:
+        params (dict): A dictionary containing the parameters.
+        choice_2_range_params (dict): A dictionary containing the discrete 
+            choices for some of the params.
+
+    Returns:
+        dict: The encoded dict representation of the parameters.
+    """
+    # Number of blocks is determined by the highest numbered block in the keys of params
+
+    num_blocks = max(int(key.split('_')[0]) for key in params.keys() if key.split('_')[0].isdigit()) + 1
+    
+    blocks = {i: {} for i in range(num_blocks)}
+
+    for key, value in params.items():
+        block_index, param_name = key.split("_")[0], "_".join(key.split("_")[1:])
+
+        if param_name in nas_key_2_eq_nasnet_key:
+            # convert the param name to the nasnet equivalent 
+            # the names changed slightly
+            param_name = nas_key_2_eq_nasnet_key[param_name]
+        else:
+            print(f"key {key} not found in nas_key_2_eq_nasnet_key")
+            continue        
+
+        if block_index.isdigit():
+            block_index = int(block_index)
+            if param_name == "group" and nas_encoded:
+                # group is encoded as a number from 0 to 4 
+                value = choice_2_range_params['group'][int(value)]
+                
+            blocks[block_index][param_name] = value
+        else:
+            raise ValueError(f"block_index should be a number, got {block_index}, type: {type(block_index)}, key: {key}, value: {value}")
+
+    return blocks
+
 ################################################################################
 # Helper functions for loading model params
 ################################################################################
@@ -199,9 +329,7 @@ class BlockDecoder(object):
         Returns:
             block_strings: A list of strings, each string is a notation of block.
         """
-        block_strings = []
-        for block in blocks_args:
-            block_strings.append(BlockDecoder._encode_block_string(block))
+        block_strings = encode_parameters(blocks_args)
         return block_strings
     
 
@@ -213,6 +341,7 @@ class BlockDecoder(object):
         """
         
         for i, block in enumerate(blocks_args):
+            #print(i, block)
             assert block.out_channel > 0
             assert isinstance(block.kernel_size, int) and block.kernel_size >= 0
             assert isinstance(block.group, int) and block.group >= 0
@@ -226,12 +355,50 @@ class BlockDecoder(object):
                 assert isinstance(block.num_layers, int) and block.num_layers > 0
                 assert isinstance(block.conv_op, str) and block.conv_op in ["conv", "dconv", "mbconv"]
                 assert isinstance(block.se_ratio, float) and 0 <= block.se_ratio <= 1
-                assert isinstance(block.skip, str) and block.skip in ["identity", "no", "conv"]
+                assert isinstance(block.skip, str) and block.skip in ["identity", "no", "conv"], f"block.skip: {block.skip}, type: {type(block.skip)}"
 
                 assert previous_block.reflection >= block.reflection
                 assert previous_block.group >= block.group
 
             previous_block = block
+
+    @staticmethod
+    def legacy_code():
+        """
+        #blocks_args_dict = dict(kwargs.get("blocks_args_new", None))
+                
+        # flatten dict by prefixing the keys
+        #blocks_args_dict = flatten_dict(blocks_args_dict)
+        print("blocks_args_new: ", blocks_args_dict, type(blocks_args_dict))
+
+
+        blocks_args_config = kwargs.get("blocks_args_dict", None)
+        print("blocks_args_config: ", blocks_args_config)
+
+        # compare 2 dicts to see if they are the same, and print the differences
+        #compare_dicts(blocks_args_dict, blocks_args_config)
+
+        print("blocks_args_config: ", blocks_args_config)
+        if blocks_args_config is not None:
+            # passed the config as a dict, ignore the default blocks_args
+            # the encoder is informed about the conversion of the group
+            blocks_args = encode_parameters(blocks_args_config, nas_encoded=False)
+        
+        blocks_args = BlockDecoder.decode(blocks_args)
+        print("blocks_args: ", blocks_args)
+
+        # update the config for wandb
+        model_description = {}
+        for i, block_args in enumerate(blocks_args):
+            model_description[f"l{i}"] = block_args._asdict()
+        
+        try:
+            pass
+            #wandb.config.update({"model_description": model_description})
+        except:
+            # if wandb is not initialized during NAS
+            pass
+        """
 
 
 if __name__ == "__main__":

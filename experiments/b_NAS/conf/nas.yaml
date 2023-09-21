@@ -4,7 +4,7 @@ defaults:
 - objective: isic2019
 
 
-exp_name: isic2019_3
+exp_name: test
 seed: 42
 evaluate_only: False
 
@@ -27,12 +27,12 @@ generation:
   #num_botorch_trials: 15
 
 runner:
-  script_path: "experiment/main.py"
+  script_path: "training/main.py"
   verbose: 2
 
 client:
   restart: True
-  warm_start: isic2019_2
+  warm_start: null
 
 other:
   save_every: 1

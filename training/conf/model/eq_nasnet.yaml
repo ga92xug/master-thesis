@@ -2,14 +2,66 @@ _target_: networks.eq_nasnet.eq_nasnet.EquivariantNASNet
 # global args
 width_coefficient: 1
 depth_coefficient: 1
-dropout_rate: 0.0
+dropout_rate: 0.5
 stem_channels: 16 # same as wide_resnet 
 fixed_params: False
-eq_expand_ratio: 4
+eq_expand_ratio: 6
 cnn_expand_ratio: 6.0
 
+blocks_args_config:  {'0_reflection': 0, '0_group': 2, '0_out_channels': 1.0, '0_kernel_size': 5, '0_stride': 1, 
+'1_reflection': 0, '1_group': 2, '1_num_layers': 1, '1_conv_op': 'mbconv', '1_kernel_size': 5, '1_se_ratio': 0.0, '1_out_channels': 4.0, '1_skip_op': 'no', '1_stride': 2, 
+'2_reflection': 0, '2_group': 2, '2_num_layers': 2, '2_conv_op': 'mbconv', '2_kernel_size': 5, '2_se_ratio': 0.0, '2_out_channels': 2.75, '2_skip_op': 'conv', '2_stride': 2, 
+'3_reflection': -1, '3_group': 1, '3_num_layers': 2, '3_conv_op': 'mbconv', '3_kernel_size': 5, '3_se_ratio': 0.75, '3_out_channels': 1.0, '3_skip_op': 'conv', '3_stride': 1, '4_reflection': -1, '4_group': 0, '4_out_channels': 1.0, '4_kernel_size': 0, '4_stride': 1} 
+
+blocks_args: []
+
+blocks_args_dict:
+  0:
+    reflection: 0
+    group: 4
+    out_channel: 1.0
+    kernel_size: 5
+    stride: 1
+  1:
+    reflection: 0
+    group: 4
+    num_layers: 1
+    conv_op: mbconv
+    kernel_size: 5
+    se_ratio: 0.0
+    out_channel: 4.0
+    skip: "no" # no is a keyword
+    stride: 2
+  2:
+    reflection: 0
+    group: 4
+    num_layers: 2
+    conv_op: mbconv
+    kernel_size: 5
+    se_ratio: 0.0
+    out_channel: 2.75
+    skip: conv
+    stride: 2
+  3:
+    reflection: -1
+    group: 2
+    num_layers: 2
+    conv_op: mbconv
+    kernel_size: 5
+    se_ratio: 0.75
+    out_channel: 1.0
+    skip: conv
+    stride: 1
+  4:
+  # no head
+    reflection: -1
+    group: 1
+    out_channel: 1.0
+    kernel_size: 0
+    stride: 1
+
 # Strategy 2_0:
-blocks_args: ['r0.0_k5.0_g16_o1.630486_s2.0', 'r0.0_k3.0_g4_o1.014946_s1.0_n1.0_c-conv_se0.0_sk-identity', 'r0.0_k3_g4_o3.983971_s1.0_n2.0_c-conv_se0.25_sk-identity', 'r-1.0_k5.0_g4_o3.944093_s2_n2.0_c-mbconv_se0.0_sk-identity', 'r-1.0_k3.0_g4_o1.0']
+#blocks_args: ['r0.0_k5.0_g16_o1.630486_s2.0', 'r0.0_k3.0_g4_o1.014946_s1.0_n1.0_c-conv_se0.0_sk-identity', 'r0.0_k3_g4_o3.983971_s1.0_n2.0_c-conv_se0.25_sk-identity', 'r-1.0_k5.0_g4_o3.944093_s2_n2.0_c-mbconv_se0.0_sk-identity', 'r-1.0_k3.0_g4_o1.0']
 
 #blocks_args: ['r0_k5_g16_o1_s1', 'r-1_k3_g8_o1_s2_n3_c-mbconv_se0.25_sk-identity', 'r-1_k5_g2_o1']
 

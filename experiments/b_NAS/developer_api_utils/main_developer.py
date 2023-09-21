@@ -211,7 +211,7 @@ class NAS:
             wandb_entity=self.cfg.wandb.entity, 
             wandb_project=self.cfg.wandb.runs.project,
             wandb_mode=self.cfg.wandb.runs.mode,
-            choice_2_range_param=choice_2_range_params,
+            choice_2_range_params=choice_2_range_params,
             strides=list(self.cfg.search_space.strides),
             training_dict=training_dict,
             verbose=self.cfg.runner.verbose,

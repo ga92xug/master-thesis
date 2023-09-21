@@ -9,7 +9,6 @@ import os
 # issue with https://github.com/pytorch/pytorch/issues/37377
 os.environ["MKL_THREADING_LAYER"]="GNU"
 sys.path.append(f"{os.getcwd()}")
-#from experiments.b_NAS.util import encode_parameters
 from experiments.util import convert_dict_to_hydra_string
 from experiments.run_command import run_command
 
@@ -27,6 +26,7 @@ def get_adjusted_dict(
 
     if replacement_group != strategy_name and len(adjust_list) > 0:
         pure_strategies_df = pd.read_csv(cfg.data_dir + 'pure_strategies.csv', index_col=0)
+        print("Pure strategies:", pure_strategies_df.index.values)
 
         replacement_group_strategy_row = pure_strategies_df.loc[[replacement_group_strategy]]
         replacement_group_strategy_dict = replacement_group_strategy_row.squeeze().to_dict()
@@ -72,7 +72,7 @@ def get_training_args(
     # Create a new run
     args = [
         f'model=eq_nasnet',
-        f'other.debug=True',
+        #f'other.debug=True',
         #f'wandb.tags=[SE_test]',
         #f'model.dropout_rate={0.0}',
         f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',

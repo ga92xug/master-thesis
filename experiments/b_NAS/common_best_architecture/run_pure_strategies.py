@@ -31,6 +31,7 @@ for strategy_row in result_df.iterrows():
             if '_reflection' in key or '_group' in key:
                 strategy_dict[key] = dataset_dict[key]
 
+        assert False, "currently not working. Logic of encode params changed"
         blocks_args = encode_parameters(strategy_dict, choice_2_range_params)
 
         # Create a new run

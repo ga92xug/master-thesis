@@ -2,10 +2,10 @@
 data_dir: experiments/b_NAS/data/common_best_architecture/
 
 #strategies: [Strategy_fix_1_0]
-strategies: [pure_isic2019, pure_galaxy10]
-datasets: [isic2019, galaxy10, mnist_rot, cifar10_rot] # cifar10 with group adjustment
-#datasets: [isic2019]
-#adjust_lists: [[group, out_channels]]
+strategies: [pure_isic2019_99]
+#datasets: [cifar10, cifar10_rot] # cifar10 with group adjustment
+datasets: [isic2019]
+#adjust_lists: [[group], [group, out_channels]]
 adjust_lists: [[]]
 
 map_strategies_2_replacement_groups: {
@@ -21,5 +21,5 @@ map_strategies_2_replacement_groups: {
 wandb:
   project: SL-NAS-common-best
   mode: disabled
-  notes: new_galaxy10
-  tags: new_galaxy10
+  notes: dropout_0.0
+  tags: null

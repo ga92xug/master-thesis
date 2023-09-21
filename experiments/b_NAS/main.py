@@ -61,7 +61,7 @@ def warm_start(old_client_name: str, new_client: AxClient, max_building_time: in
     elif os.path.exists(old_client_name):
         old_client_file_path = old_client_name
     else:
-        _, largest_name = get_largest_saved_version_ax_client()
+        _, largest_name = get_largest_saved_version_ax_client(f"NAS/data/{old_client_name}/")
         old_client_file_path = f"NAS/data/{old_client_name}/{largest_name}"
 
     old_ax_client = AxClient.load_from_json_file(filepath=old_client_file_path)
@@ -352,7 +352,7 @@ def init_runner():
         wandb_project=cfg.wandb.project,
         wandb_mode=cfg.wandb.mode_runs,
         db_path=save_folder,
-        choice_2_range_param=choice_2_range_params,
+        choice_2_range_params=choice_2_range_params,
         #strides=list(self.cfg.search_space.strides),
         training_dict=training_dict,
         verbose=cfg.runner.verbose,
@@ -439,7 +439,7 @@ def main_optim_loop(
     global cfg
     global save_folder
     verbose = cfg.other.verbose
-    current_version, name = get_largest_saved_version_ax_client()
+    current_version, name = get_largest_saved_version_ax_client(save_folder)
     ax_client_save_path = f"{save_folder}/{name}"
     ax_client.save_to_json_file(filepath=ax_client_save_path)
 

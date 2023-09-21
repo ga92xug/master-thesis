@@ -5,8 +5,7 @@ from ax import Runner
 import wandb
 from omegaconf import OmegaConf
 
-from util import encode_parameters
-
+from networks.eq_nasnet.util import encode_parameters
 
 class HydraWandbRunner(Runner):
     def __init__(
@@ -62,6 +61,7 @@ class HydraWandbRunner(Runner):
         )
 
         # encode the search space parameters
+        assert False, "currently not working. Logic of encode params changed"
         encoded_params = encode_parameters(trial_params, 
                                            self.choice_2_range_param, 
                                            self.strides)

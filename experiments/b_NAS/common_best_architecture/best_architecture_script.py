@@ -13,7 +13,8 @@ os.environ["MKL_THREADING_LAYER"]="GNU"
 import sys
 import os
 sys.path.append(f"{os.getcwd()}")
-from experiments.b_NAS.util import encode_parameters, convert_to_number
+from networks.eq_nasnet.util import encode_parameters
+from experiments.b_NAS.util import convert_to_number
 from experiments.run_command import run_command
 
 
@@ -97,7 +98,8 @@ for i in range(num_runs):
         config = fill_group_based_on_dataset(random_config.copy(), dataset)
         only_group_info = {k: v for k, v in config.items() if k.split("_")[1] == "group"}
 
-        blocks_args = encode_parameters(config, choice_2_range_params)
+        assert False, "currently not working. Logic of encode params changed"
+        blocks_args = encode_parameters(config, True, choice_2_range_params)
         print(f'{i+1} for {dataset}: {blocks_args}')
 
         tag = "_".join([f"{key}_{value}" for key, value in random_config.items()])
