@@ -71,10 +71,11 @@ def get_training_args(
 
     # Create a new run
     args = [
-        #f'other.debug=True',
+        f'model=eq_nasnet',
+        f'other.debug=True',
         #f'wandb.tags=[SE_test]',
         #f'model.dropout_rate={0.0}',
-        #f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
+        f'model.dropout_rate={strategy_dict["-1_dropout_rate"]}',
         f'model.eq_expand_ratio={strategy_dict["-1_expand_ratio"]}',
         f'+model.replacement_group_strategy={replacement_group_strategy}',
         f'+model.blocks_args_dict={convert_dict_to_hydra_string(strategy_dict)}',

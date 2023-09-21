@@ -4,7 +4,7 @@ width_coefficient: 1
 depth_coefficient: 1
 dropout_rate: 0.0
 stem_channels: 16 # same as wide_resnet 
-fixed_params: True
+fixed_params: False
 eq_expand_ratio: 4
 cnn_expand_ratio: 6.0
 

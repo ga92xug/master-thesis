@@ -82,12 +82,14 @@ class EquivariantNASNet(nn.Module):
 
         # BlockArgs
         blocks_args_config = kwargs.get("blocks_args_dict", None)
+        print("blocks_args_config: ", blocks_args_config)
         if blocks_args_config is not None:
             # passed the config as a dict, ignore the default blocks_args
             # the encoder is informed about the conversion of the group
             blocks_args = encode_parameters(blocks_args_config)
         
         blocks_args = BlockDecoder.decode(blocks_args)
+        print("blocks_args: ", blocks_args)
 
         # update the config for wandb
         model_description = {}

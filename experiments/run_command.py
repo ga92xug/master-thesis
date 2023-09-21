@@ -52,5 +52,5 @@ def run_command(
     
 
 if __name__ == "__main__":
-    command = ['python', 'training/main.py', "model.blocks_args=['r0_k5_g4_o1.0000000000000488_s1', 'r0_k5_g4_o3.98672218029382_s2_n1_c-mbconv_se0.0_sk-no', 'r0_k5_g4_o2.7005278368600125_s2_n2_c-mbconv_se0.0_sk-conv', 'r-1_k5_g2_o1.0000000000003795_s1_n2_c-mbconv_se0.75_sk-conv', 'r-1_k0_g1_o1.0000000000003613']", 'model.dropout_rate=0.5', 'model.eq_expand_ratio=6', 'model=eq_nasnet', 'model.fixed_params=False', 'model.stem_channels=16', 'training=isic2019-training', 'wandb.entity=ga92xug', 'wandb.project=SL-NAS-common-best', 'wandb.mode=online', 'wandb.give_name=False', 'NAS.trial_index=-1']
+    command = ['python', 'training/main.py', "model.blocks_args=['r0_k5_g4_o1.0_s1', 'r0_k5_g4_o4.0_s2_n1_c-mbconv_se0.0_sk-no', 'r0_k5_g4_o2.7005278368600125_s2_n2_c-mbconv_se0.0_sk-conv', 'r-1_k5_g2_o1.0000000000003795_s1_n2_c-mbconv_se0.75_sk-conv', 'r-1_k0_g1_o1.0000000000003613']", 'model.dropout_rate=0.5', 'model.eq_expand_ratio=6', 'model=eq_nasnet', 'model.fixed_params=False', 'model.stem_channels=16', 'training=isic2019-training', 'wandb.entity=ga92xug', 'wandb.project=SL-NAS-common-best', 'wandb.mode=disabled', 'wandb.give_name=False', 'NAS.trial_index=-1']
     subprocess.run(command, check=True)
