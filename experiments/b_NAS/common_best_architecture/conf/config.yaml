@@ -1,15 +1,12 @@
+defaults:
+- _self_
+- datasets: all
+- adjust_lists: cifar10-training
+- additional_args: cifar10-training
+
+model: eq_nasnet
 
 data_dir: experiments/b_NAS/data/common_best_architecture/
-
-datasets: [cifar10, cifar10_rot]
-adjust_lists: [[group, out_channel], [group], [group, se_ratio]]
-
-additional_args: {
-  model.dropout_rate: 0.0,
-
-  wandb.notes: dropout_0.0_and_adjustment,
-  #other.debug: True
-}
 
 map_strategies_2_replacement_groups: {
   cifar10: cifar10,

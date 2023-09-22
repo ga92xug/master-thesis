@@ -1,0 +1,6 @@
+defaults:
+- cifar10-training
+# the exact same trainings settings as cifar10 but we rotate the images                 
+
+dataset:
+  name: cifar10_rot
