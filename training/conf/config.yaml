@@ -1,8 +1,9 @@
 
 defaults:
 - _self_
-- model: eq_wrn
-- training: cifar10-training
+- model: eq_nasnet
+- training: galaxy10-training
+- wandb: default
 
 # Dataset parameters        
 training:
@@ -30,18 +31,6 @@ other:
   should_test: False
   gpu_time_limit: False
   debug: False
-
-# WandB
-wandb:
-  entity: ga92xug                # Name of the wandb entity default is your username
-  project: SL-NAS-common-best # _nasnet         # Name of the wandb project
-  mode: online                  # For debugging disabled, online, offline
-  watch: False                  # For detailed weight analysis
-  # wandb_entity: Null          # Name of the wandb entity default is your username
-  notes: null
-  give_name: True
-  tags: null
-  group: null
 
 NAS:
   trial_index: -1              # -1 for this is no NAS run

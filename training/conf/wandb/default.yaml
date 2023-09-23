@@ -1,0 +1,10 @@
+# WandB
+entity: ga92xug                # Name of the wandb entity default is your username
+project: SL-NAS-common-best # _nasnet         # Name of the wandb project
+mode: online                  # For debugging disabled, online, offline
+watch: False                  # For detailed weight analysis
+# wandb_entity: Null          # Name of the wandb entity default is your username
+notes: null
+give_name: True
+tags: null
+group: null

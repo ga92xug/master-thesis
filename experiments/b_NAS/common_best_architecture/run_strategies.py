@@ -58,6 +58,7 @@ def get_adjusted_dict(
     replacement_name = map_strategies_2_replacement_groups[dataset_name]
 
     change_logic = ""
+    replacement_dict = {}
     if replacement_name != strategy_name and len(adjust_list) > 0:
         change_logic += "from:_" + replacement_name + "_with:"
         replacement_dict = get_replacement_dict(
@@ -65,7 +66,6 @@ def get_adjusted_dict(
             replacement_name
         )
         
-
         for to_adjust in adjust_list:
             change_logic += "_" + to_adjust
 
@@ -74,6 +74,9 @@ def get_adjusted_dict(
             adjust_list,
         )
         print(f"Replacement dict: {replacement_dict}")
+
+    # hydra does not like keys starting with numbers
+    replacement_dict = {f"_{k}": v for k, v in replacement_dict.items()}
 
     return replacement_dict, change_logic
 
@@ -103,18 +106,9 @@ def get_training_args(
     for key, value in cfg.additional_args.items():
         args[key] = value
 
-    # Add dataset specific arguments only for cifar _rot and mnist
-    if dataset == "cifar10_rot":
-        training_name = "cifar10"
-        args["training.dataset.name"] = "cifar10_rot"
-    elif "mnist" in dataset:
-        training_name = "mnist"
-        args["training.dataset.name"] = dataset
-    else:
-        training_name = dataset
 
     args["wandb.give_name"] = f"strategy_{strategy_name}{replacement_logic}"
-    args["training"] = f"{training_name}-training"
+    args["training"] = f"{dataset}-training"
 
     return args
 

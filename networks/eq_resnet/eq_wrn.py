@@ -21,7 +21,7 @@ from networks import (
 )
 from nn.modules import nonlinearities
 from networks.eq_other import EquivariantNorm
-from networks.eq_resnet.wrn import WideResNet
+from networks.CNNs.wrn import WideResNet
 from networks.eq_resnet.util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 

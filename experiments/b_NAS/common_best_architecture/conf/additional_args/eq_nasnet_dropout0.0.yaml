@@ -1,6 +1,0 @@
-additional_args: {
-  model.dropout_rate: 0.0,
-
-  wandb.notes: dropout_0.0_and_adjustment,
-  #other.debug: True
-}

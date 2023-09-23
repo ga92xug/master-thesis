@@ -16,13 +16,13 @@ blocks_args_config:  {'0_reflection': 0, '0_group': 2, '0_out_channels': 1.0, '0
 blocks_args: []
 
 blocks_args_dict:
-  0:
+  _0:
     reflection: 0
     group: 4
     out_channel: 1.0
     kernel_size: 5
     stride: 1
-  1:
+  _1:
     reflection: 0
     group: 4
     num_layers: 1
@@ -32,7 +32,7 @@ blocks_args_dict:
     out_channel: 4.0
     skip: "no" # no is a keyword
     stride: 2
-  2:
+  _2:
     reflection: 0
     group: 4
     num_layers: 2
@@ -42,7 +42,7 @@ blocks_args_dict:
     out_channel: 2.75
     skip: conv
     stride: 2
-  3:
+  _3:
     reflection: -1
     group: 2
     num_layers: 2
@@ -52,13 +52,17 @@ blocks_args_dict:
     out_channel: 1.0
     skip: conv
     stride: 1
-  4:
+  _4:
   # no head
     reflection: -1
     group: 1
     out_channel: 1.0
     kernel_size: 0
     stride: 1
+
+
+
+
 
 # Strategy 2_0:
 #blocks_args: ['r0.0_k5.0_g16_o1.630486_s2.0', 'r0.0_k3.0_g4_o1.014946_s1.0_n1.0_c-conv_se0.0_sk-identity', 'r0.0_k3_g4_o3.983971_s1.0_n2.0_c-conv_se0.25_sk-identity', 'r-1.0_k5.0_g4_o3.944093_s2_n2.0_c-mbconv_se0.0_sk-identity', 'r-1.0_k3.0_g4_o1.0']

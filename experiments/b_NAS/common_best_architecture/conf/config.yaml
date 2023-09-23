@@ -1,10 +1,10 @@
 defaults:
 - _self_
-- datasets: all
-- adjust_lists: cifar10-training
-- additional_args: cifar10-training
+#- datasets: all
+- adjust_lists: group
+- additional_args: dropout0.0
 
-model: eq_nasnet
+datasets: [galaxy10]
 
 data_dir: experiments/b_NAS/data/common_best_architecture/
 

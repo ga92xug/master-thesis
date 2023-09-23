@@ -4,8 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import hydra
 from omegaconf import DictConfig
+import os
 import sys
-sys.path.append('../networks') # add parent directory
+sys.path.append(f"{os.getcwd()}")
 
 from networks.util import (
     calculate_output_image_size,
@@ -146,6 +147,7 @@ class WideResNet(nn.Module):
                  num_classes, widen_factor=1, bias=False, drop_out=0.0, restrict=None,
                  image_size=32):
         super(WideResNet, self).__init__()
+        self.name = f"wrn_{depth}_{widen_factor:.1f}"
         # nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         nChannels = [layout[0], layout[1]*widen_factor, layout[2]*widen_factor, layout[3]*widen_factor]
         nChannels = np.rint(nChannels).astype(int)

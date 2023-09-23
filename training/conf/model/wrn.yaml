@@ -1,7 +1,7 @@
 # Model parameters          
-_target_: networks.eq_resnet.wrn.WideResNet            # The name of the model to use
-depth: 28
-widen_factor: 8
+_target_: networks.CNNs.wrn.WideResNet
+depth: 16
+widen_factor: 4
 layout: [16, 16, 32, 64]
 kernel_size: 3
 padding: 1
