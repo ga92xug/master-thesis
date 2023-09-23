@@ -27,7 +27,7 @@ class Experiment:
         super(Experiment, self).__init__()
         self._verbose = cfg.other.verbose
         self._global_start_time = datetime.datetime.now()
-        if self._verbose > 3:
+        if self._verbose > 2:
             print(f"Starting: {self._global_start_time}")
             print(OmegaConf.to_yaml(cfg))
         # seed

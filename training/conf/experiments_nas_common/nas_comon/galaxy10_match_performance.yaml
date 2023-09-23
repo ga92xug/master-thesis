@@ -1,9 +1,11 @@
 # @package _global_
 defaults:
-  - /training: galaxy10-training
+  - override /training: galaxy10-training
   - override /model: eq_nasnet
   - override /wandb: default
-
+  - _self_
+  
+  
 model:
   blocks_args_dict:
     _3:
@@ -15,5 +17,4 @@ wandb:
   notes: droout0.0_se0.0
 
 # https://hydra.cc/docs/patterns/configuring_experiments/
-
-#python training/main.py model.dropout_rate=0.0 model.blocks_args_dict._3.se_ratio=0.0 other.debug=True wandb.give_name=final_isic2019 wandb.notes=droout0.0_se0.0
+# I don't know how to attach deep config groups
