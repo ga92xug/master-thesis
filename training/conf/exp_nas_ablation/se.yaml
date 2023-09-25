@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /training: galaxy10-training
+  - override /training: isic2019-training
   - override /model: eq_nasnet
   - override /wandb: default
   - _self_
@@ -10,11 +10,10 @@ model:
   blocks_args_dict:
     _3:
       se_ratio: 0.0
-  dropout_rate: 0.0
+
 
 wandb:
   give_name: final_isic2019
-  notes: droout0.0_se0.0
+  notes: change_se_ratio_0.0
+  tags: [ablation_nas_architecture, change_se_ratio]
 
-# https://hydra.cc/docs/patterns/configuring_experiments/
-# I don't know how to attach deep config groups

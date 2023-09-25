@@ -1,0 +1,27 @@
+# @package _global_
+defaults:
+  - override /training: isic2019-training
+  - override /model: eq_nasnet
+  - override /wandb: default
+  - _self_
+  
+  
+model:
+  kernel_size: 3
+  blocks_args_dict:
+    _1:
+      kernel_size: ${model.kernel_size}
+    _2:
+      kernel_size: ${model.kernel_size}
+    _3:
+      kernel_size: ${model.kernel_size}
+  width_coefficient: 1.1
+  
+
+
+wandb:
+  give_name: final_isic2019
+  notes: change_kernel_size_$(model.conv_op)
+  tags: [ablation_nas_architecture, change_kernel_size]
+
+# python training/main.py +experiments_nas_common=galaxy10_match_performance

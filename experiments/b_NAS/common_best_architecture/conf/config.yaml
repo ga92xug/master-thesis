@@ -2,9 +2,9 @@ defaults:
 - _self_
 #- datasets: all
 - adjust_lists: group
-- additional_args: dropout0.0
+- additional_args: dropout0.1
 
-datasets: [galaxy10]
+datasets: [mnist_rot, mnist12k]
 
 data_dir: experiments/b_NAS/data/common_best_architecture/
 

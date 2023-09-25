@@ -1,0 +1,4 @@
+{
+  model.dropout_rate: 0.1,
+  wandb.notes: dropout_0.1
+}

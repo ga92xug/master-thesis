@@ -6,8 +6,8 @@ resolution: 96
 
 # very balanced data 0: 151046, 1: 151390
 should_normalize_weights: False
-channel_wise_mean_images: [0.01443392, 0.01443392, 0.01443392]
-channel_wise_std_images: [0.12014125, 0.1125077, 0.10281154]
+channel_wise_mean_images: [0.3839106,  0.38799807, 0.36028373]
+channel_wise_std_images: [0.2512182,  0.2505474,  0.25031218]
 n_in_channels: 3
 n_out_classes: 2
 

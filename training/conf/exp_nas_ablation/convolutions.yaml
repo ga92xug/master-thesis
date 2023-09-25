@@ -1,0 +1,26 @@
+# @package _global_
+defaults:
+  - override /training: isic2019-training
+  - override /model: eq_nasnet
+  - override /wandb: default
+  - _self_
+  
+  
+model:
+  conv_op: dconv
+  blocks_args_dict:
+    _1:
+      conv_op: ${model.conv_op}
+    _2:
+      conv_op: ${model.conv_op}
+    _3:
+      conv_op: ${model.conv_op}
+  width_coefficient: 1.1
+
+
+wandb:
+  give_name: final_isic2019
+  notes: change_convolutions_$(model.conv_op)
+  tags: [ablation_nas_architecture, change_conv]
+
+# python training/main.py +experiments_nas_common=galaxy10_match_performance

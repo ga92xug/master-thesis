@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - override /training: camelyon17-training
+  - override /model: eq_wrn
+  - override /wandb: default
+  - _self_
+  
+  
+model:
+  depth: 16
+  widen_factor: 1
+  restrict: [none,none] # ,[none,halved],['halved','halved']
+
+wandb:
+  project: SL-sweeps
+  give_name: True
+  notes: restriction_level
+  tags: [baseline_camelyon17,restriction]
+
+# python training/main.py +experiments_nas_common=galaxy10_match_performance
