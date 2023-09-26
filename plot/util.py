@@ -1,13 +1,17 @@
 import os
+from re import L
 import sys
+from typing import List, Optional
 import matplotlib.pyplot as plt
 from numpy import save
+import numpy as np
 import pandas as pd
 import wandb
-from matplotlib import pyplot as plt, ticker
+from matplotlib import pyplot as plt
+from matplotlib import gridspec
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from training.speed_test import main
+#from training.speed_test import main
 
 title_size = 12
 label_size = 10
@@ -52,106 +56,163 @@ def plot_model_data(model_data, vs_param):
     plt.savefig(f'scaling/figures/{model_name.split("_")[0]}_{vs_param}_scaling.png')
 
 
-def download_data(entity, project, run_ids):    
-    valid_accs = []
-    total_params = []
-    train_times = []
-    gflops = []
-    
-    # Download validation accuracy, total parameters, and train times for each run
-    for run_id in run_ids:
-        run = wandb.Api().run(f"{entity}/{project}/{run_id}")
-        valid_accs.append(run.history(keys=['valid.acc']).values[:, 1])
-        
-        # Download total parameters
-        total_params.append(run.history(keys=['total_parameters']).values[:, 1][0])
-        
-        # Download train times
-        #train_times.append(run.summary.get('train_time', 0))  # Replace 'train_time' with the actual key name
+def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:
+    """
+    Find a run with the given `run_id` in a list of `projects`.
 
-        # GFLOPs
+    Args:
+        entity (str): The entity associated with the projects.
+        projects (list): A list of project names to search in.
+        run_id (str): The ID of the run to find.
+
+    Returns:
+        wandb.apis.public.Run: The found run.
+
+    Raises:
+        ValueError: If the run is not found in any of the projects.
+    """
+    for project in projects:
         try:
-            gflops.append(run.history(keys=['GFLOPs']).values[:, 1][0])
+            run = wandb.Api().run(f"{entity}/{project}/{run_id}")
+            return run
+        except wandb.Error:
+            continue
+
+    raise ValueError(f"Run {run_id} not found in any of the projects.")
+
+
+def download_data(
+        entity, 
+        projects, 
+        run_ids, 
+        name_param_count : str = "param_count", 
+        metric : str = "valid.acc",
+    ):    
+    valid_accs = []
+    param_counts = []
+    flops = []
+    
+    for run_id in run_ids:
+        run = find_run(entity, projects, run_id)
+        
+        valid_accs.append(run.history(keys=[metric]).values[:, 1])
+        param_counts.append(run.history(keys=[name_param_count]).values[:, 1][0])
+        
+        # some of the runs do not have flops
+        try:
+            flops.append(run.history(keys=['GFLOPs']).values[:, 1][0] * 1e9)
         except:
             pass
 
-    return valid_accs, total_params, gflops
+    return valid_accs, param_counts, flops
 
 
-def smooth_data(data, window=5):
-    df = pd.DataFrame(data)
-    smoothed_data = df.rolling(window=window, axis=1, min_periods=1).mean().values
-    return smoothed_data
+def smooth_data(x, w: int = 3):
+    return np.convolve(x, np.ones(w), 'valid') / w
 
-def save_plot(figure, location, name, folder_name='figures/first_experiments'):
+def save_plot(figure, name, folder_name='figures/first_experiments'):
     name = name.replace(' ', '_').lower()
 
     if not os.path.exists(f'{folder_name}'):
         os.makedirs(f'{folder_name}')
 
-    figure.savefig(f'{folder_name}/{location}_{name}.png', dpi=300, bbox_inches = "tight")
+    figure.savefig(f'{folder_name}/{name}.png', dpi=300, bbox_inches = "tight")
 
 
-def plot_validation_accuracy(valid_accs, lables, title):
-    valid_accs = smooth_data(valid_accs)
-    figure = plt.figure(figsize=(4, 3))
+def plot_flops(ax, gflops, labels):
+    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
+    x = np.arange(len(labels))  # Create an array of evenly spaced x values
+    ax.bar(x, gflops, color=colors)
+    ax.set_ylabel('FLOPs')
+
+    ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
+    ax.set_xticklabels(labels, rotation=45, ha='center')  # Rotate labels by 45 degrees and align to the right
+
+
+def plot_total_parameters(ax, total_params, labels):
+    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
+    x = np.arange(len(labels))  # Create an array of evenly spaced x values
+    ax.bar(x, total_params, color=colors)
+    ax.set_ylabel('Param count')
+
+    ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
+    ax.set_xticklabels(labels, rotation=45, ha='center')  # Rotate labels by 45 degrees and align to the right
+
+
+def plot_validation_accuracy(
+        ax : plt.Axes, 
+        valid_accs : List[float], 
+        labels : List[str], 
+        metric : str,
+        ylim_percentage: float = 10.0,
+        horizontal_line: dict = None, 
+    ):
+    metric2ylabel = {
+        "valid.acc": "Validation accuracy",
+        "valid.acc_weighted": "Weighted validation accuracy",
+    }
+
+    max_acc = max([max(acc) for acc in valid_accs])
+    min_acc = min([min(acc) for acc in valid_accs])
+    
+    ylim_min = min_acc - (ylim_percentage / 100) * (max_acc - min_acc)
+    ylim_max = max_acc + (ylim_percentage / 100) * (max_acc - min_acc)
+
     for i, acc in enumerate(valid_accs):
-        plt.plot(acc, label=lables[i], linewidth=3)
-    plt.xlabel('Epoch', fontsize=label_size)
-    plt.ylabel('Validation Accuracy', fontsize=label_size)
-    plt.ylim(0.6, 1.0)
-    #plt.title(title, fontsize=title_size, fontweight='bold')
-    plt.legend()
-    plt.grid(True)
-    plt.yticks([0.6, 0.7, 0.8, 0.9, 1.0])
+        print("acc", acc)
+        acc = smooth_data(acc)
+        print("acc", acc)
+        ax.plot(acc, label=labels[i], linewidth=1) # 3 originally
 
-    save_plot(figure, "valid_acc", title)
+    if horizontal_line is not None:
+        label = horizontal_line['label']
+        line_y = horizontal_line['y']
+        color = horizontal_line['color']
+        ax.axhline(y=line_y, color=color, linestyle=horizontal_line['linestyle'])    
+        ax.annotate(label, xy=(0, line_y), xytext=(5, line_y + 1), textcoords='offset points', fontsize=8, color=color)
+
+
+    ax.set_xlabel('Epoch')
+    ax.set_ylabel(metric2ylabel[metric])
+    ax.set_ylim(ylim_min, ylim_max)
+    ax.legend()
+    ax.grid(True)
+    #ax.set_yticks([round(ylim_min, 1), round(ylim_max, 1)]) 
+
+
+def create_combined_plot(
+        valid_accs: List[float], 
+        flops: List[int], 
+        total_params: List[int], 
+        long_labels: List[str],
+        metric: str,
+        short_labels: Optional[List[str]] = None, 
+        #title: Optional[str] = None,
+        **kwargs,
+    ) -> plt.Figure:
+    if short_labels is None:
+        short_labels = long_labels
+
+    fig = plt.figure(figsize=(10, 4))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])
+
+    ax2 = plt.subplot(gs[0])
+    plot_validation_accuracy(ax2, valid_accs, long_labels, metric, **kwargs)
+    
+    ax1 = plt.subplot(gs[1])
+    plot_flops(ax1, flops, short_labels)
+
+    ax3 = plt.subplot(gs[2])
+    plot_total_parameters(ax3, total_params, short_labels)
+    
+
+    #fig.suptitle(title, fontsize=16, fontweight='bold')
+    plt.tight_layout()
+
+    #save_plot(fig, "valid_acc_flops_combined", title)
     plt.show()
 
-
-def plot_total_parameters(total_params, labels, title):
-    plt.figure(figsize=(2, 3))
-    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
-    plt.bar(labels, total_params, color=colors)
-    #plt.xlabel('Run ID')
-    #plt.title('# Parameters', fontsize=title_size, fontweight='bold')
-    #plt.title(title)
-    #plt.grid(axis='y')
-    plt.ylabel('# Parameters')
-    save_plot(plt, "params", title)
-    plt.show()
-
-def plot_train_times(train_times, labels, title):
-    plt.figure(figsize=(2, 3))
-    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
-    plt.bar(labels, train_times, color=colors)
-    #plt.xlabel('Run ID')
-    #plt.title('Train Time (seconds)', fontsize=title_size, fontweight='bold')
-    #plt.title(title)
-    #plt.grid(axis='y')
-    name = title.replace(' ', '_').lower()
-    save_plot(plt, "train_time", title)
-    plt.show()
-
-def plot_flops(gflops, labels, title):
-    plt.figure(figsize=(2, 3))
-    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
-    plt.bar(labels, gflops, color=colors)
-
-    # Set the y-axis tick formatter
-    #formatter = ticker.FuncFormatter(lambda x, pos: f'{x / 1e2:.1f}')
-    #plt.gca().yaxis.set_major_formatter(formatter)
-    plt.ylabel('FLOPs')
-    #plt.xlabel('Run ID')
-    #plt.title('GFLOPs', fontsize=title_size, fontweight='bold')
-    #plt.title(title)
-    #plt.grid(axis='y')
-    name = title.replace(' ', '_').lower()
-    save_plot(plt, "flops", title)
-    plt.show()
-
-
-
+    return fig
 
 def binary_search_over_model_scaling(
         search_param, scale_param, scaling_factor, initial_range, constraint_func,

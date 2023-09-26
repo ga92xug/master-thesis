@@ -21,7 +21,7 @@ def get_replacement_dict(
     pure_strategies_df = pd.read_csv(data_dir + 'pure_strategies.csv', index_col=0)
     replacement_row = pure_strategies_df.loc[["pure_" + replacement_name]]
     replacement_dict = replacement_row.squeeze().to_dict()
-
+    #print(f"Replacement dict: {replacement_dict}")
     replacement_dict = encode_parameters(replacement_dict)
     return replacement_dict
 
@@ -29,9 +29,15 @@ def remove_keys_from_dict(
         replacement_dict: dict,
         adjust_list: List[str],
     ):
+    if "keep_all" in adjust_list:
+        return
+
     keys_to_remove = []
     for k1, v1 in replacement_dict.items():
         keys_to_remove_inner = []
+        if not isinstance(v1, dict):
+            # we remove exand_ratio and dropout_rate
+            keys_to_remove.append(k1)
         for k2, v2 in v1.items():
             if k2 not in adjust_list:
                 keys_to_remove_inner.append(k2)
@@ -73,11 +79,11 @@ def get_adjusted_dict(
             replacement_dict,
             adjust_list,
         )
-        print(f"Replacement dict: {replacement_dict}")
+        #print(f"Replacement dict: {replacement_dict}")
 
     # hydra does not like keys starting with numbers
-    replacement_dict = {f"_{k}": v for k, v in replacement_dict.items()}
-
+    replacement_dict = {("_" + str(k) if isinstance(k, int) else k): v for k, v in replacement_dict.items()}
+    #print(f"Replacement dict: {replacement_dict}")
     return replacement_dict, change_logic
 
 def get_training_args(
@@ -102,14 +108,13 @@ def get_training_args(
     if len(replacement_dict) > 0:
         args["model.blocks_args_dict"] = convert_dict_to_hydra_string(replacement_dict)
 
+    args["wandb.give_name"] = f"strategy_{strategy_name}{replacement_logic}"
+    args["training"] = f"{dataset}-training"
 
     for key, value in cfg.additional_args.items():
         args[key] = value
 
-
-    args["wandb.give_name"] = f"strategy_{strategy_name}{replacement_logic}"
-    args["training"] = f"{dataset}-training"
-
+    print(f"Args: {args}")
     return args
 
 

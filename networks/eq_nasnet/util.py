@@ -189,6 +189,8 @@ def encode_parameters(
             "skip_op": "skip",
             "out_channels": "out_channel",  
             # the names that did not change
+            "expand_ratio": "-1_expand_ratio",
+            "dropout_rate": "-1_dropout_rate",
             "reflection": "reflection",
             "group": "group",
             "num_layers": "num_layers",
@@ -225,9 +227,13 @@ def encode_parameters(
             param_name = nas_key_2_eq_nasnet_key[param_name]
         else:
             print(f"key {key} not found in nas_key_2_eq_nasnet_key")
-            continue        
+            continue  
 
-        if block_index.isdigit():
+        if block_index == "-1":
+            # expand_ratio and dropout_rate are not in a block
+            blocks[key] = value
+
+        elif block_index.isdigit():
             block_index = int(block_index)
             if param_name == "group" and nas_encoded:
                 # group is encoded as a number from 0 to 4 

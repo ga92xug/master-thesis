@@ -5,22 +5,29 @@ defaults:
   - override /wandb: default
   - _self_
   
+training:
+  epochs: 70
+  dataset:
+    resolution: 96
+    batch_size: 64
+    eval_batch_size: 64
+  accumulate: 1
   
 model:
-  conv_op: conv
+  skip: conv
   blocks_args_dict:
     _1:
-      conv_op: ${model.conv_op}
+      skip: ${model.skip}
     _2:
-      conv_op: ${model.conv_op}
+      skip: ${model.skip}
     _3:
-      conv_op: ${model.conv_op}
-  width_coefficient: 0.8
+      skip: ${model.skip}
 
 
 wandb:
+  project: SL-Scaling
   give_name: final_isic2019
-  notes: change_convolutions_$(model.conv_op)
-  tags: [ablation_nas_architecture, change_conv]
+  notes: change_skip
+  tags: [change_skip]
 
 # python training/main.py +experiments_nas_common=galaxy10_match_performance

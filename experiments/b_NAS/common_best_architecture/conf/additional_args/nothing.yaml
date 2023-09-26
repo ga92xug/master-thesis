@@ -1,1 +1,3 @@
-{}
+{wandb.give_name: pure_cifar,
+other.debug: False
+}

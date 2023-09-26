@@ -4,8 +4,8 @@ defaults:
 - dataset: camelyon17
 - scheduler: reduce_lr_on_plateau 
 
-epochs: 50
-accumulate: 2
+epochs: 5
+accumulate: 1
 
 dataset:
   batch_size: 128                
@@ -14,9 +14,9 @@ dataset:
 
 optimizer:
   lr: 0.005
-  weight_decay: 1e-5
+  weight_decay: 1e-2
 
 scheduler:
   factor: 0.5
-  patience: 10
+  patience: 2
   verbose: True

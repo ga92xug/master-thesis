@@ -10,56 +10,54 @@ global_args = {
     # wandb
     "wandb.project": "SL-Scaling",
     # model
-    "model": "eq_wrn",
-    "model.restrict": "[none,none]",
-    "model.depth": 16,
-    "model.widen_factor": 2,
+    "model": "eq_nasnet",
+    "model.blocks_args_dict._1.skip": "conv",
     # training
     "training": "isic2019-training",
     "training.dataset.resolution": 96,
-    "training.dataset.batch_sfrom experiments.b_NAS.util import convert_dict_to_hydra_stringize": 32,
-    "training.dataset.eval_batch_size": 32,
+    "training.dataset.batch_size": 64,
+    "training.dataset.eval_batch_size": 64,
     "training.accumulate": 1,
+    # other 
+    #"other.debug": True
 }
 
 # baseline
-#  :  468 GFLOPs    
+#  :  147 GFLOPs    
 args = {
     "wandb.tags": "[isic2019-baseline]",
 }
-#run_command(args, global_args, test="instantiation")
-
+run_command(args, global_args, test=False)
+quit()
 
 
 # Depth 
-# 22: 0730 GFLOPs
-# 28: 0992 GFLOPs
-# 34: 1254 GFLOPs
-# 40: 1517 GFLOPs
-# 46: 1779 GFLOPs
+# 1.5: 266 GFLOPs
+# 2  : 347 GFLOPs
+# 4  : 748 GFLOPs
 
-# compound scaling every 12 layers ca. +500 GFLOPs
-for i, depth in enumerate([28, 40]):
+for i, depth in enumerate([1.5,2,4]):
     args = {
         "wandb.tags": "[isic2019-depth_scaling]",
-        "model.depth": depth,
+        "model.depth_coefficient": depth,
         "wandb.notes": f"d{i}",
     }
-    run_command(args, global_args, test="instantiation")
+    run_command(args, global_args, test=False)
 
 # Width
-# 2.5:  722 GFLOPs
-# 3:   1032 GFLOPs
-# 3.5: 1396 GFLOPs
-# 4:   1816 GFLOPs
-# 4.5: 2291 GFLOPs
-for i, width in enumerate([3, 5]):
+# 1.5: 
+# 2:  512 GFLOPs
+# 3:  1032 GFLOPs
+
+# 4:  1917 GFLOPs
+# 5:  3072 GFLOPs
+for i, width in enumerate([1.5, 2, 2.5]):
     args = {
         "wandb.tags": "[isic2019-width_scaling]",
-        "model.widen_factor": width,
+        "model.width_coefficient": width,
         "wandb.notes": f"w{i}",
     }
-    run_command(args, global_args, test="instantiation")
+    run_command(args, global_args, test=False)
 
 
 # resolution scaling
@@ -74,9 +72,9 @@ for i, resolution in enumerate([160, 224]):
         "training.dataset.resolution": resolution,
         "wandb.notes": f"r{i}",
     }
-    run_command(args, global_args, test="instantiation")
+    run_command(args, global_args, test=False)
 
-
+quit()
 
 # odd even resolution
 for seed in range(3):
@@ -86,4 +84,4 @@ for seed in range(3):
             "training.dataset.resolution": resolution,
             "other.seed": seed,
         }
-        run_command(args, global_args, test=False)
+        #run_command(args, global_args, test=False)

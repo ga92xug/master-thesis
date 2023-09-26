@@ -61,38 +61,36 @@ class Experiment:
         self._dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
         n_inputs = cfg.training.dataset.n_in_channels
         self.n_outputs = cfg.training.dataset.n_out_classes
+        self.n_outputs = 1 if self.n_outputs == 2 else self.n_outputs
         image_size = cfg.training.dataset.resolution
         self.distribution_shift = cfg.training.dataset.distribution_shift
         print("Stage 1: dataloaders built")
-        
-        # Loss function
-        if normalize_weights is not None and isinstance(normalize_weights, list):
-            normalize_weights = torch.tensor(normalize_weights, dtype=torch.float32).to(self.device)
-            if self.n_outputs == 2:
-                self._loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=normalize_weights)
-            else:
-                self._loss_function = torch.nn.CrossEntropyLoss(weight=normalize_weights)
-        else:
-            # normalize weight can be set to not a list in the dataloader to avoid the other loss
-            if self.n_outputs == 2:
-                self._loss_function = torch.nn.BCEWithLogitsLoss()
-            else:
-                self._loss_function = torch.nn.CrossEntropyLoss()
-        
+
         # Metrics
-        if self.n_outputs > 1:
+        if self.n_outputs >= 2:
             self.train_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             self.valid_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             if normalize_weights is not None:
                 self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
                 self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
-
-            self.train_metrics = MetricCollection(self.train_metrics)
-            self.valid_metrics = MetricCollection(self.valid_metrics)
+                if isinstance(normalize_weights, list):
+                    normalize_weights = torch.tensor(normalize_weights, dtype=torch.float32).to(self.device)
+                else:
+                    normalize_weights = None   
         else:
-            assert normalize_weights is not None, "Not implemented"    
-            self.train_metrics = BinaryAccuracy().to(self.device)
-            self.valid_metrics = BinaryAccuracy().to(self.device)
+            assert normalize_weights is None, "Not implemented"    
+            self.train_metrics = {"acc": BinaryAccuracy().to(self.device)}
+            self.valid_metrics = {"acc": BinaryAccuracy().to(self.device)}
+
+
+        self.train_metrics = MetricCollection(self.train_metrics)
+        self.valid_metrics = MetricCollection(self.valid_metrics)
+        
+        # Loss function
+        if self.n_outputs <= 2 and False:
+            self._loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=normalize_weights)
+        else:
+            self._loss_function = torch.nn.CrossEntropyLoss(weight=normalize_weights)
 
         # model
         self.model, _ = get_model(
@@ -167,18 +165,18 @@ class Experiment:
 
         # 1 epoch
         for batch_idx, out_dataloader in enumerate(self._dataloaders["train"]):
-            x, t, _ = utils.get_out_dataloader(out_dataloader)            
+            x, t, _ = utils.get_out_dataloader(out_dataloader, self.device)            
 
             if self._verbose > 3:
                 print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
             
-            # compute prediction
-            x = x.to(self.device)
-            t = t.to(self.device)
+            # compute prediction    
             y = self.model(x)
+            y = y.squeeze(1) if y.shape[1] == 1 else y
 
             # compute loss and accuracy
             n_samples += x.shape[0]
+            #print(t.min(), t.max())
             loss = self._loss_function(y, t)
             metrics = self.train_metrics(y.detach(), t.detach()) 
             train_loss_epoch += loss.item() * x.shape[0]
@@ -241,11 +239,10 @@ class Experiment:
         cumulative_loss = 0.
         n_samples = 0
         for _, out_dataloader in enumerate(self._dataloaders[split]):
-            x, t, meta_data = utils.get_out_dataloader(out_dataloader)
-        
-            x = x.to(self.device)
-            t = t.to(self.device)
+            x, t, meta_data = utils.get_out_dataloader(out_dataloader, self.device)
+ 
             y = self.model(x)
+            y = y.squeeze() if y.shape[1] == 1 else y
             
             if confusion or self.distribution_shift:
                 y_all.append(y.detach().cpu().numpy())
