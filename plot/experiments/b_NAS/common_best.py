@@ -3,56 +3,9 @@ import sys
 from typing import List, Union
 
 sys.path.append(f"{os.getcwd()}")
-
 from plot.util import *
 from plot.plot_functions import *
 
-
-dataset2metric = {
-    # normal
-    "mnist12k": "valid.acc",
-    "mnist_rot": "valid.acc",
-    "cifar10": "valid.acc",
-    "ciar10_rot": "valid.acc",
-
-    # weighted
-    "galaxy10": "valid.acc_weighted",
-    "isic2019": "valid.acc_weighted",
-} 
-
-
-
-
-def plot(
-        wandb_entity: str,
-        wandb_projects: str,
-        save_folder_name: str,
-        save_name: str,
-        labels_run_ids: Dict[str, Dict[str, Union[List[str], str]]],
-        dataset: str,  
-        **kwargs,
-    ):
-    metric = dataset2metric[dataset]
-
-    downloaded_data = download_data(
-        entity=wandb_entity, 
-        projects=wandb_projects, 
-        labels_run_ids=labels_run_ids,
-        metric=metric,
-    )
-
-    fig = create_combined_plot2(
-        downloaded_data=downloaded_data,
-        metric=metric,
-        **kwargs,
-    )
-
-    save_plot(
-        figure=fig,
-        name=save_name,
-        folder_name=save_folder_name,
-    )
-    
 
 dict_runs_ids = {
     "mnist12k": {
@@ -117,11 +70,53 @@ dict_runs_ids = {
     },
 }
 
+dataset2metric = {
+    # normal
+    "mnist12k": "valid.acc",
+    "mnist_rot": "valid.acc",
+    "cifar10": "valid.acc",
+    "ciar10_rot": "valid.acc",
+
+    # weighted
+    "galaxy10": "valid.acc_weighted",
+    "isic2019": "valid.acc_weighted",
+} 
+
+def plot(
+        wandb_entity: str,
+        wandb_projects: str,
+        save_folder_name: str,
+        save_name: str,
+        labels_run_ids: Dict[str, Dict[str, Union[List[str], str]]],
+        dataset: str,  
+        **kwargs,
+    ):
+    metric = dataset2metric[dataset]
+
+    downloaded_data = download_data(
+        entity=wandb_entity, 
+        projects=wandb_projects, 
+        labels_run_ids=labels_run_ids,
+        metric=metric,
+    )
+
+    fig = create_combined_plot(
+        downloaded_data=downloaded_data,
+        metric=metric,
+        **kwargs,
+    )
+
+    save_plot(
+        figure=fig,
+        name=save_name,
+        folder_name=save_folder_name,
+    )
+    
 
 def main():
     wandb_entity = "ga92xug"
     wandb_projects = ["SL-NAS-common-best"]
-    save_folder_name = "plot/figures/b_NAS/common_best/"
+    save_folder_name = "plot/experiments/b_NAS/figures/common_best/"
 
     for name, run_info in dict_runs_ids.items():
         #if name == "mnist_rot":
