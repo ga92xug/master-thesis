@@ -1,10 +1,11 @@
 import os
 import sys
-from typing import List
+from typing import List, Union
 
 sys.path.append(f"{os.getcwd()}")
 
 from plot.util import *
+from plot.plot_functions import *
 
 
 dataset2metric = {
@@ -20,30 +21,28 @@ dataset2metric = {
 } 
 
 
+
+
 def plot(
         wandb_entity: str,
         wandb_projects: str,
         save_folder_name: str,
         save_name: str,
-        run_ids: List[str] ,
-        labels: List[str], 
+        labels_run_ids: Dict[str, Dict[str, Union[List[str], str]]],
         dataset: str,  
         **kwargs,
     ):
     metric = dataset2metric[dataset]
 
-    valid_accs, param_counts, flops = download_data(
+    downloaded_data = download_data(
         entity=wandb_entity, 
         projects=wandb_projects, 
-        run_ids=run_ids,
+        labels_run_ids=labels_run_ids,
         metric=metric,
     )
 
-    fig = create_combined_plot(
-        valid_accs=valid_accs,
-        flops=flops,
-        total_params=param_counts,
-        long_labels=labels,
+    fig = create_combined_plot2(
+        downloaded_data=downloaded_data,
         metric=metric,
         **kwargs,
     )
@@ -57,44 +56,66 @@ def plot(
 
 dict_runs_ids = {
     "mnist12k": {
-        "run_ids": ["89hdwkuu", "v39l5c9e", "8182cpum"], 
-        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "WRN-16-4"],
+        "labels_run_ids": {
+            "EQ-NASNET": ["d9fwlmg6"],
+            "EQ-WRN-16-4": ["v39l5c9e"],
+            "WRN-16-4": ["8182cpum"],
+        },
         "dataset": "mnist12k",
     },
 
     "mnist_rot": {
-        "run_ids": ["379dxvs1", "dvbnwzbz", "3tfzbuct", "stz622pp"], 
-        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "NAS-on-MNIST_rot", "WRN-16-4"],
+        "labels_run_ids": {
+            "EQ-NASNET": ["emm8y2em"],
+            "EQ-WRN-16-4": ["dvbnwzbz"],
+            "NAS-on-MNIST_rot": ["3tfzbuct"],
+            "WRN-16-4": ["stz622pp"],
+        },
         "dataset": "mnist_rot",
     },
 
     "cifar10": {
-        "run_ids": ["oj1twq4i", "lzpxj79q", "o9tte2ci","tn05kvz2", "9z9q8wvp"], 
-        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "NAS-on-CIFAR10", "WRN-16-4", "DenseNet"],
+        "labels_run_ids": {
+            "EQ-NASNET": ["oj1twq4i"],
+            "EQ-WRN-16-4": ["lzpxj79q"],
+            "NAS-on-CIFAR10": ["o9tte2ci"],
+            "WRN-16-4": ["tn05kvz2"],
+            "DenseNet": ["9z9q8wvp"],
+        },
         "dataset": "cifar10",
     },
 
     "galaxy10-eq_nasnet_tests": {
-        "run_ids": ["fpnm1nkc", "36jzil3m", "rmuv5wmj", "4784sgy5"], 
-        "labels": ["normal", "se0_d0.2_w2", "se0_d0.0_w2", "se0_d0.0_w1"],
+        "labels_run_ids": {
+            "normal": ["fpnm1nkc"],
+            "se0_d0.2_w2": ["36jzil3m"],
+            "se0_d0.0_w2": ["rmuv5wmj"],
+            "se0_d0.0_w1": ["4784sgy5"],
+        },
         "dataset": "galaxy10",
     },
     "galaxy10-normal": {
-        "run_ids": ["36jzil3m", "c3vqa6y2", "iogz6ykb", "dvf3c02p", "jghlotrz"], 
-        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "NAS-on-Galaxy10", "DenseNet", "WRN-16-4"],
+        "labels_run_ids": {
+            "EQ-NASNET": ["36jzil3m"],
+            "EQ-WRN-16-4": ["c3vqa6y2"],
+            "NAS-on-Galaxy10": ["iogz6ykb"],
+            "DenseNet": ["dvf3c02p"],
+            "WRN-16-4": ["jghlotrz"],
+        },
         "dataset": "galaxy10",
     },
 
     "isic2019": {
-        "run_ids": ["mavho3p2", "axot25dt", "8nf0431h", "yjhex2jy"],
-        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "WRN-16-4", "DenseNet"],
+        "labels_run_ids": {
+            "EQ-NASNET": ["sn2lrp4a", "si8ubh8x", "n2exzy14"],
+            "EQ-WRN-16-4": ["f2fgkmto"],
+            "WRN-16-4": ["n7i1jtw6"],
+            "DenseNet": ["d6mr3c2r"],
+        },
         "horizontal_line": {"y": 0.65, "label": "SOTA", "color": "red", "linestyle": "dashed"},
         "dataset": "isic2019",
     },
-
-    
 }
-
 
 
 def main():
@@ -103,9 +124,10 @@ def main():
     save_folder_name = "plot/figures/b_NAS/common_best/"
 
     for name, run_info in dict_runs_ids.items():
-        print(name)
-        #if name != "isic2019":
+        #if name == "mnist_rot":
         #    continue
+        print(name)
+        
         plot(
             wandb_entity=wandb_entity, 
             wandb_projects=wandb_projects, 

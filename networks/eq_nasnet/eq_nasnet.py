@@ -57,16 +57,6 @@ from nn import (
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
-
-def get_blocks_args(blocks_args_new:dict):
-    [BlockArgs(**block_args_new) for block_args_new in blocks_args_new.values()]
-    blocks_args = []
-    for level, block_args_new in blocks_args_new.items():
-        block_args = BlockArgs(**block_args_new)
-        blocks_args.append(block_args)
-    return blocks_args
-
-
 class EquivariantNASNet(nn.Module):
     def __init__(
             self, 

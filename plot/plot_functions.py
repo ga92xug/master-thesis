@@ -1,11 +1,9 @@
 import os
 from re import L
-import re
 import sys
 from typing import Dict, List, Optional
-from unittest import result
 import matplotlib.pyplot as plt
-from numpy import save
+from numpy import save, shape
 import numpy as np
 import pandas as pd
 import wandb
@@ -18,114 +16,9 @@ sys.path.append('../scaling-laws-ecnn') # add parent directory
 title_size = 12
 label_size = 10
 
-def plot_model_data(model_data, vs_param):
-    fig, ax = plt.subplots(nrows=1, ncols=4, figsize=(12, 4))
-    fig.suptitle(f'Scaling {vs_param}', fontsize=14, fontweight='bold')
-    
-    for model_name, data in model_data.items():
-        vs = data[:, 0]
-        param_count = data[:, 1]
-        model_building_time = data[:, 2]
-        train_time = data[:, 3]
-        gflops = data[:, 4]
-        
-        ax[0].plot(vs, param_count, label=model_name)
-        ax[1].plot(vs, model_building_time, label=model_name)
-        ax[2].plot(vs, train_time, label=model_name)
-        ax[3].plot(vs, gflops, label=model_name)
-    
-    ax[0].set_xlabel(f'{vs_param}')
-    ax[0].set_ylabel('Parameter Count')
-    ax[0].set_title(f'Parameter Count')
-    ax[0].legend()
 
-    ax[1].set_xlabel(f'{vs_param}')
-    ax[1].set_ylabel('Model Building Time')
-    ax[1].set_title(f'Model Building Time')
-    ax[1].legend()
-
-    ax[2].set_xlabel(f'{vs_param}')
-    ax[2].set_ylabel('Train Time')
-    ax[2].set_title(f'Train Time')
-    ax[2].legend()
-
-    ax[3].set_xlabel(f'{vs_param}')
-    ax[3].set_ylabel('GFLOPs')
-    ax[3].set_title(f'GFLOPs')
-    ax[3].legend()
-
-    plt.tight_layout()
-    plt.savefig(f'scaling/figures/{model_name.split("_")[0]}_{vs_param}_scaling.png')
-
-
-def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:
-    """
-    Find a run with the given `run_id` in a list of `projects`.
-
-    Args:
-        entity (str): The entity associated with the projects.
-        projects (list): A list of project names to search in.
-        run_id (str): The ID of the run to find.
-
-    Returns:
-        wandb.apis.public.Run: The found run.
-
-    Raises:
-        ValueError: If the run is not found in any of the projects.
-    """
-    for project in projects:
-        try:
-            run = wandb.Api().run(f"{entity}/{project}/{run_id}")
-            return run
-        except wandb.Error:
-            continue
-
-    raise ValueError(f"Run {run_id} not found in any of the projects.")
-
-def download_run(
-        entity: str, 
-        projects: list, 
-        run_id: str,
-        metric: str = "valid.acc",
-        name_param_count: str = "param_count",
-    ) -> Dict[str, List[float]]:
-    result = {}
-
-    run = find_run(entity, projects, run_id)
-
-    result[metric] = run.history(keys=[metric]).values[:, 1]
-    result["param_count"] = run.history(keys=[name_param_count]).values[:, 1][0] * 1e6
-        
-    # some of the runs do not have flops
-    try:
-        result["flops"] = run.history(keys=['GFLOPs']).values[:, 1][0] * 1e9
-    except:
-        pass
-
-    return result
-
-
-def download_data(
-        entity: str, 
-        projects: str, 
-        labels_run_ids: Dict[str, List[str]],
-        name_param_count : str = "param_count", 
-        metric : str = "valid.acc",
-    ) -> Dict[str, Dict[str, Dict]]:    
-    result = {}
-    for label, run_ids in labels_run_ids.items():
-        assert isinstance(run_ids, list), "run_ids must be a list"
-        result[label] = {}
-        
-        # download the data for each run id associated with one label
-        for run_id in run_ids:
-            result[label][run_id] = download_run(entity, projects, run_id, metric, name_param_count)
-
-    return result
-
-
-def smooth_data(x, w: int = 3):
-    return np.convolve(x, np.ones(w), 'valid') / w
+def smooth_data(data, w: int = 3):
+    return np.convolve(data, np.ones(w), 'valid') / w
 
 def save_plot(figure, name, folder_name='figures/first_experiments'):
     name = name.replace(' ', '_').lower()
@@ -136,17 +29,25 @@ def save_plot(figure, name, folder_name='figures/first_experiments'):
     figure.savefig(f'{folder_name}/{name}.png', dpi=300, bbox_inches = "tight")
 
 
-def plot_flops(ax, gflops, labels):
+def plot_flops(ax, downloaded_data):
+    data = get_metric_from_downloaded_data(downloaded_data, "flops")
+    labels = list(data.keys())
+    flops = list(data.values())
+
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
     x = np.arange(len(labels))  # Create an array of evenly spaced x values
-    ax.bar(x, gflops, color=colors)
+    ax.bar(x, flops, color=colors)
     ax.set_ylabel('FLOPs')
 
     ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
     ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
 
 
-def plot_total_parameters(ax, total_params, labels):
+def plot_total_parameters(ax, downloaded_data):
+    data = get_metric_from_downloaded_data(downloaded_data, "param_count")
+    labels = list(data.keys())
+    total_params = list(data.values())
+
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
     x = np.arange(len(labels))  # Create an array of evenly spaced x values
     ax.bar(x, total_params, color=colors)
@@ -156,28 +57,49 @@ def plot_total_parameters(ax, total_params, labels):
     ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
 
 
-def plot_validation_accuracy(
+def plot_validation_accuracy2(
         ax : plt.Axes, 
-        valid_accs : List[float], 
-        labels : List[str], 
+        downloaded_data: Dict[str, Dict[str, Dict[str, List]]], 
+        # Label: Run ID: Metric: List[float]
         metric : str,
         ylim_percentage: float = 10.0,
         horizontal_line: dict = None, 
+        window_size: int = 3,
     ):
     metric2ylabel = {
         "valid.acc": "Validation accuracy",
         "valid.acc_weighted": "Weighted validation accuracy",
     }
 
-    max_acc = max([max(acc) for acc in valid_accs])
-    min_acc = min([min(acc) for acc in valid_accs])
-    
-    ylim_min = min_acc - (ylim_percentage / 100) * (max_acc - min_acc)
-    ylim_max = max_acc + (ylim_percentage / 100) * (max_acc - min_acc)
+    #max_acc = max([max(acc) for acc in valid_accs])
+    #min_acc = min([min(acc) for acc in valid_accs])
+    #
+    #ylim_min = min_acc - (ylim_percentage / 100) * (max_acc - min_acc)
+    #ylim_max = max_acc + (ylim_percentage / 100) * (max_acc - min_acc)
+    transformed_data = transform_data_to_arrays(downloaded_data, metric, window_size)
 
-    for i, acc in enumerate(valid_accs):
-        acc = smooth_data(acc)
-        ax.plot(acc, label=labels[i], linewidth=1) # 3 originally
+    min_acc = np.inf
+    max_acc = -np.inf    
+    for label, runs_data in transformed_data.items():
+        if runs_data.shape[0] > 1:
+            # Multiple runs for this label
+            # Plot the mean and standard deviation
+            mean = np.mean(runs_data, axis=0)
+            std = np.std(runs_data, axis=0)
+        
+            ax.plot(mean, label=label, linewidth=1)
+            ax.fill_between(range(len(mean)), mean - std, mean + std, alpha=0.2)
+
+            min_acc = min(min_acc, mean.min())
+            max_acc = max(max_acc, mean.max())
+        else:
+            # Only one run for this label
+            # Plot the single run
+            ax.plot(runs_data[0], label=label, linewidth=1)
+
+            min_acc = min(min_acc, runs_data[0].min())
+            max_acc = max(max_acc, runs_data[0].max())
+
 
     if horizontal_line is not None:
         label = horizontal_line['label']
@@ -189,12 +111,93 @@ def plot_validation_accuracy(
 
     ax.set_xlabel('Epoch')
     ax.set_ylabel(metric2ylabel[metric])
+    ylim_min = min_acc - (ylim_percentage / 100) * (max_acc - min_acc)
+    ylim_max = max_acc + (ylim_percentage / 100) * (max_acc - min_acc)
     ax.set_ylim(ylim_min, ylim_max)
+    ax.set_xlim(0, len(runs_data[0]) - 1)
     ax.legend()
     ax.grid(True)
-    #ax.set_yticks([round(ylim_min, 1), round(ylim_max, 1)]) 
 
 
+def get_metric_from_downloaded_data(downloaded_data, metric, aggregation_func="equal"):
+    """
+    Extract a specific metric from the downloaded data.
+
+    Parameters:
+    - downloaded_data (dict): Nested dictionary containing data.
+    - metric (str): The specific metric to extract.
+
+    Returns:
+    - extracted_metric (dict): Extracted metric data.
+    """
+
+    extracted_metric = {}  # Dictionary to store the extracted metric data
+
+    # Iterate through labels and runs
+    for label, runs_data in downloaded_data.items():
+        extracted_metric[label] = []  # Initialize the label entry
+        for run_id, run_data in runs_data.items():
+            extracted_metric[label].append(run_data[metric])  # Append the metric data to the label entry
+
+        if aggregation_func == "equal":
+            # If the aggregation function is "equal", the metric should be the same for all runs
+            assert np.allclose(extracted_metric[label][0], extracted_metric[label][1:]), \
+                f"Metric {metric} is not equal for all runs of label {label}!"
+            
+            extracted_metric[label] = extracted_metric[label][0]  # Extract the metric from the list
+        
+        else:
+            NotImplementedError(f"Aggregation function {aggregation_func} is not supported!")
+
+    return extracted_metric
+
+
+def transform_data_to_arrays(
+        downloaded_data: Dict[str, Dict[str, Dict[str, List]]], 
+        # Label: Run ID: Metric: List[float] 
+        metric: str, 
+        window_size: int = 3
+    ) -> Dict[str, np.ndarray]:
+    transformed_data = {}  # Dictionary to store the transformed data
+
+    # Iterate through labels and runs
+    for label, runs_data in downloaded_data.items():
+        transformed_data[label] = [] 
+        for run_id, run_data in runs_data.items():
+            smoothed_data = smooth_data(run_data[metric], window_size)
+            transformed_data[label].append(smoothed_data)  
+
+        transformed_data[label] = np.array(transformed_data[label])  # Convert the list to a numpy array
+
+    return transformed_data
+
+
+def create_combined_plot2(
+        downloaded_data: Dict,
+        metric: str,
+        **kwargs,
+    ) -> plt.Figure:
+
+    fig = plt.figure(figsize=(10, 4))
+    gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])
+
+    ax2 = plt.subplot(gs[0])
+    plot_validation_accuracy2(ax2, downloaded_data, metric, **kwargs)
+    
+    ax1 = plt.subplot(gs[1])
+    plot_flops(ax1, downloaded_data)
+
+    ax3 = plt.subplot(gs[2])
+    plot_total_parameters(ax3, downloaded_data)
+    
+
+    #fig.suptitle(title, fontsize=16, fontweight='bold')
+    plt.tight_layout()
+
+    #save_plot(fig, "valid_acc_flops_combined", title)
+    plt.show()
+
+    return fig
 
 def create_combined_plot(
         valid_accs: List[float], 
