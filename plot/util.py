@@ -126,7 +126,7 @@ def plot_flops(ax, gflops, labels):
     ax.set_ylabel('FLOPs')
 
     ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
-    ax.set_xticklabels(labels, rotation=45, ha='center')  # Rotate labels by 45 degrees and align to the right
+    ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
 
 
 def plot_total_parameters(ax, total_params, labels):
@@ -136,7 +136,7 @@ def plot_total_parameters(ax, total_params, labels):
     ax.set_ylabel('Param count')
 
     ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
-    ax.set_xticklabels(labels, rotation=45, ha='center')  # Rotate labels by 45 degrees and align to the right
+    ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
 
 
 def plot_validation_accuracy(
@@ -159,9 +159,7 @@ def plot_validation_accuracy(
     ylim_max = max_acc + (ylim_percentage / 100) * (max_acc - min_acc)
 
     for i, acc in enumerate(valid_accs):
-        print("acc", acc)
         acc = smooth_data(acc)
-        print("acc", acc)
         ax.plot(acc, label=labels[i], linewidth=1) # 3 originally
 
     if horizontal_line is not None:

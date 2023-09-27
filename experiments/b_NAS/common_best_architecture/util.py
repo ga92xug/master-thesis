@@ -10,26 +10,6 @@ import os
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import *
 
-def get_ax_client_from_folder(
-        folder: str, 
-        path: str = "../../Data/frischs/NAS_data_save/"
-    ) -> AxClient:
-    
-    location = os.path.join(path, folder)
-    _, name = get_largest_saved_version_ax_client(location)
-    filepath = os.path.join(location, name)
-    ax_client = AxClient.load_from_json_file(filepath=filepath)
-    return ax_client
-
-def show_experiment_ordered_frame(client: AxClient) -> pd.DataFrame:
-    df = exp_to_df(client.experiment)
-    df = df.drop_duplicates(subset=['arm_name'], keep=False)
-    if "valid_acc_weighted" in df.columns:
-        df = df.sort_values(by=["valid_acc_weighted"], ascending=False)
-    else:
-        df = df.sort_values(by=["valid_acc"], ascending=False)
-    return df
-
 def optimal_experiment_trials(
         client: AxClient, 
         percentage: float = 0.02, 

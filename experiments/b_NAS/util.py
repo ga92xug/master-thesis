@@ -76,3 +76,12 @@ def show_experiment_ordered_frame(client: AxClient) -> pd.DataFrame:
     else:
         df = df.sort_values(by=["valid_acc"], ascending=False)
     return df
+
+
+def get_name_performance_metric(experiment):
+    if "valid_acc_weighted" in experiment.metrics:
+        return "valid_acc_weighted"
+    elif "valid_acc" in experiment.metrics:
+        return "valid_acc"
+    else:
+        raise ValueError("No valid performance metric found")

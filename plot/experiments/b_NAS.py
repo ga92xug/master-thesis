@@ -63,14 +63,15 @@ dict_runs_ids = {
     },
 
     "mnist_rot": {
-        "run_ids": ["379dxvs1", "dvbnwzbz", "stz622pp"], 
-        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "WRN-16-4"],
+        "run_ids": ["379dxvs1", "dvbnwzbz", "3tfzbuct", "stz622pp"], 
+        "labels": ["EQ-NASNET", "EQ-WRN-16-4", "NAS-on-MNIST_rot", "WRN-16-4"],
         "dataset": "mnist_rot",
     },
 
     "cifar10": {
-        "run_ids": ["", "", "","tn05kvz2", "9z9q8wvp"], 
+        "run_ids": ["oj1twq4i", "lzpxj79q", "o9tte2ci","tn05kvz2", "9z9q8wvp"], 
         "labels": ["EQ-NASNET", "EQ-WRN-16-4", "NAS-on-CIFAR10", "WRN-16-4", "DenseNet"],
+        "dataset": "cifar10",
     },
 
     "galaxy10-eq_nasnet_tests": {
@@ -102,8 +103,9 @@ def main():
     save_folder_name = "plot/figures/b_NAS/common_best/"
 
     for name, run_info in dict_runs_ids.items():
-        if name != "isic2019":
-            continue
+        print(name)
+        #if name != "isic2019":
+        #    continue
         plot(
             wandb_entity=wandb_entity, 
             wandb_projects=wandb_projects, 
