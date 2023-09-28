@@ -48,7 +48,7 @@ blocks_args_dict:
     num_layers: 2
     conv_op: mbconv
     kernel_size: 5
-    se_ratio: 0.75
+    se_ratio: 0.0
     out_channel: 1.0
     skip: conv
     stride: 1
