@@ -19,11 +19,12 @@ training:
 # Other experiment's parameters
 other:
   eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
+  valid_confusion_matrix_frequency: -1
   backup_model: False           # Backup the model in a file
+  backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
   plot_frequency: 100           # Plot frequency (counts iterations if positive, epochs if negative. Use -1 to plot at the end of each epoch)
   store_plot: False              # Store the plot
   show: False                   # Show the plot during training
-  backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
   seed: 42                      # Seed for random number generators
   output_path: 'experiment/outputs/'  # Path to the output directory
   verbose: 2                    # Verbose Level

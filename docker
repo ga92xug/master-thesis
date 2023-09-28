@@ -1,0 +1,18 @@
+# Use an official Python runtime as a parent image
+FROM continuumio/miniconda3
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Create a Conda environment from the exported YAML file
+RUN conda env create -f environment.yaml
+
+# Activate the Conda environment
+RUN echo "conda activate scaling-test" >> ~/.bashrc
+ENV PATH /opt/conda/envs/scaling-test/bin:$PATH
+
+# Specify the command to run your application
+CMD ["python", "training/main.py"]

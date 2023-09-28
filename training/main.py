@@ -126,6 +126,7 @@ class Experiment:
         self.max_epochs = cfg.training.epochs
         self._eval_frequency = cfg.other.eval_frequency
         self.steps_per_epoch = cfg.training.steps_per_epoch
+        #self.
 
         # adapt learning rate
         if "CosineAnnealingLR" in cfg.training.scheduler._target_:
@@ -205,8 +206,6 @@ class Experiment:
                     break
             
             self.global_step += x.shape[0]
-            # if cuda_memory_usage(verbose=0) > 0.8:
-            #     torch.cuda.empty_cache()
 
         # log and print
         end_time = datetime.datetime.now().timestamp()
