@@ -1,3 +1,4 @@
+from typing import Tuple
 import numpy as np
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
@@ -126,7 +127,7 @@ class Experiment:
         self.max_epochs = cfg.training.epochs
         self._eval_frequency = cfg.other.eval_frequency
         self.steps_per_epoch = cfg.training.steps_per_epoch
-        #self.
+        self.valid_conf_matrix_frequency = cfg.other.valid_conf_matrix_frequency
 
         # adapt learning rate
         if "CosineAnnealingLR" in cfg.training.scheduler._target_:
@@ -219,7 +220,9 @@ class Experiment:
         return
 
     def valid(self):
-        metrics, _, _ = self.inference("valid", confusion=False)
+        confusion = self.valid_conf_matrix_frequency > 0 and \
+            self._epoch % self.valid_conf_matrix_frequency == 0
+        metrics, _, _ = self.inference("valid", confusion=confusion)
         
         # adapt learning rate
         if self._adapt_lr_in_validation:
@@ -227,7 +230,15 @@ class Experiment:
 
 
     @torch.no_grad()
-    def inference(self, split, log=True, confusion=False):
+    def inference(self, split, confusion=False) -> Tuple:
+        """
+        Run inference.
+
+        Returns:
+        - metrics: dict of metrics
+        - loss: float
+        - duration: float
+        """
         starttime = datetime.datetime.now().timestamp()
         self.model.eval()
         if confusion or self.distribution_shift:
@@ -336,10 +347,8 @@ class Experiment:
 def run_experiment(cfg: DictConfig) -> None:
     if cfg.other.debug:
         print("Debug mode")
-        #OmegaConf.set_struct(cfg.training, False)
         cfg.training.epochs = 1
         cfg.training.steps_per_epoch = 10
-        #OmegaConf.set_struct(cfg.training, True)
         cfg.wandb.mode = "disabled"
 
     # check if we are allowed to run

@@ -19,7 +19,7 @@ training:
 # Other experiment's parameters
 other:
   eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
-  valid_confusion_matrix_frequency: -1
+  valid_conf_matrix_frequency: -1
   backup_model: False           # Backup the model in a file
   backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)
   plot_frequency: 100           # Plot frequency (counts iterations if positive, epochs if negative. Use -1 to plot at the end of each epoch)
