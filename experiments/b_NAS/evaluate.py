@@ -14,33 +14,32 @@ from ax.modelbridge.factory import get_MOO_NEHVI
 #from ax.plot.contour import interact_contour_plotly
 from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
-from plot import interact_contour_plotly, plot_marginal_effects
+
 
 import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import get_name_performance_metric
+from experiments.b_NAS.plot import interact_contour_plotly, plot_marginal_effects
 
 METADATA = {
         "mnist_rot": {
             "name": "MNIST-rot",
-            "point": [0.9885, 157],
-            "label": "eq_wrn_16_4",
+            "point": {"location": [0.9915000200271606, 313.543363446], "label": "EQ-WRN-16-4"},
         },
         "cifar10": {
             "name": "CIFAR10",
-            "point": [0.9125, 226],
-            "label": "eq_wrn_16_4",
+            "point": {"location": [0.921999990940094, 540.934433542], "label": "EQ-WRN-16-4"},
         },
         "galaxy10": {
             "name": "Galaxy10",
-            "point": [0.8235, 6265],
-            "label": "eq_wrn_16_4",
+            "point": {"location": [0.8116401433944702, 6144.474499862], "label": "EQ-WRN-16-4"},
         },
         "isic2019": {
             "name": "ISIC2019",
-            "point": {"location": [0.5309, 6144.474476566], "label": "EQ-WRN-16-4"},
-            "line": {"x": 0.65, "label": "SOTA", "color": "red", "linestyle": "dashed"},
+            "point": {"location": [0.5097538232803345, 6144.474499862], "label": "EQ-WRN-16-4"},
+            # https://paperswithcode.com/sota/classification-on-isic-2019
+            "line": {"x": 0.6519, "label": "SOTA", "color": "red", "linestyle": "dashed"},
         },
         "unkown": {
             "name": "Unknown",
@@ -168,7 +167,7 @@ def scalar_mappable(
             axes.text(baseline_point[:, 0] - 0.01, baseline_point[:, 1] - 0.01, baseline_label, fontsize=12, color='blue', va='top', ha='right')
 
     # Add a line if given
-    line = meta_data["line"]
+    line = meta_data.get("line", None)
     if line is not None:
         label = line['label']
         line_x = line['x']
