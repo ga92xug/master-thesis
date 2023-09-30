@@ -1,0 +1,88 @@
+depth:
+  labels_run_ids:
+    depth=16: [i1xirj9q]
+    depth=22: [zej6qb0b]
+    depth=28: [to2jjlyp]
+  short_labels: "s[0] + '=' + s.split('=')[1]"
+
+width:
+  labels_run_ids:
+    width=1: [vk37jyq8]
+    width=2: [nl4adi0o]
+    width=4: [x5ajaryv]
+  short_labels: "s[0] + '=' + s.split('=')[1]"
+  GFLOPs: [43.086858824, 148.618137432, 611.961191606]
+# G_CNN_exp3
+rotation:
+  labels_run_ids:
+    C=2: [1b6hywk3]
+    C=4: [ymdhnpug]
+    C=8: [kl7sg4c3]
+    C=12: [bv1hfyo4]
+  short_labels: null
+  GFLOPs: [67.359442844, 119.576, 226.288036046, 313.57]
+  # 16: 423.225014106
+  # 20: 511.692473268
+
+rotation_5x5:
+  labels_run_ids:
+    C=2: [1b6hywk3]
+    C=4: [ymdhnpug]
+    C=6: [kl7sg4c3]
+    C=8: [bv1hfyo4]
+    C=10: [bv1hfyo4]
+    C=12: [bv1hfyo4]
+    C=16: [bv1hfyo4]
+    C=20: [bv1hfyo4]
+  short_labels: null
+  GFLOPs: [184.507381912, 327.797367425, 466.53433024, 621.08362177, 734.797687934, 861.263894734, 1163.956753166, 1407.564055544]
+
+cyclic_or_dihedral:
+  labels_run_ids:
+    C8: [kl7sg4c3]
+    D8: [v48n24cc]
+  short_labels: null
+  GFLOPs: [226.288036046, 226.288036046]
+
+
+#run_dict = {
+#    "depth": {
+#        "run_ids": ["i1xirj9q", "zej6qb0b", "to2jjlyp"],
+#        "long_labels": ["depth=16", "depth=22", "depth=28"],
+#        "short_labels": ["d=16", "d=22", "d=28"],
+#        "title": "Validation Acc Eq-WRN-X-2 varying depth"
+#    },
+#    "width": {
+#        "run_ids": ["vk37jyq8", "nl4adi0o", "x5ajaryv"],
+#        "long_labels": ["width=1", "width=2", "width=4"],
+#        "short_labels": ["w=1", "w=2", "w=4"],
+#        "title": "Validation Acc Eq-WRN-34-X varying width",
+#        "GFLOPs": [43.086858824, 148.618137432, 611.961191606]
+#    },
+#    # G_CNN_exp3
+#    "rotation": {
+#        "run_ids": ["1b6hywk3", "ymdhnpug", "kl7sg4c3", "bv1hfyo4", ],
+#        "long_labels": ["C=2", "C=4", "C=8", "C=12"],
+#        "short_labels": ["C=2", "C=4", "C=8", "C=12"],
+#        "title": "Validation Acc Eq-WRN-16-4 varying rotation",
+#        "GFLOPs": [67.359442844, 119.576, 226.288036046, 313.57],
+#        # 16: 423.225014106
+#        # 20: 511.692473268
+#    },
+#    "rotation_5x5": {
+#        "short_labels": ["C=2", "C=4", "C=6", "C=8", "C=10", "C=12", "C=16", "C=20"],
+#        "GFLOPs": [184.507381912, 327.797367425, 466.53433024, 621.08362177, 734.797687934, 861.263894734, 1163.956753166, 1407.564055544],
+#    },
+#    "cyclic_or_dihedral": {
+#        "run_ids": ["kl7sg4c3", "v48n24cc"],
+#        "long_labels": ["C8", "D8"],
+#        "short_labels": ["C8", "D8"],
+#        "title": "Validation Acc Eq-WRN-16-4 reflection",
+#        "GFLOPs": [226.288036046, 226.288036046],
+#    },
+#}
+
+#run_ids = ["1b6hywk3", "hng9ovcr", "kl7sg4c3", "bv1hfyo4"] # G_CNN_exp3 rotation
+#run_ids = ["eb3ewgew", "mw0fndxz", "kl7sg4c3"] # G_CNN_exp4 restriction
+# run_ids = ["v48n24cc", "kl7sg4c3"] # G_CNN_exp2 group
+#run_ids = ["kl7sg4c3", "29e2c83c"] # Eq wrn vs wrn

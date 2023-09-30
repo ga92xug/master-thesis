@@ -1,0 +1,25 @@
+defaults:
+- _self_
+- experiments: null
+
+save_folder: "plot/figures/"
+textwidth_latex: 5.78853 # in inches
+
+fontsize: 10
+
+wandb:
+  entity: ga92xug
+  projects: ["SL-NAS-common-best"]
+
+
+dataset2metric: {
+    # normal
+    "mnist12k": "valid.acc",
+    "mnist_rot": "valid.acc",
+    "cifar10": "valid.acc",
+    "ciar10_rot": "valid.acc",
+
+    # weighted
+    "galaxy10": "valid.acc_weighted",
+    "isic2019": "valid.acc_weighted",
+  } 

@@ -21,32 +21,7 @@ import os
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import get_name_performance_metric
 from experiments.b_NAS.plot import interact_contour_plotly, plot_marginal_effects
-
-METADATA = {
-        "mnist_rot": {
-            "name": "MNIST-rot",
-            "point": {"location": [0.9915000200271606, 313.543363446], "label": "EQ-WRN-16-4"},
-        },
-        "cifar10": {
-            "name": "CIFAR10",
-            "point": {"location": [0.921999990940094, 540.934433542], "label": "EQ-WRN-16-4"},
-        },
-        "galaxy10": {
-            "name": "Galaxy10",
-            "point": {"location": [0.8116401433944702, 6144.474499862], "label": "EQ-WRN-16-4"},
-        },
-        "isic2019": {
-            "name": "ISIC2019",
-            "point": {"location": [0.5097538232803345, 6144.474499862], "label": "EQ-WRN-16-4"},
-            # https://paperswithcode.com/sota/classification-on-isic-2019
-            "line": {"x": 0.6519, "label": "SOTA", "color": "red", "linestyle": "dashed"},
-        },
-        "unkown": {
-            "name": "Unknown",
-            "point": False,
-            "label": None,
-        },
-    }
+from plot.experiments.b_NAS.plot_nas_results import scalar_mappable
 
 def evaluate(
         ax_client: AxClient,
@@ -109,106 +84,6 @@ def get_contour_plots(
     gflops_interact_contour_plotly = interact_contour_plotly(model, metric_name="gflops", lower_is_better=True, density=density)
     return valid_acc_interact_contour_plotly, gflops_interact_contour_plotly
 
-
-def scalar_mappable(
-        experiment,
-        title: str = None,
-    ):
-    """
-    This function creates a scatter plot of an experiment's data sorted by trial_index.
-    The points are color-coded based on their iteration (trial_index). An optional point can be added and highlighted.
-
-    :param experiment: A data object representing the experiment. Needs to be convertible to a DataFrame
-                       with 'valid_acc', 'gflops', and 'trial_index' columns.
-    :param title: A string to use as the plot title. Default is "Equivariant NAS on MNIST-rot".
-    """
-    
-    meta_data = get_meta_information(experiment.name)
-    name = meta_data["name"]
-
-    title = title if title else f"Equivariant NAS on {name}"
-
-    # Convert experiment data to DataFrame and sort by trial_index
-    df = exp_to_df(experiment).sort_values(by=["trial_index"])
-    
-    # Extract required data columns
-    name_performance_metric = get_name_performance_metric(experiment)
-    outcomes = df[[name_performance_metric, "gflops"]].values
-
-    # Create figure and axes for the plot
-    fig, axes = plt.subplots(1, 1, figsize=(10,7))
-    
-    train_obj = outcomes
-    
-    # Color map for the scatter plot
-    cm = plt.cm.get_cmap('viridis')
-
-    # Extract batch_number from the DataFrame
-    trial_index_values = df.trial_index.values
-    
-    # Create scatter plot
-    sc = axes.scatter(train_obj[:, 0], train_obj[:,1], c=trial_index_values, alpha=0.8)
-    axes.set_title(title)
-
-    
-    xlabel = "Weighted validation accuracy" if name_performance_metric == "valid_acc_weighted" else "Validation accuracy"
-    axes.set_xlabel(xlabel)
-    axes.set_ylabel("GFLOPs")
-
-    # Add a new point if given
-    baseline_point = meta_data["point"]["location"]
-    baseline_label = meta_data["point"]["label"]
-    if baseline_point:
-        baseline_point = np.array([baseline_point])
-        sc_new = axes.scatter(baseline_point[:, 0], baseline_point[:, 1], c='blue', label=baseline_label if baseline_label else 'eq_wrn_16_4')
-
-        # Add description close to the label of the point
-        if baseline_label:
-            axes.text(baseline_point[:, 0] - 0.01, baseline_point[:, 1] - 0.01, baseline_label, fontsize=12, color='blue', va='top', ha='right')
-
-    # Add a line if given
-    line = meta_data.get("line", None)
-    if line is not None:
-        label = line['label']
-        line_x = line['x']
-        color = line['color']
-        
-        # Add a horizontal line
-        axes.axvline(x=line_x, color=color, linestyle=line['linestyle'])    
-        
-        # Add description close to the line label
-        axes.text(line_x - 0.01, baseline_point[:, 1], label, fontsize=12, color=color, va='top', ha='right')
-
-    # Normalize the color bar
-    norm = plt.Normalize(trial_index_values.min(), trial_index_values.max())
-    sm =  ScalarMappable(norm=norm, cmap=cm)
-    sm.set_array([])
-    fig.subplots_adjust(right=0.9)
-    
-    # Create a color bar
-    #cbar_ax = fig.add_axes([0.93, 0.15, 0.01, 0.7])
-    cbar_ax = fig.add_axes([0.93, 0.15, 0.05, 0.7])
-    cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.ax.set_title("Iteration")
-
-    return fig
-
-
-
-def get_meta_information(name: str):
-    result = match_substring(name)
-    if result:
-        return METADATA[result]
-    else:
-        return METADATA["unkown"]
-    
-def match_substring(string):
-    pattern = r'(mnist_rot|cifar10|galaxy10|isic2019)'
-    match = re.search(pattern, string)
-    if match:
-        return match.group(1)
-    else:
-        return None
 
 if __name__ == "__main__":
     # 6jqa39pv

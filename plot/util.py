@@ -1,7 +1,40 @@
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import wandb
+from hydra import compose, initialize
+import matplotlib.pyplot as plt
 
+def plot_init(individual_location:str, override: bool = False):
+    """
+    Initializes all plot functions. Gets the config and sets the font size.
+    """
+    overrides = []
+    if override:
+        overrides = [f"experiments={individual_location.replace('/', '_')[:-1]} "]
+
+    with initialize(config_path="conf", version_base="1.2"):
+        cfg = compose(config_name="config", overrides=overrides)
+
+    # Set the font size for labels, tick labels, and titles
+    plt.rcParams.update({'font.size': cfg.fontsize})
+
+    return cfg, cfg.save_folder + individual_location
+
+def get_fig_size(fig_size : Tuple, textwidth_in: float = 5.78853, reduction: float = 1.0):
+    """
+    This function calculates the figure size in inches based on the textwidth of the latex document.
+    """
+    
+    fig_width = textwidth_in * reduction
+    
+    # Calculate the ratio of the figure width to the figure height
+    ratio = fig_size[0] / fig_size[1]
+
+    # Calculate the figure height in inches
+    fig_height = fig_width / ratio
+
+    fig_size = (fig_width, fig_height)
+    return fig_size
 
 def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:
     """

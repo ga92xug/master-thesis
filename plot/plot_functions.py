@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import matplotlib.pyplot as plt
 from numpy import save, shape
 import numpy as np
@@ -7,23 +7,30 @@ from matplotlib import pyplot as plt
 from matplotlib import gridspec
 import os
 import sys
-sys.path.append(f"{os.getcwd()}")
 
-TITLE_SIZE = 12
-LABEL_SIZE = 10
+
+sys.path.append(f"{os.getcwd()}")
+from plot.util import get_fig_size
 
 METRIC_2_YLABEL = {
     "valid.acc": "Validation accuracy",
     "valid.acc_weighted": "Weighted validation accuracy",
 }
 
+def get_short_labels(labels: List[str], short_labels: str):
+    if short_labels is None:
+        return labels
+    else:
+        transform_label = eval(f"lambda s: {short_labels}")
+        return [transform_label(label) for label in labels]
 
 def smooth_data(data, w: int = 3):
     return np.convolve(data, np.ones(w), 'valid') / w
 
-def plot_flops(ax, downloaded_data):
+def plot_flops(ax, downloaded_data, short_labels: str = None):
     data = get_metric_from_downloaded_data(downloaded_data, "flops")
-    labels = list(data.keys())
+    labels = get_short_labels(list(data.keys()), short_labels)
+
     flops = list(data.values())
 
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
@@ -35,9 +42,10 @@ def plot_flops(ax, downloaded_data):
     ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
 
 
-def plot_total_parameters(ax, downloaded_data):
+def plot_total_parameters(ax, downloaded_data, short_labels: str = None):
     data = get_metric_from_downloaded_data(downloaded_data, "param_count")
-    labels = list(data.keys())
+    labels = get_short_labels(list(data.keys()), short_labels)
+
     total_params = list(data.values())
 
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
@@ -71,8 +79,6 @@ def plot_validation_accuracy(
     - window_size (int): The window size for smoothing the data.
     """
 
-    
-
     transformed_data = transform_data_to_arrays(downloaded_data, metric, window_size)
 
     min_acc = np.inf
@@ -103,7 +109,7 @@ def plot_validation_accuracy(
         line_y = horizontal_line['y']
         color = horizontal_line['color']
         ax.axhline(y=line_y, color=color, linestyle=horizontal_line['linestyle'])    
-        ax.annotate(label, xy=(0, line_y), xytext=(5, line_y + 1), textcoords='offset points', fontsize=LABEL_SIZE, color=color)
+        ax.annotate(label, xy=(0, line_y), xytext=(5, line_y + 1), textcoords='offset points', color=color)
 
 
     ax.set_xlabel('Epoch')
@@ -181,6 +187,8 @@ def transform_data_to_arrays(
 def create_combined_plot(
         downloaded_data: Dict[str, Dict[str, Dict[str, List]]], 
         metric: str,
+        short_labels: str = None,
+        fig_size: Tuple = (10, 6),
         **kwargs,
     ) -> plt.Figure:
     """
@@ -193,17 +201,19 @@ def create_combined_plot(
     - **kwargs: Additional arguments for the validation acc about plotting SOTA lines.
     """
 
-    fig = plt.figure(figsize=(10, 4))
+    fig_size = get_fig_size(fig_size)
+
+    fig = plt.figure(figsize=fig_size)
     gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])
 
     ax2 = plt.subplot(gs[0])
     plot_validation_accuracy(ax2, downloaded_data, metric, **kwargs)
     
     ax1 = plt.subplot(gs[1])
-    plot_flops(ax1, downloaded_data)
+    plot_flops(ax1, downloaded_data, short_labels=short_labels)
 
     ax3 = plt.subplot(gs[2])
-    plot_total_parameters(ax3, downloaded_data)
+    plot_total_parameters(ax3, downloaded_data, short_labels=short_labels)
     
     plt.tight_layout()
     plt.show()

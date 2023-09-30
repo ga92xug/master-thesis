@@ -2,7 +2,6 @@ import math
 import sys
 import os
 from typing import Tuple
-import ax
 from fvcore.nn import FlopCountAnalysis, flop_count_table, parameter_count_table, parameter_count
 from matplotlib import pyplot as plt
 import torch
@@ -24,6 +23,8 @@ from networks.util import (
     get_gspace_from_id,
     adjusted_out_channels,
 )
+
+from plot.util import *
 
 class CNN_TestNet(torch.nn.Module):
     def __init__(self, input_channels: int):
@@ -112,8 +113,10 @@ def get_data_cnn_conv(input_channels: int):
     return data
 
 
-def visualize_data(data_eq_conv, data_cnn_conv, rotations):
-    fig, axs = plt.subplots(2, 2, figsize=(10, 8))
+def visualize_data(data_eq_conv, data_cnn_conv, rotations, figsize=(10, 10)):
+    figsize = get_fig_size(figsize)
+
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
     plt.subplots_adjust(hspace=0.4)
 
     ad_data = data_eq_conv['ad']
@@ -163,14 +166,27 @@ def visualize_data(data_eq_conv, data_cnn_conv, rotations):
     axs[0, 1].sharex(axs[1, 1])
     axs[0, 0].legend()
     plt.tight_layout()
-    plt.savefig('scaling/figures/param_vs_flops.png')
+    return fig
 
 
 def main(input_channels: int = 64, rotations: list = [1, 2,4,6,8,10,12,14,16], reflections: list = [-1,0]):
+    cfg, save_folder_name = plot_init("a_initial_experiments/param_vs_flops/")
+
     data_eq_conv = get_data_eq_conv(input_channels, rotations, reflections)
     data_cnn_conv = get_data_cnn_conv(input_channels)
-    visualize_data(data_eq_conv, data_cnn_conv, rotations)
+    fig = visualize_data(data_eq_conv, data_cnn_conv, rotations)
+
+    save_plot(
+        figure=fig,
+        name="param_vs_flops",
+        folder_name=save_folder_name,
+    )
 
 
 if __name__ == "__main__":
+    
     main()
+    #    input_channels=16, 
+    #    rotations=[1,2,4,6,8], 
+    #    reflections=[-1,0],
+    #)

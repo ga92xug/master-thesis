@@ -1,6 +1,7 @@
 import os
 import sys
 from typing import List, Union
+from omegaconf import OmegaConf
 
 sys.path.append(f"{os.getcwd()}")
 from plot.util import *
@@ -83,6 +84,7 @@ dataset2metric = {
 } 
 
 def plot(
+        dataset2metric: Dict[str, str],
         wandb_entity: str,
         wandb_projects: str,
         save_folder_name: str,
@@ -114,11 +116,15 @@ def plot(
     
 
 def main():
-    wandb_entity = "ga92xug"
-    wandb_projects = ["SL-NAS-common-best"]
-    save_folder_name = "plot/experiments/b_NAS/figures/common_best/"
+    cfg, save_folder_name = plot_init("b_NAS/common_best/")
+    wandb_entity = cfg.wandb.entity
+    wandb_projects = cfg.wandb.projects
 
-    for name, run_info in dict_runs_ids.items():
+    experiments_2_run_ids = OmegaConf.to_container(
+            cfg.experiment, resolve=True, throw_on_missing=True
+        )
+
+    for name, run_info in experiments_2_run_ids.items():
         #if name == "mnist_rot":
         #    continue
         print(name)

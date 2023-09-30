@@ -30,7 +30,7 @@ blocks_args_dict:
     kernel_size: 5
     se_ratio: 0.0
     out_channel: 4.0
-    skip: "no" # no is a keyword
+    skip: identity # "no" # no is a keyword
     stride: 2
   _2:
     reflection: 0
@@ -40,7 +40,7 @@ blocks_args_dict:
     kernel_size: 5
     se_ratio: 0.0
     out_channel: 2.75
-    skip: conv
+    skip: identity # conv
     stride: 2
   _3:
     reflection: -1
@@ -50,7 +50,7 @@ blocks_args_dict:
     kernel_size: 5
     se_ratio: 0.0
     out_channel: 1.0
-    skip: conv
+    skip: identity # conv
     stride: 1
   _4:
   # no head
