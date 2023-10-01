@@ -7,13 +7,7 @@ stem_channels: 16 # same as wide_resnet
 fixed_params: False
 eq_expand_ratio: 6
 cnn_expand_ratio: 6.0
-
-blocks_args_config:  {'0_reflection': 0, '0_group': 2, '0_out_channels': 1.0, '0_kernel_size': 5, '0_stride': 1, 
-'1_reflection': 0, '1_group': 2, '1_num_layers': 1, '1_conv_op': 'mbconv', '1_kernel_size': 5, '1_se_ratio': 0.0, '1_out_channels': 4.0, '1_skip_op': 'no', '1_stride': 2, 
-'2_reflection': 0, '2_group': 2, '2_num_layers': 2, '2_conv_op': 'mbconv', '2_kernel_size': 5, '2_se_ratio': 0.0, '2_out_channels': 2.75, '2_skip_op': 'conv', '2_stride': 2, 
-'3_reflection': -1, '3_group': 1, '3_num_layers': 2, '3_conv_op': 'mbconv', '3_kernel_size': 5, '3_se_ratio': 0.75, '3_out_channels': 1.0, '3_skip_op': 'conv', '3_stride': 1, '4_reflection': -1, '4_group': 0, '4_out_channels': 1.0, '4_kernel_size': 0, '4_stride': 1} 
-
-blocks_args: []
+increase_blocks: null
 
 blocks_args_dict:
   _0:

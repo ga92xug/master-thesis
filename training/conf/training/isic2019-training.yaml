@@ -4,7 +4,7 @@ defaults:
 - dataset: isic2019
 - scheduler: reduce_lr_on_plateau 
 
-epochs: 75
+epochs: 120
 accumulate: 2
 
 dataset:

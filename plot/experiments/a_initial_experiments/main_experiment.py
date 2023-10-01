@@ -46,9 +46,11 @@ def plot(
             GFLOPs=GFLOPs,
         )
 
+    fig_size = get_fig_size((8,4))
     fig = create_combined_plot(
         downloaded_data=downloaded_data,
         metric=metric,
+        fig_size=fig_size,
         short_labels=short_labels,
         **kwargs,
     )

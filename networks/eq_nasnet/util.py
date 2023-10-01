@@ -2,6 +2,7 @@ import re
 import math
 import collections
 from typing import Tuple, Union
+from omegaconf import OmegaConf
 import torch
 from torch import mul, nn
 from torch.nn import functional as F
@@ -16,15 +17,6 @@ CHANNELS_CONSTANT = 1
 ################################################################################
 # Help functions for model architecture
 ################################################################################
-
-
-# Parameters for an individual model block
-BlockArgs = collections.namedtuple('BlockArgs', [
-        'reflection', 'group', 'kernel_size', 'stride', 'out_channel',
-        'num_layers', 'conv_op', 'se_ratio', 'skip'])
-
-# Set GlobalParams and BlockArgs's defaults
-BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient):
     list_out_channel = []
@@ -246,15 +238,47 @@ def encode_parameters(
     return blocks
 
 ################################################################################
-# Helper functions for loading model params
+# Blocks Args
 ################################################################################
 
-# BlockDecoder: A Class for encoding and decoding BlockArgs
-# efficientnet_params: A function to query compound coefficient
-# get_model_params and efficientnet:
-#     Functions to get BlockArgs and GlobalParams for efficientnet
-# url_map and url_map_advprop: Dicts of url_map for pretrained weights
-# load_pretrained_weights: A function to load pretrained weights
+# Parameters for an individual model block
+BlockArgs = collections.namedtuple('BlockArgs', [
+        'reflection', 'group', 'kernel_size', 'stride', 'out_channel',
+        'num_layers', 'conv_op', 'se_ratio', 'skip'])
+
+# Set GlobalParams and BlockArgs's defaults
+BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
+
+
+def get_increased_blocks(blocks_args_dict: dict, increase_blocks: dict):
+    """
+    Increase the number of blocks in the blocks_args_dict by the number specified in increase_blocks.
+    """
+    if increase_blocks is None:
+        return blocks_args_dict
+
+    assert 0 not in increase_blocks.keys(), "The lifting conv cannot be increased."
+    assert 4 not in increase_blocks.keys(), "The head block cannot be increased."
+
+    
+    keys = list(blocks_args_dict.keys())
+    for block_number_to_increase, num_new_blocks in increase_blocks.items():
+        if block_number_to_increase not in keys:
+            raise ValueError(f"Block {block_number_to_increase} does not exist in blocks_args_dict.")
+
+        # get the index of the block to increase
+        index = keys.index(block_number_to_increase)
+        # increase the number of blocks
+        for _ in range(num_new_blocks):
+            keys.insert(index, block_number_to_increase)
+
+    # create a new dict with the increased blocks
+    blocks_args_dict_new = {}
+    for i, key in enumerate(keys):
+        blocks_args_dict_new[i] = blocks_args_dict[key]
+
+    return blocks_args_dict_new
+
 
 class BlockDecoder(object):
     """

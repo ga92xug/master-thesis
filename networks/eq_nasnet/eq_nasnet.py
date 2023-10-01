@@ -17,6 +17,7 @@ from .util import (
     get_increase_factor,
     round_repeats,
     get_channel_sizes,
+    get_increased_blocks,
 )
 from networks.eq_nasnet.util import encode_parameters
 from networks.eq_restriction import Restriction_Group_or_CNN
@@ -60,14 +61,14 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 class EquivariantNASNet(nn.Module):
     def __init__(
             self, 
-            blocks_args_dict,
-            #blocks_args, 
-            image_size,
+            blocks_args_dict: dict,
+            image_size: int,
+            increase_blocks: dict = None,
             width_coefficient=1, 
             depth_coefficient=1,
             dropout_rate=0.2,
             stem_channels=16,
-            fixed_params=True,
+            fixed_params=False,
             eq_expand_ratio=2,
             cnn_expand_ratio=6,
             input_channels=3, 
@@ -86,7 +87,10 @@ class EquivariantNASNet(nn.Module):
         self.fixed_params = fixed_params
 
         # BlockArgs
-        print("block_args_dict", blocks_args_dict)
+        blocks_args_dict = OmegaConf.to_container(blocks_args_dict)
+        blocks_args_dict = {int(k[1]): v for k, v in blocks_args_dict.items()}
+        blocks_args_dict = get_increased_blocks(blocks_args_dict, increase_blocks)
+
         blocks_args = [BlockArgs(**block_args_dict) for block_args_dict in blocks_args_dict.values()]
         BlockDecoder()._check_valid_blocks_args(blocks_args)
         

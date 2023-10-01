@@ -119,6 +119,7 @@ def plot_validation_accuracy(
     ax.set_ylim(ylim_min, ylim_max)
     ax.set_xlim(0, len(runs_data[0]) - 1)
     ax.legend()
+    plt.legend(loc='lower right')
     ax.grid(True)
 
 
@@ -200,8 +201,6 @@ def create_combined_plot(
     - metric (str): The specific metric to extract.
     - **kwargs: Additional arguments for the validation acc about plotting SOTA lines.
     """
-
-    fig_size = get_fig_size(fig_size)
 
     fig = plt.figure(figsize=fig_size)
     gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])

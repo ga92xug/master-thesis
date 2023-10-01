@@ -102,9 +102,13 @@ def plot(
         metric=metric,
     )
 
+    fig_size = get_fig_size((8,4))
+    print("fig_size", fig_size)
+
     fig = create_combined_plot(
         downloaded_data=downloaded_data,
         metric=metric,
+        fig_size=fig_size,
         **kwargs,
     )
 
@@ -116,27 +120,28 @@ def plot(
     
 
 def main():
-    cfg, save_folder_name = plot_init("b_NAS/common_best/")
+    cfg, save_folder_name = plot_init("b_NAS/common_best/", override=True)
     wandb_entity = cfg.wandb.entity
     wandb_projects = cfg.wandb.projects
 
     experiments_2_run_ids = OmegaConf.to_container(
-            cfg.experiment, resolve=True, throw_on_missing=True
-        )
+            cfg.experiments, resolve=True, throw_on_missing=True)
+    dataset2metric = OmegaConf.to_container(
+            cfg.dataset2metric, resolve=True, throw_on_missing=True)
 
     for name, run_info in experiments_2_run_ids.items():
-        #if name == "mnist_rot":
+        #if name != "isic2019":
         #    continue
         print(name)
         
         plot(
+            dataset2metric=dataset2metric,
             wandb_entity=wandb_entity, 
             wandb_projects=wandb_projects, 
             save_folder_name=save_folder_name,
             save_name=name,
             **run_info
         )
-
 
 if __name__ == "__main__":
     main()
