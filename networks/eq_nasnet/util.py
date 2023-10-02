@@ -101,8 +101,9 @@ def round_repeats(repeats, depth_coefficient):
     multiplier = depth_coefficient
     if not multiplier:
         return repeats
-    return int(math.ceil(multiplier * repeats))
-
+    
+    repeats = int(round(multiplier * repeats))
+    return repeats
 
 def encode_parameters_old(params: dict, nas_encoded: bool = True, choice_2_range_params : dict = {
         "group": [1, 2, 4, 8, 16],

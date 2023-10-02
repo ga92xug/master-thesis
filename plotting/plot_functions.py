@@ -8,9 +8,8 @@ from matplotlib import gridspec
 import os
 import sys
 
-
 sys.path.append(f"{os.getcwd()}")
-from plot.util import get_fig_size
+from plotting.util import get_fig_size
 
 METRIC_2_YLABEL = {
     "valid.acc": "Validation accuracy",
@@ -151,6 +150,9 @@ def get_metric_from_downloaded_data(downloaded_data, metric, aggregation_func="e
                 f"Metric {metric} is not equal for all runs of label {label}!"
             
             extracted_metric[label] = extracted_metric[label][0]  # Extract the metric from the list
+
+        elif aggregation_func == "mean":
+            extracted_metric[label] = np.mean(extracted_metric[label], axis=0)
         
         else:
             NotImplementedError(f"Aggregation function {aggregation_func} is not supported!")

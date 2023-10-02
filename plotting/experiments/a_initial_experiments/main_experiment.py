@@ -5,8 +5,8 @@ from typing import List, Union
 from omegaconf import OmegaConf
 from sympy import O
 sys.path.append(f"{os.getcwd()}")
-from plot.util import *
-from plot.plot_functions import *
+from plotting.util import *
+from plotting.plot_functions import *
 
 
 def add_flops(downloaded_data, GFLOPs):

@@ -24,7 +24,7 @@ from networks.util import (
     adjusted_out_channels,
 )
 
-from plot.util import *
+from plotting.util import *
 
 class CNN_TestNet(torch.nn.Module):
     def __init__(self, input_channels: int):

@@ -61,9 +61,10 @@ def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:
     raise ValueError(f"Run {run_id} not found in any of the projects.")
 
 def download_run(
-        entity: str, 
-        projects: list, 
-        run_id: str,
+        run: wandb.apis.public.Run,
+        entity: str = None, 
+        projects: list = None, 
+        run_id: str = None,
         metric: str = "valid.acc",
         name_param_count: str = "param_count",
     ) -> Dict[str, List[float]]:
@@ -78,9 +79,13 @@ def download_run(
     - name_param_count (str): (param_count, total_params).
     """
 
-    result = {}
+    assert run is not None or (entity is not None and projects is not None and run_id is not None), \
+        "Either run or entity, projects, and run_id must be given."
 
-    run = find_run(entity, projects, run_id)
+    if run is None:
+        run = find_run(entity, projects, run_id)
+
+    result = {}
 
     result[metric] = run.history(keys=[metric]).values[:, 1]
     result["param_count"] = run.history(keys=[name_param_count]).values[:, 1][0] * 1e6
@@ -120,7 +125,13 @@ def download_data(
         
         # download the data for each run id associated with one label
         for run_id in run_ids:
-            result[label][run_id] = download_run(entity, projects, run_id, metric, name_param_count)
+            result[label][run_id] = download_run(
+                entity=entity, 
+                projects=projects, 
+                run_id=run_id,
+                metric=metric,
+                name_param_count=name_param_count,
+            )
 
     return result
 

@@ -2,11 +2,11 @@ import torch
 import sys
 import os
 sys.path.append(f"{os.getcwd()}")
-from plot.experiments.b_NAS.plot_nas_results import scalar_mappable
+from plotting.experiments.b_NAS.plot_nas_results import scalar_mappable
 from experiments.b_NAS.common_best_architecture.util import *
 from experiments.b_NAS.util import *
-from plot.util import *
-from plot.plot_functions import *
+from plotting.util import *
+from plotting.plot_functions import *
 
 
 def plot_scalar_mappable(ax_client, save_folder_name, dataset_name):

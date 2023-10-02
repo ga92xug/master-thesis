@@ -4,8 +4,8 @@ from typing import List, Union
 from omegaconf import OmegaConf
 
 sys.path.append(f"{os.getcwd()}")
-from plot.util import *
-from plot.plot_functions import *
+from plotting.util import *
+from plotting.plot_functions import *
 
 
 dict_runs_ids = {
