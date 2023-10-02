@@ -122,7 +122,12 @@ def plot_validation_accuracy(
     ax.grid(True)
 
 
-def get_metric_from_downloaded_data(downloaded_data, metric, aggregation_func="equal"):
+def get_metric_from_downloaded_data(
+        downloaded_data: Dict[str, Dict[str, Dict[str, List]]],
+        metric: str, 
+        aggregation_func: str ="equal",
+        smoothing_window_size: int = 1,
+    )-> Dict[str, np.ndarray]:
     """
     Extract a specific metric from the downloaded data. \
     The information about the run_id is lost. \
@@ -131,29 +136,38 @@ def get_metric_from_downloaded_data(downloaded_data, metric, aggregation_func="e
     Parameters:
     - downloaded_data (dict): Nested dictionary containing data (Label: Run ID: Metric: List[float]).
     - metric (str): The specific metric to extract.
+    - smoothing_window_size (int): The window size for smoothing the data. 1 for no smoothing.
 
     Returns:
     - extracted_metric (dict): Extracted metric data.
     """
 
-    extracted_metric = {}  # Dictionary to store the extracted metric data
+    extracted_metric = {}  # Store aggregated run data
 
     # Iterate through labels and runs
     for label, runs_data in downloaded_data.items():
         extracted_metric[label] = []  # Initialize the label entry
         for run_id, run_data in runs_data.items():
-            extracted_metric[label].append(run_data[metric])  # Append the metric data to the label entry
+            if smoothing_window_size == 1:
+                extracted_metric[label].append(run_data[metric]) 
+            else:
+                extracted_metric[label].append(smooth_data(run_data[metric], smoothing_window_size))
 
         if aggregation_func == "equal":
             # If the aggregation function is "equal", the metric should be the same for all runs
             assert np.allclose(extracted_metric[label][0], extracted_metric[label][1:]), \
                 f"Metric {metric} is not equal for all runs of label {label}!"
             
-            extracted_metric[label] = extracted_metric[label][0]  # Extract the metric from the list
+            extracted_metric[label] = np.array(extracted_metric[label][0])
 
         elif aggregation_func == "mean":
             extracted_metric[label] = np.mean(extracted_metric[label], axis=0)
-        
+
+        elif aggregation_func == "no_aggregation":
+            extracted_metric[label] = np.array(extracted_metric[label])
+
+        elif aggregation_func == "extract_last":
+            extracted_metric[label] = np.array(extracted_metric[label])[:, -1]
         else:
             NotImplementedError(f"Aggregation function {aggregation_func} is not supported!")
 
@@ -179,7 +193,10 @@ def transform_data_to_arrays(
     for label, runs_data in downloaded_data.items():
         transformed_data[label] = [] 
         for run_id, run_data in runs_data.items():
-            smoothed_data = smooth_data(run_data[metric], window_size)
+            if window_size == 1:
+                smoothed_data = run_data[metric]
+            else:
+                smoothed_data = smooth_data(run_data[metric], window_size)
             transformed_data[label].append(smoothed_data)  
 
         transformed_data[label] = np.array(transformed_data[label])  # Convert the list to a numpy array
