@@ -7,5 +7,6 @@ SEEDS="other.seed=0"
 # 160 = 202 GFLOPs
 # 192 = 291 GFLOPs
 # 224 = 397 GFLOPs
-$PY_SCRIPT -m $SEEDS +exp_scaling=general training.dataset.resolution=128,192 "model.increase_blocks={3:1}"
+# training.dataset.resolution=128,192
+$PY_SCRIPT -m $SEEDS +exp_scaling=general training.dataset.resolution=128,192 "model.increase_blocks={2:{num_new_blocks:1,replace:{out_channel:1}}}"
 $PY_SCRIPT -m $SEEDS +exp_scaling=general training.dataset.resolution=128,192 model.depth_coefficient=1.5

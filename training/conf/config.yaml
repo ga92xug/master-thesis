@@ -2,7 +2,7 @@
 defaults:
 - _self_
 - model: eq_nasnet
-- training: galaxy10-training
+- training: isic2019-training
 - wandb: default
 
 # Dataset parameters        

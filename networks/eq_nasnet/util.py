@@ -1,7 +1,9 @@
 import re
+from copy import deepcopy
 import math
 import collections
 from typing import Tuple, Union
+from numpy import block
 from omegaconf import OmegaConf
 import torch
 from torch import mul, nn
@@ -253,6 +255,14 @@ BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 def get_increased_blocks(blocks_args_dict: dict, increase_blocks: dict):
     """
     Increase the number of blocks in the blocks_args_dict by the number specified in increase_blocks.
+
+    Args:
+    - blocks_args_dict (dict): A dictionary containing the blocks_args.
+    - increase_blocks (dict): A dictionary containing num_new_blocks for every block (key) that should be increase.
+        And optionally a replace dict, containing the parameters that should be replaced in the new blocks.
+
+    Returns:
+    - blocks_args_dict_new (dict): A dictionary containing the blocks_args with the increased blocks.
     """
     if increase_blocks is None:
         return blocks_args_dict
@@ -262,7 +272,8 @@ def get_increased_blocks(blocks_args_dict: dict, increase_blocks: dict):
 
     
     keys = list(blocks_args_dict.keys())
-    for block_number_to_increase, num_new_blocks in increase_blocks.items():
+    for block_number_to_increase, value in increase_blocks.items():
+        num_new_blocks = value["num_new_blocks"]
         if block_number_to_increase not in keys:
             raise ValueError(f"Block {block_number_to_increase} does not exist in blocks_args_dict.")
 
@@ -274,8 +285,19 @@ def get_increased_blocks(blocks_args_dict: dict, increase_blocks: dict):
 
     # create a new dict with the increased blocks
     blocks_args_dict_new = {}
+    initial_blocks = set()
     for i, key in enumerate(keys):
-        blocks_args_dict_new[i] = blocks_args_dict[key]
+        blocks_args_dict_new[i] = deepcopy(blocks_args_dict[key])
+
+        if key not in initial_blocks:
+            # this is the inital block
+            initial_blocks.add(key)
+        else:
+            # here we added a block
+            replace_dict = increase_blocks[key].get("replace", {})
+            for k, v in replace_dict.items():
+                blocks_args_dict_new[i][k] = v          
+
 
     return blocks_args_dict_new
 
@@ -432,5 +454,17 @@ class BlockDecoder(object):
 
 
 if __name__ == "__main__":
-    blocks_args = ['r0_k3_g8_o1_s2', 'r0_k3_g2_o1_s2_n1_c-conv_se0.25_sk-identity', 'r0_k3_g2_o1_s2_n1_c-mbconv_se0.25_sk-identity', 'r-1_k3_g1_o1_s2_n2_c-mbconv_se0.25_sk-no']
-    blocks_args = BlockDecoder.decode(blocks_args)
+    from hydra import compose, initialize
+    overrides = ["training.dataset.resolution=128", "model.increase_blocks={2:{num_new_blocks:1,replace:{out_channel:1}}}", "other.verbose=6"]
+
+    with initialize(config_path="../../training/conf", version_base="1.2"):
+        cfg = compose(config_name="config", overrides=overrides)
+
+
+    blocks_args_dict = OmegaConf.to_container(cfg.model.blocks_args_dict)
+    blocks_args_dict = {int(k[1]): v for k, v in blocks_args_dict.items()}
+
+    blocks_args_dict = get_increased_blocks(blocks_args_dict, increase_blocks={2:{"num_new_blocks":1,"replace":{"out_channel":1}}})
+
+    blocks_args = [BlockArgs(**block_args_dict) for block_args_dict in blocks_args_dict.values()]
+    print(blocks_args[3].out_channel)

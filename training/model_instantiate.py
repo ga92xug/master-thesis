@@ -149,6 +149,9 @@ def test_instantiate(cfg: DictConfig):
     )
     print(stats)
 
+    if cfg.other.verbose > 5:
+        print(model)
+
     return model, dataloaders
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
