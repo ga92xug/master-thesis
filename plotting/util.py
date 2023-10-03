@@ -87,7 +87,7 @@ def download_run(
 
     result = {}
 
-    result[metric] = run.history(keys=[metric]).values[:, 1]
+    result[metric] = run.history(keys=[metric]).values[:, 1] * 100
     result["param_count"] = run.history(keys=[name_param_count]).values[:, 1][0] * 1e6
         
     # some of the runs do not have flops

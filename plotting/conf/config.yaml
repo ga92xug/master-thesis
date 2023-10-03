@@ -2,7 +2,7 @@ defaults:
 - _self_
 - experiments: null
 
-save_folder: "plot/figures/"
+save_folder: "plotting/figures/"
 textwidth_latex: 5.78853 # in inches
 
 fontsize: 8

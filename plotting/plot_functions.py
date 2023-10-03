@@ -114,7 +114,7 @@ def plot_validation_accuracy(
     ax.set_xlabel('Epoch')
     ax.set_ylabel(METRIC_2_YLABEL[metric])
     ylim_min = max(0, min_acc - (ylim_percentage / 100) * (max_acc - min_acc)) # Set the lower limit to 0
-    ylim_max = min(1, max_acc + (ylim_percentage / 100) * (max_acc - min_acc)) # Set the upper limit to 100
+    ylim_max = min(100, max_acc + (ylim_percentage / 100) * (max_acc - min_acc)) # Set the upper limit to 100
     ax.set_ylim(ylim_min, ylim_max)
     ax.set_xlim(0, len(runs_data[0]) - 1)
     ax.legend()

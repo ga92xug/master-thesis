@@ -10,7 +10,8 @@ import sys
 sys.path.append(f"{os.getcwd()}")
 
 from plotting.experiments.c_scaling.plot_scaling import *
-from plotting.util import plot_init, download_run
+from plotting.experiments.c_scaling.util import baseline_and_scaling_exp_2_scaling_exp, transform_data_for_plot
+from plotting.util import plot_init, download_run, save_plot
 from plotting.plot_functions import get_metric_from_downloaded_data, transform_data_to_arrays
 from networks.util import flatten_dict
 
@@ -47,7 +48,7 @@ def get_wandbdata_with_filters(
 
     return results
 
-def combine_data(data: dict, metric: str, window_size: int = 3):
+def aggregate_filter_data(data: dict, metric: str, window_size: int = 3):
     combined_data = {}
 
     for experiment_class, experiment_data in data.items():
@@ -63,13 +64,11 @@ def combine_data(data: dict, metric: str, window_size: int = 3):
 
     return combined_data
 
-
-def main():
-    cfg, save_folder_name = plot_init("c_scaling/individual/")
-    wandb_entity = cfg.wandb.entity
-    wandb_projects = "SL-Scaling"
-    metric = "valid.acc_weighted"
-
+def get_data(
+        wandb_entity: str,
+        wandb_projects: str,
+        metric: str,
+    ):
     tags = {
         "baseline_isic2019": None, 
         "width_scaling": "model.width_coefficient"
@@ -91,9 +90,46 @@ def main():
         )
         data[tag] = results_for_filter
 
-    combined_data = combine_data(data, metric)
-    print(combined_data)
+    return data
 
+
+def transform_data(data: dict, metric: str):
+    # aggregate data data of different random seeds for 1 type
+    data = aggregate_filter_data(data, metric)
+
+    # transform data into format for plotting
+    one_exp = baseline_and_scaling_exp_2_scaling_exp(data)
+    flops, accuracy_values, labels = transform_data_for_plot(one_exp)
+
+    return flops, accuracy_values, labels
+
+def example_data():
+    flops = [np.array(7.06396968e+10), np.array(1.44022375e+11), np.array(2.42780298e+11), np.array(3.66913477e+11)]
+    accuracy_values = [np.array([68.1474785 , 66.86897278, 66.55477285]), np.array([68.89136434, 68.97262534, 67.66067346]), np.array([70.24774353, 69.6485877 , 69.03163393]), np.array([69.07265186, 69.29402153, 66.99118813])]
+    labels = ['w1', 'w1.5', 'w2', 'w2.5']
+
+    return flops, accuracy_values, labels
+
+
+def main():
+    cfg, save_folder_name = plot_init("c_scaling/individual/")
+    wandb_entity = cfg.wandb.entity
+    wandb_projects = "SL-Scaling"
+    metric = "valid.acc_weighted"
+
+    data = get_data(wandb_entity, wandb_projects, metric)
+    flops, accuracy_values, labels = transform_data(data, metric)
+    #flops, accuracy_values, labels = example_data()
+
+
+    fig, ax = plt.subplots()
+    create_subplot(ax, flops, accuracy_values, "FLOPs", "Weigthed Validation Accuracy", labels, True, color='b')
+
+    save_plot(
+        figure=fig,
+        name="individual",
+        folder_name=save_folder_name,
+    )
 
 if __name__ == "__main__":
     main()
