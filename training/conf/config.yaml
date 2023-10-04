@@ -7,6 +7,7 @@ defaults:
 
 # Dataset parameters        
 training:
+  eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
   compile: False
   steps_per_epoch: -1
   accumulate: 1
@@ -18,7 +19,6 @@ training:
 
 # Other experiment's parameters
 other:
-  eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
   valid_conf_matrix_frequency: 25
   backup_model: False           # Backup the model in a file
   backup_frequency: -1          # Backup frequency (counts iterations if positive, epochs if negative. Use -1 to backup at the end of each epoch)

@@ -10,6 +10,8 @@ from torch import mul, nn
 from torch.nn import functional as F
 import sys
 import os
+
+import wandb
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import convert_to_number
 from nn import FieldType
@@ -266,38 +268,48 @@ def get_increased_blocks(blocks_args_dict: dict, increase_blocks: dict):
     - blocks_args_dict_new (dict): A dictionary containing the blocks_args with the increased blocks.
     """
     if increase_blocks is None:
-        return blocks_args_dict
+        # no blocks should be increased
+        blocks_args_dict_new = blocks_args_dict
+    else: 
+        assert 0 not in increase_blocks.keys(), "The lifting conv cannot be increased."
+        assert 4 not in increase_blocks.keys(), "The head block cannot be increased."
 
-    assert 0 not in increase_blocks.keys(), "The lifting conv cannot be increased."
-    assert 4 not in increase_blocks.keys(), "The head block cannot be increased."
+        
+        keys = list(blocks_args_dict.keys())
+        for block_number_to_increase, value in increase_blocks.items():
+            num_new_blocks = value["num_new_blocks"]
+            if block_number_to_increase not in keys:
+                raise ValueError(f"Block {block_number_to_increase} does not exist in blocks_args_dict.")
 
-    
-    keys = list(blocks_args_dict.keys())
-    for block_number_to_increase, value in increase_blocks.items():
-        num_new_blocks = value["num_new_blocks"]
-        if block_number_to_increase not in keys:
-            raise ValueError(f"Block {block_number_to_increase} does not exist in blocks_args_dict.")
+            # get the index of the block to increase
+            index = keys.index(block_number_to_increase)
+            # increase the number of blocks
+            for _ in range(num_new_blocks):
+                keys.insert(index, block_number_to_increase)
 
-        # get the index of the block to increase
-        index = keys.index(block_number_to_increase)
-        # increase the number of blocks
-        for _ in range(num_new_blocks):
-            keys.insert(index, block_number_to_increase)
+        # create a new dict with the increased blocks
+        blocks_args_dict_new = {}
+        initial_blocks = set()
+        for i, key in enumerate(keys):
+            blocks_args_dict_new[i] = deepcopy(blocks_args_dict[key])
 
-    # create a new dict with the increased blocks
-    blocks_args_dict_new = {}
-    initial_blocks = set()
-    for i, key in enumerate(keys):
-        blocks_args_dict_new[i] = deepcopy(blocks_args_dict[key])
+            if key not in initial_blocks:
+                # this is the inital block
+                initial_blocks.add(key)
+            else:
+                # here we added a block
+                replace_dict = increase_blocks[key].get("replace", {})
+                for k, v in replace_dict.items():
+                    blocks_args_dict_new[i][k] = v          
 
-        if key not in initial_blocks:
-            # this is the inital block
-            initial_blocks.add(key)
-        else:
-            # here we added a block
-            replace_dict = increase_blocks[key].get("replace", {})
-            for k, v in replace_dict.items():
-                blocks_args_dict_new[i][k] = v          
+    # update wandb config with the number of blocks
+    try:
+        model_config = wandb.config.get("model", {})
+        model_config["num_blocks"] = len(blocks_args_dict_new) - 2
+        wandb.config.update({"model": model_config})
+    except:
+        # wandb is not initialized
+        pass
 
 
     return blocks_args_dict_new

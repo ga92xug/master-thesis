@@ -1,5 +1,6 @@
 import os.path
 import sqlite3
+from omegaconf import DictConfig
 import pandas as pd
 import numpy as np
 import io
@@ -10,6 +11,7 @@ import signal
 from typing import List, Tuple
 
 import torch
+import wandb
 
 #from models import *
 from networks import *
@@ -96,8 +98,6 @@ def get_out_dataloader(out_dataloader: Tuple, device: str) -> Tuple[torch.Tensor
     elif len(out_dataloader) == 3:
         # domain shift
         x, t, meta_data = out_dataloader
-
-        t = t.float()
     else:
         raise ValueError("Dataloader should return 2 or 3 values")
     
@@ -109,6 +109,33 @@ def get_out_dataloader(out_dataloader: Tuple, device: str) -> Tuple[torch.Tensor
 ########################################################################################################################
 # Utilites to build paths and names in a standard way
 ########################################################################################################################
+
+def give_wandb_name(
+        model: torch.nn.Module, 
+        wandb_run: wandb.sdk.wandb_run.Run,
+    ) -> None:
+    """
+    Updates the wandb_run name.
+    """
+    config = wandb_run.config
+    give_name = config["wandb"]["give_name"]
+    project = config["wandb"]["project"]
+    model_name = config["model"]["_target_"]
+
+    if not give_name:
+        return
+
+    if isinstance(give_name, str):
+        wandb_run.name = give_name
+    elif project == "SL-Scaling" and "EquivariantNASNet" in model_name:
+        # special naming convention for Scaling
+        num_blocks = config["model"]["num_blocks"]
+        depth_coefficient = config["model"]["depth_coefficient"]
+        width_coefficient = config["model"]["width_coefficient"]
+        resolution = config["training"]["dataset"]["resolution"]
+        wandb_run.name = f"b{num_blocks}_d{depth_coefficient}_w{width_coefficient}_r{resolution}"
+    else:
+        wandb_run.name = model.name
 
 
 def out_path(cfg):

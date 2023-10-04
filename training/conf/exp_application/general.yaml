@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - override /training: camelyon17-training
+  - override /model: eq_nasnet
+  - override /wandb: default
+  - _self_
+  
+
+
+
+wandb:
+  project: SL-application
+  give_name: True
+  tags: []

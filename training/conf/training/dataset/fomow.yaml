@@ -1,21 +1,21 @@
 _target_: training.datasets.domain_shift.data_loader.get_loaders
-name: camelyon17             # The name of the dataset to use
-augment: 
+name: fomow             # The name of the dataset to use
+augment: False
   #ColorJitter: 
   #  brightness: 0.4
   #  contrast: 0.4
   #  saturation: 0.4
   #  hue: 0.1
-  CenterCrop: 
-    size: 32
+  # CenterCrop: 
+  #   size: 32
   
 workers: 8                    # Number of jobs to load the dataset
 resolution: 96
 
 # very balanced data 0: 151046, 1: 151390
 should_normalize_weights: False
-channel_wise_mean_images: [0.3839106,  0.38799807, 0.36028373]
-channel_wise_std_images: [0.2512182,  0.2505474,  0.25031218]
+#channel_wise_mean_images: [0.3839106,  0.38799807, 0.36028373]
+#channel_wise_std_images: [0.2512182,  0.2505474,  0.25031218]
 n_in_channels: 3
-n_out_classes: 2
+n_out_classes: 62
 

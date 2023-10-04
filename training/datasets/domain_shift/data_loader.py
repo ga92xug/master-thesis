@@ -5,23 +5,21 @@ import sys
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
-#print("current working directory: ", os.getcwd())
 from training.datasets.utils import get_normalize_weights, get_transforms
-#from experiment import dataloader
 
 def get_loaders(
-    data_dir: str,
-    name: str,
-    resolution: int,
-    channel_wise_mean_images: list,
-    channel_wise_std_images: list,
-    batch_size: int,
-    eval_batch_size: int,
-    workers: int,
-    augment: bool,
-    distribution_shift: bool,
-    **kwargs,
-):
+        data_dir: str,
+        name: str,
+        resolution: int,
+        channel_wise_mean_images: list,
+        channel_wise_std_images: list,
+        batch_size: int,
+        eval_batch_size: int,
+        workers: int,
+        augment: bool,
+        distribution_shift: bool,
+        **kwargs,
+    ):
     location = data_dir + name
     dataset = get_dataset(name, root_dir=location, download=False)
 

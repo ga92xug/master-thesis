@@ -12,16 +12,13 @@ import torch.nn as nn
 from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
 from torchmetrics import MetricCollection
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+sys.path.append(os.getcwd()) # add current directory
 from training.model_instantiate import get_model
 from networks.util import cuda_memory_usage
 from training import utils
 from training import log
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
-#os.environ['TORCHDYNAMO_VERBOSE'] = '0'
-#import torch._dynamo
-#torch._dynamo.config.suppress_errors = True
 
 class Experiment:
     def __init__(self, cfg: DictConfig):
@@ -62,7 +59,7 @@ class Experiment:
         self._dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
         n_inputs = cfg.training.dataset.n_in_channels
         self.n_outputs = cfg.training.dataset.n_out_classes
-        self.n_outputs = 1 if self.n_outputs == 2 else self.n_outputs
+        #self.n_outputs = 1 if self.n_outputs == 2 else self.n_outputs
         image_size = cfg.training.dataset.resolution
         self.distribution_shift = cfg.training.dataset.distribution_shift
         print("Stage 1: dataloaders built")
@@ -88,10 +85,7 @@ class Experiment:
         self.valid_metrics = MetricCollection(self.valid_metrics)
         
         # Loss function
-        if self.n_outputs <= 2 and False:
-            self._loss_function = torch.nn.BCEWithLogitsLoss(pos_weight=normalize_weights)
-        else:
-            self._loss_function = torch.nn.CrossEntropyLoss(weight=normalize_weights)
+        self._loss_function = torch.nn.CrossEntropyLoss(weight=normalize_weights)
 
         # model
         self.model, _ = get_model(
@@ -104,10 +98,7 @@ class Experiment:
             verbose=self._verbose,
         )
         
-        if isinstance(cfg.wandb.give_name, str):
-            self.wandb_run.name = cfg.wandb.give_name
-        elif cfg.wandb.give_name:
-            self.wandb_run.name = self.model.name
+        utils.give_wandb_name(self.model, self.wandb_run)
         print("Stage 2: model built")
 
         # optimizer
@@ -125,7 +116,7 @@ class Experiment:
 
         # training configuration
         self.max_epochs = cfg.training.epochs
-        self._eval_frequency = cfg.other.eval_frequency
+        self._eval_frequency = cfg.training.eval_frequency
         self.steps_per_epoch = cfg.training.steps_per_epoch
         self.valid_conf_matrix_frequency = cfg.other.valid_conf_matrix_frequency
 
@@ -174,7 +165,7 @@ class Experiment:
             
             # compute prediction    
             y = self.model(x)
-            y = y.squeeze(1) if y.shape[1] == 1 else y
+            #y = y.squeeze(1) if y.shape[1] == 1 else y
 
             # compute loss and accuracy
             n_samples += x.shape[0]
@@ -281,14 +272,14 @@ class Experiment:
             self.valid_metrics.reset()
         else:
             meta_data_all = np.concatenate(meta_data_all, axis=0)
-            y_all = np.argmax(y_all, axis=1)
-            metrics = self._dataloaders[split].dataset.eval(torch.tensor(y_all), torch.tensor(t_all), torch.tensor(meta_data_all))[0]
+            metrics = self._dataloaders[split].dataset.eval(torch.tensor(np.argmax(y_all, axis=1)), torch.tensor(t_all), torch.tensor(meta_data_all))[0]
 
         self.logger.log(
             {f"{split}": {"loss": loss, "duration": duration} | metrics}, 
             step=self.global_step, epoch=self._epoch)
 
         if confusion:
+
             wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
         
         # print

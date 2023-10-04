@@ -1,0 +1,5 @@
+
+width_scaling: {
+    "baseline_isic2019": null, 
+    "width_scaling": "model.width_coefficient"
+}

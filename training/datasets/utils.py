@@ -60,6 +60,7 @@ def get_transforms(
     transform_list.extend([
         transforms.ToTensor(),
         transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
-                           ])
+    ])
 
+    #print("Transforms: ", transform_list)
     return transforms.Compose(transform_list)

@@ -6,10 +6,11 @@ defaults:
 
 epochs: 5
 accumulate: 1
+eval_frequency: 1000
 
 dataset:
-  batch_size: 128                
-  eval_batch_size: 128           
+  batch_size: 32                
+  eval_batch_size: 32           
   distribution_shift: False                    
 
 optimizer:
