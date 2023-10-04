@@ -15,6 +15,7 @@ def create_subplot(
         color='b',
         ylim_percentage: float = 10.0,
         xlim_percentage: float = 10.0,
+        connect_dots: bool = True,
     ):
     """Creates a single subplot with optional error bars for accuracy values.
 
@@ -56,7 +57,7 @@ def create_subplot(
             y_max = max(y_max, max(acc))
 
         # Connect the current data point to the previous one with a line
-        if i > 0:
+        if i > 0 and connect_dots:
             ax.plot([flops[i - 1], flops[i]], [np.mean(accuracy_values[i - 1]), np.mean(acc)], 'o-', lw=0.5, color=color)
 
     # Set the y-axis limits based on the overall range of accuracy values

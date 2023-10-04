@@ -17,7 +17,7 @@ training:
 
 wandb:
   project: SL-Scaling
-  give_name: final_isic2019
+  give_name: True
   tags: []
 
 # python training/main.py +experiments_nas_common=galaxy10_match_performance

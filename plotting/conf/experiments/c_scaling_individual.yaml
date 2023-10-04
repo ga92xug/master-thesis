@@ -1,5 +1,47 @@
+filter_groupby_dict:
+    baseline_isic2019_3blocks:
+        filters:
+            tags: baseline_isic2019
+        group_by: null
 
-width_scaling: {
-    "baseline_isic2019": null, 
-    "width_scaling": "model.width_coefficient"
-}
+    baseline_isic2019_4blocks:
+        filters:
+            tags: baseline_isic2019_4blocks
+        group_by: null
+
+    width_scaling_experiment:
+        filters:
+            tags: width_scaling
+        group_by: model.width_coefficient
+
+    depth_scaling_experiment:
+        filters: {"$or": [{"tags": "depth_scaling"}, {"tags": "depth2_scaling"}]}
+            
+        group_by: [model.increase_blocks.2.num_new_blocks, model.depth_coefficient]
+
+
+plots:
+    width_scaling:
+        w1: baseline_isic2019_3blocks
+        w_: width_scaling_experiment
+    
+    depth_scaling:
+        b3d1: baseline_isic2019_3blocks
+        b4d1: baseline_isic2019_4blocks
+        b_d_: depth_scaling_experiment
+
+    resolution_scaling:
+        r96: baseline_isic2019_4blocks
+        r_: resolution_scaling_experiment
+
+
+
+# {"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]}
+
+#"""
+#api.runs(
+#    path="my_entity/my_project",
+#    filters={"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]}
+#)
+#https://docs.wandb.ai/ref/python/public-api/api
+#"""

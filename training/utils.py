@@ -113,6 +113,7 @@ def get_out_dataloader(out_dataloader: Tuple, device: str) -> Tuple[torch.Tensor
 def give_wandb_name(
         model: torch.nn.Module, 
         wandb_run: wandb.sdk.wandb_run.Run,
+        ignore_name: bool = False,
     ) -> None:
     """
     Updates the wandb_run name.
@@ -125,13 +126,21 @@ def give_wandb_name(
     if not give_name:
         return
 
-    if isinstance(give_name, str):
+    if isinstance(give_name, str) and not ignore_name:
         wandb_run.name = give_name
     elif project == "SL-Scaling" and "EquivariantNASNet" in model_name:
+        model_config = config["model"]
         # special naming convention for Scaling
-        num_blocks = config["model"]["num_blocks"]
-        depth_coefficient = config["model"]["depth_coefficient"]
-        width_coefficient = config["model"]["width_coefficient"]
+        num_blocks = model_config.get("num_blocks", None)
+        # increase_blocks.2
+        if num_blocks is None:
+            try:
+                num_blocks = model_config["increase_blocks"]["2"]["num_new_blocks"] + 3
+            except KeyError:
+                num_blocks = 3
+
+        depth_coefficient = model_config["depth_coefficient"]
+        width_coefficient = model_config["width_coefficient"]
         resolution = config["training"]["dataset"]["resolution"]
         wandb_run.name = f"b{num_blocks}_d{depth_coefficient}_w{width_coefficient}_r{resolution}"
     else:
