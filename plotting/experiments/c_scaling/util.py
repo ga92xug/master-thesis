@@ -1,11 +1,19 @@
 from typing import List, Dict
 import numpy as np
+import re
 
 def replace_first_occurrence(input_str, search_str, replace_str):
     index = input_str.find(search_str)
     if index != -1:
         return input_str[:index] + replace_str + input_str[index + len(search_str):]
     return input_str
+
+def extract_number(key):
+    # Use regular expression to extract the numeric part and decimal part
+    match = re.search(r'(\d+(\.\d+)?)', key)
+    if match:
+        return float(match.group())
+    return 0.0  # Return 0.0 if there are no numbers in the key
 
 def baseline_and_scaling_exp_2_scaling_exp(
         exp_data: dict,
@@ -23,22 +31,22 @@ def baseline_and_scaling_exp_2_scaling_exp(
     # inverse the dictionary
     sub_exp_name2lable_dict = {v: k for k, v in label2sub_exp_name_dict.items()}
 
+    #print("exp_data", exp_data)
+
     for sub_exp_name, sub_exp_dict in exp_data.items():
         label_mask = sub_exp_name2lable_dict[sub_exp_name]
 
-        print("sub_exp_dict.keys()", sub_exp_dict.keys())
         for group_name, group_dict in sub_exp_dict.items():
             if len(sub_exp_dict) == 1:
                 # these sub experiments do not have different variations like w1.5,w2,w2.5
                 label = label_mask
             else:
-                print("group_name", group_name, type(group_name))
                 if isinstance(group_name, tuple):
                     label = label_mask
                     for group in group_name:
                         label = replace_first_occurrence(label, "_", str(group))
-                elif isinstance(group_name, str):
-                    label_mask.replace("_", str(group_name))
+                elif isinstance(group_name, (str, int, float)):
+                    label = label_mask.replace("_", str(group_name))
                 else:
                     raise ValueError(f"Unknown type of group_name: {type(group_name)}")
 
@@ -46,8 +54,8 @@ def baseline_and_scaling_exp_2_scaling_exp(
                 raise ValueError(f"Label {label} already exists in transformed_data.")
             transformed_data[label] = group_dict
 
-    transformed_data = dict(sorted(transformed_data.items()))
-    return transformed_data
+    sorted_dict = dict(sorted(transformed_data.items(), key=lambda item: extract_number(item[0])))
+    return sorted_dict
 
 
 
@@ -63,7 +71,6 @@ def split_dict2lists(data, metric: str):
     labels = []
 
     for label, values in data.items():
-        print("values.keys()", values.keys())
         flops.append(values['flops'])
         accuracy_values.append(values[metric])
         labels.append(label)

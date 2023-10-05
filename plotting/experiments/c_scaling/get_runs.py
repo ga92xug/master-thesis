@@ -21,7 +21,6 @@ def aggregate_filter_data(exp_data: dict, metric: str, window_size: int = 3):
     combined_data = {}
 
     for sub_exp_name, sub_exp_data in exp_data.items():
-        print("experiment_class", sub_exp_name)
         performance_data = get_metric_from_downloaded_data(sub_exp_data, metric, "extract_last", window_size)
         flops_data = get_metric_from_downloaded_data(sub_exp_data, "flops", "equal", 1)
 
@@ -44,7 +43,6 @@ def transform_data(
 
     # transform data into format for plotting
     one_exp = baseline_and_scaling_exp_2_scaling_exp(exp_data, label2sub_exp_name_dict)
-    print("one_exp", one_exp)
     flops, accuracy_values, labels = split_dict2lists(one_exp, metric)
 
     return flops, accuracy_values, labels
@@ -89,7 +87,6 @@ def get_wandbdata_with_filters(
         else:
             group = "all"
 
-        print("group", group)
         if group is None:
             print(f"Skipping run {run.id} because it has no group.")
             continue
@@ -124,14 +121,11 @@ def get_data_for_exp(
     A group would for example be the width coefficient of the model.
     """
 
-    
-
     data = {}
     for sub_exp_name, value_dict in sub_exp_dict.items():
         filters = value_dict["filters"]
         group_by = value_dict["group_by"]
 
-        print("filters", filters, type(filters))
         # add config.training.epochs: 120 to filters
         filters["config.training.epochs"] = 120
         
@@ -147,7 +141,7 @@ def get_data_for_exp(
     return data
 
 
-def one_plot(
+def individual_plot(
         sub_exp_dict: dict,
         label2sub_exp_name_dict: dict,
         wandb_entity: str,
@@ -155,6 +149,7 @@ def one_plot(
         metric: str,
         save_folder_name: str,
         name: str,    
+        produce_plot: bool = True,
     ):
     """
     
@@ -167,14 +162,82 @@ def one_plot(
     exp_data = get_data_for_exp(sub_exp_dict, wandb_entity, wandb_projects, metric)
     flops, accuracy_values, labels = transform_data(exp_data, metric, label2sub_exp_name_dict)
 
-    fig, ax = plt.subplots()
-    create_subplot(ax, flops, accuracy_values, "FLOPs", "Weigthed Validation Accuracy", labels, True, color='b', connect_dots=False)
+    
+    if produce_plot:
+        connect_dots = True if name != "depth_scaling" else False
 
-    save_plot(
-        figure=fig,
-        name=name,
-        folder_name=save_folder_name,
-    )
+        fig, ax = plt.subplots()
+        create_subplot(ax, flops, accuracy_values, labels, "FLOPs", "Weigthed Validation Accuracy", True, color='b', connect_dots=connect_dots)
+
+        save_plot(
+            figure=fig,
+            name=name,
+            folder_name=save_folder_name,
+        )
+    
+    print("flops", flops)
+    print("accuracy_values", accuracy_values)
+    print("labels", labels)
+    return flops, accuracy_values, labels
+
+def produce_individual_plots(
+        exp2labels: dict,
+        experiments_dict: dict,
+        wandb_entity: str,
+        wandb_projects: str,
+        metric: str,
+        save_folder_name: str,
+        combined_plot: bool = False, 
+    ):
+    list_accs = []
+    list_flops = []
+    list_labels = []
+
+    for exp_name, label2sub_exp_name_dict in exp2labels.items():
+        # label2sub_exp_name_dict dict that holds labels for each sub experiment
+        if exp_name != "width_scaling":
+            continue
+        print(exp_name)
+
+        # extract all sub experiments that belong to one experiment
+        sub_exp_dict = {}
+        for label, sub_exp_name in label2sub_exp_name_dict.items():
+            sub_exp_dict[sub_exp_name] = experiments_dict[sub_exp_name]
+
+
+        result = individual_plot(
+            sub_exp_dict=sub_exp_dict,
+            label2sub_exp_name_dict=label2sub_exp_name_dict,
+            wandb_entity=wandb_entity,
+            wandb_projects=wandb_projects,
+            metric=metric,
+            save_folder_name=save_folder_name,  
+            name=exp_name, 
+            produce_plot = False, 
+        )
+
+        if combined_plot:
+            flops, accuracy_values, labels = result
+            list_accs.append(accuracy_values)
+            list_flops.append(flops)
+            list_labels.append(labels)
+
+    
+    if combined_plot:
+        fig = plot_scaling_individual(
+            flops=list_flops,
+            accuracy=list_accs,
+            xlabel="GFLOPs",
+            ylabel="ISIC 2019 Valid Acc (%)",
+            point_labels=list_labels,
+        )
+
+        save_plot(
+            figure=fig,
+            name="combined_individual_scaling",
+            folder_name=save_folder_name,
+        )
+
 
 def main():
     cfg, save_folder_name = plot_init("c_scaling/individual/", override=True)
@@ -187,28 +250,15 @@ def main():
     exp2labels = OmegaConf.to_container(
         cfg.experiments.plots, resolve=True, throw_on_missing=True)
 
-    for exp_name, label2sub_exp_name_dict in exp2labels.items():
-        # label2sub_exp_name_dict dict that holds labels for each sub experiment
-        if exp_name != "depth_scaling":
-            continue
-        print(exp_name)
-
-        # extract all sub experiments that belong to one experiment
-        sub_exp_dict = {}
-        for label, sub_exp_name in label2sub_exp_name_dict.items():
-            sub_exp_dict[sub_exp_name] = experiments_dict[sub_exp_name]
-
-
-        one_plot(
-            sub_exp_dict=sub_exp_dict,
-            label2sub_exp_name_dict=label2sub_exp_name_dict,
-            wandb_entity=wandb_entity,
-            wandb_projects=wandb_projects,
-            metric=metric,
-            save_folder_name=save_folder_name,  
-            name=exp_name,  
-        )
-
+    produce_individual_plots(
+        exp2labels=exp2labels,
+        experiments_dict=experiments_dict,
+        wandb_entity=wandb_entity,
+        wandb_projects=wandb_projects,
+        metric=metric,
+        save_folder_name=save_folder_name, 
+        combined_plot=False,
+    )
 
 
 

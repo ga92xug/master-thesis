@@ -16,8 +16,13 @@ filter_groupby_dict:
 
     depth_scaling_experiment:
         filters: {"$or": [{"tags": "depth_scaling"}, {"tags": "depth2_scaling"}]}
-            
         group_by: [model.increase_blocks.2.num_new_blocks, model.depth_coefficient]
+
+    resolution_scaling_experiment:
+        filters:
+            tags: resolution_scaling
+            "config.model.increase_blocks.2.num_new_blocks": 1
+        group_by: training.dataset.resolution
 
 
 plots:
@@ -35,8 +40,21 @@ plots:
         r_: resolution_scaling_experiment
 
 
+compound:
+    b3_d1_wX_r96:
+        filters: 
+            display_name: 
+                "$regex": "b3_d1_w.*_r96"
+        group_by: model.width_coefficient
 
-# {"$or": [{"config.experiment_name": "foo"}, {"config.experiment_name": "bar"}]}
+    b3_d1_wX_r128:
+        filters: 
+            display_name: 
+                "$regex": "b3_d1_w.*_r128"
+        group_by: model.width_coefficient
+
+    # b4_d1.4_wX_r128
+
 
 #"""
 #api.runs(

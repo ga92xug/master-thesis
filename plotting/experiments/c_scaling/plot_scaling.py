@@ -8,9 +8,9 @@ def create_subplot(
         ax, 
         flops: List[float], 
         accuracy_values: List[float], 
+        labels: List[str], 
         xlabel: str, 
         ylabel: str, 
-        labels=None, 
         has_error_bars=True, 
         color='b',
         ylim_percentage: float = 10.0,
@@ -70,44 +70,56 @@ def create_subplot(
 
     # Label individual points
     yloc = 10
-    if labels is not None:
-        for label, x, y in zip(labels, flops, [np.mean(acc) for acc in accuracy_values]):
-            if label == labels[-1]:
-                yloc *= -1
-            ax.annotate(label, (x, y), textcoords="offset points", xytext=(yloc, -15), ha='center')
+    for label, x, y in zip(labels, flops, [np.mean(acc) for acc in accuracy_values]):
+        if label == labels[-1]:
+            yloc *= -1
+        ax.annotate(label, (x, y), textcoords="offset points", xytext=(yloc, -15), ha='center')
 
 
 def plot_scaling_individual(
         flops: List[float], 
         accuracy: List[float], 
+        point_labels: List[str],  
         xlabel: str = "GFLOPs", 
         ylabel: str = "ISIC 2019 Valid Acc (%)",
-        point_labels: List[str] = None  # Add a new argument for point labels
+        sharey: bool = False,
     ):
     """Creates all three subplots.
 
     Args:
     flops: A list of FLOPs values.
     accuracy: A list of accuracy values.
+    point_labels: A list of labels for the points.
     xlabel: A list of x-axis labels.
     ylabel: A list of y-axis labels.
-    point_labels: A list of labels for the points (optional).
     """
     # Create a figure object.
     fig = plt.figure(figsize=(9, 3))
 
     # Create a subplot grid.
-    axarr = fig.subplots(1, 3)
+    axarr = fig.subplots(1, 3, sharey=sharey)
 
     # Create each subplot.
     for i in range(3):
-        if i == 0:
-            create_subplot(axarr[i], flops[i], accuracy[i], xlabel, ylabel, point_labels[i] if point_labels else None)
-        else:
-            create_subplot(axarr[i], flops[i], accuracy[i], xlabel, "", point_labels[i] if point_labels else None)
+        if i != 0:
+            ylabel = ""
+
+        create_subplot(
+            ax=axarr[i],
+            flops=flops[i],
+            accuracy_values=accuracy[i],
+            labels=point_labels[i],
+            xlabel=xlabel,
+            ylabel=ylabel,
+            connect_dots= True if i != 1 else False,
+        )
+
+    # share y-axis
 
     # Adjust the subplot spacing.
     fig.tight_layout()
+
+    return fig
 
 def plot_scaling_compound_baseline(
         flops_lists: List[List[float]],
@@ -119,7 +131,7 @@ def plot_scaling_compound_baseline(
     fig, ax = plt.subplots(figsize=(6, 4))  # Adjust the figure size as needed
 
     # Calculate the final accuracy for each plot
-    final_accs = [accuracy[-1] for accuracy in accuracy_lists]
+    final_accs = [max(accuracy) for accuracy in accuracy_lists]
 
     # Sort the plots based on final accuracy in descending order
     sorted_indices = sorted(range(len(final_accs)), key=lambda i: final_accs[i], reverse=True)
@@ -142,21 +154,49 @@ def plot_scaling_compound_baseline(
 
     plt.tight_layout()
 
+    return fig
 
 def generate_fake_log_increasing_acc(start_value, common_ratio, n_terms):
-  """Generates fake_log_increasing_acc
+    """Generates fake_log_increasing_acc
 
-  Args:
-    start_value: The first term in the sequence.
-    common_ratio: The common ratio between terms in the sequence.
-    n_terms: The number of terms in the sequence.
+    Args:
+        start_value: The first term in the sequence.
+        common_ratio: The common ratio between terms in the sequence.
+        n_terms: The number of terms in the sequence.
 
-  Returns:
-    A list of the terms in the sequence.
-  """
+    Returns:
+        A list of the terms in the sequence.
+    """
 
-  sequence = [start_value]
-  for i in range(1, n_terms):
-    new_point = sequence[-1] + log(sequence[-1], i * common_ratio) / common_ratio + np.random.normal(0, 1)
-    sequence.append(new_point)
-  return sequence
+    sequence = [start_value]
+    for i in range(1, n_terms):
+        new_point = sequence[-1] + log(sequence[-1], i * common_ratio) / common_ratio + np.random.normal(0, 1)
+        sequence.append(new_point)
+    return sequence
+
+
+if __name__ == "__main__":
+    legend = ["b3_d1, r96", "b4_d1, r128"]
+
+    flops = [np.array(7.06396968e+10), np.array(1.44022375e+11), np.array(2.42780298e+11), np.array(3.66913477e+11)]
+    accuracy_values = [np.array([68.1474785 , 66.86897278, 66.55477285]), np.array([68.89136434, 68.97262534, 67.66067346]), np.array([70.24774353, 69.6485877 , 69.03163393]), np.array([69.07265186, 69.29402153, 66.99118813])]
+    accuracy_values = [np.mean(acc, axis=0) for acc in accuracy_values]
+
+    flops2 = np.array([110, 221]) * 1e9
+    accuracy_values2 = [[69.1, 72.29], [68.41, 70.78, 67.91]]
+    accuracy_values2 = [np.mean(acc, axis=0) for acc in accuracy_values2]
+
+    flops_list = [flops, flops2]
+    accuracy_list = [accuracy_values, accuracy_values2]
+
+    print("flops_list", flops_list)
+    print("accuracy_list", accuracy_list)
+
+    fig = plot_scaling_compound_baseline(
+        flops_lists=flops_list,
+        accuracy_lists=accuracy_list,
+        legend_labels=legend,
+    )
+
+    # save plot
+    fig.savefig("plotting/figures/c_scaling/compound/v1.png", dpi=300, bbox_inches='tight')
