@@ -1,3 +1,6 @@
+defaults:
+  - blocks_args_dict: 3blocks
+
 _target_: networks.eq_nasnet.eq_nasnet.EquivariantNASNet
 # global args
 width_coefficient: 1
@@ -8,84 +11,4 @@ fixed_params: False
 eq_expand_ratio: 6
 cnn_expand_ratio: 6.0
 increase_blocks: null
-
-blocks_args_dict:
-  _0:
-    reflection: 0
-    group: 4
-    out_channel: 1.0
-    kernel_size: 5
-    stride: 1
-  _1:
-    reflection: 0
-    group: 4
-    num_layers: 1
-    conv_op: mbconv
-    kernel_size: 5
-    se_ratio: 0.0
-    out_channel: 4.0
-    skip: identity # "no" # no is a keyword
-    stride: 2
-  _2:
-    reflection: 0
-    group: 4
-    num_layers: 2
-    conv_op: mbconv
-    kernel_size: 5
-    se_ratio: 0.0
-    out_channel: 2.75
-    skip: identity # conv
-    stride: 2
-  _3:
-    reflection: -1
-    group: 2
-    num_layers: 2
-    conv_op: mbconv
-    kernel_size: 5
-    se_ratio: 0.0
-    out_channel: 1.0
-    skip: identity # conv
-    stride: 1
-  _4:
-  # no head
-    reflection: -1
-    group: 1
-    out_channel: 1.0
-    kernel_size: 0
-    stride: 1
-
-
-
-
-
-# Strategy 2_0:
-#blocks_args: ['r0.0_k5.0_g16_o1.630486_s2.0', 'r0.0_k3.0_g4_o1.014946_s1.0_n1.0_c-conv_se0.0_sk-identity', 'r0.0_k3_g4_o3.983971_s1.0_n2.0_c-conv_se0.25_sk-identity', 'r-1.0_k5.0_g4_o3.944093_s2_n2.0_c-mbconv_se0.0_sk-identity', 'r-1.0_k3.0_g4_o1.0']
-
-#blocks_args: ['r0_k5_g16_o1_s1', 'r-1_k3_g8_o1_s2_n3_c-mbconv_se0.25_sk-identity', 'r-1_k5_g2_o1']
-
-# eq_wrn_16_4
-#blocks_args: ['r-1_k5_g8_o1_s1', 
-#'r-1_k3_g8_o1_s1_n2_c-conv_se0.0_sk-identity', 
-#'r-1_k3_g4_o2_s2_n2_c-conv_se0.0_sk-identity', 
-#'r-1_k3_g1_o2_s2_n2_c-conv_se0.0_sk-identity', 
-#'r-1_k0_g1_o1']
-
-
-# test CNN
-# blocks_args: ['r-1_k3_g8_o1_s1', 
-# 'r-1_k3_g0_o1_s1_n2_c-conv_se0.0_sk-identity', 
-# 'r-1_k3_g0_o1_s2_n2_c-conv_se0.0_sk-identity', 
-# 'r-1_k3_g0_o1']
-
-# fails
-# blocks_args: ['r0_k5_g16_o2.3706851995368163_s2', 
-# 'r0_k3_g16_o2.896593148814218_s2_n1_c-mbconv_se0.0_sk-conv', 
-# 'r-1_k5_g16_o1.0_s1_n1_c-dconv_se0.75_sk-no', 
-# 'r-1_k5_g16_o2.2598619124234056_s2_n1_c-mbconv_se0.25_sk-no', 
-# 'r-1_k5_g16_o1.0']
-# ['r0_k5_g16_o1.625000224954762_s2', 
-# 'r0_k3_g8_o1.0000000433791643_s1_n1_c-conv_se0.0_sk-identity', 
-# 'r0_k3_g8_o3.9999999987765165_s1_n2_c-conv_se0.25_sk-identity', 
-# 'r-1_k5_g8_o3.9999993346843565_s2_n2_c-mbconv_se0.0_sk-conv', 
-# 'r-1_k3_g8_o1.0000000548925259']
-
+not_increase_1_layer: False

@@ -72,7 +72,8 @@ class EquivariantNASNet(nn.Module):
             eq_expand_ratio=2,
             cnn_expand_ratio=6,
             input_channels=3, 
-            num_classes=10, 
+            num_classes=10,
+            not_increase_1_layer=True,
             **kwargs,
     ):
         print("Equivariant_NAS_Net")
@@ -138,7 +139,8 @@ class EquivariantNASNet(nn.Module):
             block_args = block_args._replace(
                 num_layers=round_repeats(
                     block_args.num_layers, 
-                    depth_coefficient
+                    depth_coefficient,
+                    not_increase_1_layer,
                 ),
             )
             group_id = get_group_id(block_args.reflection, block_args.group)

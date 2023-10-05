@@ -36,7 +36,9 @@ def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient):
 
         blocks_args[i] = block_args._replace(out_channel=out_channel)
         old_channels = out_channel
-        list_out_channel.append(out_channel)
+        if block_args.kernel_size > 0:
+            # if there is no head conv
+            list_out_channel.append(out_channel)
     
     print(f"list_out_channel: {list_out_channel}")
     return blocks_args
@@ -91,7 +93,7 @@ def get_increase_factor(
         
 
 
-def round_repeats(repeats, depth_coefficient):
+def round_repeats(repeats, depth_coefficient, not_increase_1_layer: bool):
     """Calculate module's repeat number of a block based on depth multiplier.
        Use depth_coefficient of global_params.
     Args:
@@ -101,7 +103,7 @@ def round_repeats(repeats, depth_coefficient):
         new repeat: New repeat number after calculating.
     """
     multiplier = depth_coefficient
-    if not multiplier:
+    if not multiplier or (not_increase_1_layer and repeats == 1):
         return repeats
     
     repeats = int(round(multiplier * repeats))
