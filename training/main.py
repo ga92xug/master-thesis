@@ -173,7 +173,8 @@ class Experiment:
             loss = self._loss_function(y, t)
             metrics = self.train_metrics(y.detach(), t.detach()) 
             train_loss_epoch += loss.item() * x.shape[0]
-            self.logger.log({"train": {"loss": loss} | metrics}, step=self.global_step, epoch=self._epoch)
+            metrics["loss"] = loss
+            self.logger.log({"train": metrics}, step=self.global_step, epoch=self._epoch)
             if self._verbose > 2:
                 print(f"Epoch {self._epoch}: loss: {loss.item():.3f},", ', '.join([f'{key}: {value:.3f}' for key, value in metrics.items()]))
 
@@ -274,9 +275,9 @@ class Experiment:
             meta_data_all = np.concatenate(meta_data_all, axis=0)
             metrics = self._dataloaders[split].dataset.eval(torch.tensor(np.argmax(y_all, axis=1)), torch.tensor(t_all), torch.tensor(meta_data_all))[0]
 
-        self.logger.log(
-            {f"{split}": {"loss": loss, "duration": duration} | metrics}, 
-            step=self.global_step, epoch=self._epoch)
+        metrics["loss"] = loss
+        metrics["duration"] = duration
+        self.logger.log({f"{split}": metrics}, step=self.global_step, epoch=self._epoch)
 
         if confusion:
 
