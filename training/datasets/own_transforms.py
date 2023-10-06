@@ -4,7 +4,7 @@ import numbers
 import random
 import warnings
 from collections.abc import Sequence
-from typing import List, Optional, Self, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import torch
 from torch import Tensor

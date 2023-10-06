@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /training: isic2019-training
+  - override /training: isic2019-training-constant_scheduler
   - override /model: eq_nasnet
   - override /wandb: default
   - _self_

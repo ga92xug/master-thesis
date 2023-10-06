@@ -1,0 +1,20 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: isic2019
+- scheduler: multi_step_lr 
+
+epochs: 120
+accumulate: 1
+
+dataset:
+  batch_size: 64                # Number of examples to process in a batch during training
+  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+
+optimizer:
+  lr: 0.005
+  weight_decay: 1e-5
+
+scheduler:
+  milestones: [35,75,90,105]
+  gamma: 0.5
