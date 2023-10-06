@@ -3,15 +3,8 @@ import wandb
 import os
 from ax.service.ax_client import AxClient
 from ax.service.utils.report_utils import exp_to_df
+from networks.eq_nasnet.util import convert_to_number
 
-def convert_to_number(val):
-    try:
-        if '.' in val:
-            return float(val)
-        else:
-            return int(val)
-    except ValueError:
-        return val
 
 def init_wandb(run_id, cfg, wandb_config=None):
     if run_id is not None:

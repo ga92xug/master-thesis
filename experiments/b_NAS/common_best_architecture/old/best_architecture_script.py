@@ -13,8 +13,7 @@ os.environ["MKL_THREADING_LAYER"]="GNU"
 import sys
 import os
 sys.path.append(f"{os.getcwd()}")
-from networks.eq_nasnet.util import encode_parameters
-from experiments.b_NAS.util import convert_to_number
+from networks.eq_nasnet.util import encode_parameters, convert_to_number
 from experiments.run_command import run_command
 
 

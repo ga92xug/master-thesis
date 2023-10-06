@@ -13,10 +13,16 @@ import os
 
 import wandb
 sys.path.append(f"{os.getcwd()}")
-from experiments.b_NAS.util import convert_to_number
 from nn import FieldType
 
-CHANNELS_CONSTANT = 1
+def convert_to_number(val):
+    try:
+        if '.' in val:
+            return float(val)
+        else:
+            return int(val)
+    except ValueError:
+        return val
 
 ################################################################################
 # Help functions for model architecture
