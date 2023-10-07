@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TAGS="wandb.tags=[constant_scheduler, depth2_scaling]"
+TAGS="wandb.tags=[constant_scheduler,depth2_scaling]"
 SEEDS="other.seed=0,1,2"
 
 # d1 is baseline 
@@ -14,4 +14,4 @@ SEEDS="other.seed=0,1,2"
 
 #$PY_SCRIPT -m $SEEDS +exp_scaling=general model.depth_coefficient=2 training=isic2019-training model.not_increase_1_layer=True
 
-$PY_SCRIPT -m $SEEDS $TAGS +exp_scaling=general model.depth_coefficient=2 model.not_increase_1_layer=True model/blocks_args_dict=3blocks,4blocks
+$PY_SCRIPT -m $SEEDS $TAGS +exp_scaling=general model.depth_coefficient=1.4 model.not_increase_1_layer=True model/blocks_args_dict=3blocks,4blocks

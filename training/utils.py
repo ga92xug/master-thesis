@@ -88,7 +88,7 @@ def print_results(metrics, loss, duration, mode, epoch, verbose):
     if verbose:
         print('-'*100)
         print(f'{mode} Epoch: {epoch} lasted {duration:.3f} seconds')
-        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items()])
+        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration", "loss"]])
         print(f'{metrics}, loss: {loss:.3f}')
 
 def get_out_dataloader(out_dataloader: Tuple, device: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

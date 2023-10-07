@@ -280,7 +280,6 @@ class Experiment:
         self.logger.log({f"{split}": metrics}, step=self.global_step, epoch=self._epoch)
 
         if confusion:
-
             wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
         
         # print
