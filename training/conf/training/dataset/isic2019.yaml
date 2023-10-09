@@ -7,7 +7,11 @@ resolution: 96
 reduction_factor: 1.0
 
 should_normalize_weights: True
-channel_wise_mean_images: [0.6679, 0.5299, 0.5245]
-channel_wise_std_images: [0.1332, 0.1475, 0.1588]
+# only training set
+#channel_wise_mean_images: [0.6674451, 0.5293318, 0.5243004]
+#channel_wise_std_images: [0.22307414, 0.20243979, 0.21394742]
+# all data
+channel_wise_mean_images: [0.6679, 0.5299, 0.5245] 
+channel_wise_std_images: [0.1332, 0.1475, 0.1588] 
 n_in_channels: 3
 n_out_classes: 8

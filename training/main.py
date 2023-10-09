@@ -44,14 +44,12 @@ class Experiment:
         self.logger = log.Log(cfg=cfg, is_nas=self.is_nas, max_epochs=cfg.training.epochs)
         
         if not self.is_nas:
-            # experiment name
             # normal training mode
             self.wandb_run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \
                             mode=cfg.wandb.mode, notes=cfg.wandb.notes, \
                             tags=cfg.wandb.tags)
             self.wandb_run.log_code(".")
-            
         else:
             pass
                
@@ -69,6 +67,7 @@ class Experiment:
             self.train_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             self.valid_metrics = {"acc": MulticlassAccuracy(self.n_outputs, average="micro").to(self.device)}
             if normalize_weights is not None:
+                # if we want to get the weighted acc we can pass a none list 
                 self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
                 self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
                 if isinstance(normalize_weights, list):
@@ -244,7 +243,7 @@ class Experiment:
             x, t, meta_data = utils.get_out_dataloader(out_dataloader, self.device)
  
             y = self.model(x)
-            y = y.squeeze() if y.shape[1] == 1 else y
+            #y = y.squeeze() if y.shape[1] == 1 else y
             
             if confusion or self.distribution_shift:
                 y_all.append(y.detach().cpu().numpy())

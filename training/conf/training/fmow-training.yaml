@@ -1,23 +1,23 @@
 defaults:
 - _self_
 - optimizer: Adam
-- dataset: camelyon17
+- dataset: fmow
 - scheduler: reduce_lr_on_plateau 
 
-epochs: 5
+epochs: 50
 accumulate: 1
 eval_frequency: -1
 
 dataset:
-  batch_size: 32                
-  eval_batch_size: 32           
+  batch_size: 64                
+  eval_batch_size: 64           
   distribution_shift: False                    
 
 optimizer:
-  lr: 0.005
+  lr: 0.001
   weight_decay: 1e-5
 
 scheduler:
   factor: 0.5
-  patience: 2
+  patience: 8
   verbose: True

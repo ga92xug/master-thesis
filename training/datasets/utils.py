@@ -1,8 +1,10 @@
+from calendar import c
 from typing import List
 import numpy as np
 import pandas as pd
 from torchvision import transforms
 from omegaconf import DictConfig, OmegaConf
+from torch.utils.data import DataLoader
 
 import sys
 import os
@@ -10,8 +12,9 @@ sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
 from training.datasets import own_transforms
 
-
-def get_normalize_weights(labels: List or np.ndarray):
+def get_normalize_weights(
+        labels: List or np.ndarray,
+    ):
     """
     Normalize the weights of the dataset based on the labels.
     """
@@ -21,7 +24,7 @@ def get_normalize_weights(labels: List or np.ndarray):
     weights = weights.sort_index()
     assert np.isclose(weights.sum(), 1.0), "weights should sum to 1.0"
     weights = weights.values
-    print("weights: ", weights)
+    print("weights: ", weights.tolist())
     return weights
 
 
@@ -57,10 +60,15 @@ def get_transforms(
         else:
             raise RuntimeError("Unknown Augmentation Type")
 
-    transform_list.extend([
-        transforms.ToTensor(),
-        transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images),
-    ])
+    transform_list.extend([transforms.ToTensor()])
 
-    #print("Transforms: ", transform_list)
+    if channel_wise_mean_images is not None and channel_wise_std_images is not None:
+        transform_list.extend([
+            transforms.Normalize(
+                mean=channel_wise_mean_images,
+                std=channel_wise_std_images,
+            )
+        ])
+
+    print("Transforms: ", transform_list)
     return transforms.Compose(transform_list)
