@@ -1,4 +1,6 @@
+from ast import Tuple
 from calendar import c
+from copy import deepcopy
 from typing import List
 import numpy as np
 import pandas as pd
@@ -29,39 +31,73 @@ def get_normalize_weights(
 
 
 def get_transforms(
+        resolution: int,
+        original_augment: bool or dict,
+        channel_wise_mean_images: list,
+        channel_wise_std_images: list,
+    ) -> Tuple(transforms.Compose, transforms.Compose):
+
+    augment = deepcopy(original_augment)
+    train_transform = get_one_transform(resolution, augment, channel_wise_mean_images, channel_wise_std_images, validation=False)
+    augment = deepcopy(original_augment)
+    valid_transform = get_one_transform(resolution, augment, channel_wise_mean_images, channel_wise_std_images, validation=True)
+    
+    print("train_transform: ", train_transform)
+    print("valid_transform: ", valid_transform)
+    return train_transform, valid_transform
+
+
+def get_one_transform(
     resolution: int,
     augment: bool or dict,
     channel_wise_mean_images: list,
     channel_wise_std_images: list,
+    validation: bool = False,
     ) -> transforms.Compose:
     """
     Standard transforms for images. Augmentations can be passed as a dictionary.
     """
-
-    transform_list = [
-        transforms.Resize((resolution, resolution)),
-    ]
-
     if isinstance(augment, DictConfig):
         augment = OmegaConf.to_container(
             augment, resolve=True, throw_on_missing=True
         )
 
-    if augment:
-        if isinstance(augment, dict):
-            for key, value in augment.items():
-                if "Own" in key:
-                    # random rotation does not allow for discrete choices
-                    transform_list.append(getattr(own_transforms, key)(**value))
-                else:
-                    transform_list.append(getattr(transforms, key)(**value))
-        elif isinstance(augment, bool):
-            NotImplementedError("Bool Augmentation is not implemented yet")
-        else:
-            raise RuntimeError("Unknown Augmentation Type")
+    # which augmentations to use
+    if validation:
+        augment = augment.get("all", {})
+    else:
+        augment = {**augment.get("all", {}), **augment.get("train", {})} 
+
+    transform_list = []
+
+    # resize
+    if isinstance(augment, dict) and "short_side_center_crop" in augment.keys():
+        transform_list.extend(
+            [
+                transforms.Resize(resolution),
+                transforms.CenterCrop(resolution),
+            ]
+        )
+        augment.pop("short_side_center_crop")
+    else:
+        transform_list.append(transforms.Resize(resolution))
+
+    # add augmentations
+    if isinstance(augment, dict):
+        for key, value in augment.items():
+            if "Own" in key:
+                # random rotation does not allow for discrete choices
+                transform_list.append(getattr(own_transforms, key)(**value))
+            else:
+                transform_list.append(getattr(transforms, key)(**value))
+    elif isinstance(augment, bool):
+        NotImplementedError("Bool Augmentation is not implemented yet")
+    else:
+        raise RuntimeError("Unknown Augmentation Type")
 
     transform_list.extend([transforms.ToTensor()])
 
+    # normalize
     if channel_wise_mean_images is not None and channel_wise_std_images is not None:
         transform_list.extend([
             transforms.Normalize(
@@ -70,5 +106,4 @@ def get_transforms(
             )
         ])
 
-    print("Transforms: ", transform_list)
     return transforms.Compose(transform_list)

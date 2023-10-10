@@ -1,3 +1,4 @@
+from typing import Dict, List
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
@@ -38,13 +39,29 @@ def split_without_stratify(images, labels, random_seed):
     test_labels = labels[test_indices]
     return train_images, train_labels, val_images, val_labels, test_images, test_labels
 
-def split_with_stratify(images, labels, random_seed, reduction_factor=None):
-    if reduction_factor is None or reduction_factor == 1.0:
-        train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=0.20, random_state=random_seed, stratify=labels)
-        test_images, val_images, test_labels, val_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=0.5, random_state=random_seed, stratify=val_test_labels)
+def split_with_stratify(
+        images, 
+        labels, 
+        random_seed, 
+        reduction_factor=1.0,
+        val_size=0.1,
+        test_size=0.1,
+    ):
+    assert val_size + test_size <= 1.0, "val_size + test_size should be less than or equal to 1.0"
+    assert val_size >= 0.0, "val_size should be greater than or equal to 0.0"
+    if reduction_factor < 1.0:
+        assert reduction_factor > 0.0, "reduction_factor should be between 0.0 and 1.0"
+        images, _, labels, _ = train_test_split(*[images, labels], train_size=reduction_factor, random_state=random_seed, stratify=labels)
+
+    train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=val_size + test_size, random_state=random_seed, stratify=labels)
+    if test_size == 0.0:
+        val_images = val_test_images
+        val_labels = val_test_labels
+        test_images = None
+        test_labels = None
     else:
-        train_val_images, test_images, train_val_labels, test_labels = train_test_split(*[images, labels], train_size=reduction_factor, random_state=random_seed, stratify=labels)
-        train_images, val_images, train_labels, val_labels = train_test_split(*[train_val_images, train_val_labels], train_size=0.6, test_size=0.4, random_state=random_seed, stratify=train_val_labels)
+        val_images, test_images, val_labels, test_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=test_size / (val_size + test_size), random_state=random_seed, stratify=val_test_labels)
+
     return train_images, train_labels, val_images, val_labels, test_images, test_labels
 
 class Custom_Dataset(Dataset):
@@ -79,8 +96,8 @@ class Custom_Dataset(Dataset):
         return image, label
 
 def build_loaders(
-    images, 
-    labels,
+    images: List or Dict, 
+    labels: List or Dict,
     train_transform,
     valid_transform,
     batch_size,
@@ -90,8 +107,25 @@ def build_loaders(
     reduction_factor=1.0,
 ):
     random_seed = 42
-    # Split the data into train, val, and test arrays.
-    train_images, train_labels, val_images, val_labels, test_images, test_labels = split_function(images, labels, random_seed=random_seed, reduction_factor=reduction_factor)
+
+    if isinstance(images, dict):
+        train_images = images["train"]
+        train_labels = labels["train"]
+        test_images = images["test"]
+        test_labels = labels["test"]
+
+        # Split the data into train, val, and test arrays.
+        train_images, train_labels, val_images, val_labels, _, _ = split_with_stratify(
+            images=train_images, 
+            labels=train_labels, 
+            random_seed=random_seed, 
+            reduction_factor=reduction_factor,
+            val_size=0.1,
+            test_size=0.0,
+        )
+    else:
+        # Split the data into train, val, and test arrays.
+        train_images, train_labels, val_images, val_labels, test_images, test_labels = split_function(images, labels, random_seed=random_seed, reduction_factor=reduction_factor)
 
     # Create the DataLoaders
     train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=train_transform), batch_size=batch_size, shuffle=True, num_workers=workers)
@@ -100,7 +134,7 @@ def build_loaders(
 
     dataloaders = {
         "train": train_loader,
-        "valid": val_loader,
+        "valid": test_loader,
         "test": test_loader,
     }
 
@@ -131,8 +165,7 @@ def get_Galaxy10_DECals(
     images = images.astype(np.uint8)
 
     # Define the transformations
-    train_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
-    valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
+    train_transform, valid_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
 
     # normalize weights
     normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
@@ -177,8 +210,7 @@ def get_ISIC_2019(
     images = df['name'].values
     
     # Define the transformations
-    train_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
-    valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
+    train_transform, valid_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
 
     # normalize weights
     normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
@@ -186,3 +218,55 @@ def get_ISIC_2019(
     dataloaders = build_loaders(images, labels, train_transform, valid_transform, batch_size, eval_batch_size, workers, split_with_stratify, reduction_factor=reduction_factor)
     return dataloaders, normalized_weights
 
+
+def images_and_labels_from_folder(folder:str):
+    images = []
+    labels = []
+    for label in os.listdir(folder):
+        for image in os.listdir(folder + label):
+            images.append(folder + label + "/" + image)
+            labels.append(label)
+
+    label_encoder = LabelEncoder()
+    labels = label_encoder.fit_transform(labels)
+
+    return images, labels
+
+
+def get_OCT(
+        data_dir: str,
+        name: str,
+        resolution: int,
+        should_normalize_weights: bool,
+        channel_wise_mean_images: list,
+        channel_wise_std_images: list,
+        batch_size: int,
+        eval_batch_size: int,
+        workers: int,
+        augment: bool,
+        reduction_factor=None,
+        **kwargs,
+    ):
+    location = data_dir + name + "/CellData/OCT"
+
+    train_images, train_labels = images_and_labels_from_folder(location + "/train/")
+    test_images, test_labels = images_and_labels_from_folder(location + "/test/")
+
+    # Define the transformations
+    train_transform, valid_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
+
+    # normalize weights
+    normalized_weights = get_normalize_weights(train_labels) if should_normalize_weights else 1
+
+    images = {
+        "train": train_images,
+        "test": test_images,
+    }
+    labels = {
+        "train": train_labels,
+        "test": test_labels,
+    }
+
+    dataloaders = build_loaders(images, labels, train_transform, valid_transform, batch_size, eval_batch_size, workers, split_with_stratify, reduction_factor=reduction_factor)
+
+    return dataloaders, normalized_weights

@@ -53,11 +53,11 @@ def main(cfg: DictConfig) -> None:
     #print("len(valid_dataloader.dataset): ", len(valid_dataloader.dataset))
     #print("len(test_dataloader.dataset): ", len(test_dataloader.dataset))
 
-    for i, out_dataloader in enumerate(train_dataloader):
+    for i, out_dataloader in enumerate(valid_dataloader):
         images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
         print(images.shape)
         print(labels.shape)
-        break
+        
     
     for name, dataloader in dataloaders.items():
         print("Dataloader: ", name)

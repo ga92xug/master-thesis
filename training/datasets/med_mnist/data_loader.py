@@ -183,10 +183,8 @@ def build_loaders(
     DataClass = getattr(medmnist, name)
 
     # Define the transformations
-    train_transform = get_transforms(28, augment, channel_wise_mean_images, channel_wise_std_images)
-    valid_transform = get_transforms(28, False, channel_wise_mean_images, channel_wise_std_images)
+    train_transform, valid_transform = get_transforms(28, augment, channel_wise_mean_images, channel_wise_std_images)
     
-    #train_transform, valid_transform = get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment, 0)
     
     if not os.path.exists(location):
         os.makedirs(location)

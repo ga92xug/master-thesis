@@ -1,13 +1,14 @@
 _target_: training.datasets.domain_shift.data_loader.get_loaders
 name: fmow             # The name of the dataset to use
 augment: False
-  #ColorJitter: 
-  #  brightness: 0.4
-  #  contrast: 0.4
-  #  saturation: 0.4
-  #  hue: 0.1
-  # CenterCrop: 
-  #   size: 32
+  # train:
+    #ColorJitter: 
+    #  brightness: 0.4
+    #  contrast: 0.4
+    #  saturation: 0.4
+    #  hue: 0.1
+    # CenterCrop: 
+    #   size: 32
   
 workers: 8                    # Number of jobs to load the dataset
 resolution: 128

@@ -53,8 +53,7 @@ def get_loaders(
     dataset = get_dataset(name, root_dir=location, download=False)
 
     # Define the transformations
-    train_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
-    valid_transform = get_transforms(resolution, False, channel_wise_mean_images, channel_wise_std_images)
+    train_transform, valid_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
 
     
 
