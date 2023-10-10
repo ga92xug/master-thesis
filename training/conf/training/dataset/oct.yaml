@@ -19,3 +19,5 @@ channel_wise_mean_images: [0.18939857184886932]
 channel_wise_std_images: [0.2118094265460968]
 n_in_channels: 1
 n_out_classes: 4
+
+test_as_valid: True

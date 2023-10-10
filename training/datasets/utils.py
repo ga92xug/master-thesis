@@ -7,6 +7,8 @@ import pandas as pd
 from torchvision import transforms
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
 import sys
 import os
@@ -107,3 +109,63 @@ def get_one_transform(
         ])
 
     return transforms.Compose(transform_list)
+
+
+def images_and_labels_from_folder(folder:str):
+    images = []
+    labels = []
+    for label in os.listdir(folder):
+        for image in os.listdir(folder + label):
+            images.append(folder + label + "/" + image)
+            labels.append(label)
+
+    label_encoder = LabelEncoder()
+    labels = label_encoder.fit_transform(labels)
+
+    return images, labels
+
+def split_without_stratify(images, labels, random_seed):
+    """
+    Not used anymore. Only to reproduce old results.
+    """
+    # Split the data into train, val, and test arrays.
+    np.random.seed(random_seed)
+    indices = np.arange(len(images))
+    np.random.shuffle(indices)
+    split = int(len(images) * 0.8)
+    train_indices = indices[:split]
+    val_indices = indices[split:split + int(len(images) * 0.1)]
+    test_indices = indices[split + int(len(images) * 0.1):]
+
+    train_images = images[train_indices]
+    train_labels = labels[train_indices]
+    val_images = images[val_indices]
+    val_labels = labels[val_indices]
+    test_images = images[test_indices]
+    test_labels = labels[test_indices]
+    return train_images, train_labels, val_images, val_labels, test_images, test_labels
+
+def split_with_stratify(
+        images, 
+        labels, 
+        random_seed, 
+        reduction_factor=1.0,
+        val_size=0.1,
+        test_size=0.1,
+    ):
+    assert val_size + test_size <= 1.0, "val_size + test_size should be less than or equal to 1.0"
+    assert val_size >= 0.0, "val_size should be greater than or equal to 0.0"
+    if reduction_factor < 1.0:
+        assert reduction_factor > 0.0, "reduction_factor should be between 0.0 and 1.0"
+        images, _, labels, _ = train_test_split(*[images, labels], train_size=reduction_factor, random_state=random_seed, stratify=labels)
+
+    train_images, val_test_images, train_labels, val_test_labels = train_test_split(*[images, labels], test_size=val_size + test_size, random_state=random_seed, stratify=labels)
+    if test_size == 0.0:
+        val_images = val_test_images
+        val_labels = val_test_labels
+        test_images = None
+        test_labels = None
+    else:
+        val_images, test_images, val_labels, test_labels = train_test_split(*[val_test_images, val_test_labels] , test_size=test_size / (val_size + test_size), random_state=random_seed, stratify=val_test_labels)
+
+    return train_images, train_labels, val_images, val_labels, test_images, test_labels
