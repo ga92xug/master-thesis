@@ -15,7 +15,7 @@ def get_stats(dataloader):
     list_images = []
     list_labels = []
     for i, out_dataloader in enumerate(dataloader):
-        print(i)
+        #print(i)
         images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
         list_images.append(images.cpu().numpy())
         list_labels.append(labels.cpu().numpy())

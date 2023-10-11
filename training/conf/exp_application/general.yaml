@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /training: camelyon17-training
+  - override /training: blood-training
   - override /model: eq_nasnet
   - override /wandb: default
   - _self_
@@ -9,6 +9,6 @@ defaults:
 
 
 wandb:
-  project: SL-application
+  project: SL-Application
   give_name: True
   tags: []

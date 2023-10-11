@@ -1,17 +1,17 @@
 defaults:
 - _self_
-- sweep_config: cifar10
+- sweep_config: blood
 
 # model
 model: densenet
 
 # percentage
-percentage: 25 # 1, 10, , 50, 100
+percentage: 10 # 1, 10, , 50, 100
 
 sweep_config:
   program: training/main.py
   method: bayes
-  run_cap: 1
+  run_cap: 25
 
   metric:
     goal: maximize
@@ -23,7 +23,7 @@ sweep_config:
 
   # parameters specified in the sweep-config
 
-  project: SL-Application
+  project: SL-sweeps
 
 
   command:
@@ -34,8 +34,8 @@ sweep_config:
     - training.epochs=${sweep_config.epochs}
     # there is no better way to change the scheduler since the training specifies some of the scheduler params
     # https://github.com/facebookresearch/hydra/issues/2227 easier replacement issue
-    - ~training.scheduler  
-    - +training.scheduler._target_=torch.optim.lr_scheduler.CosineAnnealingLR
-    - other.debug=False
+    #- ~training.scheduler  
+    #- +training.scheduler._target_=torch.optim.lr_scheduler.CosineAnnealingLR
+    #- other.debug=True
     # same as for sweep where we searched HP for the normal data regime
     #- model.restrict=[halved,halved]
