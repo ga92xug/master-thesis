@@ -39,6 +39,7 @@ class Custom_Dataset(Dataset):
 
     def __getitem__(self, index):
         image = self.images[index]
+        #print("image: ", image)
         label = self.labels[index]
 
         if isinstance(image, str):
@@ -138,7 +139,12 @@ def get_Galaxy10_DECals(
     images = images.astype(np.uint8)
 
     # Define the transformations
-    train_transform, valid_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
+    train_transform, valid_transform = get_transforms(
+        resolution=resolution, 
+        original_augment=augment, 
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images
+    )
 
     # normalize weights
     normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
@@ -195,7 +201,12 @@ def get_ISIC_2019(
     images = df['name'].values
     
     # Define the transformations
-    train_transform, valid_transform = get_transforms(resolution, augment, channel_wise_mean_images, channel_wise_std_images)
+    train_transform, valid_transform = get_transforms(
+        resolution=resolution, 
+        original_augment=augment, 
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images
+    )
 
     # normalize weights
     normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
@@ -237,7 +248,7 @@ def get_OCT(
     # Define the transformations
     train_transform, valid_transform = get_transforms(
         resolution=resolution, 
-        augment=augment, 
+        original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images
     )
@@ -265,6 +276,116 @@ def get_OCT(
         reduction_factor=reduction_factor,
         val_size=0.1,
         test_size=0.0,
+        test_as_valid=test_as_valid,
+    )
+
+    return dataloaders, normalized_weights
+
+
+
+def get_nct(
+        data_dir: str,
+        name: str,
+        resolution: int,
+        should_normalize_weights: bool,
+        channel_wise_mean_images: list,
+        channel_wise_std_images: list,
+        batch_size: int,
+        eval_batch_size: int,
+        workers: int,
+        augment: bool,
+        reduction_factor: float = 1,
+        test_as_valid: bool = False,
+        **kwargs,
+    ):
+    location = data_dir + name 
+
+    train_images, train_labels = images_and_labels_from_folder(location + "/NCT-CRC-HE-100K/")
+    test_images, test_labels = images_and_labels_from_folder(location + "/CRC-VAL-HE-7K/")
+    print("train_images: ", train_images[:2])
+    print("train_labels: ", train_labels[:2])
+    print("test_images: ", test_images[:2])
+    print("test_labels: ", test_labels[:2])
+
+    # Define the transformations
+    train_transform, valid_transform = get_transforms(
+        resolution=resolution, 
+        original_augment=augment, 
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images
+    )
+
+    # normalize weights
+    normalized_weights = get_normalize_weights(train_labels) if should_normalize_weights else 1
+
+    images = {
+        "train": train_images,
+        "test": test_images,
+    }
+    labels = {
+        "train": train_labels,
+        "test": test_labels,
+    }
+
+    dataloaders = build_loaders(
+        images=images, 
+        labels=labels, 
+        train_transform=train_transform, 
+        valid_transform=valid_transform, 
+        batch_size=batch_size, 
+        eval_batch_size=eval_batch_size, 
+        workers=workers, 
+        reduction_factor=reduction_factor,
+        val_size=0.1,
+        test_size=0.0,
+        test_as_valid=test_as_valid,
+    )
+
+    return dataloaders, normalized_weights
+
+
+
+def get_blood(
+        data_dir: str,
+        name: str,
+        resolution: int,
+        should_normalize_weights: bool,
+        channel_wise_mean_images: list,
+        channel_wise_std_images: list,
+        batch_size: int,
+        eval_batch_size: int,
+        workers: int,
+        augment: bool,
+        reduction_factor: float = 1,
+        test_as_valid: bool = False,
+        **kwargs,
+    ):
+    location = data_dir + name + "/PBC_dataset_normal_DIB/"
+
+    images, labels = images_and_labels_from_folder(location)
+
+    # Define the transformations
+    train_transform, valid_transform = get_transforms(
+        resolution=resolution, 
+        original_augment=augment, 
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images
+    )
+
+    # normalize weights
+    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
+
+    dataloaders = build_loaders(
+        images=images, 
+        labels=labels, 
+        train_transform=train_transform, 
+        valid_transform=valid_transform, 
+        batch_size=batch_size, 
+        eval_batch_size=eval_batch_size, 
+        workers=workers, 
+        reduction_factor=reduction_factor,
+        val_size=0.1,
+        test_size=0.2,
         test_as_valid=test_as_valid,
     )
 

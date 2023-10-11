@@ -9,8 +9,11 @@ accumulate: 1
 eval_frequency: -1
 
 dataset:
+  _target_: training.datasets.med_mnist.data_loader.build_loaders
   batch_size: 128                
-  eval_batch_size: 128           
+  eval_batch_size: 128  
+  test_as_valid: False
+  resolution: 28    
 
 optimizer:
   lr: 0.001

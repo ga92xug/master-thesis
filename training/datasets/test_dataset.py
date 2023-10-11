@@ -15,6 +15,7 @@ def get_stats(dataloader):
     list_images = []
     list_labels = []
     for i, out_dataloader in enumerate(dataloader):
+        print(i)
         images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
         list_images.append(images.cpu().numpy())
         list_labels.append(labels.cpu().numpy())
@@ -49,20 +50,28 @@ def main(cfg: DictConfig) -> None:
     valid_dataloader = dataloaders["valid"]
     test_dataloader = dataloaders["test"]
 
-    #print("len(train_dataloader.dataset): ", len(train_dataloader.dataset))
-    #print("len(valid_dataloader.dataset): ", len(valid_dataloader.dataset))
-    #print("len(test_dataloader.dataset): ", len(test_dataloader.dataset))
+    length_train = len(train_dataloader.dataset)
+    length_valid = len(valid_dataloader.dataset)
+    length_test = len(test_dataloader.dataset)
+    lenght_all = length_train + length_valid + length_test
 
-    for i, out_dataloader in enumerate(valid_dataloader):
-        images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
-        print(images.shape)
-        print(labels.shape)
-        
+    print("train:", length_train, "of all", length_train/lenght_all)
+    print("valid:", length_valid, "of all", length_valid/lenght_all)
+    print("test:", length_test, "of all", length_test/lenght_all)
     
     for name, dataloader in dataloaders.items():
         print("Dataloader: ", name)
+        if name != "test":
+            continue
+        for i, out_dataloader in enumerate(dataloader):
+            images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
+            print(images.shape)
+            print(labels.shape)
+            print("\n")
+            break
+        
         mean, std = get_stats(dataloader)
-        break
+        
 
 if __name__ == "__main__":
     main()

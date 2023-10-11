@@ -59,6 +59,23 @@ def get_one_transform(
     """
     Standard transforms for images. Augmentations can be passed as a dictionary.
     """
+    if isinstance(augment, bool):
+        transform_list = [
+            transforms.Resize(resolution),
+            transforms.ToTensor(),
+        ]
+        if channel_wise_mean_images is not None and channel_wise_std_images is not None:
+            transform_list.extend([
+                transforms.Normalize(
+                    mean=channel_wise_mean_images,
+                    std=channel_wise_std_images,
+                )
+            ])
+        return transforms.Compose(transform_list)
+
+    ###############################################
+    # from here on, augment is a dictionary
+
     if isinstance(augment, DictConfig):
         augment = OmegaConf.to_container(
             augment, resolve=True, throw_on_missing=True
@@ -73,7 +90,7 @@ def get_one_transform(
     transform_list = []
 
     # resize
-    if isinstance(augment, dict) and "short_side_center_crop" in augment.keys():
+    if "short_side_center_crop" in augment.keys():
         transform_list.extend(
             [
                 transforms.Resize(resolution),
