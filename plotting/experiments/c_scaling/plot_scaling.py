@@ -1,3 +1,4 @@
+from calendar import c
 from math import log, sqrt
 from typing import List
 import matplotlib.pyplot as plt
@@ -12,7 +13,8 @@ def create_subplot(
         xlabel: str, 
         ylabel: str, 
         has_error_bars=True, 
-        color='b',
+        color: str = 'b',
+        linestyle: str = '-',
         ylim_percentage: float = 10.0,
         xlim_percentage: float = 10.0,
         connect_dots: bool = True,
@@ -58,23 +60,108 @@ def create_subplot(
 
         # Connect the current data point to the previous one with a line
         if i > 0 and connect_dots:
-            ax.plot([flops[i - 1], flops[i]], [np.mean(accuracy_values[i - 1]), np.mean(acc)], 'o-', lw=0.5, color=color)
+            handle, = ax.plot(
+                flops, 
+                [np.mean(acc) for acc in accuracy_values], 
+                linestyle=linestyle, 
+                lw=0.5, 
+                color=color, 
+                label=labels[i] if labels else None
+            )
 
     # Set the y-axis limits based on the overall range of accuracy values
     ylim_min = max(0, y_min - (ylim_percentage / 100) * (y_max - y_min)) # Set the lower limit to 0
     ylim_max = min(100, y_max + (ylim_percentage / 100) * (y_max - y_min)) # Set the upper limit to 100
     xlim_min = max(0, np.min(flops) - (xlim_percentage / 100) * (np.max(flops) - np.min(flops))) # Set the lower limit to 0
     xlim_max = np.max(flops) + (xlim_percentage / 100) * (np.max(flops) - np.min(flops))
-    ax.set_ylim(ylim_min, ylim_max)
-    ax.set_xlim(xlim_min, xlim_max)
+    #ax.set_ylim(ylim_min, ylim_max)
+    #ax.set_xlim(xlim_min, xlim_max)
 
     # Label individual points
-    yloc = 10
-    for label, x, y in zip(labels, flops, [np.mean(acc) for acc in accuracy_values]):
-        if label == labels[-1]:
-            yloc *= -1
-        ax.annotate(label, (x, y), textcoords="offset points", xytext=(yloc, -15), ha='center')
+    if labels is not None:
+        yloc = 10
+        for label, x, y in zip(labels, flops, [np.mean(acc) for acc in accuracy_values]):
+            if label == labels[-1]:
+                yloc *= -1
+            ax.annotate(label, (x, y), textcoords="offset points", xytext=(yloc, -15), ha='center')
 
+    return handle
+
+def get_list(
+        list_object: List, 
+        index: int, 
+        default_value=None
+    ):
+    """
+    Implements the get function for lists.
+    """
+    if list_object is not None and len(list_object) > index:
+        result = list_object[index]
+    else:
+        result = default_value
+
+    return result
+
+def create_multiple_subplots(
+        flops_lists: List[List[float]], 
+        accuracy_values_lists: List[List[List[float]]], 
+        colors: List[str], 
+        linestyles: List[str],
+        xlabel: str = "FLOPs", 
+        ylabel: str = "Weigthed Validation Accuracy",
+        labels_lists: List[List[str]] = None,
+        legend_labels: List[str] = None,
+        ax=None,
+        has_error_bars=True,
+        ylim_percentage: float = 10.0,
+        xlim_percentage: float = 10.0,
+        connect_dots: bool = True
+    ):
+    """Creates a single plot with the possibility of multiple paths."""
+
+    assert isinstance(colors, list), "colors must be a list"
+    assert isinstance(linestyles, list), "linestyles must be a list"
+    assert len(flops_lists) == len(accuracy_values_lists), "flops_lists and accuracy_values_lists must have the same length"
+    assert len(flops_lists) <= len(colors), "colors must be at least as long as flops_lists"
+    assert len(flops_lists) <= len(linestyles), "linestyles must be at least as long as flops_lists"
+    
+
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    legend_handles = []
+    for i, (flops, accuracy_values) in enumerate(
+            zip(flops_lists, accuracy_values_lists)
+        ):
+        labels = get_list(labels_lists, i, None)
+        color = colors[i]
+        linestyle = linestyles[i]
+
+        print("flops", flops)
+        print("accuracy_values", accuracy_values)
+        print("labels", labels)
+
+
+        handle = create_subplot(
+            ax=ax,
+            flops=flops,
+            accuracy_values=accuracy_values,
+            labels=labels,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            has_error_bars=has_error_bars,
+            color=color,
+            linestyle=linestyle,
+            ylim_percentage=ylim_percentage,
+            xlim_percentage=xlim_percentage,
+            connect_dots=connect_dots,
+        )
+        legend_handles.append(handle)
+
+    if legend_labels is not None:
+        ax.legend(legend_handles, legend_labels, loc='best')
+
+    
 
 def plot_scaling_individual(
         flops: List[float], 

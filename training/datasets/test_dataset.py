@@ -61,8 +61,8 @@ def main(cfg: DictConfig) -> None:
     
     for name, dataloader in dataloaders.items():
         print("Dataloader: ", name)
-        if name != "test":
-            continue
+        #if name != "test":
+        #    continue
         for i, out_dataloader in enumerate(dataloader):
             images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
             print(images.shape)

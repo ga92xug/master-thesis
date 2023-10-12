@@ -16,29 +16,37 @@ def extract_number(key):
     return 0.0  # Return 0.0 if there are no numbers in the key
 
 def baseline_and_scaling_exp_2_scaling_exp(
-        exp_data: dict,
-        label2sub_exp_name_dict: Dict[str, str],
+        wandb_data: dict,
+        exp_dict: Dict[str, str],
     ):
-    """Transforms the input data into the format required for create_subplot.
+    
+    """
+    Transforms the input data into the format required for create_subplot.
 
     Args:
-    data: A dictionary containing accuracy and FLOPs data.
+        exp_dict: dict
+            paths: dict
+                label_mask: path_name
+            colors: list
+            linestyles: list
+
 
     Returns:
     transformed_data: A dictionary with transformed data.
     """
     transformed_data = {}
     # inverse the dictionary
-    sub_exp_name2lable_dict = {v: k for k, v in label2sub_exp_name_dict.items()}
+    path2lable_mas_dict = {v: k for k, v in exp_dict["paths"].items()}
 
     #print("exp_data", exp_data)
 
-    for sub_exp_name, sub_exp_dict in exp_data.items():
-        label_mask = sub_exp_name2lable_dict[sub_exp_name]
+    for path_name, path_wandb_data in wandb_data.items():
+        label_mask = path2lable_mas_dict[path_name]
 
-        for group_name, group_dict in sub_exp_dict.items():
-            if len(sub_exp_dict) == 1:
-                # these sub experiments do not have different variations like w1.5,w2,w2.5
+        transformed_data[path_name] = {}
+        for group_name, group_dict in path_wandb_data.items():
+            if len(path_wandb_data) == 1:
+                # these paths do not have different variations like w1.5,w2,w2.5
                 label = label_mask
             else:
                 if isinstance(group_name, tuple):
@@ -50,11 +58,17 @@ def baseline_and_scaling_exp_2_scaling_exp(
                 else:
                     raise ValueError(f"Unknown type of group_name: {type(group_name)}")
 
-            if label in transformed_data:
+            if label in transformed_data[path_name]:
                 raise ValueError(f"Label {label} already exists in transformed_data.")
-            transformed_data[label] = group_dict
+            transformed_data[path_name][label] = group_dict
 
-    sorted_dict = dict(sorted(transformed_data.items(), key=lambda item: extract_number(item[0])))
+    #sorted_dict = dict(sorted(transformed_data.items(), key=lambda item: extract_number(item[0])))
+
+    sorted_dict = {}
+    for k, v in transformed_data.items():
+        dict(sorted(v.items(), key=lambda item: extract_number(item[0])))
+        sorted_dict[k] = dict(sorted(v.items(), key=lambda item: extract_number(item[0])))
+
     return sorted_dict
 
 
@@ -66,16 +80,24 @@ def split_dict2lists(data, metric: str):
 
     #data = dict(sorted(data.items()))
 
-    flops = []
-    accuracy_values = []
-    labels = []
+    flop_list = []
+    accuracy_list = []
+    label_list = []
 
-    for label, values in data.items():
-        flops.append(values['flops'])
-        accuracy_values.append(values[metric])
-        labels.append(label)
+    for path, path_dict in data.items():
+        flop = []
+        accuracy = []
+        labels = []
+        for label, values in path_dict.items():
+            flop.append(values['flops'])
+            accuracy.append(values[metric])
+            labels.append(label)
 
-    return flops, accuracy_values, labels
+        flop_list.append(flop)
+        accuracy_list.append(accuracy)
+        label_list.append(labels)
+
+    return flop_list, accuracy_list, label_list
 
 
 def example_data():

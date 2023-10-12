@@ -1,7 +1,8 @@
 from math import comb
 from typing import Dict, Any
 from click import group
-from omegaconf import OmegaConf
+from matplotlib import colors
+from omegaconf import DictConfig, OmegaConf
 import wandb
 import matplotlib.pyplot as plt
 import numpy as np
@@ -20,13 +21,13 @@ from networks.util import flatten_dict
 def aggregate_filter_data(exp_data: dict, metric: str, window_size: int = 3):
     combined_data = {}
 
-    for sub_exp_name, sub_exp_data in exp_data.items():
-        performance_data = get_metric_from_downloaded_data(sub_exp_data, metric, "extract_last", window_size)
-        flops_data = get_metric_from_downloaded_data(sub_exp_data, "flops", "equal", 1)
+    for path_name, path_data in exp_data.items():
+        performance_data = get_metric_from_downloaded_data(path_data, metric, "extract_last", window_size)
+        flops_data = get_metric_from_downloaded_data(path_data, "flops", "equal", 1)
 
-        combined_data[sub_exp_name] = {}
+        combined_data[path_name] = {}
         for group_name, performance in performance_data.items():
-            combined_data[sub_exp_name][group_name] = {
+            combined_data[path_name][group_name] = {
                 metric: performance,
                 "flops": flops_data[group_name],
             }
@@ -34,15 +35,22 @@ def aggregate_filter_data(exp_data: dict, metric: str, window_size: int = 3):
     return combined_data
 
 def transform_data(
-        exp_data: dict, 
+        wandb_data: dict, 
         metric: str,
-        label2sub_exp_name_dict: dict,
+        exp_dict: dict,
     ):
+    """
+        exp_dict: dict
+            paths: dict
+                label_mask: path_name
+            colors: list
+            linestyles: list
+    """
     # aggregate data of different random seeds for 1 type
-    exp_data = aggregate_filter_data(exp_data, metric)
+    wandb_data = aggregate_filter_data(wandb_data, metric)
 
     # transform data into format for plotting
-    one_exp = baseline_and_scaling_exp_2_scaling_exp(exp_data, label2sub_exp_name_dict)
+    one_exp = baseline_and_scaling_exp_2_scaling_exp(wandb_data, exp_dict)
     flops, accuracy_values, labels = split_dict2lists(one_exp, metric)
 
     return flops, accuracy_values, labels
@@ -61,7 +69,7 @@ def get_wandbdata_with_filters(
     seeds = {}
     for run in runs:
         if run.state != "finished":
-            print(f"Skipping run {run.id} because it is not finished.")
+            print(f"Skipping run {run.id} because state is {run.state}")
             continue
 
         flatten_run_config = flatten_dict(run.config, separator=".")
@@ -109,20 +117,20 @@ def get_wandbdata_with_filters(
 
 
 def get_data_for_exp(
-        sub_exp_dict: dict,
+        paths_dict: dict,
         wandb_entity: str,
         wandb_projects: str,
         metric: str,
     ):
     """
-    Get all the data for 1 experiment. 1 experiment is a set of sub experiments with labels.
-    Each sub experiment has a set of filters that are used to get the right data from wandb.
+    Get all the data for 1 experiment. 1 experiment is a set of paths experiments with labels.
+    Each path has a set of filters that are used to get the right data from wandb.
     Optionally, the data can be grouped by a certain key.
     A group would for example be the width coefficient of the model.
     """
 
     data = {}
-    for sub_exp_name, value_dict in sub_exp_dict.items():
+    for path_name, value_dict in paths_dict.items():
         filters = value_dict["filters"]
         group_by = value_dict["group_by"]
 
@@ -136,14 +144,14 @@ def get_data_for_exp(
             metric=metric,
             group_by=group_by,
         )
-        data[sub_exp_name] = results_for_filter
+        data[path_name] = results_for_filter
 
     return data
 
 
 def individual_plot(
-        sub_exp_dict: dict,
-        label2sub_exp_name_dict: dict,
+        paths2filter_dict: dict,
+        exp_dict: dict,
         wandb_entity: str,
         wandb_projects: str,
         metric: str,
@@ -159,15 +167,29 @@ def individual_plot(
 
     """
 
-    exp_data = get_data_for_exp(sub_exp_dict, wandb_entity, wandb_projects, metric)
-    flops, accuracy_values, labels = transform_data(exp_data, metric, label2sub_exp_name_dict)
+    wandb_data = get_data_for_exp(paths2filter_dict, wandb_entity, wandb_projects, metric)
+    flops, accuracy_values, labels = transform_data(wandb_data, metric, exp_dict)
 
     
     if produce_plot:
-        connect_dots = True if name != "depth_scaling" else False
+        colors = exp_dict["colors"]
+        linestyles = exp_dict["linestyles"]
+        connect_dots = True # if name != "depth_scaling" else False
 
         fig, ax = plt.subplots()
-        create_subplot(ax, flops, accuracy_values, labels, "FLOPs", "Weigthed Validation Accuracy", True, color='b', connect_dots=connect_dots)
+        create_multiple_subplots(
+            flops_lists=flops,
+            accuracy_values_lists=accuracy_values,
+            colors=colors,
+            linestyles=linestyles,
+            xlabel="FLOPs",
+            ylabel="ISIC 2019 Valid Acc (%)",
+            labels_lists=labels if name != "compound_scaling" else None,
+            legend_labels=paths2filter_dict.keys() if name == "compound_scaling" else None,
+            ax=ax,
+            has_error_bars=True,
+            connect_dots=connect_dots,
+        )
 
         save_plot(
             figure=fig,
@@ -175,48 +197,64 @@ def individual_plot(
             folder_name=save_folder_name,
         )
     
-    print("flops", flops)
-    print("accuracy_values", accuracy_values)
-    print("labels", labels)
     return flops, accuracy_values, labels
 
+
 def produce_individual_plots(
-        exp2labels: dict,
-        experiments_dict: dict,
+        cfg: DictConfig,
         wandb_entity: str,
         wandb_projects: str,
         metric: str,
         save_folder_name: str,
         combined_plot: bool = False, 
     ):
+    filter_dict = OmegaConf.to_container(
+        cfg.experiments.filter_groupby_dict, resolve=True, throw_on_missing=True)
+
+    exp2labels = OmegaConf.to_container(
+        cfg.experiments.plots, resolve=True, throw_on_missing=True)
+
     list_accs = []
     list_flops = []
     list_labels = []
 
-    for exp_name, label2sub_exp_name_dict in exp2labels.items():
-        # label2sub_exp_name_dict dict that holds labels for each sub experiment
-        if exp_name != "width_scaling":
-            continue
+    for exp_name, exp_dict in exp2labels.items():
+        """
+        exp_dict: dict
+            paths: dict
+                label_mask: path_name
+            colors: list
+            linestyles: list
+
+        filter_dict: dict
+            path_name: dict
+                filters: dict
+                group_by: str or list
+        """
+
+        #if exp_name != "compound_scaling":
+        #    continue
         print(exp_name)
 
         # extract all sub experiments that belong to one experiment
-        sub_exp_dict = {}
-        for label, sub_exp_name in label2sub_exp_name_dict.items():
-            sub_exp_dict[sub_exp_name] = experiments_dict[sub_exp_name]
+        paths2filter_dict = {}
+        for label_mask, path_name in exp_dict["paths"].items():
+            paths2filter_dict[path_name] = filter_dict[path_name]
 
 
         result = individual_plot(
-            sub_exp_dict=sub_exp_dict,
-            label2sub_exp_name_dict=label2sub_exp_name_dict,
+            paths2filter_dict=paths2filter_dict,
+            exp_dict=exp_dict,
+            #label2sub_exp_name_dict=exp_dict,
             wandb_entity=wandb_entity,
             wandb_projects=wandb_projects,
             metric=metric,
             save_folder_name=save_folder_name,  
-            name=exp_name, 
-            produce_plot = False, 
+            name=exp_name,  
+            produce_plot=True,
         )
 
-        if combined_plot:
+        if combined_plot and exp_name != "compound_scaling":
             flops, accuracy_values, labels = result
             list_accs.append(accuracy_values)
             list_flops.append(flops)
@@ -244,20 +282,14 @@ def main():
     wandb_entity = cfg.wandb.entity
     wandb_projects = "SL-Scaling"
     metric = "valid.acc_weighted"
-    experiments_dict = OmegaConf.to_container(
-        cfg.experiments.filter_groupby_dict, resolve=True, throw_on_missing=True)
-
-    exp2labels = OmegaConf.to_container(
-        cfg.experiments.plots, resolve=True, throw_on_missing=True)
 
     produce_individual_plots(
-        exp2labels=exp2labels,
-        experiments_dict=experiments_dict,
+        cfg=cfg,
         wandb_entity=wandb_entity,
         wandb_projects=wandb_projects,
         metric=metric,
         save_folder_name=save_folder_name, 
-        combined_plot=False,
+        combined_plot=True,
     )
 
 

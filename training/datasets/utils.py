@@ -61,7 +61,7 @@ def get_one_transform(
     """
     if isinstance(augment, bool):
         transform_list = [
-            transforms.Resize(resolution),
+            transforms.Resize((resolution, resolution)),
             transforms.ToTensor(),
         ]
         if channel_wise_mean_images is not None and channel_wise_std_images is not None:
