@@ -17,7 +17,7 @@ def get_images_and_labels_DeepDRiD(df: pd.DataFrame, path: str):
             raise ValueError("String does not contain enough backslashes.")
 
     images = df["image_path"].tolist()
-    images = [path + "images/" + replace_backslashes(image) for image in images]
+    images = [path + "Images/" + replace_backslashes(image) for image in images]
     labels = df["Overall quality"].tolist()
     labels
     return images, labels

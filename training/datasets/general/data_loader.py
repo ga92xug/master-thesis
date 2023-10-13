@@ -104,7 +104,8 @@ def build_loaders(
     test_loader = DataLoader(Custom_Dataset(test_images, test_labels, transform=valid_transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
 
     if test_as_valid:
-        val_loader = test_loader
+        # swap val_loader and test_loader to test generalization early
+        val_loader, test_loader = test_loader, val_loader
 
     dataloaders = {
         "train": train_loader,
@@ -407,7 +408,7 @@ def get_DeepDRiD(
         test_as_valid: bool = False,
         **kwargs,
     ):
-    location = data_dir + name + "/regular_fundus_images/"
+    location = data_dir + name + "/DeepDRiD-master/regular_fundus_images/"
 
     df_train = pd.read_csv(location + 'regular-fundus-training/regular-fundus-training.csv')
     df_test = pd.read_csv(location + 'regular-fundus-validation/regular-fundus-validation.csv')
