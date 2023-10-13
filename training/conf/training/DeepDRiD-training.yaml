@@ -1,0 +1,21 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: DeepDRiD
+- scheduler: reduce_lr_on_plateau 
+
+epochs: 100
+accumulate: 1
+
+dataset:
+  batch_size: 64                # Number of examples to process in a batch during training
+  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+
+optimizer:
+  lr: 0.005
+  weight_decay: 1e-5
+
+scheduler:
+  factor: 0.5
+  patience: 10
+  verbose: True

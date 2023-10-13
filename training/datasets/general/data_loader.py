@@ -20,9 +20,9 @@ from training.datasets.utils import (
     get_normalize_weights, 
     get_transforms, 
     split_with_stratify, 
-    images_and_labels_from_folder
 )
 
+from training.datasets.general.utils import get_images_and_labels_DeepDRiD, get_images_and_labels_nct
 
 class Custom_Dataset(Dataset):
     def __init__(self, images, labels, transform=None):
@@ -242,8 +242,8 @@ def get_OCT(
     ):
     location = data_dir + name + "/CellData/OCT"
 
-    train_images, train_labels = images_and_labels_from_folder(location + "/train/")
-    test_images, test_labels = images_and_labels_from_folder(location + "/test/")
+    train_images, train_labels = get_images_and_labels_nct(location + "/train/")
+    test_images, test_labels = get_images_and_labels_nct(location + "/test/")
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
@@ -300,8 +300,8 @@ def get_nct(
     ):
     location = data_dir + name 
 
-    train_images, train_labels = images_and_labels_from_folder(location + "/NCT-CRC-HE-100K/")
-    test_images, test_labels = images_and_labels_from_folder(location + "/CRC-VAL-HE-7K/")
+    train_images, train_labels = get_images_and_labels_nct(location + "/NCT-CRC-HE-100K/")
+    test_images, test_labels = get_images_and_labels_nct(location + "/CRC-VAL-HE-7K/")
     print("train_images: ", train_images[:2])
     print("train_labels: ", train_labels[:2])
     print("test_images: ", test_images[:2])
@@ -362,7 +362,7 @@ def get_blood(
     ):
     location = data_dir + name + "/PBC_dataset_normal_DIB/"
 
-    images, labels = images_and_labels_from_folder(location)
+    images, labels = get_images_and_labels_nct(location)
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
@@ -386,6 +386,66 @@ def get_blood(
         reduction_factor=reduction_factor,
         val_size=0.1,
         test_size=0.2,
+        test_as_valid=test_as_valid,
+    )
+
+    return dataloaders, normalized_weights
+
+
+def get_DeepDRiD(
+        data_dir: str,
+        name: str,
+        resolution: int,
+        should_normalize_weights: bool,
+        channel_wise_mean_images: list,
+        channel_wise_std_images: list,
+        batch_size: int,
+        eval_batch_size: int,
+        workers: int,
+        augment: bool,
+        reduction_factor: float = 1,
+        test_as_valid: bool = False,
+        **kwargs,
+    ):
+    location = data_dir + name + "/regular_fundus_images/"
+
+    df_train = pd.read_csv(location + 'regular-fundus-training/regular-fundus-training.csv')
+    df_test = pd.read_csv(location + 'regular-fundus-validation/regular-fundus-validation.csv')
+
+    train_images, train_labels = get_images_and_labels_DeepDRiD(df_train, location + "regular-fundus-training/")
+    test_images, test_labels = get_images_and_labels_DeepDRiD(df_test, location + "regular-fundus-validation/")
+
+    # Define the transformations
+    train_transform, valid_transform = get_transforms(
+        resolution=resolution, 
+        original_augment=augment, 
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images
+    )
+
+    # normalize weights
+    normalized_weights = get_normalize_weights(train_labels) if should_normalize_weights else 1
+
+    images = {
+        "train": train_images,
+        "test": test_images,
+    }
+    labels = {
+        "train": train_labels,
+        "test": test_labels,
+    }
+
+    dataloaders = build_loaders(
+        images=images, 
+        labels=labels, 
+        train_transform=train_transform, 
+        valid_transform=valid_transform, 
+        batch_size=batch_size, 
+        eval_batch_size=eval_batch_size, 
+        workers=workers, 
+        reduction_factor=reduction_factor,
+        val_size=0.1,
+        test_size=0.0,
         test_as_valid=test_as_valid,
     )
 

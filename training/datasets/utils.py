@@ -8,7 +8,7 @@ from torchvision import transforms
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+
 
 import sys
 import os
@@ -127,19 +127,6 @@ def get_one_transform(
 
     return transforms.Compose(transform_list)
 
-
-def images_and_labels_from_folder(folder:str):
-    images = []
-    labels = []
-    for label in os.listdir(folder):
-        for image in os.listdir(folder + label):
-            images.append(folder + label + "/" + image)
-            labels.append(label)
-
-    label_encoder = LabelEncoder()
-    labels = label_encoder.fit_transform(labels)
-
-    return images, labels
 
 def split_without_stratify(images, labels, random_seed):
     """
