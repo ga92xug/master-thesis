@@ -5,9 +5,20 @@ export PY_SCRIPT="python training/main.py"
 export PY_TEST="python training/model_instantiate.py"
 
 
-#$PY_SCRIPT -m other.seed=0,1,2 +exp_scaling=general training=isic2019-training-constant_scheduler model/blocks_args_dict=4blocks training.dataset.resolution=192 wandb.tags=[constant_scheduler]
+# $PY_SCRIPT -m other.seed=0,1,2 training=DeepDRiD-training \
+#     wandb.project=SL-Application \
+#     model=eq_nasnet \
+#     model/blocks_args_dict=4blocks \
+#     other.should_test=True
+# 
+# $PY_SCRIPT -m other.seed=0,1,2 training=DeepDRiD-training \
+#     wandb.project=SL-Application \
+#     model=efficientnet model.pretrained=False,True \
+#     other.should_test=True
 
-#bash sh_files/d_application/baseline.sh
-#bash sh_files/c_scaling/depth.sh
-#bash sh_files/c_scaling/width.sh
-#bash sh_files/c_scaling/resolution.sh
+$PY_SCRIPT -m other.seed=0,1,2 training=DeepDRiD-training \
+    model=vit model.pretrained=False,True \
+    other.should_test=True \
+    training.dataset.resolution=224
+
+

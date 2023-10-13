@@ -27,7 +27,7 @@ def get_stats(dataloader):
     print("std", std)
 
     labels = np.concatenate(list_labels, axis=0)
-    print("labels", labels, labels.shape)
+    print("labels", labels.shape)
     print("value_counts", value_counts(labels))
 
     #get_normalize_weights(labels)
@@ -60,14 +60,13 @@ def main(cfg: DictConfig) -> None:
     print("test:", length_test, "of all", length_test/lenght_all)
     
     for name, dataloader in dataloaders.items():
-        print("Dataloader: ", name)
+        print("\nDataloader: ", name)
         #if name != "test":
         #    continue
         for i, out_dataloader in enumerate(dataloader):
             images, labels, meta_data = utils.get_out_dataloader(out_dataloader)
             print(images.shape)
             print(labels.shape)
-            print("\n")
             break
         
         mean, std = get_stats(dataloader)

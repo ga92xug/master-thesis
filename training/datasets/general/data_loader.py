@@ -1,5 +1,5 @@
 from cgi import test
-from typing import Dict, List
+from typing import Dict, List, Union
 import torch
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
@@ -56,17 +56,17 @@ class Custom_Dataset(Dataset):
         return image, label
 
 def build_loaders(
-    images: List or Dict, 
-    labels: List or Dict,
-    train_transform,
-    valid_transform,
-    batch_size,
-    eval_batch_size,
-    workers,
-    reduction_factor=1.0,
-    val_size=0.1,
-    test_size=0.1,
-    test_as_valid=False,
+    images: Union[List, Dict], 
+    labels: Union[List, Dict],
+    train_transform: object,
+    valid_transform: object,
+    batch_size: int,
+    eval_batch_size: int,
+    workers: int,
+    reduction_factor: float = 1.0,
+    val_size: float = 0.1,
+    test_size: float = 0.1,
+    test_as_valid: bool = False,
 ):
     random_seed = 42
 
@@ -77,15 +77,20 @@ def build_loaders(
         test_images = images["test"]
         test_labels = labels["test"]
 
-        # Split the data into train, val, and test arrays.
-        train_images, train_labels, val_images, val_labels, _, _ = split_with_stratify(
-            images=train_images, 
-            labels=train_labels, 
-            random_seed=random_seed, 
-            reduction_factor=reduction_factor,
-            val_size=val_size,
-            test_size=test_size,
-        )
+        val_images = images.get("val", None)
+        val_labels = labels.get("val", None)
+
+        if val_images is None or val_labels is None:
+            assert val_size > 0.0, "val_size should be greater than 0.0 when images is a dictionary and val_images is None."
+            # Split the data into train, val
+            train_images, train_labels, val_images, val_labels, _, _ = split_with_stratify(
+                images=train_images, 
+                labels=train_labels, 
+                random_seed=random_seed, 
+                reduction_factor=reduction_factor,
+                val_size=val_size,
+                test_size=test_size,
+            )
     else:
         # Split the data into train, val, and test arrays.
         train_images, train_labels, val_images, val_labels, test_images, test_labels = \
@@ -404,17 +409,20 @@ def get_DeepDRiD(
         eval_batch_size: int,
         workers: int,
         augment: bool,
+        mode: str,
         reduction_factor: float = 1,
         test_as_valid: bool = False,
         **kwargs,
     ):
-    location = data_dir + name + "/DeepDRiD-master/regular_fundus_images/"
+    location = data_dir + "DeepDRiD/DeepDRiD-master/regular_fundus_images/"
 
     df_train = pd.read_csv(location + 'regular-fundus-training/regular-fundus-training.csv')
-    df_test = pd.read_csv(location + 'regular-fundus-validation/regular-fundus-validation.csv')
+    df_val = pd.read_csv(location + 'regular-fundus-validation/regular-fundus-validation.csv')
+    df_test = pd.read_excel(location + 'Online-Challenge1&2-Evaluation/Challenge2_labels.xlsx')
 
-    train_images, train_labels = get_images_and_labels_DeepDRiD(df_train, location + "regular-fundus-training/")
-    test_images, test_labels = get_images_and_labels_DeepDRiD(df_test, location + "regular-fundus-validation/")
+    train_images, train_labels = get_images_and_labels_DeepDRiD(df_train, location + "regular-fundus-training/", mode=mode)
+    val_images, val_labels = get_images_and_labels_DeepDRiD(df_val, location + "regular-fundus-validation/", mode=mode)
+    test_images, test_labels = get_images_and_labels_DeepDRiD(df_test, location + "Online-Challenge1&2-Evaluation/", mode=mode, test=True)
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
@@ -429,10 +437,12 @@ def get_DeepDRiD(
 
     images = {
         "train": train_images,
+        "val": val_images,
         "test": test_images,
     }
     labels = {
         "train": train_labels,
+        "val": val_labels,
         "test": test_labels,
     }
 
@@ -445,7 +455,7 @@ def get_DeepDRiD(
         eval_batch_size=eval_batch_size, 
         workers=workers, 
         reduction_factor=reduction_factor,
-        val_size=0.1,
+        val_size=0.0,
         test_size=0.0,
         test_as_valid=test_as_valid,
     )

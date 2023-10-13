@@ -12,10 +12,10 @@ dataset:
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
 
 optimizer:
-  lr: 0.005
+  lr: 0.001
   weight_decay: 1e-5
 
 scheduler:
   factor: 0.5
-  patience: 10
+  patience: 50
   verbose: True
