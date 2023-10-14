@@ -10,7 +10,7 @@ import signal
 import os
 import torch
 
-from typing import List, Tuple, Dict, Any, Union
+from typing import List, Optional, Tuple, Dict, Any, Union
 
 import torch
 import wandb
@@ -199,7 +199,17 @@ def allowed_usage_time(
 ######################################################
 
 class EarlyStopping:
-    def __init__(self, monitor: str, mode: str, patience: int, min_delta: float, save_path: str, verbose: int = 1, store_in_memory: bool=True):
+    def __init__(
+            self, 
+            monitor: str, 
+            mode: str, 
+            patience: int, 
+            min_delta: float, 
+            save_path: str, 
+            verbose: int = 1,
+            baseline: Optional[float] = None, 
+            store_in_memory: bool=True
+        ):
         """
         Initialize the EarlyStopping class.
 
@@ -209,6 +219,8 @@ class EarlyStopping:
         - patience (int): Number of epochs with no improvement to wait before early stopping.
         - min_delta (float): Minimum change in the monitor metric to qualify as improvement.
         - save_path (str): Directory to save the best model.
+        - verbose (int): Verbosity level.
+        - baseline (float): Baseline value for the monitor metric. Early stopping will only start after the metric surpasses the baseline.
         - store_in_memory (bool): Whether to store the best model in memory or on disk.
         """
         assert mode in ['min', 'max'], "Mode must be one of {'min', 'max'}."
@@ -220,6 +232,7 @@ class EarlyStopping:
         self.min_delta = min_delta
         self.counter = 0
         self.verbose = verbose
+        self.baseline = baseline
         self.best_score = None
         self.save_path = save_path
         self.store_in_memory = store_in_memory
@@ -241,6 +254,12 @@ class EarlyStopping:
         
         if current_score is None:
             raise ValueError(f"Monitor {self.monitor} does not exist in metrics.")
+
+        # Don't start counting patience until the metric surpasses the baseline
+        if self.baseline is not None:
+            if (self.mode == 'min' and current_score > self.baseline) or \
+               (self.mode == 'max' and current_score < self.baseline):
+                return False
 
         if self.best_score is None:
             self.best_score = current_score

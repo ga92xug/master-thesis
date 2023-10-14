@@ -16,7 +16,7 @@ training:
     stop: False          
     monitor: valid.acc
     mode: max
-    patience: 10
+    patience: 20
     min_delta: 0.001
     store_in_memory: True
 
