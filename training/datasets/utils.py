@@ -157,10 +157,13 @@ def split_with_stratify(
         val_size=0.1,
         test_size=0.1,
     ):
-    assert val_size + test_size <= 1.0, "val_size + test_size should be less than or equal to 1.0"
+    assert val_size + test_size < 1.0, "val_size + test_size should be less than to 1.0"
     assert val_size >= 0.0, "val_size should be greater than or equal to 0.0"
+    assert test_size >= 0.0, "test_size should be greater than or equal to 0.0"
+    assert reduction_factor <= 1.0 and reduction_factor > 0.0, "reduction_factor should be in the range (0.0, 1.0]"
+    
+    # Reduction
     if reduction_factor < 1.0:
-        assert reduction_factor > 0.0, "reduction_factor should be between 0.0 and 1.0"
         images, additional_images, labels, additional_labels = \
             train_test_split(
                 *[images, labels], 
@@ -169,6 +172,7 @@ def split_with_stratify(
                 stratify=labels
             )
 
+    # Val_test
     train_images, val_test_images, train_labels, val_test_labels = \
         train_test_split(
             *[images, labels], 
@@ -177,6 +181,7 @@ def split_with_stratify(
             stratify=labels
         )
     
+    # Test
     if test_size == 0.0:
         val_images = val_test_images
         val_labels = val_test_labels
@@ -192,12 +197,15 @@ def split_with_stratify(
             )
 
     
+    # what to do with the additional images
     if reduction_factor < 1.0 and test_size != 0.0:
-        # we use the additional images for the test set to make sure that test set are not too small
+        # if the test set is not distinct from the train set we can use the additional images for evaluation
+        # otherwise no it breaks the independence of the test set
         test_images = np.concatenate([test_images, additional_images])
         test_labels = np.concatenate([test_labels, additional_labels])
-    elif reduction_factor < 1.0 and test_size == 0.0:
-        raise NotImplementedError("Not implemented yet")
-
+    else:
+        # we do not use the additional images for evaluation
+        # we can not add them to the val set because that breaks the logic of reducing the size of the train set
+        print("Not using additional images for evaluation.")
 
     return train_images, train_labels, val_images, val_labels, test_images, test_labels

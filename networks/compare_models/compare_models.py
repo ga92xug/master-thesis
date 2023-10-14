@@ -1,5 +1,5 @@
 import torch
-from torchvision.models import vit_l_16
+from torchvision.models import vit_b_16
 
 class EfficientNet(torch.nn.Module):
     def __init__(self, num_classes, pretrained=True, **kwargs):
@@ -22,7 +22,7 @@ class ViT(torch.nn.Module):
             weights='IMAGENET1K_V1'
         else:
             weights=None
-        self.model = vit_l_16(weights=weights)
+        self.model = vit_b_16(weights=weights)
         # Modify the last fully connected layer to have num_classes
         in_features = self.model.heads[0].in_features
         self.model.heads[0] = torch.nn.Linear(in_features, num_classes)

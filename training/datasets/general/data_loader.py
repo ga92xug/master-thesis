@@ -63,14 +63,15 @@ def build_loaders(
     batch_size: int,
     eval_batch_size: int,
     workers: int,
-    reduction_factor: float = 1.0,
-    val_size: float = 0.1,
-    test_size: float = 0.1,
+    reduction_factor: float,
+    val_size: float,
+    test_size: float,
     test_as_valid: bool = False,
 ):
     random_seed = 42
 
     if isinstance(images, dict):
+        # split the data; assume there are train and test sets; create val set from train set if not exists
         assert test_size == 0.0, "test_size should be 0.0 when images is a dictionary. Since images is a dictionary, we assume that it is already split into train, and test sets."
         train_images = images["train"]
         train_labels = labels["train"]
@@ -80,7 +81,7 @@ def build_loaders(
         val_images = images.get("val", None)
         val_labels = labels.get("val", None)
 
-        if val_images is None or val_labels is None:
+        if val_images is None:
             assert val_size > 0.0, "val_size should be greater than 0.0 when images is a dictionary and val_images is None."
             # Split the data into train, val
             train_images, train_labels, val_images, val_labels, _, _ = split_with_stratify(
@@ -231,6 +232,7 @@ def get_ISIC_2019(
     )
     return dataloaders, normalized_weights
 
+
 def get_OCT(
         data_dir: str,
         name: str,
@@ -286,7 +288,6 @@ def get_OCT(
     )
 
     return dataloaders, normalized_weights
-
 
 
 def get_nct(
@@ -348,7 +349,6 @@ def get_nct(
     )
 
     return dataloaders, normalized_weights
-
 
 
 def get_blood(
