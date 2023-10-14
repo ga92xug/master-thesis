@@ -1,7 +1,8 @@
-from typing import Tuple
+from typing import Dict, Tuple
 import numpy as np
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
+from hydra.utils import instantiate, call
 import os
 import datetime
 from omegaconf import DictConfig, OmegaConf, open_dict
@@ -54,7 +55,7 @@ class Experiment:
             pass
                
         # dataset
-        self._dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
+        self._dataloaders, normalize_weights = call(cfg.training.dataset)
         n_inputs = cfg.training.dataset.n_in_channels
         self.n_outputs = cfg.training.dataset.n_out_classes
         #self.n_outputs = 1 if self.n_outputs == 2 else self.n_outputs
@@ -101,12 +102,10 @@ class Experiment:
         print("Stage 2: model built")
 
         # optimizer
-        self._optimizer = hydra.utils.instantiate(cfg.training.optimizer, 
-                                            params=self.model.parameters())
+        self._optimizer = instantiate(cfg.training.optimizer, params=self.model.parameters())
         
         # outpath
-        # self.outpath = utils.out_path(cfg)
-        # os.makedirs(self.outpath, exist_ok=True)
+        self.output_path = utils.output_path(cfg.other.output_path)
         # backup model parameters
         if cfg.other.backup_model:
             self.modelpath = utils.backup_path(cfg)
@@ -137,6 +136,19 @@ class Experiment:
         # time limit
         self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
+
+        # early stopping
+        self.early_stopping = None
+        if cfg.training.earlystop.stop:
+            self.early_stopping = utils.EarlyStopping(
+                monitor=cfg.training.earlystop.monitor,
+                mode=cfg.training.earlystop.mode,
+                patience=cfg.training.earlystop.patience,
+                min_delta=cfg.training.earlystop.min_delta,
+                save_path=self.output_path,
+                verbose=self._verbose,
+                store_in_memory=cfg.training.earlystop.store_in_memory,
+            )
         print("Stage 4: training starts: " + str(self._global_start_time))
 
     
@@ -210,7 +222,7 @@ class Experiment:
         self.train_metrics.reset()
         return
 
-    def valid(self):
+    def valid(self) -> Dict:
         confusion = self.valid_conf_matrix_frequency > 0 and \
             self._epoch % self.valid_conf_matrix_frequency == 0
         metrics, _, _ = self.inference("valid", confusion=confusion)
@@ -219,9 +231,11 @@ class Experiment:
         if self._adapt_lr_in_validation:
             self._lr_scheduler.step(metrics["acc"])
 
+        return metrics
+
 
     @torch.no_grad()
-    def inference(self, split, confusion=False) -> Tuple:
+    def inference(self, split, confusion=False) -> Tuple[Dict, float, float]:
         """
         Run inference.
 
@@ -303,7 +317,13 @@ class Experiment:
             
             # validate
             if self._eval_frequency < 0 and self._epoch % (-self._eval_frequency) == 0:
-                self.valid()
+                valid_metrics = self.valid()
+
+                if self.early_stopping:
+                    should_stop = self.early_stopping.should_stop(valid_metrics, self.model)
+                    if should_stop:
+                        self.model = self.early_stopping.restore_best_weights(self.model)
+                        break
             
             if self.cfg.other.backup_frequency < 0 and self._epoch % (-self.cfg.other.backup_frequency) == 0:
                 self.backup()

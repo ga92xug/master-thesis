@@ -11,7 +11,15 @@ training:
   compile: False
   steps_per_epoch: -1
   accumulate: 1
-  earlystop: False
+
+  earlystop:
+    stop: False          
+    monitor: valid.acc
+    mode: max
+    patience: 10
+    min_delta: 0.001
+    store_in_memory: True
+
   dataset:
     data_dir: '../../Data/frischs/datasets/'  # Path to the datasets        
     workers: 8                    # Number of jobs to load the dataset
@@ -26,7 +34,7 @@ other:
   store_plot: False              # Store the plot
   show: False                   # Show the plot during training
   seed: 42                      # Seed for random number generators
-  output_path: 'experiment/outputs/'  # Path to the output directory
+  output_path: 'outputs/'  # Path to the output directory
   verbose: 2                    # Verbose Level
   time_limit: null              # Maximum time limit for training (in Minutes)
   should_test: False

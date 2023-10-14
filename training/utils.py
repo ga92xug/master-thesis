@@ -7,15 +7,17 @@ import io
 import datetime
 import hydra
 import signal
+import os
+import torch
 
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any, Union
 
 import torch
 import wandb
 
 #from models import *
 from networks import *
-from networks.util import get_param_count
+from networks.util import flatten_dict, get_param_count
 
 ################################################################################
 # building the model
@@ -150,9 +152,16 @@ def give_wandb_name(
         wandb_run.name = model.name
 
 
-def out_path(cfg):
-    path = cfg.other.output_path
+def output_path(path: str):
+    """
+    Returns the path to the output folder.
+    """
+    if not os.path.exists(path):
+        os.makedirs(path)
+
     return path
+    
+
 
 
 def plot_path(config):
@@ -179,3 +188,102 @@ def allowed_usage_time(
     # Check if the current time is within the range
     if start_time <= now <= end_time:
         raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
+
+
+######################################################
+# Early stopping
+######################################################
+
+class EarlyStopping:
+    def __init__(self, monitor: str, mode: str, patience: int, min_delta: float, save_path: str, verbose: int = 1, store_in_memory: bool=True):
+        """
+        Initialize the EarlyStopping class.
+
+        Args:
+        - monitor (str): The metric name to monitor.
+        - mode (str): One of {'min', 'max'}. Whether to minimize or maximize the monitor metric.
+        - patience (int): Number of epochs with no improvement to wait before early stopping.
+        - min_delta (float): Minimum change in the monitor metric to qualify as improvement.
+        - save_path (str): Directory to save the best model.
+        - store_in_memory (bool): Whether to store the best model in memory or on disk.
+        """
+        assert mode in ['min', 'max'], "Mode must be one of {'min', 'max'}."
+        assert monitor.split(".")[0] == "valid" and monitor.split(".")[1] in ["loss", "acc", "acc_weighted"], "Monitor must be one of {'valid.loss', 'valid.acc', 'valid.acc_weighted'}."
+
+        self.monitor = monitor.split(".")[1]
+        self.mode = mode
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.verbose = verbose
+        self.best_score = None
+        self.save_path = os.path.join(save_path, "best_model.pth")
+        self.store_in_memory = store_in_memory
+        if os.path.exists(self.save_path):
+            os.remove(self.save_path)
+
+    def should_stop(self, metrics: Dict[str, Any], model: torch.nn.Module) -> bool:
+        """
+        Check if early stopping should be executed.
+
+        Args:
+        - metrics (dict): A dictionary of current epoch metrics.
+        - model (torch.nn.Module): The current model.
+
+        Returns:
+        - bool: True if early stopping should be executed, False otherwise.
+        """
+        current_score = metrics.get(self.monitor, None).item()
+        
+        if current_score is None:
+            raise ValueError(f"Monitor {self.monitor} does not exist in metrics.")
+
+        if self.best_score is None:
+            self.best_score = current_score
+            self.save_model(model)
+            return False
+
+        if ((self.mode == 'min' and current_score < (self.best_score - self.min_delta)) or
+            (self.mode == 'max' and current_score > (self.best_score + self.min_delta))):
+            self.best_score = current_score
+            self.counter = 0
+            self.save_model(model)
+        else:
+            self.counter += 1
+
+        if self.counter >= self.patience:
+            if self.verbose:
+                print(f"Early stopping. No improvement in {self.monitor} for {self.patience} epochs.")
+            return True
+        return False
+
+    def save_model(self, model: torch.nn.Module) -> None:
+        """
+        Save the model. If store_in_memory is True, the model is stored in memory. Otherwise, it is stored on disk.
+
+        Args:
+        - model (torch.nn.Module): The model to save.
+        """
+        if self.store_in_memory:
+            self.weights = model.state_dict()
+        else:
+            if os.path.exists(self.save_path):
+                os.remove(self.save_path)
+            torch.save(model.state_dict(), self.save_path)
+
+    def restore_best_weights(self, model: torch.nn.Module) -> torch.nn.Module:
+        """
+        Restore the best weights for the given model.
+
+        Args:
+        - model (torch.nn.Module): The model whose weights will be restored.
+
+        Returns:
+        - torch.nn.Module: The model with the best weights restored.
+        """
+        if self.store_in_memory:
+            model.load_state_dict(self.weights)
+        else:
+            model.load_state_dict(torch.load(self.save_path))
+        return model
+

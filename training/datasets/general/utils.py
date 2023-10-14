@@ -33,7 +33,7 @@ def get_images_and_labels_DeepDRiD(df: pd.DataFrame, path: str, mode: str, test:
     labels = df[mode].tolist()
     labels
 
-    print("Image ", images[0])
+    #print("Image ", images[0])
 
     return images, labels
 
