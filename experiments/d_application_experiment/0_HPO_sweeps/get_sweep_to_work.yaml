@@ -1,0 +1,31 @@
+program: training/main.py
+method: bayes
+run_cap: 10
+metric:
+  goal: maximize
+  name: valid.acc
+
+early_terminate:
+  type: hyperband
+  min_iter: 50
+
+parameters:
+  training:
+    parameters:
+      epochs:
+        distribution: int_uniform
+        min: 50
+        max: 200
+  
+
+command:
+  - python
+  - ${program}
+  - training=DeepDRiD-training
+  - model=eq_nasnet
+  - model/blocks_args_dict=4blocks
+  - other.should_test=True
+
+# create sweep
+# wandb sweep --project SL-sweeps experiments/d_application_experiment/0_HPO_sweeps/get_sweep_to_work.yaml
+

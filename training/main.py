@@ -52,8 +52,11 @@ class Experiment:
             # normal training mode
             self.wandb_run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \
-                            mode=cfg.wandb.mode, notes=cfg.wandb.notes, \
-                            tags=cfg.wandb.tags)
+                mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+            
+            # merge wandb config with cfg. Sweep bug https://github.com/wandb/wandb/issues/4686
+            self.cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
+            wandb.config = dict(cfg)
             self.wandb_run.log_code(".")
         else:
             pass

@@ -1,0 +1,48 @@
+name: efficientnet_DeepDRiD_r224_pretrained_T
+
+program: training/main.py
+project: SL-sweeps
+method: bayes
+run_cap: 50
+
+metric:
+  goal: maximize
+  name: valid.acc
+
+early_terminate:
+  type: hyperband
+  min_iter: 50
+
+parameters:
+  training.optimizer.lr:
+    distribution: log_uniform_values
+    min: 5e-05
+    max: 0.1
+  training.epochs:
+    distribution: int_uniform
+    min: 50
+    max: 200
+  training.optimizer.weight_decay:
+    distribution: log_uniform_values
+    min: 0.00001
+    max: 0.001
+  training.scheduler.patience:
+    distribution: int_uniform
+    min: 5 
+    max: 200
+  training.scheduler.factor:
+    distribution: log_uniform_values
+    min: 0.01
+    max: 0.5
+
+command:
+  - python
+  - ${program}
+  - training=DeepDRiD-training
+  - model=efficientnet
+  - training.dataset.resolution=224
+  - model.pretrained=True
+  - other.should_test=True
+
+# create sweep
+# wandb sweep --project SL-sweeps experiments/d_application_experiment/0_HPO_sweeps/efficientnet_DeepDRiD.yaml
