@@ -1,3 +1,4 @@
+from tabnanny import verbose
 from typing import Dict, Tuple
 import numpy as np
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
@@ -24,8 +25,11 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 class Experiment:
     def __init__(self, cfg: DictConfig):
         super(Experiment, self).__init__()
-        self._verbose = cfg.other.verbose
+        # time
+        self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
+
+        self._verbose = cfg.other.verbose
         if self._verbose > 2:
             print(f"Starting: {self._global_start_time}")
             print(OmegaConf.to_yaml(cfg))
@@ -104,13 +108,10 @@ class Experiment:
         # optimizer
         self._optimizer = instantiate(cfg.training.optimizer, params=self.model.parameters())
         
-        # outpath
+        # paths
         self.output_path = utils.output_path(cfg.other.output_path)
-        # backup model parameters
-        if cfg.other.backup_model:
-            self.modelpath = utils.backup_path(cfg)
-            os.makedirs(os.path.dirname(self.modelpath), exist_ok=True)
-            print("modelpath", self.modelpath)
+        save_id = wandb.run.id if wandb.run.id is not None else self._global_start_time
+        self.model_path = utils.backup_path(cfg.other.backup_model, self.output_path, save_id, verbose=self._verbose)
 
         # training configuration
         self.max_epochs = cfg.training.epochs
@@ -132,10 +133,6 @@ class Experiment:
         self._epoch = 0
         self.global_step = 0  
         self.train_n_batches_len = len(self._dataloaders["train"])      
-        
-        # time limit
-        self._time_limit = cfg.other.time_limit
-        self._global_start_time = datetime.datetime.now()
 
         # early stopping
         self.early_stopping = None
@@ -145,16 +142,11 @@ class Experiment:
                 mode=cfg.training.earlystop.mode,
                 patience=cfg.training.earlystop.patience,
                 min_delta=cfg.training.earlystop.min_delta,
-                save_path=self.output_path,
+                save_path=self.output_path + "best_model.pth" if self.model_path is None else self.model_path,
                 verbose=self._verbose,
                 store_in_memory=cfg.training.earlystop.store_in_memory,
             )
         print("Stage 4: training starts: " + str(self._global_start_time))
-
-    
-    def backup(self):
-        if self.cfg.other.backup_model:
-            torch.save(self.model.state_dict(), self.modelpath)
     
     def train(self):
         start_time = datetime.datetime.now().timestamp()
@@ -351,8 +343,10 @@ class Experiment:
             return True
         return False
 
+    def backup(self):
+        if self.cfg.other.backup_model:
+            torch.save(self.model.state_dict(), self.model_path)
     
-
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def run_experiment(cfg: DictConfig) -> None:
     if cfg.other.debug:

@@ -112,7 +112,7 @@ def get_out_dataloader(
     return x, t, meta_data
 
 ########################################################################################################################
-# Utilites to build paths and names in a standard way
+# Paths and Names
 ########################################################################################################################
 
 def give_wandb_name(
@@ -161,16 +161,20 @@ def output_path(path: str):
 
     return path
     
+def backup_path(should_backup, output_path: str, save_id: str, verbose: int) -> str:
+    if not should_backup:
+        return None
 
+    model_path = os.path.join(output_path, save_id)
+    if not os.path.exists(model_path):
+        os.makedirs(model_path)
 
+    if verbose > 2:
+        print(f"Model path: {model_path}")
 
-def plot_path(config):
-    return os.path.join(out_path(config), exp_name(config) + ".svg")
-
-
-def backup_path(config):
-    backup_folder = os.path.join(out_path(config), exp_name(config))
-    return os.path.join(backup_folder, f"_{config.other.seed}.model")
+    model_path = os.path.join(model_path, "model.pth")
+    return model_path
+    
 
 def allowed_usage_time(
     gpu_time_limit: bool,
@@ -217,7 +221,7 @@ class EarlyStopping:
         self.counter = 0
         self.verbose = verbose
         self.best_score = None
-        self.save_path = os.path.join(save_path, "best_model.pth")
+        self.save_path = save_path
         self.store_in_memory = store_in_memory
         if os.path.exists(self.save_path):
             os.remove(self.save_path)
