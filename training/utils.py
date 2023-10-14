@@ -1,6 +1,6 @@
 import os.path
 import sqlite3
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 import pandas as pd
 import numpy as np
 import io
@@ -115,6 +115,27 @@ def get_out_dataloader(
 # Paths and Names
 ########################################################################################################################
 
+def wandb_update_config(cfg: DictConfig, wandb_run: wandb.sdk.wandb_run.Run):
+    """
+    Recursively updates the wandb config with the nested DictConfig object.
+    We can not use wandb.config.update(cfg) because during sweeps some keys are not allowed to be updated.
+
+    Args:
+    - cfg (DictConfig): The nested DictConfig object.
+    - wandb_run (wandb.sdk.wandb_run.Run): The wandb run object.
+    """
+    def recursive_update(cfg_dict, wandb_config_dict):
+        for key, value in cfg_dict.items():
+            if isinstance(value, dict):
+                if key not in wandb_config_dict:
+                    wandb_config_dict[key] = {}
+                recursive_update(value, wandb_config_dict[key])
+            else:
+                wandb_config_dict[key] = value
+
+    cfg_dict = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+    recursive_update(cfg_dict, wandb_run.config)
+
 def give_wandb_name(
         model: torch.nn.Module, 
         wandb_run: wandb.sdk.wandb_run.Run,
@@ -123,6 +144,9 @@ def give_wandb_name(
     """
     Updates the wandb_run name.
     """
+    if wandb_run is None:
+        return
+    
     config = wandb_run.config
     give_name = config["wandb"]["give_name"]
     project = config["wandb"]["project"]

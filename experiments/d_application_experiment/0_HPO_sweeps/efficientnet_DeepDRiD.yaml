@@ -13,27 +13,30 @@ early_terminate:
   type: hyperband
   min_iter: 50
 
+# wandb sweep nested dict workaround https://community.wandb.ai/t/nested-sweep-configuration/3369/3
 parameters:
-  training.optimizer.lr:
-    distribution: log_uniform_values
-    min: 5e-05
-    max: 0.1
-  training.epochs:
-    distribution: int_uniform
-    min: 50
-    max: 200
-  training.optimizer.weight_decay:
-    distribution: log_uniform_values
-    min: 0.00001
-    max: 0.001
-  training.scheduler.patience:
-    distribution: int_uniform
-    min: 5 
-    max: 200
-  training.scheduler.factor:
-    distribution: log_uniform_values
-    min: 0.01
-    max: 0.5
+  training:
+    parameters:
+      scheduler:
+        parameters:
+          patience:
+            distribution: int_uniform
+            min: 5 
+            max: 100
+          factor:
+            distribution: log_uniform_values
+            min: 0.01
+            max: 0.5
+      optimizer:
+        parameters:
+          lr:
+            distribution: log_uniform_values
+            min: 5e-05 # 0.00005
+            max: 0.01
+          weight_decay:
+            distribution: log_uniform_values
+            min: 1e-07 # 0.0000001
+            max: 1e-03 # 0.001
 
 command:
   - python

@@ -38,28 +38,26 @@ class Experiment:
         np.random.seed(cfg.other.seed)
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-        # Wandb
-        self.cfg = cfg
-        wandb_config = OmegaConf.to_container(
-                cfg, resolve=True, throw_on_missing=True
-            )
         
         # NAS runs have increasing trial index
         self.is_nas = cfg.NAS.trial_index != -1
         self.logger = log.Log(cfg=cfg, is_nas=self.is_nas, max_epochs=cfg.training.epochs)
         
         if not self.is_nas:
+            wandb_config = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
             # normal training mode
             self.wandb_run = wandb.init(
                 project=cfg.wandb.project, config=wandb_config, \
                 mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
             
             # merge wandb config with cfg. Sweep bug https://github.com/wandb/wandb/issues/4686
-            self.cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
-            wandb.config = dict(cfg)
+            cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
+            utils.wandb_update_config(cfg, self.wandb_run)
             self.wandb_run.log_code(".")
         else:
-            pass
+            self.wandb_run = None
+
+        self.cfg = cfg
                
         # dataset
         self._dataloaders, normalize_weights = call(cfg.training.dataset)
@@ -147,6 +145,7 @@ class Experiment:
                 min_delta=cfg.training.earlystop.min_delta,
                 save_path=self.output_path + "best_model.pth" if self.model_path is None else self.model_path,
                 verbose=self._verbose,
+                baseline=cfg.training.earlystop.baseline,
                 store_in_memory=cfg.training.earlystop.store_in_memory,
             )
         print("Stage 4: training starts: " + str(self._global_start_time))

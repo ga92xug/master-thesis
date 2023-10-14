@@ -4,14 +4,16 @@ export DEBUG_MODE="other.debug=True"
 export PY_SCRIPT="python training/main.py"
 export PY_TEST="python training/model_instantiate.py"
 
+# eq_nasnet
+#wandb agent ga92xug/SL-sweeps/vkqi3nm2
 # efficientnet pre F
-wandb agent ga92xug/SL-sweeps/xqym1gv7
+wandb agent ga92xug/SL-sweeps/pqlhx56p
 # efficientnet pre T
-wandb agent ga92xug/SL-sweeps/nofqluq8
+wandb agent ga92xug/SL-sweeps/o25bhhke
 # vit pre F
-wandb agent ga92xug/SL-sweeps/3bwa984b
+wandb agent ga92xug/SL-sweeps/3tdu2kou
 # vit pre T
-wandb agent ga92xug/SL-sweeps/xp8pz6zv
+wandb agent ga92xug/SL-sweeps/j784xvir
 
 # $PY_SCRIPT -m other.seed=0,1,2 training=DeepDRiD-training \
 #     wandb.project=SL-Application \

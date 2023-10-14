@@ -7,6 +7,15 @@ defaults:
 epochs: 100
 accumulate: 1
 
+earlystop:
+  stop: True          
+  monitor: valid.acc
+  mode: max
+  patience: 20
+  min_delta: 0.001
+  store_in_memory: True
+  baseline: 0.70 # found by quick checking for eq_nasnet
+
 dataset:
   batch_size: 64                # Number of examples to process in a batch during training
   eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
