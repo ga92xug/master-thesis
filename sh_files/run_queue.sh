@@ -18,7 +18,7 @@ export PY_TEST="python training/model_instantiate.py"
 
 $PY_SCRIPT -m other.seed=0,1,2 training=DeepDRiD-training \
     model=vit model.pretrained=False,True \
-    other.should_test=True \
+    other.should_test=Tr
     training.dataset.resolution=224
 
 
