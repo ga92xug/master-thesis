@@ -1,6 +1,7 @@
 from tabnanny import verbose
 from typing import Dict, Tuple
 import numpy as np
+from sympy import O
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
 from hydra.utils import instantiate, call
@@ -16,10 +17,8 @@ from torchmetrics import MetricCollection
 import sys
 sys.path.append(os.getcwd()) # add current directory
 from training.model_instantiate import get_model
-from networks.util import cuda_memory_usage
 from training import utils
 from training import log
-
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 class Experiment:
@@ -28,45 +27,35 @@ class Experiment:
         # time
         self._time_limit = cfg.other.time_limit
         self._global_start_time = datetime.datetime.now()
-
         self._verbose = cfg.other.verbose
-        if self._verbose > 2:
-            print(f"Starting: {self._global_start_time}")
-            print(OmegaConf.to_yaml(cfg))
+        self.is_nas = cfg.NAS.trial_index != -1
+        self.wandb_run = utils.init_wandb(cfg)
+        self.cfg = cfg
+        self.logger = log.Log(
+            cfg=cfg, 
+            is_nas=self.is_nas, 
+            ray=cfg.ray,
+            max_epochs=cfg.training.epochs, 
+            wandb_run=self.wandb_run,
+            verbose=self._verbose,
+        )
+        self.logger.print_verbose_check(1, f"Stage 0: experiment starts at {self._global_start_time}")
+        self.logger.print_verbose_check(1, f"{OmegaConf.to_yaml(cfg)}")
         # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         
-        # NAS runs have increasing trial index
-        self.is_nas = cfg.NAS.trial_index != -1
-        self.logger = log.Log(cfg=cfg, is_nas=self.is_nas, max_epochs=cfg.training.epochs)
-        
-        if not self.is_nas:
-            wandb_config = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
-            # normal training mode
-            self.wandb_run = wandb.init(
-                project=cfg.wandb.project, config=wandb_config, \
-                mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
-            
-            # merge wandb config with cfg. Sweep bug https://github.com/wandb/wandb/issues/4686
-            cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
-            utils.wandb_update_config(cfg, self.wandb_run)
-            self.wandb_run.log_code(".")
-        else:
-            self.wandb_run = None
 
-        self.cfg = cfg
-               
         # dataset
-        self._dataloaders, normalize_weights = call(cfg.training.dataset)
+        self._dataloaders, normalize_weights = call(cfg.training.dataset, verbose=self._verbose)
         n_inputs = cfg.training.dataset.n_in_channels
         self.n_outputs = cfg.training.dataset.n_out_classes
         #self.n_outputs = 1 if self.n_outputs == 2 else self.n_outputs
         image_size = cfg.training.dataset.resolution
         self.distribution_shift = cfg.training.dataset.distribution_shift
-        print("Stage 1: dataloaders built")
+        self.logger.print_verbose_check(1, "Stage 1: dataloaders built")
 
         # Metrics
         if self.n_outputs >= 2:
@@ -104,7 +93,7 @@ class Experiment:
         )
         
         utils.give_wandb_name(self.model, self.wandb_run)
-        print("Stage 2: model built")
+        self.logger.print_verbose_check(1, "Stage 2: model built")
 
         # optimizer
         self._optimizer = instantiate(cfg.training.optimizer, params=self.model.parameters())
@@ -126,7 +115,6 @@ class Experiment:
                 cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * cfg.training.epochs
         self._lr_scheduler = hydra.utils.instantiate(cfg.training.scheduler, 
                                             optimizer=self._optimizer)
-        print("Stage 3: optimizer built")
         self._adapt_lr_in_validation = "ReduceLROnPlateau" in cfg.training.scheduler._target_
         
         # iteration is the number of batches seen
@@ -148,8 +136,9 @@ class Experiment:
                 baseline=cfg.training.earlystop.baseline,
                 store_in_memory=cfg.training.earlystop.store_in_memory,
             )
-        print("Stage 4: training starts: " + str(self._global_start_time))
+        self.logger.print_verbose_check(1, f"Stage 3: training starts {self._global_start_time}")
     
+
     def train(self):
         start_time = datetime.datetime.now().timestamp()
         self.model.train()
@@ -164,24 +153,19 @@ class Experiment:
         # 1 epoch
         for batch_idx, out_dataloader in enumerate(self._dataloaders["train"]):
             x, t, _ = utils.get_out_dataloader(out_dataloader, self.device)            
+            self.logger.print_verbose_check(3, f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
 
-            if self._verbose > 3:
-                print(f"\ttrain:{batch_idx}/{self.train_n_batches_len}\t\t{datetime.datetime.now()}")
-            
             # compute prediction    
             y = self.model(x)
-            #y = y.squeeze(1) if y.shape[1] == 1 else y
-
             # compute loss and accuracy
             n_samples += x.shape[0]
-            #print(t.min(), t.max())
             loss = self._loss_function(y, t)
             metrics = self.train_metrics(y.detach(), t.detach()) 
             train_loss_epoch += loss.item() * x.shape[0]
-            metrics["loss"] = loss
-            self.logger.log({"train": metrics}, step=self.global_step, epoch=self._epoch)
-            if self._verbose > 2:
-                print(f"Epoch {self._epoch}: loss: {loss.item():.3f},", ', '.join([f'{key}: {value:.3f}' for key, value in metrics.items()]))
+            metrics["loss"] = loss.item()
+
+            # log intermediate results
+            self.logger.log(metrics, step=self.global_step, epoch=self._epoch, split="train", verbose=3)
 
             # loss
             loss = loss / self.cfg.training.accumulate
@@ -205,11 +189,13 @@ class Experiment:
             
             self.global_step += x.shape[0]
 
-        # log and print
+        # log for full epoch
         end_time = datetime.datetime.now().timestamp()
         duration = end_time - start_time
-        self.logger.log({"train": {"duration": duration}}, step=self.global_step, epoch=self._epoch)
-        utils.print_results(self.train_metrics.compute(), train_loss_epoch / n_samples, duration, "TRAIN", self._epoch, self._verbose)
+        metric_full_epoch = self.train_metrics.compute()
+        metric_full_epoch["loss"] = train_loss_epoch / n_samples
+        metric_full_epoch["duration"] = duration
+        self.logger.log(metric_full_epoch, step=self.global_step, epoch=self._epoch, split="train", verbose=0)
         
         # avoid wandb not logging duration bug
         self.global_step += 1
@@ -284,14 +270,11 @@ class Experiment:
 
         metrics["loss"] = loss
         metrics["duration"] = duration
-        self.logger.log({f"{split}": metrics}, step=self.global_step, epoch=self._epoch)
+        self.logger.log(metrics, step=self.global_step, epoch=self._epoch, split=split, verbose=0)
 
         if confusion:
             wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
         
-        # print
-        split = split.upper()
-        utils.print_results(metrics, loss, duration, split, self._epoch, self._verbose)
         return metrics, loss, duration
     
     
@@ -314,9 +297,10 @@ class Experiment:
                 valid_metrics = self.valid()
 
                 if self.early_stopping:
-                    should_stop = self.early_stopping.should_stop(valid_metrics, self.model)
+                    should_stop = self.early_stopping.should_stop(valid_metrics, self.model, self._epoch)
                     if should_stop:
                         self.model = self.early_stopping.restore_best_weights(self.model)
+                        self.global_step += 1
                         break
             
             if self.cfg.other.backup_frequency < 0 and self._epoch % (-self.cfg.other.backup_frequency) == 0:
@@ -348,27 +332,27 @@ class Experiment:
     def backup(self):
         if self.cfg.other.backup_model:
             torch.save(self.model.state_dict(), self.model_path)
-    
-@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+
+
 def run_experiment(cfg: DictConfig) -> None:
-    if cfg.other.debug:
-        print("Debug mode")
-        cfg.training.epochs = 1
-        cfg.training.steps_per_epoch = 10
-        cfg.wandb.mode = "disabled"
-
-    # check if we are allowed to run
+    utils.debug_run(cfg)
     utils.allowed_usage_time(cfg.other.gpu_time_limit)
     exp = Experiment(cfg)
     exp.iteration_over_epochs()
 
+@hydra.main(config_path="conf", config_name="config", version_base="1.2")
+def hydra_main_init(cfg: DictConfig) -> None:
+    run_experiment(cfg)
 
-def run_experiment_from_config(cfg: DictConfig) -> None:
-    # check if we are allowed to run
-    utils.allowed_usage_time(cfg.other.gpu_time_limit)
-    exp = Experiment(cfg)
-    exp.iteration_over_epochs()
+def hydra_initialize_init(overrides) -> None:
+    if isinstance(overrides, dict):
+        overrides = [f"{key}={value}" for key, value in overrides.items()]
+    print("hydra_initialize_init, overrides:", overrides)
+    with hydra.initialize(config_path="conf", version_base="1.2"):
+        cfg = hydra.compose(config_name="config", overrides=overrides)
 
+    print("starting experiment")
+    run_experiment(cfg)
 
 if __name__ == "__main__":
-    run_experiment()
+    hydra_main_init()

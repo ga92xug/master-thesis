@@ -8,7 +8,7 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 
-from training.main import run_experiment_from_config
+from training.main import hydra_initialize_init
 
 # local imports
 from experiments.util import convert_dict_to_hydra_string

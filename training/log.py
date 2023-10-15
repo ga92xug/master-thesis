@@ -1,17 +1,30 @@
 import sqlite3
+from sympy import Union
 import torch
 import wandb
+from wandb.wandb_run import Run
+from wandb.sdk.lib.disabled import RunDisabled
+from typing import Union
+from ray import train
+
+from networks.util import flatten_dict
 
 class Log():
     def __init__(
-            self,
-            cfg,
-            is_nas: bool = False,
-            max_epochs: int = -1,
+        self,
+        cfg,
+        wandb_run: Union[Run, RunDisabled],
+        is_nas: bool = False,
+        ray: bool = False,
+        max_epochs: int = -1,  
+        verbose: bool = False,   
     ):
         self.cfg = cfg
+        self.wandb_run = wandb_run
         self.is_nas = is_nas
+        self.ray = ray
         self.max_epochs = max_epochs
+        self.verbose = verbose
 
         if self.is_nas:
             self.trial_data = {}
@@ -26,7 +39,15 @@ class Log():
             to_log: dict, 
             step: int, 
             epoch: int,
+            split: str = None,
+            verbose: int = 5,
         ):
+        if self.verbose > verbose and split is not None:
+            self.print_results(to_log, split, epoch)
+
+        if split is not None:
+            to_log = {split: to_log}
+
         #print("to_log", to_log)
         if self.is_nas:
             # Log to DB
@@ -35,7 +56,8 @@ class Log():
             # Prefix log entries
             #to_log = {self.prefix + key: value for key, value in to_log.items()}
         else:
-            wandb.log(to_log, step=step)
+            self.log2ray(to_log)
+            self.wandb_run.log(to_log, step=step)
 
     def aggregate_and_log_db(self, to_log: dict, trial_index: str, epoch: int):
         for key, sub_dict in to_log.items():
@@ -72,6 +94,38 @@ class Log():
         self.cursor = self.conn.cursor()
 
 
+    def print_verbose_check(self, level: str, message: str):
+        if self.verbose > level:
+            print(message)
+
+
+    def print_results(self, metrics, split, epoch):
+        split = split.capitalize()
+        duration = metrics.get("duration", None)
+        print('-'*80)
+        print(f'{split} Epoch: {epoch} lasted {duration:.3f} seconds')
+        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration"]])
+        print(f'{metrics}')
+
+    def log2ray(self, to_log: dict):
+        if self.ray is None:
+            return
+        
+        log_to_ray = to_python_obj(to_log)
+        log_to_ray = flatten_dict(log_to_ray, separator=".")
+
+        if log_to_ray.get(self.ray, None) is not None:
+            log_to_ray = {self.ray: log_to_ray[self.ray]}
+            train.report(log_to_ray)
 
 
 
+def to_python_obj(obj):
+    if isinstance(obj, torch.Tensor):
+        return obj.item() if obj.numel() == 1 else obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: to_python_obj(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [to_python_obj(element) for element in obj]
+    else:
+        return obj

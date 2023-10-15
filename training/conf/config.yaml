@@ -21,7 +21,7 @@ training:
     store_in_memory: True
 
   dataset:
-    data_dir: '../../Data/frischs/datasets/'  # Path to the datasets        
+    data_dir: '/home/frischs/Data/frischs/datasets/'  # Path to the datasets        
     workers: 8                    # Number of jobs to load the dataset
     distribution_shift: False
 
@@ -35,7 +35,7 @@ other:
   show: False                   # Show the plot during training
   seed: 42                      # Seed for random number generators
   output_path: 'outputs/'  # Path to the output directory
-  verbose: 2                    # Verbose Level
+  verbose: 1                    # Verbose Level
   time_limit: null              # Maximum time limit for training (in Minutes)
   should_test: False
   gpu_time_limit: False
@@ -46,3 +46,6 @@ NAS:
   db_path: NAS/data/trial_cache.db                # Path to the database
   max_building_time: -1
   max_gflops: -1
+
+
+ray: False

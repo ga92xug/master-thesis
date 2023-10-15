@@ -74,9 +74,9 @@ class EquivariantNASNet(nn.Module):
             input_channels=3, 
             num_classes=10,
             not_increase_1_layer=True,
+            verbose: int = 0,
             **kwargs,
     ):
-        print("Equivariant_NAS_Net")
         super().__init__()        
         #blocks_args = list(blocks_args)
         assert image_size is not None, 'Please provide image size'
@@ -85,6 +85,8 @@ class EquivariantNASNet(nn.Module):
         self.dropout_rate = dropout_rate
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
+        self.depth_coefficient = depth_coefficient
+        self.width_coefficient = width_coefficient
         self.fixed_params = fixed_params
 
         # BlockArgs
@@ -96,7 +98,7 @@ class EquivariantNASNet(nn.Module):
         BlockDecoder()._check_valid_blocks_args(blocks_args)
         
         # The channel sizes is first an increase factor. After that it is the number of channels
-        self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)
+        self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient, verbose)
         stem_args = blocks_args[0]
 
         # Get group spaces for specified rotations and flips
@@ -104,16 +106,18 @@ class EquivariantNASNet(nn.Module):
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
 
+        self.image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         self.set_name()
 
-        image_size = [image_size]*2 if isinstance(image_size, int) else image_size
+        
         
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * input_channels
         )
 
         # Stem
-        print("Building stem")
+        if verbose > 3:
+            print("Building stem")
         channel_size = adjusted_out_channels(
                 out_channel = stem_args.out_channel,
                 N=self.gspace.fibergroup.order(),
@@ -134,7 +138,8 @@ class EquivariantNASNet(nn.Module):
         self._blocks = nn.ModuleList([])
         # block 0 is the stem, block -1 is the head
         for i, block_args in enumerate(self.blocks_args[1:-1]):
-            print(f"Building block: {i+1}")
+            if verbose > 3:
+                print(f"Building block: {i+1}")
             # Update block input and output filters based on depth multiplier.
             block_args = block_args._replace(
                 num_layers=round_repeats(
@@ -165,7 +170,8 @@ class EquivariantNASNet(nn.Module):
         self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)
         if last_block_args.kernel_size != 0:
             # Build head
-            print("Building head")
+            if verbose > 3:
+                print("Building head")
             # Restrict
             self.field_type = self.restrict_last.out_type
         
@@ -212,7 +218,8 @@ class EquivariantNASNet(nn.Module):
         else:
             raise NotImplementedError(f"This setting: {self.restrict_last.setting} is not implemented")
         # pooling
-        print("pooling image size: ", image_size)
+        if verbose > 3:
+            print("pooling image size: ", image_size)
         #assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
 
@@ -288,8 +295,9 @@ class EquivariantNASNet(nn.Module):
 
     
     def set_name(self):
-        self.name = f"eq_nasnet" 
+        name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args)-2}_\
+            d{self.depth_coefficient}_w{self.width_coefficient}_\
+            r{self.image_size[0]}_drop{self.dropout_rate}"
+        self.name = name
 
-        self.name += f"{self.gspace.fibergroup}"
-        print(self.name)
 

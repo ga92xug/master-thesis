@@ -18,6 +18,7 @@ from training.datasets import own_transforms
 
 def get_normalize_weights(
         labels: List or np.ndarray,
+        verbose: int,
     ):
     """
     Normalize the weights of the dataset based on the labels.
@@ -28,7 +29,8 @@ def get_normalize_weights(
     weights = weights.sort_index()
     assert np.isclose(weights.sum(), 1.0), "weights should sum to 1.0"
     weights = weights.values
-    print("weights: ", weights.tolist())
+    if verbose > 2:
+        print("weights: ", weights.tolist())
     return weights
 
 
@@ -37,6 +39,7 @@ def get_transforms(
         original_augment: bool or dict,
         channel_wise_mean_images: list,
         channel_wise_std_images: list,
+        verbose: int ,
     ) -> Tuple(transforms.Compose, transforms.Compose):
 
     augment = deepcopy(original_augment)
@@ -44,8 +47,9 @@ def get_transforms(
     augment = deepcopy(original_augment)
     valid_transform = get_one_transform(resolution, augment, channel_wise_mean_images, channel_wise_std_images, validation=True)
     
-    print("train_transform: ", train_transform)
-    print("valid_transform: ", valid_transform)
+    if verbose > 1:
+        print("train_transform: ", train_transform)
+        print("valid_transform: ", valid_transform)
     return train_transform, valid_transform
 
 

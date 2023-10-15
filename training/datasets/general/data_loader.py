@@ -66,6 +66,7 @@ def build_loaders(
     reduction_factor: float,
     val_size: float,
     test_size: float,
+    verbose: int,
     test_as_valid: bool = False,
 ):
     random_seed = 42
@@ -133,6 +134,7 @@ def get_Galaxy10_DECals(
     eval_batch_size: int,
     workers: int,
     augment: bool,
+    verbose: int,
     **kwargs,
 ):
     assert resolution <= 256, "The maximum resolution for Galaxy10_DECals is 256"
@@ -150,11 +152,12 @@ def get_Galaxy10_DECals(
         resolution=resolution, 
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=verbose,
     )
 
     # normalize weights
-    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
+    normalized_weights = get_normalize_weights(labels, verbose) if should_normalize_weights else 1
 
     dataloaders = build_loaders(
         images=images, 
@@ -167,6 +170,7 @@ def get_Galaxy10_DECals(
         reduction_factor=1.0,
         val_size=0.1,
         test_size=0.1,
+        verbose=verbose,
     )
     return dataloaders, normalized_weights
 
@@ -182,6 +186,7 @@ def get_ISIC_2019(
     eval_batch_size: int,
     workers: int,
     augment: bool,
+    verbose: int,
     reduction_factor=None,
     **kwargs,
 ):
@@ -212,11 +217,12 @@ def get_ISIC_2019(
         resolution=resolution, 
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=verbose,
     )
 
     # normalize weights
-    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
+    normalized_weights = get_normalize_weights(labels, verbose) if should_normalize_weights else 1
 
     dataloaders = build_loaders(
         images=images, 
@@ -229,6 +235,7 @@ def get_ISIC_2019(
         reduction_factor=reduction_factor,
         val_size=0.1,
         test_size=0.1,
+        verbose=verbose,
     )
     return dataloaders, normalized_weights
 
@@ -244,6 +251,7 @@ def get_OCT(
         eval_batch_size: int,
         workers: int,
         augment: bool,
+        verbose: int,
         reduction_factor: float = 1,
         test_as_valid: bool = False,
         **kwargs,
@@ -258,11 +266,12 @@ def get_OCT(
         resolution=resolution, 
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=verbose,
     )
 
     # normalize weights
-    normalized_weights = get_normalize_weights(train_labels) if should_normalize_weights else 1
+    normalized_weights = get_normalize_weights(train_labels, verbose) if should_normalize_weights else 1
 
     images = {
         "train": train_images,
@@ -285,6 +294,7 @@ def get_OCT(
         val_size=0.1,
         test_size=0.0,
         test_as_valid=test_as_valid,
+        verbose=verbose,
     )
 
     return dataloaders, normalized_weights
@@ -301,6 +311,7 @@ def get_nct(
         eval_batch_size: int,
         workers: int,
         augment: bool,
+        verbose: int,
         reduction_factor: float = 1,
         test_as_valid: bool = False,
         **kwargs,
@@ -319,11 +330,12 @@ def get_nct(
         resolution=resolution, 
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=verbose,
     )
 
     # normalize weights
-    normalized_weights = get_normalize_weights(train_labels) if should_normalize_weights else 1
+    normalized_weights = get_normalize_weights(train_labels, verbose) if should_normalize_weights else 1
 
     images = {
         "train": train_images,
@@ -346,6 +358,7 @@ def get_nct(
         val_size=0.1,
         test_size=0.0,
         test_as_valid=test_as_valid,
+        verbose=verbose,
     )
 
     return dataloaders, normalized_weights
@@ -362,6 +375,7 @@ def get_blood(
         eval_batch_size: int,
         workers: int,
         augment: bool,
+        verbose: int,
         reduction_factor: float = 1,
         test_as_valid: bool = False,
         **kwargs,
@@ -375,11 +389,12 @@ def get_blood(
         resolution=resolution, 
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=verbose,
     )
 
     # normalize weights
-    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else 1
+    normalized_weights = get_normalize_weights(labels, verbose) if should_normalize_weights else 1
 
     dataloaders = build_loaders(
         images=images, 
@@ -393,6 +408,7 @@ def get_blood(
         val_size=0.1,
         test_size=0.2,
         test_as_valid=test_as_valid,
+        verbose=verbose,
     )
 
     return dataloaders, normalized_weights
@@ -410,6 +426,7 @@ def get_DeepDRiD(
         workers: int,
         augment: bool,
         mode: str,
+        verbose: int,
         reduction_factor: float = 1,
         test_as_valid: bool = False,
         **kwargs,
@@ -429,11 +446,12 @@ def get_DeepDRiD(
         resolution=resolution, 
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=verbose,
     )
 
     # normalize weights
-    normalized_weights = get_normalize_weights(train_labels) if should_normalize_weights else 1
+    normalized_weights = get_normalize_weights(train_labels, verbose) if should_normalize_weights else 1
 
     images = {
         "train": train_images,
@@ -458,6 +476,7 @@ def get_DeepDRiD(
         val_size=0.0,
         test_size=0.0,
         test_as_valid=test_as_valid,
+        verbose=verbose,
     )
 
     return dataloaders, normalized_weights

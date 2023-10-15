@@ -1,0 +1,31 @@
+
+
+
+training:
+    parameters:
+      scheduler:
+        parameters:
+          patience:
+            distribution: int_uniform
+            min: 5 
+            max: 100
+          factor:
+            distribution: log_uniform_values
+            min: 0.01
+            max: 0.5
+      optimizer:
+        parameters:
+          lr:
+            distribution: log_uniform_values
+            min: 5e-05 # 0.00005
+            max: 0.01
+          weight_decay:
+            distribution: log_uniform_values
+            min: 1e-07 # 0.0000001
+            max: 1e-03 # 0.001
+  model:
+    parameters:
+      dropout_rate:
+        distribution: uniform
+        min: 0.5
+        max: 0.7

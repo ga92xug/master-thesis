@@ -54,3 +54,10 @@ command:
 
 # create sweep
 # wandb sweep --project SL-sweeps experiments/d_application_experiment/0_HPO_sweeps/eq_nasnet_DeepDRiD.yaml
+
+
+# dropout_rate 0.5359319849236018 -> leave
+# lr 0.0006805625148825836 -> 68e-05
+# weight_decay 0.00000104825799350222 -> 1e-06
+# patience 50 -> leave (no scheduler)
+# factor 0.4418001329580106 -> leave (no scheduler)

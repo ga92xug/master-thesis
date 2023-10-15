@@ -1,5 +1,7 @@
+from math import log
 import signal
 from typing import List
+from venv import logger
 import hydra
 from hydra import compose, initialize
 import timeit
@@ -34,14 +36,13 @@ def get_model(
     if not is_nas:
         
         # create model
-        model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device)
+        model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device, verbose)
 
         stats["model_building_time"] = model_building_time
         stats["param_count"] = get_param_count(model, in_mb=False, verbose=verbose)
         stats["GFLOPs"] = get_gflops(model, cfg.training.dataset.batch_size, n_inputs, 
-                            image_size, device=device, verbose=verbose)
+                            image_size, device=device, logger=logger)
     else:
-        print("image_size", image_size)
         # Set the maximum allowed execution time in seconds
         max_building_time = cfg.NAS.max_building_time
         max_gflops = cfg.NAS.max_gflops
@@ -67,7 +68,7 @@ def get_model(
         
         # flops
         gflops = get_gflops(model, cfg.training.dataset.batch_size, n_inputs,
-                        image_size, device=device, verbose=verbose)
+                        image_size, device=device, logger=logger)
         logger.log({"GFLOPs": gflops}, step=0, epoch=0)
         if gflops > max_gflops:
             raise ValueError(f"GFLOPs {gflops} exceeds maximum allowed {max_gflops}")
@@ -83,19 +84,17 @@ def get_model(
         compile_time = stop - start
         stats["compile_time"] = compile_time
         
-    if verbose >= 1:
-        print(f"Model building time: {model_building_time}")
-        if cfg.training.compile:
-            print(f"Compile time: {compile_time}")
-    if verbose >= 3:
-        print(model)
+    logger.print_verbose_check(2, f"model building time {model_building_time}")
+    if cfg.training.compile:
+        logger.print_verbose_check(2, f"compile time {compile_time}")
+    logger.print_verbose_check(5, model)
 
     if logger is not None:
         logger.log(stats, step=0, epoch=0)
     return model, stats
 
 
-def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
+def get_gflops(model, batch_size, n_inputs, image_size, device, logger: Log):
     input_tensor = torch.randn(batch_size, n_inputs, \
             image_size, image_size).to(device)
     flops = FlopCountAnalysis(model, (input_tensor,))
@@ -103,21 +102,20 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, verbose=False):
     flops.uncalled_modules_warnings(False)
     gflops = flops.total() / 1e9
     
-    if verbose >= 1:
-        print(f'GFLOPs: {gflops:.2f}')
-    if verbose >= 3:
-        print(parameter_count_table(model))
-        print(flop_count_table(flops))
+    logger.print_verbose_check(2, f'GFLOPs: {gflops:.2f}')
+    logger.print_verbose_check(5, parameter_count_table(model))
+    logger.print_verbose_check(5, flop_count_table(flops))
     return gflops
 
 
-def init_model(cfg, n_inputs, n_outputs, image_size, device):
+def init_model(cfg, n_inputs, n_outputs, image_size, device, verbose):
     start = timeit.default_timer()
     model = hydra.utils.instantiate(
             cfg.model,
             input_channels=n_inputs,
             num_classes=n_outputs,
             image_size=image_size,
+            verbose=verbose,
         ).to(device)
     stop = timeit.default_timer()
     model_building_time = stop - start

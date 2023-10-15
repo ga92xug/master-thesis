@@ -14,6 +14,7 @@ from typing import List, Optional, Tuple, Dict, Any, Union
 
 import torch
 import wandb
+from ray.air.integrations.wandb import setup_wandb
 
 #from models import *
 from networks import *
@@ -23,53 +24,12 @@ from networks.util import flatten_dict, get_param_count
 # building the model
 ################################################################################
 
-
-
-def build_model(cfg, n_inputs, n_outputs, device, log, is_nas=False, trial_data=None):
-    if not is_nas:
-        # normal model building
-
-        # build the model
-        model = hydra.utils.instantiate(
-            cfg.model,
-            input_channels=n_inputs,
-            num_classes=n_outputs,
-            image_size=cfg.dataset.resolution,
-        ).to(device)
-        if device != torch.device("cpu"):
-            model = torch.nn.DataParallel(model)
-        if cfg.training.compile:
-            model = torch.compile(model)
-        print("Stage 2: model built")
-
-    else:
-        # NAS model building
-        try:
-            # Your command that builds the model
-            # Place the command here that occasionally takes a long time
-
-            # build the model
-            model = hydra.utils.instantiate(
-                cfg.model,
-                input_channels=n_inputs,
-                num_classes=n_outputs,
-                image_size=cfg.dataset.resolution,
-            ).to(device)
-            if device != torch.device("cpu"):
-                model = torch.nn.DataParallel(model)
-            if cfg.training.compile:
-                model = torch.compile(model)
-
-            # Cancel the alarm since the command finished before the timeout
-            signal.alarm(0)
-        except TimeoutError:
-            # Handle the timeout error
-            
-            print("Command execution timed out")
-
-        except torch.cuda.CudaError:
-            print("Cuda out of memory")
-
+def debug_run(cfg: DictConfig):
+    if cfg.other.debug:
+        print("Debug mode")
+        cfg.training.epochs = 1
+        cfg.training.steps_per_epoch = 10
+        cfg.wandb.mode = "disabled"
 
 
 def allowed_usage_time(
@@ -84,14 +44,6 @@ def allowed_usage_time(
         return
 
     now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=2))).time()
-
-
-def print_results(metrics, loss, duration, mode, epoch, verbose):
-    if verbose:
-        print('-'*100)
-        print(f'{mode} Epoch: {epoch} lasted {duration:.3f} seconds')
-        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration", "loss"]])
-        print(f'{metrics}, loss: {loss:.3f}')
 
 def get_out_dataloader(
         out_dataloader: Tuple, 
@@ -114,6 +66,37 @@ def get_out_dataloader(
 ########################################################################################################################
 # Paths and Names
 ########################################################################################################################
+
+def init_wandb(cfg: DictConfig):
+    if cfg.NAS.trial_index == -1:
+        # normal training mode
+        wandb_config = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+
+        kwargs_wandb = {
+            "config": wandb_config,
+            "project": cfg.wandb.project,
+            "mode": cfg.wandb.mode,
+            "notes": cfg.wandb.notes,
+            "tags": cfg.wandb.tags,
+        }
+        
+        if cfg.ray:
+            print("init ray wandb", kwargs_wandb)
+            wandb_run = setup_wandb(rank_zero_only=False, **kwargs_wandb)
+            print("Wandb run initialized:", wandb_run, type(wandb_run))
+        else:
+            wandb_run = wandb.init(project=cfg.wandb.project, config=wandb_config, \
+            mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
+
+            # merge wandb config with cfg. Sweep bug https://github.com/wandb/wandb/issues/4686
+            cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
+            wandb_update_config(cfg, wandb_run)
+
+        wandb_run.log_code(".")
+    else:
+        wandb_run = None
+
+    return wandb_run
 
 def wandb_update_config(cfg: DictConfig, wandb_run: wandb.sdk.wandb_run.Run):
     """
@@ -250,7 +233,7 @@ class EarlyStopping:
         assert mode in ['min', 'max'], "Mode must be one of {'min', 'max'}."
         assert monitor.split(".")[0] == "valid" and monitor.split(".")[1] in ["loss", "acc", "acc_weighted"], "Monitor must be one of {'valid.loss', 'valid.acc', 'valid.acc_weighted'}."
 
-        self.monitor = monitor.split(".")[1]
+        self.monitor = monitor
         self.mode = mode
         self.patience = patience
         self.min_delta = min_delta
@@ -258,12 +241,18 @@ class EarlyStopping:
         self.verbose = verbose
         self.baseline = baseline
         self.best_score = None
+        self.best_epoch = -1
         self.save_path = save_path
         self.store_in_memory = store_in_memory
         if os.path.exists(self.save_path):
             os.remove(self.save_path)
 
-    def should_stop(self, metrics: Dict[str, Any], model: torch.nn.Module) -> bool:
+    def should_stop(
+            self, 
+            metrics: Dict[str, Any], 
+            model: torch.nn.Module,
+            epoch: int
+        ) -> bool:
         """
         Check if early stopping should be executed.
 
@@ -274,7 +263,7 @@ class EarlyStopping:
         Returns:
         - bool: True if early stopping should be executed, False otherwise.
         """
-        current_score = metrics.get(self.monitor, None).item()
+        current_score = metrics.get(self.monitor.split(".")[1], None).item()
         
         if current_score is None:
             raise ValueError(f"Monitor {self.monitor} does not exist in metrics.")
@@ -287,20 +276,34 @@ class EarlyStopping:
 
         if self.best_score is None:
             self.best_score = current_score
+            self.best_epoch = epoch
             self.save_model(model)
             return False
 
         if ((self.mode == 'min' and current_score < (self.best_score - self.min_delta)) or
             (self.mode == 'max' and current_score > (self.best_score + self.min_delta))):
             self.best_score = current_score
+            self.best_epoch = epoch
             self.counter = 0
             self.save_model(model)
         else:
             self.counter += 1
 
         if self.counter >= self.patience:
+            try:
+                log_dict = {
+                    "early_stop": {
+                        "best_epoch": self.best_epoch, 
+                        f"{self.monitor}_best": self.best_score
+                    }
+                }
+                wandb.log(log_dict)
+            except:
+                # wandb not initialized
+                pass
+
             if self.verbose:
-                print(f"Early stopping. No improvement in {self.monitor} for {self.patience} epochs.")
+                print(f"Early stopping in {epoch}. No improvement in {self.monitor} for {self.patience} epochs.")
             return True
         return False
 

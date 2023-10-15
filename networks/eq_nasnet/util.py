@@ -28,7 +28,7 @@ def convert_to_number(val):
 # Help functions for model architecture
 ################################################################################
 
-def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient):
+def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, verbose: int):
     list_out_channel = []
     old_channels = initial_channel_size
     for i, block_args in enumerate(blocks_args):
@@ -46,7 +46,8 @@ def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient):
             # if there is no head conv
             list_out_channel.append(out_channel)
     
-    print(f"list_out_channel: {list_out_channel}")
+    if verbose > 3:
+        print(f"list_out_channel: {list_out_channel}")
     return blocks_args
 
 def get_fixed_out_channels2(
