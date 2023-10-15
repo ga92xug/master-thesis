@@ -1,5 +1,5 @@
 defaults:
-  - blocks_args_dict: 3blocks
+  - blocks_args_dict: 4blocks
 
 _target_: networks.eq_nasnet.eq_nasnet.EquivariantNASNet
 # global args

@@ -1,0 +1,37 @@
+HPOs: 
+  eq_nasnet_DeepDRiD_r128:
+    num_trials: 50
+    grace_period: 50
+    dropout_rate: True
+    additional_params:
+      #model/blocks_args_dict: 4blocks
+      training.dataset.resolution: 128
+
+  efficientnet_pretrained_DeepDRiD_r224:
+    num_trials: 50
+    grace_period: 50
+    dropout_rate: False
+    additional_params:
+      model.pretrained: True
+      training.dataset.resolution: 224
+
+  efficientnet_not_pretrained_DeepDRiD_r224:
+    num_trials: 50
+    grace_period: 50
+    dropout_rate: False
+    additional_params:
+      model.pretrained: False
+      training.dataset.resolution: 224
+
+    
+
+metric:
+  goal: max
+  name: valid.acc
+
+
+additional_params:
+  wandb.project: SL-ray
+  training: DeepDRiD-training
+  other.should_test: True
+  other.verbose: 0

@@ -1,11 +1,14 @@
 from ast import main
 from copy import deepcopy
+import hydra
+from omegaconf import OmegaConf
 import ray
 from ray import train, tune
 from ray.train import RunConfig
 from ray.air.integrations.wandb import WandbLoggerCallback
 from ray.tune.schedulers import ASHAScheduler
-from ray.tune.suggest.bayesopt import BayesOptSearch
+from ray.tune.search.ax import AxSearch
+#from ray.tune.suggest.bayesopt import BayesOptSearch
 
 import os
 import sys
@@ -13,7 +16,12 @@ sys.path.append(f"{os.getcwd()}")
 #os.environ['TUNE_DISABLE_STRICT_METRIC_CHECKING'] = '1'
 from training.main import hydra_initialize_init
 
-def get_search_space(optimize_for: str, dropout: bool = False):
+def get_search_space(
+        name: str, 
+        optimize_for: str, 
+        additionals: dict, 
+        dropout: bool = False,
+    ):
     parameters = {
         "training.scheduler.patience": tune.randint(5, 100),
         "training.scheduler.factor": tune.loguniform(0.01, 0.5),
@@ -23,15 +31,16 @@ def get_search_space(optimize_for: str, dropout: bool = False):
     if dropout:
         parameters["model.dropout_rate"] = tune.uniform(0.5, 0.7)
 
-    # additionals
-    parameters["wandb.project"] = "SL-ray"
     parameters["ray"] = optimize_for
-    parameters["training"] = "DeepDRiD-training"
+    parameters["wandb.tags"] = [name]
 
+    # additionals
+    for key, value in additionals.items():
+        parameters[key] = value
 
     return parameters
 
-def run_HPO(param_space: dict, optimize_for: str):
+def run_HPO_old(param_space: dict, optimize_for: str):
     trainable_with_gpu = tune.with_resources(hydra_initialize_init, {"gpu": 1})
     tune_config = tune.TuneConfig(
             metric=optimize_for,
@@ -47,45 +56,81 @@ def run_HPO(param_space: dict, optimize_for: str):
     results = tuner.fit()
     print("Best hyperparameters found were: ", results.get_best_result().config)
 
-
-
-
 def run_HPO(
+        name: str,
         param_space: dict, 
         optimize_for: str,
+        optimize_mode: str,
         grace_period: int,
         num_trials: int,
     ):
     trainable_with_gpu = tune.with_resources(hydra_initialize_init, {"gpu": 1})
-    mode = "max" if "acc" in optimize_for else "min"
-    
+
+    algo = AxSearch(
+        #parameter_constraints=["x1 + x2 <= 2.0"],
+        #outcome_constraints=["l2norm <= 1.25"],
+    )
+
     asha_scheduler = ASHAScheduler(
-            metric=optimize_for,
-            mode=mode,
-            grace_period=5,  # set grace period
-            #max_t=100        # set maximum time for a trial
+            grace_period=grace_period,  
         )
 
-    bayesopt = BayesOptSearch(
+    tune_config=tune.TuneConfig(
         metric=optimize_for,
-        mode=mode,
-    )
-
-    tune.run(
-        trainable_with_gpu,
-        config=param_space,
-        name="some_name",  # Set experiment name
+        mode=optimize_mode,
+        search_alg=algo,
         scheduler=asha_scheduler,
-        search_alg=bayesopt,
-        num_samples=num_trials  
+        num_samples=num_trials,
     )
+     
+    tuner = tune.Tuner(
+        trainable_with_gpu,
+        param_space=param_space,
+        tune_config=tune_config,
+        run_config=train.RunConfig(
+            name=name,
+        ),
+    )
+    results = tuner.fit()
+    print("Best hyperparameters found were: ", results.get_best_result().config)
+    
+    #bayesopt = BayesOptSearch(
+    #    metric=optimize_for,
+    #    mode=optimize_mode,
+    #)
 
 
 
 def main():
-    optimize_for = "valid.acc"
-    param_space = get_search_space(optimize_for, dropout=False)
-    run_HPO(param_space, optimize_for)
+    with hydra.initialize(config_path=".", version_base="1.2"):
+        cfg = hydra.compose(config_name="HPO", overrides=None)
+
+    global_additionals = OmegaConf.to_container(cfg.additional_params, resolve=True, throw_on_missing=True)
+    hpo_s = OmegaConf.to_container(cfg.HPOs, resolve=True, throw_on_missing=True)
+    
+    optimize_for = cfg.metric.name
+    optimize_mode = cfg.metric.goal
+
+    for name_hpo, hpo in hpo_s.items():
+        print("HPO for:", name_hpo)
+        hpo_additionals = hpo.get("additional_params", {})
+        additional_params = {**deepcopy(global_additionals), **hpo_additionals}
+                
+        param_space = get_search_space(
+            name=name_hpo,
+            optimize_for=optimize_for, 
+            additionals=additional_params,
+            dropout=hpo.get("dropout_rate", False),
+        )
+        #print("param_space", param_space)
+        run_HPO(
+            name=name_hpo,
+            param_space=param_space, 
+            optimize_for=optimize_for,
+            optimize_mode=optimize_mode,
+            grace_period=hpo["grace_period"],
+            num_trials=hpo["num_trials"],
+        )
 
 
 if __name__ == "__main__":
