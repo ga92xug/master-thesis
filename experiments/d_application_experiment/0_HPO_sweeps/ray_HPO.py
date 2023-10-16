@@ -1,5 +1,6 @@
 from ast import main
 from copy import deepcopy
+from difflib import restore
 import hydra
 from omegaconf import OmegaConf
 import ray
@@ -63,7 +64,10 @@ def run_HPO(
         optimize_mode: str,
         grace_period: int,
         num_trials: int,
+        restore: bool = False,
     ):
+    print("param_space", param_space)
+
     trainable_with_gpu = tune.with_resources(hydra_initialize_init, {"gpu": 1})
 
     algo = AxSearch(
@@ -87,20 +91,24 @@ def run_HPO(
         name=name,
     )
     
-    if name != "eq_nasnet_DeepDRiD_r128":
+    if restore:
+        tuner = tune.Tuner.restore(
+            os.path.expanduser(f"~/ray_results/{name}"),
+            trainable=trainable_with_gpu,
+            resume_unfinished=True,
+            resume_errored=True,
+        )
+    else:
+        if os.path.exists(os.path.expanduser(f"~/ray_results/{name}")):
+            # remove old results
+            os.system(f"rm -rf ~/ray_results/{name}")
         tuner = tune.Tuner(
             trainable_with_gpu,
             param_space=param_space,
             tune_config=tune_config,
             run_config=run_config,
         )
-    else:
-        tuner = tune.Tuner.restore(
-            os.path.expanduser("~/ray_results/eq_nasnet_DeepDRiD_r128"),
-            trainable=trainable_with_gpu,
-            resume_unfinished=True,
-            resume_errored=True,
-        )
+        
     #print("resume")
     #tune.Tuner.restore()
     results = tuner.fit()
@@ -124,6 +132,8 @@ def main():
     optimize_mode = cfg.metric.goal
 
     for name_hpo, hpo in hpo_s.items():
+        if hpo.get("done", False):
+            continue
         print("HPO for:", name_hpo)
         hpo_additionals = hpo.get("additional_params", {})
         additional_params = {**deepcopy(global_additionals), **hpo_additionals}
@@ -142,6 +152,7 @@ def main():
             optimize_mode=optimize_mode,
             grace_period=hpo["grace_period"],
             num_trials=hpo["num_trials"],
+            restore=hpo.get("restore", False),
         )
 
 

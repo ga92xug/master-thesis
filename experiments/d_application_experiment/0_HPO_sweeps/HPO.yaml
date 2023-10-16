@@ -1,5 +1,6 @@
 HPOs: 
   eq_nasnet_DeepDRiD_r128:
+    done: True
     num_trials: 50
     grace_period: 50
     dropout_rate: True
@@ -8,18 +9,45 @@ HPOs:
       training.dataset.resolution: 128
 
   efficientnet_pretrained_DeepDRiD_r224:
+    done: False
+    restore: False
     num_trials: 50
     grace_period: 50
     dropout_rate: False
     additional_params:
+      model: efficientnet
       model.pretrained: True
       training.dataset.resolution: 224
 
   efficientnet_not_pretrained_DeepDRiD_r224:
+    done: False
     num_trials: 50
     grace_period: 50
     dropout_rate: False
     additional_params:
+      model: efficientnet
+      model.pretrained: False
+      training.dataset.resolution: 224
+
+  vit_pretrained_DeepDRiD_r224:
+    restore: False
+    done: False
+    num_trials: 50
+    grace_period: 50
+    dropout_rate: False
+    additional_params:
+      model: vit
+      model.pretrained: True
+      training.dataset.resolution: 224
+
+  vit_not_pretrained_DeepDRiD_r224:
+    done: False
+    restore: False
+    num_trials: 50
+    grace_period: 50
+    dropout_rate: False
+    additional_params:
+      model: vit
       model.pretrained: False
       training.dataset.resolution: 224
 
