@@ -82,15 +82,27 @@ def run_HPO(
         scheduler=asha_scheduler,
         num_samples=num_trials,
     )
-     
-    tuner = tune.Tuner(
-        trainable_with_gpu,
-        param_space=param_space,
-        tune_config=tune_config,
-        run_config=train.RunConfig(
-            name=name,
-        ),
+
+    run_config=train.RunConfig(
+        name=name,
     )
+    
+    if name != "eq_nasnet_DeepDRiD_r128":
+        tuner = tune.Tuner(
+            trainable_with_gpu,
+            param_space=param_space,
+            tune_config=tune_config,
+            run_config=run_config,
+        )
+    else:
+        tuner = tune.Tuner.restore(
+            os.path.expanduser("~/ray_results/eq_nasnet_DeepDRiD_r128"),
+            trainable=trainable_with_gpu,
+            resume_unfinished=True,
+            resume_errored=True,
+        )
+    #print("resume")
+    #tune.Tuner.restore()
     results = tuner.fit()
     print("Best hyperparameters found were: ", results.get_best_result().config)
     

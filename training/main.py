@@ -271,6 +271,7 @@ class Experiment:
         metrics["loss"] = loss
         metrics["duration"] = duration
         self.logger.log(metrics, step=self.global_step, epoch=self._epoch, split=split, verbose=0)
+        self.global_step += 1
 
         if confusion:
             wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
