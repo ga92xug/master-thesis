@@ -119,7 +119,6 @@ class Log():
             train.report(log_to_ray)
 
 
-
 def to_python_obj(obj):
     if isinstance(obj, torch.Tensor):
         return obj.item() if obj.numel() == 1 else obj.tolist()
