@@ -1,7 +1,6 @@
-from math import log
 import signal
 from typing import List
-from venv import logger
+import wandb
 import hydra
 from hydra import compose, initialize
 import timeit
@@ -125,11 +124,22 @@ def init_model(cfg, n_inputs, n_outputs, image_size, device, verbose):
 def test_instantiate(cfg: DictConfig):
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     #_dataloaders, n_inputs, n_outputs = build_dataloaders(cfg)
-    dataloaders, normalize_weights  = hydra.utils.call(cfg.training.dataset)
+    dataloaders, normalize_weights  = hydra.utils.call(cfg.training.dataset, verbose=cfg.other.verbose)
     n_inputs = cfg.training.dataset.n_in_channels
     n_outputs = cfg.training.dataset.n_out_classes
     image_size = cfg.training.dataset.resolution
     is_nas = cfg.NAS.trial_index != -1
+    disabled_wandb_run = wandb.init(mode="disabled")
+
+    logger = Log(
+        cfg=cfg, 
+        is_nas=is_nas, 
+        ray=cfg.ray,
+        max_epochs=cfg.training.epochs, 
+        wandb_run=disabled_wandb_run,
+        verbose=cfg.other.verbose,
+    )
+
     # model
     model, stats = get_model(
         cfg=cfg, 
@@ -137,7 +147,7 @@ def test_instantiate(cfg: DictConfig):
         n_outputs=n_outputs, 
         image_size=image_size,
         device=device,
-        logger=None,
+        logger=logger,
         verbose=0,
     )
     print(stats)

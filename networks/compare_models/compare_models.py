@@ -1,5 +1,11 @@
 import torch
-from torchvision.models import vit_b_16
+from typing import Any, Optional
+
+import os
+import sys
+sys.path.append(f"{os.getcwd()}")
+
+from networks.compare_models.vision_transformer import vit_b_16
 
 class EfficientNet(torch.nn.Module):
     def __init__(self, num_classes, pretrained=True, **kwargs):
@@ -16,29 +22,16 @@ class EfficientNet(torch.nn.Module):
         return self.model(x)
     
 class ViT(torch.nn.Module):
-    """
-    _vision_transformer(
-        patch_size=16,
-        num_layers=12,
-        num_heads=12,
-        hidden_dim=768,
-        mlp_dim=3072,
-        weights=weights,
-        progress=progress,
-        **kwargs,
-    )
-    """
-
-
     def __init__(self, num_classes, pretrained=True, image_size=224, **kwargs):
         super().__init__()
         if pretrained:
             weights='IMAGENET1K_V1'
+
         else:
             weights=None
 
-        #self.model.conv_proj 
         self.model = vit_b_16(weights=weights, image_size=image_size)
+
         # Modify the last fully connected layer to have num_classes
         in_features = self.model.heads[0].in_features
         self.model.heads[0] = torch.nn.Linear(in_features, num_classes)
@@ -50,9 +43,10 @@ class ViT(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    image_size = 224
+    image_size = 128
     #model = EfficientNet()
-    model = ViT(num_classes=10, pretrained=True, image_size=image_size)
+    #_vision_transformer()
+    model = ViT(num_classes=10, pretrained=False, image_size=image_size)
     print(model)
     x = torch.rand(1, 3, image_size, image_size)
     out = model(x)
