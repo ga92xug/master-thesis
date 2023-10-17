@@ -9,7 +9,7 @@ HPOs:
       training.dataset.resolution: 128
 
   efficientnet_pretrained_DeepDRiD_r128:
-    done: False
+    done: True
     restore: False
     num_trials: 50
     grace_period: 50
@@ -20,7 +20,7 @@ HPOs:
       training.dataset.resolution: 128
 
   efficientnet_not_pretrained_DeepDRiD_r128:
-    done: False
+    done: True
     num_trials: 50
     grace_period: 50
     dropout_rate: False

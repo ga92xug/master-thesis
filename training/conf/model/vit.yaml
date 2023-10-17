@@ -1,2 +1,3 @@
 _target_: networks.compare_models.compare_models.ViT
 pretrained: False
+image_size: 128
