@@ -100,7 +100,7 @@ def get_increase_factor(
         
 
 
-def round_repeats(repeats, depth_coefficient, not_increase_1_layer: bool):
+def round_repeats(repeats: int, depth_coefficient: float, not_increase_1_layer: bool):
     """Calculate module's repeat number of a block based on depth multiplier.
        Use depth_coefficient of global_params.
     Args:

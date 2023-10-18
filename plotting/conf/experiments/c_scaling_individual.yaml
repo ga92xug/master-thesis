@@ -1,45 +1,61 @@
 filter_groupby_dict:
-    b3_d1_wX_r96:
+
+    # width scaling
+    b3_d-1-2-2_wX_r96:
         filters: 
             display_name: 
-                "$regex": "b3_d1_w.*_r96"
+                #b3_d-1-2-2_w1_r96
+                "$regex": "b3_d-1-2-2_w.*_r96"
             tags: constant_scheduler
         group_by: model.width_coefficient
 
+    # depth scaling
     b3_dX_w1_r96:
         filters: 
             display_name: 
                 "$regex": "b3_d.*_w1_r96"
             tags: constant_scheduler
-        group_by: model.depth_coefficient
+        group_by: model.block_num_layers
 
+    # depth scaling
     b4_dX_w1_r96:
         filters: 
             display_name: 
                 "$regex": "b4_d.*_w1_r96"
             tags: constant_scheduler
-        group_by: model.depth_coefficient
+        group_by: model.block_num_layers
 
-    b4_d1_w1_rX:
+    # resolution scaling
+    b4_d-1-2-2_w1_rX:
         filters: 
             display_name: 
-                "$regex": "b4_d1_w1_r.*"
+                "$regex": "b4_d-1-2-2_w1_r.*"
             tags: constant_scheduler
         group_by: training.dataset.resolution
 
-    b4_d1_wX_r128:
+    # compound scaling
+    b4_d-1-2-2_wX_r96:
+        filters: 
+            display_name: 
+                "$regex": "b4_d1_w.*_r96"
+            tags: constant_scheduler
+        group_by: model.width_coefficient
+
+    b4_d-1-2-2_wX_r128:
         filters: 
             display_name: 
                 "$regex": "b4_d1_w.*_r128"
             tags: constant_scheduler
         group_by: model.width_coefficient
 
-    b4_d1_wX_r96:
+    b4_d-1-2-2_wX_r192:
         filters: 
             display_name: 
-                "$regex": "b4_d1_w.*_r96"
+                "$regex": "b4_d1_w.*_r192"
             tags: constant_scheduler
         group_by: model.width_coefficient
+
+    
 
 
 
@@ -87,15 +103,17 @@ plots:
 
     resolution_scaling:
         paths:
-            r_: b4_d1_w1_rX
-        colors: [b]
-        linestyles: ['-']
+            b3r_: b3_d1_w1_rX
+            b4r_: b4_d1_w1_rX
+        colors: [b, r]
+        linestyles: ['-', '-']
 
     compound_scaling:
         paths:
-            b3_d1_r96: b3_d1_wX_r96
-            b4_d1_r96: b4_d1_wX_r96
-            b4_d1_w2_r128: b4_d1_wX_r128
+            b3_d1_wX_r96: b3_d1_wX_r96
+            b4_d1_wX_r96: b4_d1_wX_r96
+            b4_d1_wX_r128: b4_d1_wX_r128
+            b4_d1_wX_r192: b4_d1_wX_r96
         colors: [b, r, g, y]
         linestyles: ['-', '--', '-.', ':']
     
