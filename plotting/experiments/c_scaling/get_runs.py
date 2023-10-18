@@ -23,7 +23,9 @@ def aggregate_filter_data(exp_data: dict, metric: str, window_size: int = 3):
 
     for path_name, path_data in exp_data.items():
         performance_data = get_metric_from_downloaded_data(path_data, metric, "extract_last", window_size)
-        flops_data = get_metric_from_downloaded_data(path_data, "flops", "equal", 1)
+        # we 1% in GFLOPs as absolute tolerance -> switch batch size made the FLOPs change
+        kwargs = {"atol": 1e7}
+        flops_data = get_metric_from_downloaded_data(path_data, "flops", "equal", 1, **kwargs)
 
         combined_data[path_name] = {}
         for group_name, performance in performance_data.items():
@@ -52,8 +54,9 @@ def transform_data(
     # transform data into format for plotting
     one_exp = baseline_and_scaling_exp_2_scaling_exp(wandb_data, exp_dict)
     flops, accuracy_values, labels = split_dict2lists(one_exp, metric)
+    legend_labels = list(one_exp.keys())
 
-    return flops, accuracy_values, labels
+    return flops, accuracy_values, labels, legend_labels
 
 def get_wandbdata_with_filters(
         wandb_entity: str,
@@ -106,8 +109,9 @@ def get_wandbdata_with_filters(
         
         seed = flatten_run_config["other.seed"]
         if seed in seeds[group]:
-            print(f"Skipping run {run.id} because it has the same seed as another run in the same group.")
-            continue
+            pass
+            #print(f"Skipping run {run.id} because it has the same seed as another run in the same group.")
+            #continue
         else:
             seeds[group].add(seed)
 
@@ -168,7 +172,7 @@ def individual_plot(
     """
 
     wandb_data = get_data_for_exp(paths2filter_dict, wandb_entity, wandb_projects, metric)
-    flops, accuracy_values, labels = transform_data(wandb_data, metric, exp_dict)
+    flops, accuracy_values, labels, legend_labels = transform_data(wandb_data, metric, exp_dict)
 
     
     if produce_plot:
@@ -185,7 +189,7 @@ def individual_plot(
             xlabel="FLOPs",
             ylabel="ISIC 2019 Valid Acc (%)",
             labels_lists=labels if name != "compound_scaling" else None,
-            legend_labels=paths2filter_dict.keys() if name == "compound_scaling" else None,
+            legend_labels=legend_labels if name == "compound_scaling" else None,
             ax=ax,
             has_error_bars=True,
             connect_dots=connect_dots,

@@ -15,7 +15,7 @@ filter_groupby_dict:
             display_name: 
                 "$regex": "b3_d.*_w1_r96"
             tags: constant_scheduler
-        group_by: model.block_num_layers
+        group_by: model.num_layer_blocks
 
     # depth scaling
     b4_dX_w1_r96:
@@ -23,13 +23,20 @@ filter_groupby_dict:
             display_name: 
                 "$regex": "b4_d.*_w1_r96"
             tags: constant_scheduler
-        group_by: model.block_num_layers
+        group_by: model.num_layer_blocks
 
     # resolution scaling
-    b4_d-1-2-2_w1_rX:
+    b3_d-1-2-2_w1_rX:
         filters: 
             display_name: 
-                "$regex": "b4_d-1-2-2_w1_r.*"
+                "$regex": "b3_d-1-2-2_w1_r.*"
+            tags: constant_scheduler
+        group_by: training.dataset.resolution
+
+    b4_d-1-2-2-2_w1_rX:
+        filters: 
+            display_name: 
+                "$regex": "b4_d-1-2-2-2_w1_r.*"
             tags: constant_scheduler
         group_by: training.dataset.resolution
 
@@ -41,22 +48,19 @@ filter_groupby_dict:
             tags: constant_scheduler
         group_by: model.width_coefficient
 
-    b4_d-1-2-2_wX_r128:
+    b4_d-1-2-2-2_wX_r128:
         filters: 
             display_name: 
-                "$regex": "b4_d1_w.*_r128"
+                "$regex": "b4_d-1-2-2-2_w.*_r128"
             tags: constant_scheduler
         group_by: model.width_coefficient
 
-    b4_d-1-2-2_wX_r192:
+    b4_d-1-3-3-3_wX_r192:
         filters: 
             display_name: 
-                "$regex": "b4_d1_w.*_r192"
+                "$regex": "b4_d-1-3-3-3_w.*_r192"
             tags: constant_scheduler
         group_by: model.width_coefficient
-
-    
-
 
 
 #    baseline_isic2019_3blocks:
@@ -88,7 +92,7 @@ filter_groupby_dict:
 plots:
     width_scaling:
         paths:
-            w_: b3_d1_wX_r96
+            wX: b3_d-1-2-2_wX_r96
             #w1: baseline_isic2019_3blocks
             #w_: width_scaling_experiment
         colors: [b]
@@ -96,24 +100,29 @@ plots:
     
     depth_scaling:
         paths:
-            b3d_: b3_dX_w1_r96
-            b4d_: b4_dX_w1_r96
+            b3dX: b3_dX_w1_r96
+            b4dX: b4_dX_w1_r96
         colors: [b, r]
         linestyles: ['-', '-']
 
     resolution_scaling:
         paths:
-            b3r_: b3_d1_w1_rX
-            b4r_: b4_d1_w1_rX
+            b3rX: b3_d-1-2-2_w1_rX
+            b4rX: b4_d-1-2-2-2_w1_rX
         colors: [b, r]
         linestyles: ['-', '-']
 
     compound_scaling:
         paths:
-            b3_d1_wX_r96: b3_d1_wX_r96
-            b4_d1_wX_r96: b4_d1_wX_r96
-            b4_d1_wX_r128: b4_d1_wX_r128
-            b4_d1_wX_r192: b4_d1_wX_r96
+            #wX: b3_d-1-2-2_wX_r96
+            #wX: b4_d-1-2-2-2_wX_r128
+            #wX: b4_d-1-3-3-3_wX_r192
+
+            b3_d-1-2-2_wX_r96: b3_d-1-2-2_wX_r96
+            b4_d-1-2-2-2_wX_r128: b4_d-1-2-2-2_wX_r128
+            b4_d-1-3-3-3_wX_r192: b4_d-1-3-3-3_wX_r192
+
+            #b4_d-1-2-2-2_wX_r96: b4_d1_wX_r96
         colors: [b, r, g, y]
         linestyles: ['-', '--', '-.', ':']
     

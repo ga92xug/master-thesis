@@ -67,6 +67,7 @@ def download_run(
         run_id: str = None,
         metric: str = "valid.acc",
         name_param_count: str = "param_count",
+        normalize_flops: bool = True,
     ) -> Dict[str, List[float]]:
     """
     Download the data for one run.
@@ -93,6 +94,12 @@ def download_run(
     # some of the runs do not have flops
     try:
         result["flops"] = run.history(keys=['GFLOPs']).values[:, 1][0] * 1e9
+
+        # normalize flops
+        if normalize_flops:
+            run_config = run.config
+            batch_size = run_config["training"]["dataset"]["batch_size"]
+            result["flops"] = result["flops"] / batch_size
     except:
         pass
 

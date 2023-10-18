@@ -31,10 +31,24 @@ def create_subplot(
     has_error_bars: A boolean indicating whether to plot error bars.
     color: The color for points and connecting lines (e.g., 'b' for blue).
     """
+    new_accuracy_values = []
+    for acc in accuracy_values:
+        try:
+            accuracy_mean = np.mean(acc)
+            new_accuracy_values.append(acc)
+        except Exception as e:
+            print("acc", acc)
+            print("e", e)
+            continue
+
+    accuracy_values = new_accuracy_values
+
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+
+
 
     # Set the x-axis limits to be slightly larger than the range of FLOPs values.
     #ax.set_xlim(np.min(flops) * 0.9, np.max(flops) * 1.1)
@@ -44,7 +58,9 @@ def create_subplot(
     for i, acc in enumerate(accuracy_values):
         if len(acc) > 1 and has_error_bars:
             # Calculate the mean and standard deviation for accuracy values
-            accuracy_mean = np.mean(acc)
+            #print("acc", acc)
+            accuracy_mean = np.mean(acc)            
+
             accuracy_stddev = np.std(acc)
             ax.errorbar(flops[i], accuracy_mean, yerr=accuracy_stddev, fmt='o-', markersize=5, color=color)
 
@@ -62,7 +78,7 @@ def create_subplot(
         if i > 0 and connect_dots:
             handle, = ax.plot(
                 flops, 
-                [np.mean(acc) for acc in accuracy_values], 
+                [np.mean(_acc) for _acc in accuracy_values], 
                 linestyle=linestyle, 
                 lw=0.5, 
                 color=color, 
@@ -79,11 +95,13 @@ def create_subplot(
 
     # Label individual points
     if labels is not None:
-        yloc = 10
+        xloc_org = 15
         for label, x, y in zip(labels, flops, [np.mean(acc) for acc in accuracy_values]):
+            xloc = xloc_org + (len(labels[0]))
             if label == labels[-1]:
-                yloc *= -1
-            ax.annotate(label, (x, y), textcoords="offset points", xytext=(yloc, -15), ha='center')
+                # set the label of the last to be on the left instead of right
+                xloc *= -1
+            ax.annotate(label, (x, y), textcoords="offset points", xytext=(xloc, -15), ha='center')
 
     return handle
 
@@ -137,9 +155,13 @@ def create_multiple_subplots(
         color = colors[i]
         linestyle = linestyles[i]
 
-        print("flops", flops)
-        print("accuracy_values", accuracy_values)
-        print("labels", labels)
+        #print("flops", flops, len(flops))
+        #print("accuracy_values", accuracy_values, len(accuracy_values))
+        if labels is not None:
+            pass
+            #print("labels", labels, len(labels))
+
+        assert len(flops) == len(accuracy_values), "flops and accuracy_values must have the same length"
 
 
         handle = create_subplot(
@@ -198,7 +220,7 @@ def plot_scaling_individual(
             labels=point_labels[i],
             xlabel=xlabel,
             ylabel=ylabel,
-            connect_dots= True if i != 1 else False,
+            connect_dots=True,
         )
 
     # share y-axis
@@ -276,8 +298,8 @@ if __name__ == "__main__":
     flops_list = [flops, flops2]
     accuracy_list = [accuracy_values, accuracy_values2]
 
-    print("flops_list", flops_list)
-    print("accuracy_list", accuracy_list)
+    #print("flops_list", flops_list)
+    #print("accuracy_list", accuracy_list)
 
     fig = plot_scaling_compound_baseline(
         flops_lists=flops_list,

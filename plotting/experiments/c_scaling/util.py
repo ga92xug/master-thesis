@@ -9,12 +9,16 @@ def replace_first_occurrence(input_str, search_str, replace_str):
     return input_str
 
 def extract_number(key):
-    # Use regular expression to extract the numeric part and decimal part
-    match = re.search(r'(\d+(\.\d+)?)', key)
+    match = re.search(r'\[(.*)\]', key)
     if match:
-        return float(match.group())
-    return 0.0  # Return 0.0 if there are no numbers in the key
+        number = re.sub(r'[^0-9.]+', '', match.group(1))
+        return float(number)
+    else:
+        return None
+    
+#print(extract_number("b3_d-1-2-2_w[1.75]_r96"))
 
+            
 def baseline_and_scaling_exp_2_scaling_exp(
         wandb_data: dict,
         exp_dict: Dict[str, str],
@@ -52,9 +56,10 @@ def baseline_and_scaling_exp_2_scaling_exp(
                 if isinstance(group_name, tuple):
                     label = label_mask
                     for group in group_name:
-                        label = replace_first_occurrence(label, "_", str(group))
+                        label = label_mask.replace("X", str(group))
+                        #label = replace_first_occurrence(label, "X", str(group))
                 elif isinstance(group_name, (str, int, float)):
-                    label = label_mask.replace("_", str(group_name))
+                    label = label_mask.replace("X", "[" + str(group_name) + "]")
                 else:
                     raise ValueError(f"Unknown type of group_name: {type(group_name)}")
 
@@ -62,11 +67,9 @@ def baseline_and_scaling_exp_2_scaling_exp(
                 raise ValueError(f"Label {label} already exists in transformed_data.")
             transformed_data[path_name][label] = group_dict
 
-    #sorted_dict = dict(sorted(transformed_data.items(), key=lambda item: extract_number(item[0])))
-
     sorted_dict = {}
     for k, v in transformed_data.items():
-        dict(sorted(v.items(), key=lambda item: extract_number(item[0])))
+        #dict(sorted(v.items(), key=lambda item: extract_number(item[0])))
         sorted_dict[k] = dict(sorted(v.items(), key=lambda item: extract_number(item[0])))
 
     return sorted_dict
@@ -91,7 +94,10 @@ def split_dict2lists(data, metric: str):
         for label, values in path_dict.items():
             flop.append(values['flops'])
             accuracy.append(values[metric])
-            labels.append(label)
+
+            l = label.replace("[", "")
+            l = l.replace("]", "")
+            labels.append(l)
 
         flop_list.append(flop)
         accuracy_list.append(accuracy)

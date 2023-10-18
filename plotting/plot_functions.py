@@ -27,7 +27,7 @@ def smooth_data(data, w: int = 3):
     return np.convolve(data, np.ones(w), 'valid') / w
 
 def plot_flops(ax, downloaded_data, short_labels: str = None):
-    data = get_metric_from_downloaded_data(downloaded_data, "flops")
+    data = get_metric_from_downloaded_data(downloaded_data, "flops", **kwargs)
     labels = get_short_labels(list(data.keys()), short_labels)
 
     flops = list(data.values())
@@ -127,6 +127,7 @@ def get_metric_from_downloaded_data(
         metric: str, 
         aggregation_func: str ="equal",
         smoothing_window_size: int = 1,
+        **kwargs,
     )-> Dict[str, np.ndarray]:
     """
     Extract a specific metric from the downloaded data. \
@@ -155,8 +156,8 @@ def get_metric_from_downloaded_data(
 
         if aggregation_func == "equal":
             # If the aggregation function is "equal", the metric should be the same for all runs
-            assert np.allclose(extracted_metric[label][0], extracted_metric[label][1:]), \
-                f"Metric {metric} is not equal for all runs of label {label}!"
+            assert np.allclose(extracted_metric[label][0], extracted_metric[label][1:], **kwargs), \
+                f"Metric {metric} is not equal for all runs of label {label}!, {extracted_metric[label]}"
             
             extracted_metric[label] = np.array(extracted_metric[label][0])
 

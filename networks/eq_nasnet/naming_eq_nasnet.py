@@ -24,7 +24,7 @@ def get_scaling_name(config: Dict) -> str:
     width_coefficient = float_to_int_if_possible(model_config["width_coefficient"])
     # resolution
     resolution = config["training"]["dataset"]["resolution"]
-    scaling_name = f"b{num_blocks}_d{num_layer_blocks}_w{width_coefficient}_r{resolution}"
+    scaling_name = f"b{num_blocks}_d-{num_layer_blocks}_w{width_coefficient}_r{resolution}"
     return scaling_name
 
 def get_num_blocks_eq_nasnet(model_config: Dict) -> int:
@@ -63,7 +63,7 @@ def get_num_layer_blocks(model_config: Dict, num_blocks: int) -> str:
 
         num_layers_blocks += "-" + str(num_layers_block)
 
-    return num_layers_blocks
+    return num_layers_blocks[1:]
 
 def float_to_int_if_possible(x):
     if x == int(x):
