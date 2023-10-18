@@ -141,23 +141,58 @@ def give_wandb_name(
     if isinstance(give_name, str) and not ignore_name:
         wandb_run.name = give_name
     elif project == "SL-Scaling" and "EquivariantNASNet" in model_name:
-        model_config = config["model"]
-        # special naming convention for Scaling
-        num_blocks = model_config.get("num_blocks", None)
-        # increase_blocks.2
-        if num_blocks is None:
-            try:
-                num_blocks = model_config["increase_blocks"]["2"]["num_new_blocks"] + 3
-            except KeyError:
-                num_blocks = 3
-
-        depth_coefficient = model_config["depth_coefficient"]
-        width_coefficient = model_config["width_coefficient"]
-        resolution = config["training"]["dataset"]["resolution"]
-        wandb_run.name = f"b{num_blocks}_d{depth_coefficient}_w{width_coefficient}_r{resolution}"
+        wandb_run.name = get_scaling_name(config)
     else:
         wandb_run.name = model.name
 
+
+def get_scaling_name(config: Dict) -> str:
+    """
+    Returns the scaling name for the given config.
+    """
+    model_config = config["model"]
+    num_blocks = get_num_blocks_eq_nasnet(model_config)
+
+    depth_coefficient = model_config["depth_coefficient"]
+    depth_name = get_depth_name(model_config, num_blocks)
+    width_coefficient = float_to_int_if_possible(model_config["width_coefficient"])
+    resolution = config["training"]["dataset"]["resolution"]
+    scaling_name = f"b{num_blocks}_d{depth_name}_w{width_coefficient}_r{resolution}"
+    return scaling_name
+
+def get_num_blocks_eq_nasnet(model_config: Dict) -> int:
+    """
+    Returns the number of blocks of the EquivariantNASNet model.
+    """
+    # every model should have a num_blocks parameter
+    num_blocks = model_config.get("num_blocks", None)
+
+    # legacy
+    if num_blocks is None:
+        print("WARNING: num_blocks not found in model config. Using legacy convention.")
+        try:
+            num_blocks = model_config["increase_blocks"]["2"]["num_new_blocks"] + 3
+        except KeyError:
+            num_blocks = 3
+
+    return num_blocks
+
+def get_depth_name(model_config: Dict, num_blocks: int) -> str:
+    """
+    Returns the depth name for the given config.
+    """
+    blocks_args_dict = model_config["blocks_args_dict"]
+
+    depth_name = ""
+    for i in range(1, num_blocks+1):
+        depth_name += "-" + str(blocks_args_dict[f"_{i}"]["num_layers"])
+
+    return depth_name
+
+def float_to_int_if_possible(x):
+    if x == int(x):
+        return int(x)
+    return x
 
 def output_path(path: str):
     """
@@ -199,6 +234,7 @@ def allowed_usage_time(
     # Check if the current time is within the range
     if start_time <= now <= end_time:
         raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
+
 
 
 ######################################################

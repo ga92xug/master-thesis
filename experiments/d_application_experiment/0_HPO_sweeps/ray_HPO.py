@@ -66,18 +66,11 @@ def run_HPO(
         num_trials: int,
         restore: bool = False,
     ):
-    print("param_space", param_space)
 
     trainable_with_gpu = tune.with_resources(hydra_initialize_init, {"gpu": 1})
 
-    algo = AxSearch(
-        #parameter_constraints=["x1 + x2 <= 2.0"],
-        #outcome_constraints=["l2norm <= 1.25"],
-    )
-
-    asha_scheduler = ASHAScheduler(
-            grace_period=grace_period,  
-        )
+    algo = AxSearch()
+    asha_scheduler = ASHAScheduler(grace_period=grace_period)
 
     tune_config=tune.TuneConfig(
         metric=optimize_for,
@@ -99,8 +92,8 @@ def run_HPO(
             resume_errored=True,
         )
     else:
+        # remove old results
         if os.path.exists(os.path.expanduser(f"~/ray_results/{name}")):
-            # remove old results
             os.system(f"rm -rf ~/ray_results/{name}")
         tuner = tune.Tuner(
             trainable_with_gpu,
@@ -109,21 +102,13 @@ def run_HPO(
             run_config=run_config,
         )
         
-    #print("resume")
-    #tune.Tuner.restore()
     results = tuner.fit()
     print("Best hyperparameters found were: ", results.get_best_result().config)
     
-    #bayesopt = BayesOptSearch(
-    #    metric=optimize_for,
-    #    mode=optimize_mode,
-    #)
-
-
 
 def main():
     with hydra.initialize(config_path=".", version_base="1.2"):
-        cfg = hydra.compose(config_name="HPO", overrides=None)
+        cfg = hydra.compose(config_name="HPO_ISIC2019", overrides=None)
 
     global_additionals = OmegaConf.to_container(cfg.additional_params, resolve=True, throw_on_missing=True)
     hpo_s = OmegaConf.to_container(cfg.HPOs, resolve=True, throw_on_missing=True)
@@ -144,14 +129,17 @@ def main():
             additionals=additional_params,
             dropout=hpo.get("dropout_rate", False),
         )
-        #print("param_space", param_space)
+
+        grace_period = hpo.get("grace_period", cfg.optimizer.grace_period)
+        num_trials = hpo.get("num_trials", cfg.optimizer.num_trials)
+
         run_HPO(
             name=name_hpo,
             param_space=param_space, 
             optimize_for=optimize_for,
             optimize_mode=optimize_mode,
-            grace_period=hpo["grace_period"],
-            num_trials=hpo["num_trials"],
+            grace_period=grace_period,
+            num_trials=num_trials,
             restore=hpo.get("restore", False),
         )
 

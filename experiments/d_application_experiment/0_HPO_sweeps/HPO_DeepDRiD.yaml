@@ -1,64 +1,50 @@
 HPOs: 
   eq_nasnet_DeepDRiD_r128:
     done: True
-    num_trials: 50
-    grace_period: 50
-    dropout_rate: True
+    dropout_rate: True          # if not defined False
     additional_params:
-      #model/blocks_args_dict: 4blocks
-      training.dataset.resolution: 128
+      model: eq_nasnet
+      "model/blocks_args_dict": 4blocks
 
   efficientnet_pretrained_DeepDRiD_r128:
     done: True
     restore: False
-    num_trials: 50
-    grace_period: 50
-    dropout_rate: False
     additional_params:
       model: efficientnet
       model.pretrained: True
-      training.dataset.resolution: 128
 
   efficientnet_not_pretrained_DeepDRiD_r128:
     done: True
-    num_trials: 50
-    grace_period: 50
-    dropout_rate: False
     additional_params:
       model: efficientnet
       model.pretrained: False
-      training.dataset.resolution: 128
 
   vit_not_pretrained_DeepDRiD_r128:
-    done: False
+    done: True
     restore: False
-    num_trials: 50
-    grace_period: 50
-    dropout_rate: False
     additional_params:
       model: vit
       model.pretrained: False
-      training.dataset.resolution: 128
 
-  vit_pretrained_DeepDRiD_r224:
+  vit_pretrained_DeepDRiD_r128:
     restore: False
     done: False
-    num_trials: 50
-    grace_period: 50
-    dropout_rate: False
     additional_params:
       model: vit
       model.pretrained: True
-      training.dataset.resolution: 224
 
   
 metric:
   goal: max
   name: valid.acc
 
+optimizer:
+  num_trials: 50
+  grace_period: 50
 
 additional_params:
   wandb.project: SL-ray
-  training: DeepDRiD-training
+  training: DeepDRiD-training 
   other.should_test: True
   other.verbose: 0
+  training.dataset.resolution: 128

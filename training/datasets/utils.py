@@ -201,15 +201,16 @@ def split_with_stratify(
             )
 
     
-    # what to do with the additional images
-    if reduction_factor < 1.0 and test_size != 0.0:
-        # if the test set is not distinct from the train set we can use the additional images for evaluation
-        # otherwise no it breaks the independence of the test set
-        test_images = np.concatenate([test_images, additional_images])
-        test_labels = np.concatenate([test_labels, additional_labels])
-    else:
-        # we do not use the additional images for evaluation
-        # we can not add them to the val set because that breaks the logic of reducing the size of the train set
-        print("Not using additional images for evaluation.")
+    if reduction_factor < 1.0:
+        # what to do with the additional images
+        if test_size != 0.0:
+            # if the test set is not distinct from the train set we can use the additional images for evaluation
+            # otherwise no it breaks the independence of the test set
+            test_images = np.concatenate([test_images, additional_images])
+            test_labels = np.concatenate([test_labels, additional_labels])
+        else:
+            # we do not use the additional images for evaluation
+            # we can not add them to the val set because that breaks the logic of reducing the size of the train set
+            print("Not using additional images for evaluation.")
 
     return train_images, train_labels, val_images, val_labels, test_images, test_labels

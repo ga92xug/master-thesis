@@ -133,7 +133,7 @@ class Experiment:
                 min_delta=cfg.training.earlystop.min_delta,
                 save_path=self.output_path + "best_model.pth" if self.model_path is None else self.model_path,
                 verbose=self._verbose,
-                baseline=cfg.training.earlystop.baseline,
+                baseline=cfg.training.earlystop.get("baseline", None), 
                 store_in_memory=cfg.training.earlystop.store_in_memory,
             )
         self.logger.print_verbose_check(1, f"Stage 3: training starts {self._global_start_time}")

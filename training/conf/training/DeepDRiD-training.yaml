@@ -14,7 +14,7 @@ earlystop:
   patience: 20
   min_delta: 0.001
   store_in_memory: True
-  baseline: 0.70 # found by quick checking for eq_nasnet
+  baseline: 0.70 
 
 dataset:
   batch_size: 64                # Number of examples to process in a batch during training
