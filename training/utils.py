@@ -253,7 +253,9 @@ class EarlyStopping:
         Returns:
         - bool: True if early stopping should be executed, False otherwise.
         """
-        current_score = metrics.get(self.monitor.split(".")[1], None).item()
+        current_score = metrics.get(self.monitor.split(".")[1], None)
+        if isinstance(current_score, torch.Tensor):
+            current_score = current_score.item()
         
         if current_score is None:
             raise ValueError(f"Monitor {self.monitor} does not exist in metrics.")

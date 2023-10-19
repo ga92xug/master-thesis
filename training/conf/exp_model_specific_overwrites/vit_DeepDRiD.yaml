@@ -1,25 +1,23 @@
 # @package _global_
 defaults:
   - override /training: DeepDRiD-training
-  - override /model: eq_nasnet
+  - override /model: vit
   - override /wandb: default
   - _self_
   
 model:
-# blocks_args_dict: 4blocks
-  dropout_rate: 0.5226666741451502
+  pretrained: False
 
 training:
   optimizer:
-    lr: 0.0013149671111997434
-    weight_decay: 0.00000031521714925058
+    lr: 0.00005
+    weight_decay: 0.0001803093201705675
 
   scheduler: # not used -> implement None scheduler
-    patience: 37
-    factor: 0.10688753617750324
+    patience: 43
+    factor: 0.1680463774997989
 
   
-
 wandb:
   project: SL-Application
   give_name: True

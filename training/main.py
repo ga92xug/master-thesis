@@ -110,12 +110,7 @@ class Experiment:
         self.valid_conf_matrix_frequency = cfg.other.valid_conf_matrix_frequency
 
         # adapt learning rate
-        if "CosineAnnealingLR" in cfg.training.scheduler._target_:
-            with open_dict(cfg):
-                cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * cfg.training.epochs
-        self._lr_scheduler = hydra.utils.instantiate(cfg.training.scheduler, 
-                                            optimizer=self._optimizer)
-        self._adapt_lr_in_validation = "ReduceLROnPlateau" in cfg.training.scheduler._target_
+        self.init_scheduler()
         
         # iteration is the number of batches seen
         self._iteration = 0
@@ -138,6 +133,19 @@ class Experiment:
             )
         self.logger.print_verbose_check(1, f"Stage 3: training starts {self._global_start_time}")
     
+    def init_scheduler(self):
+        if self.cfg.training.scheduler._target_ is None:
+            self._lr_scheduler = None
+            self._adapt_lr_in_validation = False
+            return
+
+        # adapt learning rate
+        if "CosineAnnealingLR" in self.cfg.training.scheduler._target_:
+            with open_dict(self.cfg):
+                self.cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * self.cfg.training.epochs
+        self._lr_scheduler = hydra.utils.instantiate(self.cfg.training.scheduler, 
+                                            optimizer=self._optimizer)
+        self._adapt_lr_in_validation = "ReduceLROnPlateau" in self.cfg.training.scheduler._target_
 
     def train(self):
         start_time = datetime.datetime.now().timestamp()
@@ -275,6 +283,7 @@ class Experiment:
 
         if confusion:
             wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
+            self.global_step += 1
         
         return metrics, loss, duration
     
@@ -316,6 +325,7 @@ class Experiment:
         # Training done, evaluate on test set
         self.backup()
         if self.cfg.other.should_test:
+            self.global_step += 1
             self.inference("test", confusion=True)
         
         if not self.is_nas:

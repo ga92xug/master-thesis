@@ -1,0 +1,25 @@
+# @package _global_
+defaults:
+  - override /training: DeepDRiD-training
+  - override /model: efficientnet
+  - override /wandb: default
+  - _self_
+  
+model:
+  pretrained: False
+
+training:
+  optimizer:
+    lr: 0.0013960833048305068
+    weight_decay: 0.00000265302216705901
+
+  scheduler: # not used -> implement None scheduler
+    patience: 34
+    factor: 0.25655721920153424
+
+  
+
+wandb:
+  project: SL-Application
+  give_name: True
+  tags: []

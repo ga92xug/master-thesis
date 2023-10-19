@@ -1,0 +1,25 @@
+# @package _global_
+defaults:
+  - override /training: DeepDRiD-training
+  - override /model: vit
+  - override /wandb: default
+  - _self_
+  
+model:
+  pretrained: True
+
+training:
+  optimizer:
+    lr: 0.00005
+    weight_decay: 0.0000197902789003467
+
+  scheduler: 
+    patience: 5
+    factor: 0.06938868866678677
+
+  
+
+wandb:
+  project: SL-Application
+  give_name: True
+  tags: []
