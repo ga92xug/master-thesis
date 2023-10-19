@@ -1,4 +1,3 @@
-from calendar import c
 from math import log, sqrt
 from typing import List
 import matplotlib.pyplot as plt
@@ -48,13 +47,12 @@ def create_subplot(
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
-
-
     # Set the x-axis limits to be slightly larger than the range of FLOPs values.
     #ax.set_xlim(np.min(flops) * 0.9, np.max(flops) * 1.1)
 
     y_min, y_max = float('inf'), float('-inf')  # Initialize y-axis limits
 
+    handle = None
     for i, acc in enumerate(accuracy_values):
         if len(acc) > 1 and has_error_bars:
             # Calculate the mean and standard deviation for accuracy values
