@@ -231,6 +231,7 @@ class EarlyStopping:
         self.verbose = verbose
         self.baseline = baseline
         self.best_score = None
+        self.best_metrics = None
         self.best_epoch = -1
         self.save_path = save_path
         self.store_in_memory = store_in_memory
@@ -268,6 +269,7 @@ class EarlyStopping:
 
         if self.best_score is None:
             self.best_score = current_score
+            self.best_metrics = metrics
             self.best_epoch = epoch
             self.save_model(model)
             return False
@@ -275,6 +277,7 @@ class EarlyStopping:
         if ((self.mode == 'min' and current_score < (self.best_score - self.min_delta)) or
             (self.mode == 'max' and current_score > (self.best_score + self.min_delta))):
             self.best_score = current_score
+            self.best_metrics = metrics
             self.best_epoch = epoch
             self.counter = 0
             self.save_model(model)
