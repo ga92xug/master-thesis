@@ -1,7 +1,7 @@
 import os.path
 import sqlite3
 from omegaconf import DictConfig, OmegaConf
-import pandas as pd
+#import pandas as pd
 import numpy as np
 import io
 import datetime
@@ -16,8 +16,13 @@ import torch
 import wandb
 from ray.air.integrations.wandb import setup_wandb
 
+import os
+import sys
+sys.path.append(f"{os.getcwd()}")
+
 from networks import *
 from networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
+from training.logger import Custom_Logger
 
 
 ################################################################################
@@ -190,7 +195,6 @@ def allowed_usage_time(
         raise ValueError("GPU usage not allowed between 8am and 8pm GMT+2")
 
 
-
 ######################################################
 # Early stopping
 ######################################################
@@ -203,9 +207,10 @@ class EarlyStopping:
             patience: int, 
             min_delta: float, 
             save_path: str, 
+            logger: Custom_Logger,
             verbose: int = 1,
             baseline: Optional[float] = None, 
-            store_in_memory: bool=True
+            store_in_memory: bool=True,
         ):
         """
         Initialize the EarlyStopping class.
@@ -232,7 +237,7 @@ class EarlyStopping:
         self.baseline = baseline
         self.best_score = None
         self.best_metrics = None
-        self.best_epoch = -1
+        self.logger = logger
         self.save_path = save_path
         self.store_in_memory = store_in_memory
         if os.path.exists(self.save_path):
@@ -242,7 +247,6 @@ class EarlyStopping:
             self, 
             metrics: Dict[str, Any], 
             model: torch.nn.Module,
-            epoch: int
         ) -> bool:
         """
         Check if early stopping should be executed.
@@ -254,13 +258,16 @@ class EarlyStopping:
         Returns:
         - bool: True if early stopping should be executed, False otherwise.
         """
-        current_score = metrics.get(self.monitor.split(".")[1], None)
-        if isinstance(current_score, torch.Tensor):
-            current_score = current_score.item()
-        
+        epoch = self.logger.epoch.value # the logger always has the current epoch
+        metrics = {"valid." + key: value for key, value in metrics.items()}
+
+        current_score = metrics.get(self.monitor, None)
         if current_score is None:
             raise ValueError(f"Monitor {self.monitor} does not exist in metrics.")
 
+        if isinstance(current_score, torch.Tensor):
+            current_score = current_score.item()
+        
         # Don't start counting patience until the metric surpasses the baseline
         if self.baseline is not None:
             if (self.mode == 'min' and current_score > self.baseline) or \
@@ -270,7 +277,6 @@ class EarlyStopping:
         if self.best_score is None:
             self.best_score = current_score
             self.best_metrics = metrics
-            self.best_epoch = epoch
             self.save_model(model)
             return False
 
@@ -278,27 +284,16 @@ class EarlyStopping:
             (self.mode == 'max' and current_score > (self.best_score + self.min_delta))):
             self.best_score = current_score
             self.best_metrics = metrics
-            self.best_epoch = epoch
+            self.best_metrics["epoch"] = epoch
             self.counter = 0
             self.save_model(model)
         else:
             self.counter += 1
 
         if self.counter >= self.patience:
-            try:
-                log_dict = {
-                    "early_stop": {
-                        "best_epoch": self.best_epoch, 
-                        f"{self.monitor}_best": self.best_score
-                    }
-                }
-                wandb.log(log_dict)
-            except:
-                # wandb not initialized
-                pass
-
-            if self.verbose:
-                print(f"Early stopping in {epoch}. No improvement in {self.monitor} for {self.patience} epochs.")
+            log_dict = self.best_metrics 
+            self.logger.log(log_dict, split="early_stop", verbose=0)
+            self.logger.print_verbose_check(1, f"Early stopping in {epoch}. No improvement in {self.monitor} for {self.patience} epochs.")
             return True
         return False
 

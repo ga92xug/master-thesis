@@ -1,7 +1,7 @@
-from tabnanny import verbose
+from calendar import c
 from typing import Dict, Tuple
 import numpy as np
-from sympy import O
+
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
 import hydra
 from hydra.utils import instantiate, call
@@ -18,7 +18,8 @@ import sys
 sys.path.append(os.getcwd()) # add current directory
 from training.model_instantiate import get_model
 from training import utils
-from training import log
+from training.logger import Custom_Logger, SingletonInt
+from training.wrapper_scheduler import Wrapper_Scheduler
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 class Experiment:
@@ -31,13 +32,19 @@ class Experiment:
         self.is_nas = cfg.NAS.trial_index != -1
         self.wandb_run = utils.init_wandb(cfg)
         self.cfg = cfg
-        self.logger = log.Log(
+        self._iteration = SingletonInt("iteration", 0)
+        self.epoch = SingletonInt("epoch", 0)
+        self.global_step = SingletonInt("global_step", 0)  
+
+        self.logger = Custom_Logger(
             cfg=cfg, 
             is_nas=self.is_nas, 
             ray=cfg.ray,
             max_epochs=cfg.training.epochs, 
             wandb_run=self.wandb_run,
             verbose=self._verbose,
+            global_step=self.global_step,
+            epoch=self.epoch,
         )
         self.logger.print_verbose_check(1, f"Stage 0: experiment starts at {self._global_start_time}")
         self.logger.print_verbose_check(1, f"{OmegaConf.to_yaml(cfg)}")
@@ -110,12 +117,9 @@ class Experiment:
         self.valid_conf_matrix_frequency = cfg.other.valid_conf_matrix_frequency
 
         # adapt learning rate
-        self.init_scheduler()
+        self.scheduler = Wrapper_Scheduler(cfg, self._optimizer, self._dataloaders, self.logger)
         
         # iteration is the number of batches seen
-        self._iteration = 0
-        self._epoch = 0
-        self.global_step = 0  
         self.train_n_batches_len = len(self._dataloaders["train"])      
 
         # early stopping
@@ -130,22 +134,10 @@ class Experiment:
                 verbose=self._verbose,
                 baseline=cfg.training.earlystop.get("baseline", None), 
                 store_in_memory=cfg.training.earlystop.store_in_memory,
+                logger=self.logger,
             )
         self.logger.print_verbose_check(1, f"Stage 3: training starts {self._global_start_time}")
     
-    def init_scheduler(self):
-        if self.cfg.training.scheduler._target_ is None:
-            self._lr_scheduler = None
-            self._adapt_lr_in_validation = False
-            return
-
-        # adapt learning rate
-        if "CosineAnnealingLR" in self.cfg.training.scheduler._target_:
-            with open_dict(self.cfg):
-                self.cfg.training.scheduler.T_max = len(self._dataloaders["train"]) * self.cfg.training.epochs
-        self._lr_scheduler = hydra.utils.instantiate(self.cfg.training.scheduler, 
-                                            optimizer=self._optimizer)
-        self._adapt_lr_in_validation = "ReduceLROnPlateau" in self.cfg.training.scheduler._target_
 
     def train(self):
         start_time = datetime.datetime.now().timestamp()
@@ -173,7 +165,7 @@ class Experiment:
             metrics["loss"] = loss.item()
 
             # log intermediate results
-            self.logger.log(metrics, step=self.global_step, epoch=self._epoch, split="train", verbose=3)
+            self.logger.log(metrics, split="train", verbose=3)
 
             # loss
             loss = loss / self.cfg.training.accumulate
@@ -203,7 +195,7 @@ class Experiment:
         metric_full_epoch = self.train_metrics.compute()
         metric_full_epoch["loss"] = train_loss_epoch / n_samples
         metric_full_epoch["duration"] = duration
-        self.logger.log(metric_full_epoch, step=self.global_step, epoch=self._epoch, split="train", verbose=0)
+        self.logger.log(metric_full_epoch, split="train", verbose=0)
         
         # avoid wandb not logging duration bug
         self.global_step += 1
@@ -212,13 +204,11 @@ class Experiment:
 
     def valid(self) -> Dict:
         confusion = self.valid_conf_matrix_frequency > 0 and \
-            self._epoch % self.valid_conf_matrix_frequency == 0
+            self.epoch % self.valid_conf_matrix_frequency == 0
         metrics, _, _ = self.inference("valid", confusion=confusion)
         
         # adapt learning rate
-        if self._adapt_lr_in_validation:
-            self._lr_scheduler.step(metrics["acc"])
-
+        self.scheduler.step_validation(metrics)
         return metrics
 
 
@@ -278,10 +268,9 @@ class Experiment:
 
         metrics["loss"] = loss
         metrics["duration"] = duration
-        self.logger.log(metrics, step=self.global_step, epoch=self._epoch, split=split, verbose=0)
-        self.global_step += 1
+        self.logger.log(metrics, split=split, verbose=0)
 
-        if confusion:
+        if confusion:   
             wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(probs=y_all, y_true=t_all, class_names=list(range(self.n_outputs)))})
             self.global_step += 1
         
@@ -295,7 +284,7 @@ class Experiment:
         """
         self._iteration = 0
         
-        while self._epoch < self.max_epochs and not self.time_limit_reached():
+        while self.epoch < self.max_epochs and not self.time_limit_reached():
             # check if we are allowed to run
             utils.allowed_usage_time(self.cfg.other.gpu_time_limit)
             
@@ -303,24 +292,23 @@ class Experiment:
             self.train()
             
             # validate
-            if self._eval_frequency < 0 and self._epoch % (-self._eval_frequency) == 0:
+            if self._eval_frequency < 0 and self.epoch % (-self._eval_frequency) == 0:
                 valid_metrics = self.valid()
 
                 if self.early_stopping:
-                    should_stop = self.early_stopping.should_stop(valid_metrics, self.model, self._epoch)
+                    should_stop = self.early_stopping.should_stop(valid_metrics, self.model)
                     if should_stop:
                         self.model = self.early_stopping.restore_best_weights(self.model)
                         self.global_step += 1
                         break
             
-            if self.cfg.other.backup_frequency < 0 and self._epoch % (-self.cfg.other.backup_frequency) == 0:
+            if self.cfg.other.backup_frequency < 0 and self.epoch % (-self.cfg.other.backup_frequency) == 0:
                 self.backup()
 
             # adapt learning rate
-            if not self._adapt_lr_in_validation and self._lr_scheduler is not None:
-                self._lr_scheduler.step()
-
-            self._epoch += 1
+            self.scheduler.step_epoch_end()
+            
+            self.epoch += 1
         
         # Training done, evaluate on test set
         self.backup()
@@ -331,12 +319,14 @@ class Experiment:
         if not self.is_nas:
             wandb.finish()
 
+        print(f"Experiment finished at {datetime.datetime.now()}")
+
     def time_limit_reached(self):
         if self._time_limit is not None and \
             (datetime.datetime.now().timestamp() - \
             self._global_start_time.timestamp()) / 60. \
             > self._time_limit:
-            print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self._epoch}.")
+            print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self.epoch}.")
             return True
         return False
 

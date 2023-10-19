@@ -9,11 +9,52 @@ from ray import train
 
 from networks.util import flatten_dict
 
-class Log():
+######################################################
+# SingletonInt
+######################################################
+
+class SingletonInt:
+    _instances = {}
+
+    def __new__(cls, key, initial_value=0):
+        if key not in cls._instances:
+            cls._instances[key] = super(SingletonInt, cls).__new__(cls)
+            cls._instances[key].value = initial_value
+        return cls._instances[key]
+
+    def __iadd__(self, other):
+        self.value += other
+        return self
+
+    def __lt__(self, other):
+        return self.value < other
+
+    def __gt__(self, other):
+        return self.value > other
+
+    def __le__(self, other):
+        return self.value <= other
+
+    def __ge__(self, other):
+        return self.value >= other
+
+    def __eq__(self, other):
+        return self.value == other
+
+    def __mod__(self, other):
+        return self.value % other
+
+    def __str__(self):
+        return str(self.value)
+
+
+class Custom_Logger():
     def __init__(
         self,
         cfg,
         wandb_run: Union[Run, RunDisabled],
+        epoch: SingletonInt,
+        global_step: SingletonInt,
         is_nas: bool = False,
         ray: bool = False,
         max_epochs: int = -1,  
@@ -25,6 +66,9 @@ class Log():
         self.ray = ray
         self.max_epochs = max_epochs
         self.verbose = verbose
+        self.epoch = epoch
+        self.global_step = global_step
+
 
         if self.is_nas:
             self.trial_data = {}
@@ -37,13 +81,14 @@ class Log():
     def log(
             self, 
             to_log: dict, 
-            step: int, 
-            epoch: int,
             split: str = None,
             verbose: int = 5,
         ):
-        if self.verbose > verbose and split is not None:
-            self.print_results(to_log, split, epoch)
+        if self.verbose > verbose:
+            if split is not None:
+                self.print_results(to_log, split)
+            else:
+                print(to_log)
 
         if split is not None:
             to_log = {split: to_log}
@@ -51,22 +96,25 @@ class Log():
         #print("to_log", to_log)
         if self.is_nas:
             # Log to DB
-            self.aggregate_and_log_db(to_log, self.trial_index, epoch)
+            self.aggregate_and_log_db(to_log, self.trial_index)
 
             # Prefix log entries
             #to_log = {self.prefix + key: value for key, value in to_log.items()}
         else:
             self.log2ray(to_log)
-            self.wandb_run.log(to_log, step=step)
+            self.wandb_run.log(to_log, step=self.global_step.value)
+            # wandb logging bug if not increase global_step
+            self.global_step += 1
 
-    def aggregate_and_log_db(self, to_log: dict, trial_index: str, epoch: int):
+
+    def aggregate_and_log_db(self, to_log: dict, trial_index: str):
         for key, sub_dict in to_log.items():
             if isinstance(sub_dict, dict):
                 for sub_key, value in sub_dict.items():
                     new_key = f"{key}_{sub_key}"
                     if new_key in ['valid_acc_weighted', 'train_duration', 'valid_duration']:
-                        # For 'valid_acc', 'train_duration', and 'valid_duration', only update the value if it's the last epoch
-                        if epoch == self.max_epochs - 1:
+                        # For 'valid_acc', 'train_duration', and 'valid_duration', only update the value if it's the last self.epoch
+                        if self.epoch == self.max_epochs - 1:
                             self.trial_data[new_key] = value
                     else:
                         self.trial_data[new_key] = value
@@ -94,17 +142,17 @@ class Log():
         self.cursor = self.conn.cursor()
 
 
-    def print_verbose_check(self, level: str, message: str):
+    def print_verbose_check(self, level: str, message: str) -> None:
         if self.verbose > level:
             print(message)
 
 
-    def print_results(self, metrics, split, epoch):
+    def print_results(self, metrics, split):
         split = split.capitalize()
-        duration = metrics.get("duration", None)
+        duration = metrics.get("duration", 0)
         print('-'*80)
-        print(f'{split} Epoch: {epoch} lasted {duration:.3f} seconds')
-        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration"]])
+        print(f'{split} Epoch: {self.epoch} lasted {duration:.3f} seconds')
+        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration", "epoch"]])
         print(f'{metrics}')
 
     def log2ray(self, to_log: dict):
@@ -128,3 +176,6 @@ def to_python_obj(obj):
         return [to_python_obj(element) for element in obj]
     else:
         return obj
+
+
+

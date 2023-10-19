@@ -12,7 +12,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 from networks.util import get_param_count
-from training.log import Log
+from training.logger import Custom_Logger
 
 def get_model(
         cfg: DictConfig, 
@@ -20,7 +20,7 @@ def get_model(
         n_outputs: int, 
         image_size: int,
         device: torch.device,
-        logger: Log,
+        logger: Custom_Logger,
         verbose: int = 1,
 ):
     """
@@ -47,7 +47,7 @@ def get_model(
         max_gflops = cfg.NAS.max_gflops
 
         assert max_building_time > 0, "max_building_time must be greater than 0"
-        logger.log({"model_building_time": max_building_time}, step=0, epoch=0)
+        logger.log({"model_building_time": max_building_time}, verbose=2)
         assert max_gflops > 0, "max_gflops must be greater than 0"
 
         # Define a function to handle the timeout
@@ -63,12 +63,12 @@ def get_model(
         model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device)
         # Cancel alarm
         signal.alarm(0)
-        logger.log({"model_building_time": model_building_time}, step=0, epoch=0)
+        logger.log({"model_building_time": model_building_time}, verbose=2)
         
         # flops
         gflops = get_gflops(model, cfg.training.dataset.batch_size, n_inputs,
                         image_size, device=device, logger=logger)
-        logger.log({"GFLOPs": gflops}, step=0, epoch=0)
+        logger.log({"GFLOPs": gflops}, verbose=2)
         if gflops > max_gflops:
             raise ValueError(f"GFLOPs {gflops} exceeds maximum allowed {max_gflops}")
 
@@ -83,17 +83,13 @@ def get_model(
         compile_time = stop - start
         stats["compile_time"] = compile_time
         
-    logger.print_verbose_check(2, f"model building time {model_building_time}")
-    if cfg.training.compile:
-        logger.print_verbose_check(2, f"compile time {compile_time}")
     logger.print_verbose_check(5, model)
-
-    if logger is not None:
-        logger.log(stats, step=0, epoch=0)
+    if logger is not None and not is_nas:
+        logger.log(stats, verbose=2)
     return model, stats
 
 
-def get_gflops(model, batch_size, n_inputs, image_size, device, logger: Log):
+def get_gflops(model, batch_size, n_inputs, image_size, device, logger: Custom_Logger):
     input_tensor = torch.randn(batch_size, n_inputs, \
             image_size, image_size).to(device)
     flops = FlopCountAnalysis(model, (input_tensor,))
@@ -101,7 +97,6 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, logger: Log):
     flops.uncalled_modules_warnings(False)
     gflops = flops.total() / 1e9
     
-    logger.print_verbose_check(2, f'GFLOPs: {gflops:.2f}')
     logger.print_verbose_check(5, parameter_count_table(model))
     logger.print_verbose_check(5, flop_count_table(flops))
     return gflops
@@ -131,7 +126,7 @@ def test_instantiate(cfg: DictConfig):
     is_nas = cfg.NAS.trial_index != -1
     disabled_wandb_run = wandb.init(mode="disabled")
 
-    logger = Log(
+    logger = Custom_Logger(
         cfg=cfg, 
         is_nas=is_nas, 
         ray=cfg.ray,
