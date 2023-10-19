@@ -27,4 +27,4 @@ optimizer:
 scheduler:
   factor: 0.5
   patience: 50
-  verbose: True
+  

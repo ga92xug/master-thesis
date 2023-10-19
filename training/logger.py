@@ -47,6 +47,10 @@ class SingletonInt:
     def __str__(self):
         return str(self.value)
 
+    @classmethod
+    def reset_all(cls):
+        cls._instances = {}
+
 
 class Custom_Logger():
     def __init__(

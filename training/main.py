@@ -307,7 +307,7 @@ class Experiment:
 
             # adapt learning rate
             self.scheduler.step_epoch_end()
-            
+
             self.epoch += 1
         
         # Training done, evaluate on test set
@@ -315,11 +315,6 @@ class Experiment:
         if self.cfg.other.should_test:
             self.global_step += 1
             self.inference("test", confusion=True)
-        
-        if not self.is_nas:
-            wandb.finish()
-
-        print(f"Experiment finished at {datetime.datetime.now()}")
 
     def time_limit_reached(self):
         if self._time_limit is not None and \
@@ -340,6 +335,16 @@ def run_experiment(cfg: DictConfig) -> None:
     utils.allowed_usage_time(cfg.other.gpu_time_limit)
     exp = Experiment(cfg)
     exp.iteration_over_epochs()
+    print(f"Experiment finished at {datetime.datetime.now()}")
+
+    # clean up the experiment
+    try:
+        wandb.finish()
+    except:
+        pass
+    del exp
+    # Reset all instances
+    SingletonInt.reset_all()
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def hydra_main_init(cfg: DictConfig) -> None:
