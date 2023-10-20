@@ -1,0 +1,10 @@
+name: DeepDRiD
+
+
+BO_optimizer:
+  
+  num_trials: 50
+  grace_period: 50
+
+  metric: valid.acc
+  goal: max
