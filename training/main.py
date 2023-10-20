@@ -1,5 +1,5 @@
 from calendar import c
-from typing import Dict, Tuple
+from typing import Dict, List, Tuple, Union
 import numpy as np
 
 np.set_printoptions(precision=3, linewidth=10000, suppress=True)
@@ -350,14 +350,24 @@ def run_experiment(cfg: DictConfig) -> None:
 def hydra_main_init(cfg: DictConfig) -> None:
     run_experiment(cfg)
 
-def hydra_initialize_init(overrides) -> None:
+def hydra_initialize_init(
+        overrides: Union[Dict, List], 
+        additional_overrides: Union[Dict, List] = {},
+    ) -> None:
+    assert type(overrides) == type(additional_overrides), "Overrides and additional_overrides must be of the same type"
+
+    if isinstance(additional_overrides, dict):
+        overrides = {**additional_overrides, **overrides}
+    else:
+        overrides = additional_overrides + overrides
+
     if isinstance(overrides, dict):
-        overrides = [f"{key}={value}" for key, value in overrides.items()]
+        overrides = [f"{key}={value if value != None else 'null'}" for key, value in overrides.items()]
+
     print("hydra_initialize_init, overrides:", overrides)
     with hydra.initialize(config_path="conf", version_base="1.2"):
         cfg = hydra.compose(config_name="config", overrides=overrides)
 
-    print("starting experiment")
     run_experiment(cfg)
 
 if __name__ == "__main__":

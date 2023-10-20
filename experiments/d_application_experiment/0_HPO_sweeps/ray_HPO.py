@@ -13,9 +13,10 @@ from ray.tune.search.ax import AxSearch
 
 import os
 import sys
+
 sys.path.append(f"{os.getcwd()}")
+from experiments.ray_HPO import run_HPO
 #os.environ['TUNE_DISABLE_STRICT_METRIC_CHECKING'] = '1'
-from training.main import hydra_initialize_init
 
 def get_search_space(
         name: str, 
@@ -40,71 +41,6 @@ def get_search_space(
         parameters[key] = value
 
     return parameters
-
-def run_HPO_old(param_space: dict, optimize_for: str):
-    trainable_with_gpu = tune.with_resources(hydra_initialize_init, {"gpu": 1})
-    tune_config = tune.TuneConfig(
-            metric=optimize_for,
-            mode="max" if "acc" in optimize_for else "min",
-            num_samples=1,
-    )
-
-    tuner = tune.Tuner(
-        trainable_with_gpu,
-        param_space=param_space,
-        tune_config=tune_config,
-    )
-    results = tuner.fit()
-    print("Best hyperparameters found were: ", results.get_best_result().config)
-
-def run_HPO(
-        name: str,
-        param_space: dict, 
-        optimize_for: str,
-        optimize_mode: str,
-        grace_period: int,
-        num_trials: int,
-        restore: bool = False,
-    ):
-
-    trainable_with_gpu = tune.with_resources(hydra_initialize_init, {"gpu": 1})
-
-    algo = AxSearch()
-    asha_scheduler = ASHAScheduler(grace_period=grace_period)
-
-    tune_config=tune.TuneConfig(
-        metric=optimize_for,
-        mode=optimize_mode,
-        search_alg=algo,
-        scheduler=asha_scheduler,
-        num_samples=num_trials,
-    )
-
-    run_config=train.RunConfig(
-        name=name,
-    )
-    
-    if restore:
-        tuner = tune.Tuner.restore(
-            os.path.expanduser(f"~/ray_results/{name}"),
-            trainable=trainable_with_gpu,
-            resume_unfinished=True,
-            resume_errored=True,
-        )
-    else:
-        # remove old results
-        if os.path.exists(os.path.expanduser(f"~/ray_results/{name}")):
-            os.system(f"rm -rf ~/ray_results/{name}")
-        tuner = tune.Tuner(
-            trainable_with_gpu,
-            param_space=param_space,
-            tune_config=tune_config,
-            run_config=run_config,
-        )
-        
-    results = tuner.fit()
-    print("Best hyperparameters found were: ", results.get_best_result().config)
-    
 
 def main():
     with hydra.initialize(config_path=".", version_base="1.2"):

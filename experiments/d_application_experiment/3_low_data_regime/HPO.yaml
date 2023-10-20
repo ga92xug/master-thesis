@@ -1,9 +1,9 @@
 defaults:
+  - _self_
   - dataset: DeepDRiD
 
 HPOs: 
   eq_nasnet:
-    name: eq_nasnet_${dataset.name}_r${model_overrides.training.dataset.resolution}
     done: False
     dropout_rate: True          # if not defined False
     model_overrides:
@@ -11,7 +11,6 @@ HPOs:
       "model/blocks_args_dict": 4blocks
 
   efficientnet:
-    name: efficientnet_pre-${HPOs.efficientnet.model_overrides.pretrained}_${dataset.name}_r${model_overrides.training.dataset.resolution}
     done: False
     restore: False
     model_overrides:
@@ -19,23 +18,19 @@ HPOs:
       model.pretrained: False
 
   efficientnet_pre:
-    name: efficientnet_pre-${HPOs.efficientnet.model_overrides.pretrained}_${dataset.name}_r${model_overrides.training.dataset.resolution}
     done: False
     restore: False
     model_overrides:
       model: efficientnet
       model.pretrained: True
 
-
   vit:
-    name: vit_pre-${HPOs.vit.model_overrides.pretrained}_${dataset.name}_r${model_overrides.training.dataset.resolution}
     done: False
     model_overrides:
       model: vit
       model.pretrained: False
 
   vit_pre:
-    name: vit_pre-${HPOs.vit.model_overrides.pretrained}_${dataset.name}_r${model_overrides.training.dataset.resolution}
     done: False
     model_overrides:
       model: vit
@@ -45,10 +40,14 @@ HPOs:
 dataset:
   global_overrides:
     wandb.project: SL-ray
+    wandb.mode: disabled
     training: ${dataset.name}-training 
     training.dataset.resolution: 128
     other.should_test: True
-    other.verbose: 0
+    other.verbose: 1
 
     training.dataset.reduction_factor: 0.5
+    training.earlystop.baseline: null
+
+    
     
