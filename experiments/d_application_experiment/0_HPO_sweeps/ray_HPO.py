@@ -15,7 +15,7 @@ import os
 import sys
 
 sys.path.append(f"{os.getcwd()}")
-from experiments.ray_HPO import run_HPO
+from experiments.d_application_experiment.ray_HPO import run_HPO
 #os.environ['TUNE_DISABLE_STRICT_METRIC_CHECKING'] = '1'
 
 def get_search_space(

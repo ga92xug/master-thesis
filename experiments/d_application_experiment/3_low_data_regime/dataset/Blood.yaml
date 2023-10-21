@@ -1,4 +1,4 @@
-name: DeepDRiD
+name: Blood
 
 initial_epochs: 100
 reduction_factor: 0.5

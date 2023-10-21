@@ -6,7 +6,7 @@ from ray import tune
 import os
 import sys
 sys.path.append(f"{os.getcwd()}")
-from experiments.ray_HPO import run_HPO
+from experiments.d_application_experiment.ray_HPO import run_HPO
 
 def epoch_based_hydra_overrides(epochs: int, hydra_overrides: Dict) -> Dict:
     hydra_overrides["training.epochs"] = epochs
