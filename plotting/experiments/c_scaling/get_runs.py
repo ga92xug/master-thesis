@@ -1,3 +1,4 @@
+from copy import deepcopy
 from math import comb
 from typing import Dict, Any
 from click import group
@@ -153,12 +154,14 @@ def get_data_for_exp(
     return data
 
 
-def individual_plot(
+def scaling_plot_data(
         paths2filter_dict: dict,
         exp_dict: dict,
         wandb_entity: str,
         wandb_projects: str,
         metric: str,
+        xlabel: str,
+        ylabel: str,
         save_folder_name: str,
         name: str,    
         produce_plot: bool = True,
@@ -174,68 +177,62 @@ def individual_plot(
     wandb_data = get_data_for_exp(paths2filter_dict, wandb_entity, wandb_projects, metric)
     flops, accuracy_values, labels, legend_labels = transform_data(wandb_data, metric, exp_dict)
 
+    colors = exp_dict["colors"]
+    linestyles = exp_dict["linestyles"]
+
+    kwargs = {
+        "flops_lists": flops,
+        "accuracy_values_lists": accuracy_values,
+        "colors": colors,
+        "linestyles": linestyles,
+        "labels_lists": labels if name != "compound_scaling" else None,
+        "legend_labels": legend_labels if name == "compound_scaling" else None,
+    }
+
     
     if produce_plot:
-        colors = exp_dict["colors"]
-        linestyles = exp_dict["linestyles"]
-        connect_dots = True # if name != "depth_scaling" else False
-
-        fig, ax = plt.subplots()
-        create_multiple_subplots(
-            flops_lists=flops,
-            accuracy_values_lists=accuracy_values,
-            colors=colors,
-            linestyles=linestyles,
-            xlabel="FLOPs",
-            ylabel="ISIC 2019 Valid Acc (%)",
-            labels_lists=labels if name != "compound_scaling" else None,
-            legend_labels=legend_labels if name == "compound_scaling" else None,
-            ax=ax,
-            has_error_bars=True,
-            connect_dots=connect_dots,
+        multipath_individual_scaling_plot(
+            **kwargs,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            save_name = name,
+            save_folder_name=save_folder_name,
         )
-
-        save_plot(
-            figure=fig,
-            name=name,
-            folder_name=save_folder_name,
-        )
-    
-    return flops, accuracy_values, labels
+    return kwargs
 
 
-def produce_individual_plots(
+def produce_all_scaling_plots(
         cfg: DictConfig,
         wandb_entity: str,
         wandb_projects: str,
         metric: str,
         save_folder_name: str,
+        xlabel: str = "GFLOPs",
+        ylabel: str = "ISIC 2019 Valid Acc (%)",
         combined_plot: bool = False, 
     ):
+    """
+    exp_dict: dict
+        paths: dict
+            label_mask: path_name
+        colors: list
+        linestyles: list
+
+    filter_dict: dict
+        path_name: dict
+            filters: dict
+            group_by: str or list
+    """
+
     filter_dict = OmegaConf.to_container(
         cfg.experiments.filter_groupby_dict, resolve=True, throw_on_missing=True)
 
     exp2labels = OmegaConf.to_container(
         cfg.experiments.plots, resolve=True, throw_on_missing=True)
 
-    list_accs = []
-    list_flops = []
-    list_labels = []
+    combined_plot_dict = {}
 
     for exp_name, exp_dict in exp2labels.items():
-        """
-        exp_dict: dict
-            paths: dict
-                label_mask: path_name
-            colors: list
-            linestyles: list
-
-        filter_dict: dict
-            path_name: dict
-                filters: dict
-                group_by: str or list
-        """
-
         #if exp_name != "compound_scaling":
         #    continue
         print(exp_name)
@@ -246,38 +243,29 @@ def produce_individual_plots(
             paths2filter_dict[path_name] = filter_dict[path_name]
 
 
-        result = individual_plot(
+        save_dict = scaling_plot_data(
             paths2filter_dict=paths2filter_dict,
             exp_dict=exp_dict,
-            #label2sub_exp_name_dict=exp_dict,
             wandb_entity=wandb_entity,
             wandb_projects=wandb_projects,
             metric=metric,
             save_folder_name=save_folder_name,  
             name=exp_name,  
-            produce_plot=True,
+            xlabel=xlabel,
+            ylabel=ylabel,
         )
 
         if combined_plot and exp_name != "compound_scaling":
-            flops, accuracy_values, labels = result
-            list_accs.append(accuracy_values)
-            list_flops.append(flops)
-            list_labels.append(labels)
+            combined_plot_dict[exp_name] = save_dict
 
     
     if combined_plot:
-        fig = plot_scaling_individual(
-            flops=list_flops,
-            accuracy=list_accs,
-            xlabel="GFLOPs",
-            ylabel="ISIC 2019 Valid Acc (%)",
-            point_labels=list_labels,
-        )
-
-        save_plot(
-            figure=fig,
-            name="combined_individual_scaling",
-            folder_name=save_folder_name,
+        print("combined_plot")
+        combined_individual_scaling(
+            combined_plot_dict,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            save_folder_name=save_folder_name,
         )
 
 
@@ -287,7 +275,7 @@ def main():
     wandb_projects = "SL-Scaling"
     metric = "valid.acc_weighted"
 
-    produce_individual_plots(
+    produce_all_scaling_plots(
         cfg=cfg,
         wandb_entity=wandb_entity,
         wandb_projects=wandb_projects,

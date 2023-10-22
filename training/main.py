@@ -364,7 +364,6 @@ def hydra_initialize_init(
     if isinstance(overrides, dict):
         overrides = [f"{key}={value if value != None else 'null'}" for key, value in overrides.items()]
 
-    print("hydra_initialize_init, overrides:", overrides)
     with hydra.initialize(config_path="conf", version_base="1.2"):
         cfg = hydra.compose(config_name="config", overrides=overrides)
 

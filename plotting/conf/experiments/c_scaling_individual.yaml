@@ -55,6 +55,13 @@ filter_groupby_dict:
             tags: constant_scheduler
         group_by: model.width_coefficient
 
+    b4_d-1-2-3-3_wX_r128:
+        filters: 
+            display_name: 
+                "$regex": "b4_d-1-2-3-3_w.*_r128"
+            tags: constant_scheduler
+        group_by: model.width_coefficient
+
     b4_d-1-3-3-3_wX_r192:
         filters: 
             display_name: 
@@ -120,6 +127,7 @@ plots:
 
             b3_d-1-2-2_wX_r96: b3_d-1-2-2_wX_r96
             b4_d-1-2-2-2_wX_r128: b4_d-1-2-2-2_wX_r128
+            b4_d-1-2-3-3_wX_r128: b4_d-1-2-3-3_wX_r128
             b4_d-1-3-3-3_wX_r192: b4_d-1-3-3-3_wX_r192
 
             #b4_d-1-2-2-2_wX_r96: b4_d1_wX_r96

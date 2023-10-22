@@ -44,15 +44,18 @@ def run_HPO(
         num_samples=num_trials,
     )
 
-    stopper = HPOEarlyStopper(
-        metric=optimize_for, 
-        mode=optimize_mode, 
-        patience=5, 
-        min_delta=0.001,
-        min_num_trials=max(num_trials//2, 10)
-    )
+    #stopper = HPOEarlyStopper(
+    #    metric=optimize_for, 
+    #    mode=optimize_mode, 
+    #    patience=5, 
+    #    min_delta=0.001,
+    #    min_num_trials=max(num_trials//2, 10)
+    #)
 
-    run_config=train.RunConfig(name=name, stop=stopper)
+    run_config=train.RunConfig(
+        name=name, 
+        #stop=stopper
+    )
     
     if restore:
         tuner = tune.Tuner.restore(

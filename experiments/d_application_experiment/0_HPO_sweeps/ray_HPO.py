@@ -17,6 +17,7 @@ import sys
 sys.path.append(f"{os.getcwd()}")
 from experiments.d_application_experiment.ray_HPO import run_HPO
 #os.environ['TUNE_DISABLE_STRICT_METRIC_CHECKING'] = '1'
+#os.environ['RAY_AIR_NEW_OUTPUT'] = '0'
 
 def get_search_space(
         name: str, 
@@ -44,7 +45,7 @@ def get_search_space(
 
 def main():
     with hydra.initialize(config_path=".", version_base="1.2"):
-        cfg = hydra.compose(config_name="HPO_ISIC2019", overrides=None)
+        cfg = hydra.compose(config_name="HPO_test", overrides=None)
 
     global_additionals = OmegaConf.to_container(cfg.additional_params, resolve=True, throw_on_missing=True)
     hpo_s = OmegaConf.to_container(cfg.HPOs, resolve=True, throw_on_missing=True)
@@ -71,7 +72,8 @@ def main():
 
         run_HPO(
             name=name_hpo,
-            param_space=param_space, 
+            search_space=param_space, 
+            additional_overrides={},
             optimize_for=optimize_for,
             optimize_mode=optimize_mode,
             grace_period=grace_period,

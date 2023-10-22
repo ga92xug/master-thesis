@@ -86,9 +86,7 @@ def init_wandb(cfg: DictConfig):
         }
         
         if cfg.ray:
-            print("init ray wandb", kwargs_wandb)
             wandb_run = setup_wandb(rank_zero_only=False, **kwargs_wandb)
-            print("Wandb run initialized:", wandb_run, type(wandb_run))
         else:
             wandb_run = wandb.init(project=cfg.wandb.project, config=wandb_config, \
             mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)

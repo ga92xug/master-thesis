@@ -6,7 +6,7 @@ reduction_factor: 0.5
 
 BO_optimizer:
   
-  num_trials: 20
+  num_trials: 30
   grace_period: 0.5
 
   metric: valid.acc

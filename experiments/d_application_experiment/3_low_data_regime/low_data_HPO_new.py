@@ -42,7 +42,7 @@ def get_search_space(
 
     search_space = {
         # The BO engine can decide to disabled the scheduler by setting patience == epochs
-        "training.scheduler.patience": tune.randint(0.05 * epochs, epochs),
+        "training.scheduler.patience": tune.randint(int(0.05 * epochs), epochs),
         "training.scheduler.factor": tune.loguniform(0.01, 0.5),
         "training.optimizer.lr": tune.loguniform(5e-5, 1e-2),
         "training.optimizer.weight_decay": tune.loguniform(1e-7, 1e-3),
@@ -83,7 +83,7 @@ def iterate_HPOs(cfg: DictConfig):
 
     for model_name, hpo in hpo_s.items():
         # skip if done
-        if hpo.get("done", False) and model_name != "efficientnet":
+        if hpo.get("done", False) or model_name != "efficientnet":
             continue
         
         # name
@@ -107,7 +107,6 @@ def iterate_HPOs(cfg: DictConfig):
         if isinstance(grace_period, float):
             grace_period = int(epochs * grace_period)
         num_trials = hpo.get("num_trials", cfg.dataset.BO_optimizer.num_trials)
-
 
         run_HPO(
             name=hpo_name,

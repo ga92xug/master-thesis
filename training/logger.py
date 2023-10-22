@@ -168,6 +168,7 @@ class Custom_Logger():
 
         if log_to_ray.get(self.ray, None) is not None:
             log_to_ray = {self.ray: log_to_ray[self.ray]}
+            print("log_to_ray", log_to_ray)
             train.report(log_to_ray)
 
 

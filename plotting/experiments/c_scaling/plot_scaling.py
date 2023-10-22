@@ -4,19 +4,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
-def create_subplot(
+from plotting.util import get_fig_size, save_plot
+
+def single_path_individual_scaling_plot(
         ax, 
         flops: List[float], 
         accuracy_values: List[float], 
         labels: List[str], 
         xlabel: str, 
         ylabel: str, 
-        has_error_bars=True, 
+        fig_size: tuple,
+        has_error_bars: bool, 
         color: str = 'b',
         linestyle: str = '-',
-        ylim_percentage: float = 10.0,
-        xlim_percentage: float = 10.0,
         connect_dots: bool = True,
+        
     ):
     """Creates a single subplot with optional error bars for accuracy values.
 
@@ -30,6 +32,7 @@ def create_subplot(
     has_error_bars: A boolean indicating whether to plot error bars.
     color: The color for points and connecting lines (e.g., 'b' for blue).
     """
+    # some weird bug last entry in accuracy_values is all previous entries 
     new_accuracy_values = []
     for acc in accuracy_values:
         try:
@@ -47,11 +50,6 @@ def create_subplot(
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
-    # Set the x-axis limits to be slightly larger than the range of FLOPs values.
-    #ax.set_xlim(np.min(flops) * 0.9, np.max(flops) * 1.1)
-
-    y_min, y_max = float('inf'), float('-inf')  # Initialize y-axis limits
-
     handle = None
     for i, acc in enumerate(accuracy_values):
         if len(acc) > 1 and has_error_bars:
@@ -62,15 +60,8 @@ def create_subplot(
             accuracy_stddev = np.std(acc)
             ax.errorbar(flops[i], accuracy_mean, yerr=accuracy_stddev, fmt='o-', markersize=5, color=color)
 
-            # Update y-axis limits based on the current data point with error bars
-            y_min = min(y_min, accuracy_mean - accuracy_stddev)
-            y_max = max(y_max, accuracy_mean + accuracy_stddev)
         else:
             ax.plot(flops[i], acc, 'o-', markersize=5, color=color)
-
-            # Update y-axis limits based on the current data point without error bars
-            y_min = min(y_min, min(acc))
-            y_max = max(y_max, max(acc))
 
         # Connect the current data point to the previous one with a line
         if i > 0 and connect_dots:
@@ -83,25 +74,144 @@ def create_subplot(
                 label=labels[i] if labels else None
             )
 
-    # Set the y-axis limits based on the overall range of accuracy values
-    ylim_min = max(0, y_min - (ylim_percentage / 100) * (y_max - y_min)) # Set the lower limit to 0
-    ylim_max = min(100, y_max + (ylim_percentage / 100) * (y_max - y_min)) # Set the upper limit to 100
-    xlim_min = max(0, np.min(flops) - (xlim_percentage / 100) * (np.max(flops) - np.min(flops))) # Set the lower limit to 0
-    xlim_max = np.max(flops) + (xlim_percentage / 100) * (np.max(flops) - np.min(flops))
-    #ax.set_ylim(ylim_min, ylim_max)
-    #ax.set_xlim(xlim_min, xlim_max)
-
     # Label individual points
     if labels is not None:
+        standard_fig_size = (6.4, 4.8)
+        # adjust the label location based on the fig size
         xloc_org = 15
+        yloc_org = -15
+
+
         for label, x, y in zip(labels, flops, [np.mean(acc) for acc in accuracy_values]):
             xloc = xloc_org + (len(labels[0]))
             if label == labels[-1]:
                 # set the label of the last to be on the left instead of right
                 xloc *= -1
-            ax.annotate(label, (x, y), textcoords="offset points", xytext=(xloc, -15), ha='center')
+
+            xloc = xloc / standard_fig_size[0] * fig_size[0]
+            yloc = yloc_org / standard_fig_size[1] * fig_size[1]
+            ax.annotate(label, (x, y), textcoords="offset points", xytext=(xloc, yloc), ha='center')
 
     return handle
+
+
+def multipath_individual_scaling_plot(
+        flops_lists: List[List[float]], 
+        accuracy_values_lists: List[List[List[float]]], 
+        colors: List[str], 
+        linestyles: List[str],
+        xlabel: str = "FLOPs", 
+        ylabel: str = "Weigthed Validation Accuracy",
+        labels_lists: List[List[str]] = None,
+        legend_labels: List[str] = None,
+        ax=None,
+        has_error_bars=True,
+        connect_dots: bool = True,
+        fig_size: tuple = (6.4, 4.8),
+        save_name: str = None,
+        save_folder_name: str = None,
+    ):
+    """
+    Creates a single plot with the possibility of multiple paths.
+    Serves as a wrapper for single_path_individual_scaling_plot.
+    """
+
+    assert isinstance(colors, list), "colors must be a list"
+    assert isinstance(linestyles, list), "linestyles must be a list"
+    assert len(flops_lists) == len(accuracy_values_lists), "flops_lists and accuracy_values_lists must have the same length"
+    assert len(flops_lists) <= len(colors), "colors must be at least as long as flops_lists"
+    assert len(flops_lists) <= len(linestyles), "linestyles must be at least as long as flops_lists"
+    
+
+    if ax is None:
+        fig, ax = plt.subplots(figsize=fig_size)
+    else:
+        fig = None
+
+    legend_handles = []
+    for i, (flops, accuracy_values) in enumerate(
+            zip(flops_lists, accuracy_values_lists)
+        ):
+        labels = get_list(labels_lists, i, None)
+        color = colors[i]
+        linestyle = linestyles[i]
+
+        assert len(flops) == len(accuracy_values), "flops and accuracy_values must have the same length"
+
+        handle = single_path_individual_scaling_plot(
+            ax=ax,
+            flops=flops,
+            accuracy_values=accuracy_values,
+            labels=labels,
+            xlabel=xlabel,
+            ylabel=ylabel,
+            has_error_bars=has_error_bars,
+            color=color,
+            linestyle=linestyle,
+            connect_dots=connect_dots,
+            fig_size=fig_size,
+        )
+        legend_handles.append(handle)
+
+    if legend_labels is not None:
+        ax.legend(legend_handles, legend_labels, loc='best')
+
+
+    if fig is not None:
+        save_plot(
+            figure=fig,
+            name=save_name,
+            folder_name=save_folder_name,
+        )
+
+
+def combined_individual_scaling(
+        combined_plot_dict: dict, 
+        xlabel: str, 
+        ylabel: str,
+        save_folder_name: str, 
+        sharey: bool = False,
+    ):
+    """Creates all three subplots.
+
+    Args:
+    flops: A list of FLOPs values.
+    accuracy: A list of accuracy values.
+    point_labels: A list of labels for the points.
+    xlabel: A list of x-axis labels.
+    ylabel: A list of y-axis labels.
+    """
+    fig_size = (9, 3)
+    #fig_size = get_fig_size(fig_size)
+
+    # Create a figure object.
+    fig = plt.figure(figsize=fig_size)
+
+    # Create a subplot grid.
+    axarr = fig.subplots(1, 3, sharey=sharey)
+
+    # Create each subplot.
+    for i, (exp_name, values) in enumerate(combined_plot_dict.items()):
+        if i != 0:
+            ylabel = ""
+
+        multipath_individual_scaling_plot(
+            ax=axarr[i],
+            xlabel=xlabel,
+            ylabel=ylabel,
+            fig_size=fig_size,
+            **values
+        )
+
+    fig.tight_layout()
+
+    save_plot(
+        figure=fig,
+        name="combined_width_depth_res_scaling",
+        folder_name=save_folder_name,
+    )
+
+    return fig
 
 def get_list(
         list_object: List, 
@@ -118,121 +228,11 @@ def get_list(
 
     return result
 
-def create_multiple_subplots(
-        flops_lists: List[List[float]], 
-        accuracy_values_lists: List[List[List[float]]], 
-        colors: List[str], 
-        linestyles: List[str],
-        xlabel: str = "FLOPs", 
-        ylabel: str = "Weigthed Validation Accuracy",
-        labels_lists: List[List[str]] = None,
-        legend_labels: List[str] = None,
-        ax=None,
-        has_error_bars=True,
-        ylim_percentage: float = 10.0,
-        xlim_percentage: float = 10.0,
-        connect_dots: bool = True
-    ):
-    """Creates a single plot with the possibility of multiple paths."""
-
-    assert isinstance(colors, list), "colors must be a list"
-    assert isinstance(linestyles, list), "linestyles must be a list"
-    assert len(flops_lists) == len(accuracy_values_lists), "flops_lists and accuracy_values_lists must have the same length"
-    assert len(flops_lists) <= len(colors), "colors must be at least as long as flops_lists"
-    assert len(flops_lists) <= len(linestyles), "linestyles must be at least as long as flops_lists"
-    
-
-    if ax is None:
-        fig, ax = plt.subplots()
-
-    legend_handles = []
-    for i, (flops, accuracy_values) in enumerate(
-            zip(flops_lists, accuracy_values_lists)
-        ):
-        labels = get_list(labels_lists, i, None)
-        color = colors[i]
-        linestyle = linestyles[i]
-
-        #print("flops", flops, len(flops))
-        #print("accuracy_values", accuracy_values, len(accuracy_values))
-        if labels is not None:
-            pass
-            #print("labels", labels, len(labels))
-
-        assert len(flops) == len(accuracy_values), "flops and accuracy_values must have the same length"
-
-
-        handle = create_subplot(
-            ax=ax,
-            flops=flops,
-            accuracy_values=accuracy_values,
-            labels=labels,
-            xlabel=xlabel,
-            ylabel=ylabel,
-            has_error_bars=has_error_bars,
-            color=color,
-            linestyle=linestyle,
-            ylim_percentage=ylim_percentage,
-            xlim_percentage=xlim_percentage,
-            connect_dots=connect_dots,
-        )
-        legend_handles.append(handle)
-
-    if legend_labels is not None:
-        ax.legend(legend_handles, legend_labels, loc='best')
-
-    
-
-def plot_scaling_individual(
-        flops: List[float], 
-        accuracy: List[float], 
-        point_labels: List[str],  
-        xlabel: str = "GFLOPs", 
-        ylabel: str = "ISIC 2019 Valid Acc (%)",
-        sharey: bool = False,
-    ):
-    """Creates all three subplots.
-
-    Args:
-    flops: A list of FLOPs values.
-    accuracy: A list of accuracy values.
-    point_labels: A list of labels for the points.
-    xlabel: A list of x-axis labels.
-    ylabel: A list of y-axis labels.
-    """
-    # Create a figure object.
-    fig = plt.figure(figsize=(9, 3))
-
-    # Create a subplot grid.
-    axarr = fig.subplots(1, 3, sharey=sharey)
-
-    # Create each subplot.
-    for i in range(3):
-        if i != 0:
-            ylabel = ""
-
-        create_subplot(
-            ax=axarr[i],
-            flops=flops[i],
-            accuracy_values=accuracy[i],
-            labels=point_labels[i],
-            xlabel=xlabel,
-            ylabel=ylabel,
-            connect_dots=True,
-        )
-
-    # share y-axis
-
-    # Adjust the subplot spacing.
-    fig.tight_layout()
-
-    return fig
-
 def plot_scaling_compound_baseline(
         flops_lists: List[List[float]],
         accuracy_lists: List[List[float]],
         xlabel: str = "GFLOPs",
-        ylabel: str = "ISIC 2019 Valid Acc (%)",
+        ylabel: str = "ISIC 2019 Valid Acc Weighted (%)",
         legend_labels: List[str] = None
     ):
     fig, ax = plt.subplots(figsize=(6, 4))  # Adjust the figure size as needed
