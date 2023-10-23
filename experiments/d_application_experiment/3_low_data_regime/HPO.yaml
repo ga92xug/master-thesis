@@ -40,7 +40,7 @@ HPOs:
 dataset:
   global_overrides:
     wandb.project: SL-ray
-    wandb.mode: disabled
+    wandb.mode: online
     training: ${dataset.name}-training 
     training.dataset.resolution: 128
     other.should_test: True
@@ -48,6 +48,8 @@ dataset:
 
     training.dataset.reduction_factor: 0.5
     training.earlystop.baseline: null
+    #training.earlystop.patience: 1
+    #training.epochs: 1
 
     
     

@@ -32,6 +32,8 @@ class Experiment:
         self.is_nas = cfg.NAS.trial_index != -1
         self.wandb_run = utils.init_wandb(cfg)
         self.cfg = cfg
+        # the same process can run multiple experiments -> reset all instances
+        SingletonInt.reset_all()
         self._iteration = SingletonInt("iteration", 0)
         self.epoch = SingletonInt("epoch", 0)
         self.global_step = SingletonInt("global_step", 0)  
@@ -336,15 +338,15 @@ def run_experiment(cfg: DictConfig) -> None:
     exp = Experiment(cfg)
     exp.iteration_over_epochs()
     print(f"Experiment finished at {datetime.datetime.now()}")
-
     # clean up the experiment
+    # Reset all instances
+    del exp
+    
     try:
         wandb.finish()
     except:
         pass
-    del exp
-    # Reset all instances
-    SingletonInt.reset_all()
+    
 
 @hydra.main(config_path="conf", config_name="config", version_base="1.2")
 def hydra_main_init(cfg: DictConfig) -> None:

@@ -4,7 +4,7 @@ import numpy as np
 
 import sys
 import os
-from pandas import value_counts
+#from pandas import value_counts
 
 sys.path.append(f"{os.getcwd()}")
 from training import utils
@@ -28,7 +28,9 @@ def get_stats(dataloader):
 
     labels = np.concatenate(list_labels, axis=0)
     print("labels", labels.shape)
-    print("value_counts", value_counts(labels))
+    values, counts = np.unique(labels, return_counts=True)
+    print(f"values: {values}, counts: {counts}")
+    #print("value_counts", value_counts(labels))
 
     #get_normalize_weights(labels)
 
@@ -44,7 +46,7 @@ def main(cfg: DictConfig) -> None:
 
     #print(cfg)
 
-    dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset)
+    dataloaders, normalize_weights = hydra.utils.call(cfg.training.dataset, verbose=3)
 
     train_dataloader = dataloaders["train"]
     valid_dataloader = dataloaders["valid"]

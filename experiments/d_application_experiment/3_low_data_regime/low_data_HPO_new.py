@@ -83,7 +83,7 @@ def iterate_HPOs(cfg: DictConfig):
 
     for model_name, hpo in hpo_s.items():
         # skip if done
-        if hpo.get("done", False) or model_name != "efficientnet":
+        if hpo.get("done", False):
             continue
         
         # name
@@ -91,7 +91,7 @@ def iterate_HPOs(cfg: DictConfig):
 
         # hydra overrides
         model_overrides = hpo.get("model_overrides", {})
-        hydra_overrides = {**deepcopy(global_overrides), **model_overrides}
+        hydra_overrides = {**model_overrides, **deepcopy(global_overrides)}
         
         # search space
         search_space, additional_overrides = get_search_space(
