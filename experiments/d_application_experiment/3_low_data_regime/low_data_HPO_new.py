@@ -9,9 +9,12 @@ sys.path.append(f"{os.getcwd()}")
 from experiments.d_application_experiment.ray_HPO import run_HPO
 
 def epoch_based_hydra_overrides(epochs: int, hydra_overrides: Dict) -> Dict:
+    debug = hydra_overrides.pop("debug", False)
+    if debug:
+        return 
+
     hydra_overrides["training.epochs"] = epochs
     hydra_overrides["training.earlystop.patience"] = int(epochs * 0.2) # 20% of epochs
-    return hydra_overrides
 
 def epochs_based_on_initial_and_reduction_factor(initial_epochs: int, reduction_factor: int) -> int:
     """
@@ -79,11 +82,14 @@ def iterate_HPOs(cfg: DictConfig):
     optimize_for = cfg.dataset.BO_optimizer.metric
     optimize_mode = cfg.dataset.BO_optimizer.goal
 
-    epochs = epochs_based_on_initial_and_reduction_factor(cfg.dataset.initial_epochs, cfg.dataset.reduction_factor)
+    epochs = epochs_based_on_initial_and_reduction_factor(cfg.dataset.initial_epochs, cfg.dataset.global_overrides["training.dataset.reduction_factor"])
 
     for model_name, hpo in hpo_s.items():
         # skip if done
-        if hpo.get("done", False):
+        # hpo.get("done", False) and
+        if hpo.get("eval_only", False):
+            pass
+        elif hpo.get("done", False):
             continue
         
         # name
@@ -118,12 +124,13 @@ def iterate_HPOs(cfg: DictConfig):
             num_trials=num_trials,
             restore=hpo.get("restore", False),
             debug=False,
+            only_eval=hpo.get("eval_only", False),
         )
-
 
 
 @hydra.main(config_path=".", config_name="HPO", version_base="1.2")
 def hydra_main(cfg: DictConfig) -> None:
+    print(cfg)
     iterate_HPOs(cfg)
 
 

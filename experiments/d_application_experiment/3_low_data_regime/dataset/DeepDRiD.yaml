@@ -1,7 +1,6 @@
 name: DeepDRiD
 
 initial_epochs: 100
-reduction_factor: 0.5
 
 
 BO_optimizer:

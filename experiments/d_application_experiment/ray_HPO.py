@@ -1,3 +1,5 @@
+from typing import Dict
+import hydra
 import numpy as np
 import ray
 from ray import train, tune
@@ -6,6 +8,7 @@ from ray.tune.stopper import ExperimentPlateauStopper
 from ray.train import RunConfig
 from ray.tune.schedulers import ASHAScheduler
 from ray.tune.search.ax import AxSearch
+from ray.tune.search import ConcurrencyLimiter
 
 import os
 import sys
@@ -24,16 +27,19 @@ def run_HPO(
         grace_period: int,
         num_trials: int,
         restore: bool = False,
+        experiment_level_early_stop: bool = False,
         debug: bool = False,
+        only_eval: bool = False,
     ):
     print("Search space:", search_space)
     print("Additional overrides:", additional_overrides)
 
-    trainable_with_resources = tune.with_resources(hydra_initialize_init, {"gpu": 1})
+    trainable_with_resources = tune.with_resources(hydra_initialize_init, {"gpu": 1, "cpu": 32})
     trainable_with_parameters = tune.with_parameters(trainable_with_resources, 
         additional_overrides=additional_overrides)
 
     algo = AxSearch()
+    algo = ConcurrencyLimiter(algo, max_concurrent=1)
     asha_scheduler = ASHAScheduler(grace_period=grace_period)
 
     tune_config=tune.TuneConfig(
@@ -44,25 +50,29 @@ def run_HPO(
         num_samples=num_trials,
     )
 
-    #stopper = HPOEarlyStopper(
-    #    metric=optimize_for, 
-    #    mode=optimize_mode, 
-    #    patience=5, 
-    #    min_delta=0.001,
-    #    min_num_trials=max(num_trials//2, 10)
-    #)
+    stopper = None
+    if experiment_level_early_stop:
+        stopper = HPOEarlyStopper(
+            metric=optimize_for, 
+            mode=optimize_mode, 
+            patience=5, 
+            min_delta=0.001,
+            min_num_trials=max(num_trials//2, 10)
+        )
 
     run_config=train.RunConfig(
         name=name, 
-        #stop=stopper
+        stop=stopper,
+        log_to_file=True,
     )
     
-    if restore:
+    if restore or only_eval:
         tuner = tune.Tuner.restore(
-            os.path.expanduser(f"~/ray_results/{name}"),
+            path=os.path.expanduser(f"~/ray_results/{name}"),
             trainable=trainable_with_parameters,
             resume_unfinished=True,
-            resume_errored=True,
+            restart_errored=True,
+            #resume_errored=True,
         )
     else:
         # remove old results
@@ -79,7 +89,25 @@ def run_HPO(
         print("Debugging...")
         return
 
-    results = tuner.fit()
-    print("Best hyperparameters found were: ", results.get_best_result().config)
-    
+    if only_eval:
+        print("Only evaluating...")
+        results = tuner.get_results()
+    else:
+        results = tuner.fit()
 
+    best_config = results.get_best_result().config
+    print("Best hyperparameters found were: ", results.get_best_result().config)
+    run_best_HP_with_seeds(best_config, additional_overrides)
+
+    
+def run_best_HP_with_seeds(best_HPs: Dict, additional_overrides: Dict):
+    from hydra.core.global_hydra import GlobalHydra
+    GlobalHydra.instance().clear()
+    # remove ray from additional_overrides
+    additional_overrides.pop("ray", None)
+    additional_overrides["wandb.tags"] = ["low_data"]
+    additional_overrides["wandb.project"] = "SL-Application"
+
+    for seed in range(5):
+        additional_overrides["other.seed"] = seed
+        hydra_initialize_init(best_HPs, additional_overrides)

@@ -85,15 +85,15 @@ def init_wandb(cfg: DictConfig):
             "tags": cfg.wandb.tags,
         }
         
-        if cfg.ray:
+        if cfg.ray and False:
             wandb_run = setup_wandb(rank_zero_only=False, **kwargs_wandb)
         else:
             wandb_run = wandb.init(project=cfg.wandb.project, config=wandb_config, \
             mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
 
             # merge wandb config with cfg. Sweep bug https://github.com/wandb/wandb/issues/4686
-            cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
-            wandb_update_config(cfg, wandb_run)
+            #cfg = OmegaConf.merge(cfg, OmegaConf.create(dict(wandb.config)))
+            #wandb_update_config(cfg, wandb_run)
 
         wandb_run.log_code(".")
     else:

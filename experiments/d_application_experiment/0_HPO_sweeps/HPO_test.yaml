@@ -16,10 +16,10 @@ optimizer:
 
 additional_params:
   wandb.project: SL-ray
-  wandb.mode: disabled
+  wandb.mode: online
   training: DeepDRiD-training 
   other.should_test: True
   other.verbose: 0
   training.dataset.resolution: 128
   other.debug: False
-  #training.epochs: 2
+  training.epochs: 2
