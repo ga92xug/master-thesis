@@ -25,6 +25,8 @@ def get_stats(dataloader):
     std = np.std(images, axis=(0, 2, 3)).tolist()
     print("mean", mean)
     print("std", std)
+    print("images min", np.min(images))
+    print("images max", np.max(images))
 
     labels = np.concatenate(list_labels, axis=0)
     print("labels", labels.shape)
@@ -41,8 +43,8 @@ def main(cfg: DictConfig) -> None:
 
     if hasattr(cfg, 'mean_std_test'):
         print("mean_std_test")
-        cfg.training.dataset.channel_wise_mean_images = None
-        cfg.training.dataset.channel_wise_std_images = None
+        cfg.training.dataset.channel_wise_mean_images = [0.3279293179512024, 0.23094454407691956, 0.16257740557193756] # None
+        cfg.training.dataset.channel_wise_std_images = [0.3099023997783661, 0.23886235058307648, 0.18683114647865295] # None
 
     #print(cfg)
 

@@ -12,7 +12,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 from networks.util import get_param_count
-from training.logger import Custom_Logger
+from training.logger import Custom_Logger, SingletonInt
 
 def get_model(
         cfg: DictConfig, 
@@ -128,12 +128,16 @@ def test_instantiate(cfg: DictConfig):
 
     logger = Custom_Logger(
         cfg=cfg, 
+        epoch=SingletonInt("epoch",0),
+        global_step=SingletonInt("global_step",0),
         is_nas=is_nas, 
         ray=cfg.ray,
         max_epochs=cfg.training.epochs, 
         wandb_run=disabled_wandb_run,
         verbose=cfg.other.verbose,
     )
+    SingletonInt.reset_all()
+
 
     # model
     model, stats = get_model(
