@@ -266,6 +266,7 @@ def produce_all_scaling_plots(
             xlabel=xlabel,
             ylabel=ylabel,
             save_folder_name=save_folder_name,
+            sharey=True,
         )
 
 

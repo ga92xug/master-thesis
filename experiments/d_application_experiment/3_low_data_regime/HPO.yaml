@@ -4,7 +4,7 @@ defaults:
 
 HPOs: 
   eq_nasnet:
-    done: False
+    done: True
     restore: True
     eval_only: False
     dropout_rate: True          # if not defined False

@@ -10,7 +10,7 @@ def plot_init(individual_location:str, override: bool = False):
     """
     overrides = []
     if override:
-        overrides = [f"experiments={individual_location.replace('/', '_')[:-1]} "]
+        overrides = [f"experiments={individual_location.replace('/', '_')[:-1]}"]
 
     with initialize(config_path="conf", version_base="1.2"):
         cfg = compose(config_name="config", overrides=overrides)
@@ -61,7 +61,7 @@ def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:
     raise ValueError(f"Run {run_id} not found in any of the projects.")
 
 def download_run(
-        run: wandb.apis.public.Run,
+        run: wandb.apis.public.Run = None,
         entity: str = None, 
         projects: list = None, 
         run_id: str = None,

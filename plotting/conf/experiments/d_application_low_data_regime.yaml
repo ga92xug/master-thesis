@@ -1,0 +1,34 @@
+experiments:
+  DeepDRiD:
+    eq_nasnet:
+      labels_run_ids:
+        reduction_factor=1: [65n49gve, 33qmd1m1, 268wimi9, iggn1id7, nbgoambk]
+        reduction_factor=0.5: []
+        reduction_factor=0.3: []
+
+    vit_pre:
+      labels_run_ids:
+        reduction_factor=1: [wc7m8exw, vvm3o7s0, vg75v1k3, 1xj2pfky, mjp90nq1]
+        reduction_factor=0.5: []
+        reduction_factor=0.3: []
+
+    vit:
+      labels_run_ids:
+        reduction_factor=1: [eu529vl1, uz1chiuk, i7p4liwg, qnz99pnm, pk0jl131]
+        reduction_factor=0.5: []
+        reduction_factor=0.3: []
+
+    efficientnet_pre:
+      labels_run_ids:
+        reduction_factor=1: [itk9hli4, x2z8a2vi, dhxq5b31, yk6xy1qo, znqjfuv0]
+        reduction_factor=0.5: [15slhgvb, v8067lg2, hatxy2u6, tvwe899i, 7piiwyb0] # checked
+        reduction_factor=0.3: [369cltam, c93oyiyf, 6tp6bnsi, 83ebf4xj, h3ddedcl]
+
+    efficientnet:
+      labels_run_ids:
+        reduction_factor=1: [ocxaejil, vkn30oyq, x5gc4zn0, 51dcekuw, ft3ldv6c]
+        reduction_factor=0.5: []
+        reduction_factor=0.3: [3znq11t6, 7exul6l9, rfel2hlm, envq0s2i, r1g7jzsx]
+
+
+  #Blood:

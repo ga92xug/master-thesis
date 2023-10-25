@@ -195,11 +195,12 @@ def combined_individual_scaling(
         if i != 0:
             ylabel = ""
 
+        fig_size_individual = (fig_size[0] / 3, fig_size[1])
         multipath_individual_scaling_plot(
             ax=axarr[i],
             xlabel=xlabel,
             ylabel=ylabel,
-            fig_size=fig_size,
+            fig_size=fig_size_individual,
             **values
         )
 

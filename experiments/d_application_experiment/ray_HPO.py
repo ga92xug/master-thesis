@@ -39,7 +39,7 @@ def run_HPO(
         additional_overrides=additional_overrides)
 
     algo = AxSearch()
-    algo = ConcurrencyLimiter(algo, max_concurrent=1)
+    algo = ConcurrencyLimiter(algo, max_concurrent=2)
     asha_scheduler = ASHAScheduler(grace_period=grace_period)
 
     tune_config=tune.TuneConfig(
