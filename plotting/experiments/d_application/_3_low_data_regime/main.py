@@ -76,8 +76,6 @@ def main():
             cfg.experiments, resolve=True, throw_on_missing=True)["experiments"]
     
     for name, model2label_run_ids_dict in experiments_2_run_ids.items():
-        #if name == "mnist_rot":
-        #    continue
         print("name", name)
         
         plot(
