@@ -8,13 +8,6 @@ import sys
 sys.path.append(f"{os.getcwd()}")
 from experiments.d_application_experiment.ray_HPO import run_HPO
 
-def epoch_based_hydra_overrides(epochs: int, hydra_overrides: Dict) -> Dict:
-    debug = hydra_overrides.pop("debug", False)
-    if debug:
-        return 
-
-    hydra_overrides["training.epochs"] = epochs
-    hydra_overrides["training.earlystop.patience"] = int(epochs * 0.2) # 20% of epochs
 
 def epochs_based_on_initial_and_reduction_factor(
         initial_epochs: int, 
@@ -58,8 +51,9 @@ def get_search_space(
         search_space["model.dropout_rate"] = tune.uniform(0.5, 0.7)
 
     # Not searched for only trainings settings
-    if not debug:
-        epoch_based_hydra_overrides(epochs, hydra_overrides)
+    #if not debug:
+    hydra_overrides["training.epochs"] = epochs
+    hydra_overrides["training.earlystop.patience"] = int(epochs * 0.2) # 20% of epochs
     hydra_overrides["ray"] = optimize_for
     hydra_overrides["wandb.tags"] = [name]
 
@@ -87,13 +81,11 @@ def iterate_HPOs(cfg: DictConfig):
     optimize_for = cfg.dataset.BO_optimizer.metric
     optimize_mode = cfg.dataset.BO_optimizer.goal
 
-    if cfg.debug:
-        epochs = 2
-    else:
-        epochs = epochs_based_on_initial_and_reduction_factor(
-            initial_epochs=cfg.dataset.initial_epochs, 
-            reduction_factor=cfg.dataset.global_overrides["training.dataset.reduction_factor"]
-        )
+
+    epochs = epochs_based_on_initial_and_reduction_factor(
+        initial_epochs=cfg.dataset.initial_epochs, 
+        reduction_factor=cfg.dataset.global_overrides["training.dataset.reduction_factor"]
+    )
 
     for model_name, hpo in hpo_s.items():
         # skip if done
@@ -144,6 +136,11 @@ def iterate_HPOs(cfg: DictConfig):
 @hydra.main(config_path=".", config_name="HPO", version_base="1.2")
 def hydra_main(cfg: DictConfig) -> None:
     print(cfg)
+    if cfg.debug:
+        print(f"Debug level {cfg.debug}")
+        global_overrides = cfg.dataset.global_overrides 
+        global_overrides["wandb.mode"] = "disabled"
+        cfg.dataset.initial_epochs = 2   
     iterate_HPOs(cfg)
 
 

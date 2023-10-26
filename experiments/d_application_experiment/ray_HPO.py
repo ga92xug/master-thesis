@@ -29,7 +29,7 @@ def run_HPO(
         epochs: int,
         restore: bool = False,
         experiment_level_early_stop: bool = False,
-        debug: bool = False,
+        debug: int = 0,
         only_eval: bool = False,
     ):
     print("Search space:", search_space)
@@ -87,8 +87,8 @@ def run_HPO(
             run_config=run_config,
         )
     
-    if debug:
-        print("Debugging...")
+    if debug > 1:
+        print(f"No training with debug level {debug} > 1.")
         return
 
     if only_eval:
@@ -97,8 +97,13 @@ def run_HPO(
     else:
         results = tuner.fit()
 
+
     best_config = results.get_best_result().config
     print("Best hyperparameters found were: ", results.get_best_result().config)
+    if debug > 0:
+        print("No final evaluation with debug level", debug)
+        return
+    
     run_best_HP_with_seeds(best_config, additional_overrides)
 
     

@@ -19,3 +19,13 @@ scheduler:
   factor: 0.5
   patience: 10
   verbose: True
+
+
+earlystop:
+  stop: True          
+  monitor: valid.loss
+  mode: min
+  patience: 15
+  min_delta: 0.001
+  store_in_memory: True
+  baseline: null # 0.70 
