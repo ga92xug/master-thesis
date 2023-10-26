@@ -55,6 +55,7 @@ def plot(
         metrics_dict=model2data,
         metric_name=metric,
         fig_size=fig_size,
+        errorbar=True,
         **kwargs,
     )
 

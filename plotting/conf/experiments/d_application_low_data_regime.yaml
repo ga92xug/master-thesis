@@ -3,8 +3,11 @@ experiments:
     eq_nasnet:
       labels_run_ids:
         reduction_factor=1: [65n49gve, 33qmd1m1, 268wimi9, iggn1id7, nbgoambk]
-        reduction_factor=0.5: []
-        reduction_factor=0.3: []
+        # vorläufige Ergebnisse
+        reduction_factor=0.5: [476bq7yt, yjkre49p, 2rurgl01]
+        reduction_factor=0.3: [krm01t2z, rrqlgjmx, oufqp23t]
+        reduction_factor=0.1: [6m11gq8q, hagtttpz, 9j96o3cf]
+        reduction_factor=0.05: [d7oklfhk, bs6z56hn, teacdajs]
 
     vit_pre:
       labels_run_ids:
@@ -16,7 +19,7 @@ experiments:
       labels_run_ids:
         reduction_factor=1: [eu529vl1, uz1chiuk, i7p4liwg, qnz99pnm, pk0jl131]
         reduction_factor=0.5: []
-        reduction_factor=0.3: []
+        reduction_factor=0.3: [yo35d1nk, fv5b1d4q, snju96b9, okpr4los, g7h3jvxc]
 
     efficientnet_pre:
       labels_run_ids:

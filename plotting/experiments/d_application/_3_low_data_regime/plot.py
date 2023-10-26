@@ -44,6 +44,8 @@ def plot_metric_vs_reduction(
     plt.figure(figsize=fig_size)
     custom_lines = []
     reduction_points_longest = None
+
+    #print("metrics_dict", metrics_dict)
     
     for model, values in metrics_dict.items():
         metric_values = values.values()
@@ -69,7 +71,7 @@ def plot_metric_vs_reduction(
     plt.xlabel('Dataset Size (%)')
     plt.ylabel(f'{metric_name}')
     plt.title(f'{metric_name} vs. Dataset Size')
-    plt.xticks(reduction_points_longest)
+    #plt.xticks(reduction_points_longest)
     plt.grid(True)
     
     plt.legend(handles=custom_lines, title='Models', labels=list(metrics_dict.keys()))

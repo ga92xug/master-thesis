@@ -16,7 +16,10 @@ def epoch_based_hydra_overrides(epochs: int, hydra_overrides: Dict) -> Dict:
     hydra_overrides["training.epochs"] = epochs
     hydra_overrides["training.earlystop.patience"] = int(epochs * 0.2) # 20% of epochs
 
-def epochs_based_on_initial_and_reduction_factor(initial_epochs: int, reduction_factor: int) -> int:
+def epochs_based_on_initial_and_reduction_factor(
+        initial_epochs: int, 
+        reduction_factor: int,
+    ) -> int:
     """
     Calculates the number of training epochs for low data regime.
     initial_epochs + (initial_epochs * (1/reduction_factor) * 0.25)
@@ -41,6 +44,7 @@ def get_search_space(
         epochs: int,
         hydra_overrides: Dict, 
         dropout: bool = False,
+        debug: bool = False,
     ) -> Dict:
 
     search_space = {
@@ -54,7 +58,8 @@ def get_search_space(
         search_space["model.dropout_rate"] = tune.uniform(0.5, 0.7)
 
     # Not searched for only trainings settings
-    epoch_based_hydra_overrides(epochs, hydra_overrides)
+    if not debug:
+        epoch_based_hydra_overrides(epochs, hydra_overrides)
     hydra_overrides["ray"] = optimize_for
     hydra_overrides["wandb.tags"] = [name]
 
@@ -82,7 +87,13 @@ def iterate_HPOs(cfg: DictConfig):
     optimize_for = cfg.dataset.BO_optimizer.metric
     optimize_mode = cfg.dataset.BO_optimizer.goal
 
-    epochs = epochs_based_on_initial_and_reduction_factor(cfg.dataset.initial_epochs, cfg.dataset.global_overrides["training.dataset.reduction_factor"])
+    if cfg.debug:
+        epochs = 2
+    else:
+        epochs = epochs_based_on_initial_and_reduction_factor(
+            initial_epochs=cfg.dataset.initial_epochs, 
+            reduction_factor=cfg.dataset.global_overrides["training.dataset.reduction_factor"]
+        )
 
     for model_name, hpo in hpo_s.items():
         # skip if done
@@ -106,6 +117,7 @@ def iterate_HPOs(cfg: DictConfig):
             epochs=epochs,
             hydra_overrides=hydra_overrides,
             dropout=hpo.get("dropout_rate", False),
+            debug=cfg.debug,
         )
 
         # optimization HPs
@@ -123,7 +135,7 @@ def iterate_HPOs(cfg: DictConfig):
             grace_period=grace_period,
             num_trials=num_trials,
             restore=hpo.get("restore", False),
-            debug=False,
+            debug=cfg.debug,
             only_eval=hpo.get("eval_only", False),
         )
 

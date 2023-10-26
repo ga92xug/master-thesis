@@ -1,5 +1,7 @@
 import torch
 from typing import Any, Optional
+import warnings
+warnings.filterwarnings("ignore", message="pytorch_quantization module")
 
 import os
 import sys
