@@ -134,6 +134,7 @@ def iterate_HPOs(cfg: DictConfig):
             optimize_mode=optimize_mode,
             grace_period=grace_period,
             num_trials=num_trials,
+            epochs=epochs,
             restore=hpo.get("restore", False),
             debug=cfg.debug,
             only_eval=hpo.get("eval_only", False),

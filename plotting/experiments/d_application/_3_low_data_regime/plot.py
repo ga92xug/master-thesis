@@ -45,11 +45,12 @@ def plot_metric_vs_reduction(
     custom_lines = []
     reduction_points_longest = None
 
-    #print("metrics_dict", metrics_dict)
+    print("metrics_dict", metrics_dict)
     
     for model, values in metrics_dict.items():
         metric_values = values.values()
         reduction_points = list(values.keys())
+        reduction_points = [float(reduction_point) for reduction_point in reduction_points]
 
         if reduction_points_longest is None:
             reduction_points_longest = reduction_points
@@ -62,9 +63,11 @@ def plot_metric_vs_reduction(
         if errorbar:
             errorbar_container = plt.errorbar(reduction_points, means, yerr=stds, label=model, marker='o', capsize=5, linestyle='-')
             line_color = errorbar_container[0].get_color()
+            #plt.scatter(reduction_points, means, label=model, marker='o', c=line_color)
         else:
             line, = plt.plot(reduction_points, means, label=model, marker='o', linestyle='-')
             line_color = line.get_color()
+            #plt.scatter(reduction_points, means, label=model, marker='o', c=line_color)
         
         custom_lines.append(Line2D([0], [0], color=line_color, marker='o', markersize=8, linestyle='-', linewidth=2))
     
@@ -72,17 +75,25 @@ def plot_metric_vs_reduction(
     plt.ylabel(f'{metric_name}')
     plt.title(f'{metric_name} vs. Dataset Size')
     #plt.xticks(reduction_points_longest)
+    #plt.xticks(np.array(reduction_points_longest))
+    #plt.xticks(np.array(reduction_points_longest))
+    #plt.xticks(np.arange(0.0, 1.0, 0.2))
     plt.grid(True)
     
     plt.legend(handles=custom_lines, title='Models', labels=list(metrics_dict.keys()))
     
     return plt.gcf()
-    #save_plot(plt, name=f"example_{metric_name}_vs_dataset_size", folder_name='plotting/figures/d_application/3_low_data_regime')
+    
 
 
 def main():
-    reduction_points, metrics_dict = example_data()
-    plot_metric_vs_reduction(reduction_points, metrics_dict, 'Test Accuracy')
+    metrics_dict = {'eq_nasnet': {'1': [73.50000143, 74.25000072, 73.75000119, 73.75000119, 73.25000167], '0.5': [74.75000024, 74.25000072, 72.50000238], '0.3': [74.75000024, 74.25000072, 73.00000191], '0.1': [74.25000072, 74.25000072, 72.25000262], '0.05': [73.25000167, 73.50000143, 72.75000215]}, 'vit_pre': {'1': [74.50000048, 74.25000072, 73.25000167, 74.25000072, 71.74999714], '0.3': [69.74999905, 70.99999785, 68.75      , 72.25000262, 72.75000215]}, 'vit': {'1': [64.74999785, 68.00000072, 69.24999952, 63.49999905, 69.24999952], '0.3': [70.24999857, 69.24999952, 71.74999714, 66.50000215, 64.24999833]}, 'efficientnet_pre': {'1': [71.49999738, 70.99999785, 72.00000286, 73.00000191, 72.25000262], '0.5': [65.24999738, 64.74999785, 66.75000191, 67.50000119, 65.24999738], '0.3': [72.00000286, 70.99999785, 70.99999785, 69.74999905, 70.74999809]}, 'efficientnet': {'1': [70.74999809, 77.49999762, 73.75000119, 74.25000072, 68.99999976], '0.3': [74.75000024, 71.74999714, 71.24999762, 70.99999785, 72.25000262]}}
+
+
+    #reduction_points, metrics_dict = example_data()
+    plot_metric_vs_reduction(metrics_dict, "test.acc")
+    save_plot(plt, name=f"vs_dataset_size", folder_name='plotting/figures/d_application/low_data_regime')
+
     plt.show()
 
 if __name__ == '__main__':

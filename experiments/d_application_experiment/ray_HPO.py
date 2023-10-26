@@ -26,6 +26,7 @@ def run_HPO(
         optimize_mode: str,
         grace_period: int,
         num_trials: int,
+        epochs: int,
         restore: bool = False,
         experiment_level_early_stop: bool = False,
         debug: bool = False,
@@ -34,13 +35,14 @@ def run_HPO(
     print("Search space:", search_space)
     print("Additional overrides:", additional_overrides)
 
-    trainable_with_resources = tune.with_resources(hydra_initialize_init, {"gpu": 1, "cpu": 32})
+    trainable_with_resources = tune.with_resources(hydra_initialize_init, {"gpu": 1, "cpu": 28})
     trainable_with_parameters = tune.with_parameters(trainable_with_resources, 
         additional_overrides=additional_overrides)
 
     algo = AxSearch()
     algo = ConcurrencyLimiter(algo, max_concurrent=2)
-    asha_scheduler = ASHAScheduler(grace_period=grace_period)
+    asha_scheduler = ASHAScheduler(time_attr="training_iteration", 
+                                   max_t=epochs, grace_period=grace_period)
 
     tune_config=tune.TuneConfig(
         metric=optimize_for,

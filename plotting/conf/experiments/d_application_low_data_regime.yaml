@@ -12,8 +12,9 @@ experiments:
     vit_pre:
       labels_run_ids:
         reduction_factor=1: [wc7m8exw, vvm3o7s0, vg75v1k3, 1xj2pfky, mjp90nq1]
+        
         reduction_factor=0.5: []
-        reduction_factor=0.3: []
+        reduction_factor=0.3: [vcz2dh4n, gnttoyid, rme5s8gd, qvcf1hcq, bi4up13l]
 
     vit:
       labels_run_ids:

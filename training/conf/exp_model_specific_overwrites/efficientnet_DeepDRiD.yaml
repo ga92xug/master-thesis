@@ -14,8 +14,9 @@ training:
     weight_decay: 0.00000265302216705901
 
   scheduler: # not used -> implement None scheduler
-    patience: 34
-    factor: 0.25655721920153424
+    _target_: null
+    # patience: 34
+    # factor: 0.25655721920153424
 
   
 
