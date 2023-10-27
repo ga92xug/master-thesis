@@ -177,13 +177,19 @@ def split_with_stratify(
             )
 
     # Val_test
-    train_images, val_test_images, train_labels, val_test_labels = \
-        train_test_split(
-            *[images, labels], 
-            test_size=val_size + test_size, 
-            random_state=random_seed, 
-            stratify=labels
-        )
+    if val_size + test_size > 0.0:
+        train_images, val_test_images, train_labels, val_test_labels = \
+            train_test_split(
+                *[images, labels], 
+                test_size=val_size + test_size, 
+                random_state=random_seed, 
+                stratify=labels
+            )
+    else:
+        train_images = images
+        train_labels = labels
+        val_test_images = None
+        val_test_labels = None
     
     # Test
     if test_size == 0.0:

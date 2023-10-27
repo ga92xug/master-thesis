@@ -166,7 +166,7 @@ def hydra_compose(overrides: List[str]):
         cfg = compose(config_name="config", overrides=overrides)
         model, dataloaders = test_instantiate(cfg)
 
-    return model, dataloaders
+    return model, dataloaders, cfg
 
 if __name__ == "__main__":
     hydra_main()

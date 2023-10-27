@@ -93,6 +93,15 @@ def build_loaders(
                 val_size=val_size,
                 test_size=test_size,
             )
+        else:
+            train_images, train_labels, _, _, _, _ = split_with_stratify(
+                images=train_images, 
+                labels=train_labels, 
+                random_seed=random_seed, 
+                reduction_factor=reduction_factor,
+                val_size=0.0,
+                test_size=0.0,
+            )
     else:
         # Split the data into train, val, and test arrays.
         train_images, train_labels, val_images, val_labels, test_images, test_labels = \

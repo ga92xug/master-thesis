@@ -146,7 +146,7 @@ class Custom_Logger():
         self.cursor = self.conn.cursor()
 
 
-    def print_verbose_check(self, level: str, message: str) -> None:
+    def print_verbose_check(self, level: int, message: str) -> None:
         if self.verbose > level:
             print(message)
 

@@ -20,6 +20,7 @@ from training.model_instantiate import get_model
 from training import utils
 from training.logger import Custom_Logger, SingletonInt
 from training.wrapper_scheduler import Wrapper_Scheduler
+from experiments.d_application_experiment._4_adversarial_attack.adversarial_attack import adversarial_attack
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 class Experiment:
@@ -317,6 +318,18 @@ class Experiment:
         if self.cfg.other.should_test:
             self.global_step += 1
             self.inference("test", confusion=True)
+
+        if self.cfg.training.adversarial_attack:
+            self.global_step += 1
+            adversarial_attack(
+                mode=self.cfg.training.adversarial_attack,
+                model=self.model,
+                dataloader=self._dataloaders["test"],
+                cfg=self.cfg,
+                global_start_time=self._global_start_time,
+                device=self.device,
+                logger=self.logger,
+            )
 
     def time_limit_reached(self):
         if self._time_limit is not None and \

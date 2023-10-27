@@ -13,7 +13,7 @@ from plotting.experiments.d_application._3_low_data_regime.plot import plot_metr
 def restructure_data(data: Dict, metric: str):
     restructured_data = {}
     for label, values in data.items():
-        factor = label.split("=")[-1]
+        factor = label # .split("=")[-1]
 
         metric_list = []
         for run_id, run_data in values.items():
@@ -37,7 +37,7 @@ def plot(
     ):
     model2data = {}
     for model_name, value in model2label_run_ids_dict.items():
-        labels_run_ids = value["labels_run_ids"]
+        labels_run_ids = value # ["labels_run_ids"]
         
         downloaded_data = download_data(
             entity=wandb_entity, 

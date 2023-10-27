@@ -52,7 +52,7 @@ def allowed_usage_time(
 
 def get_out_dataloader(
         out_dataloader: Tuple, 
-        device: str = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        device: torch.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     if len(out_dataloader) == 2:
         x, t = out_dataloader

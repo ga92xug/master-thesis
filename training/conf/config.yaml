@@ -11,6 +11,7 @@ training:
   compile: False
   steps_per_epoch: -1
   accumulate: 1
+  adversarial_attack: False   # Either False or AutoAttack
 
   earlystop:
     stop: False          

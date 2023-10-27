@@ -1,38 +1,187 @@
 experiments:
   DeepDRiD:
-    eq_nasnet:
-      labels_run_ids:
-        reduction_factor=1: [65n49gve, 33qmd1m1, 268wimi9, iggn1id7, nbgoambk]
-        # vorläufige Ergebnisse
-        reduction_factor=0.5: [476bq7yt, yjkre49p, 2rurgl01]
-        reduction_factor=0.3: [krm01t2z, rrqlgjmx, oufqp23t]
-        reduction_factor=0.1: [6m11gq8q, hagtttpz, 9j96o3cf]
-        reduction_factor=0.05: [d7oklfhk, bs6z56hn, teacdajs]
-
-    vit_pre:
-      labels_run_ids:
-        reduction_factor=1: [wc7m8exw, vvm3o7s0, vg75v1k3, 1xj2pfky, mjp90nq1]
-        
-        reduction_factor=0.5: []
-        reduction_factor=0.3: [vcz2dh4n, gnttoyid, rme5s8gd, qvcf1hcq, bi4up13l]
-
-    vit:
-      labels_run_ids:
-        reduction_factor=1: [eu529vl1, uz1chiuk, i7p4liwg, qnz99pnm, pk0jl131]
-        reduction_factor=0.5: []
-        reduction_factor=0.3: [yo35d1nk, fv5b1d4q, snju96b9, okpr4los, g7h3jvxc]
-
-    efficientnet_pre:
-      labels_run_ids:
-        reduction_factor=1: [itk9hli4, x2z8a2vi, dhxq5b31, yk6xy1qo, znqjfuv0]
-        reduction_factor=0.5: [15slhgvb, v8067lg2, hatxy2u6, tvwe899i, 7piiwyb0] # checked
-        reduction_factor=0.3: [369cltam, c93oyiyf, 6tp6bnsi, 83ebf4xj, h3ddedcl]
-
-    efficientnet:
-      labels_run_ids:
-        reduction_factor=1: [ocxaejil, vkn30oyq, x5gc4zn0, 51dcekuw, ft3ldv6c]
-        reduction_factor=0.5: []
-        reduction_factor=0.3: [3znq11t6, 7exul6l9, rfel2hlm, envq0s2i, r1g7jzsx]
-
-
-  #Blood:
+    EfficientNet:
+      0.01:
+      - vwbiaa8r
+      - 41q8qtjq
+      - vguub4qg
+      - yurthk38
+      - 33pojbqc
+      0.05:
+      - 1pm7fh4j
+      - j9qhgieg
+      - 18h2wcje
+      - sjiyd71y
+      - sg4ekocv
+      0.1:
+      - v35o9y16
+      - ge355yml
+      - cycblds7
+      - h3tjgdvf
+      - az2uzp0b
+      0.3:
+      - gazkpmjk
+      - poq8pjhr
+      - 35e29v39
+      - w3zzkpyp
+      - w9vm526q
+      0.5:
+      - yqytt4w6
+      - vi96fwv0
+      - aqtn632z
+      - 5iylan6a
+      - fixl8b67
+      1:
+      - heiy0urg
+      - oqhsmuzr
+      - benfdvtw
+      - 02m0farz
+      - ypolxjy7
+    EfficientNet_pre:
+      0.01:
+      - dvd2lew0
+      - gkwr1e6k
+      - rcxj1c70
+      - 9llecpc7
+      - glmt6xgw
+      0.05:
+      - 07t0p3ks
+      - jat5342m
+      - mdl4ij3s
+      - wqw79v31
+      - c6dky44q
+      0.1:
+      - z7s2e4fn
+      - lf6io0g7
+      - 5ztrjzu9
+      - 23yj61yy
+      - sgopo3y4
+      0.3:
+      - getes60e
+      - zyby1ljn
+      - 88cy1qhc
+      - 77bzujug
+      - 4jfpli4l
+      0.5:
+      - 472x5y3u
+      - t6yc5uur
+      - 518mij4s
+      - 8ayw88ve
+      - 5h2k5c1i
+      1:
+      - cnbpjtqj
+      - 7y0569gr
+      - qjj9gtkt
+      - e8d0pe4t
+      - qly6pb5e
+    EquivariantNASNet:
+      0.01:
+      - 111fbber
+      - kijpjeid
+      - ka3sliuh
+      - ejx6yo7i
+      - 6luduhht
+      0.05:
+      - ca1sy31k
+      - wwme5y6k
+      - d7oklfhk
+      - bs6z56hn
+      - teacdajs
+      0.1:
+      - u6mxmzhk
+      - vcz1r9fk
+      - 6m11gq8q
+      - hagtttpz
+      - 9j96o3cf
+      0.3:
+      - 548348np
+      - knl7evhl
+      - krm01t2z
+      - rrqlgjmx
+      - oufqp23t
+      0.5:
+      - r4e2cwrw
+      - fhmbayj1
+      - 476bq7yt
+      - yjkre49p
+      - 2rurgl01
+      1:
+      - 65n49gve
+      - 33qmd1m1
+      - 268wimi9
+      - iggn1id7
+      - nbgoambk
+    ViT:
+      0.01:
+      - as2v3iq4
+      - 826s4ugu
+      - v0kqbijv
+      - 5r70yg2z
+      - vcjn8t9c
+      0.05:
+      - e5lcbycj
+      - 75bmy4i0
+      - h4qh7jgi
+      - 11v0pfen
+      - i1rlsdae
+      0.1:
+      - 77ezhjqz
+      - hxpffxae
+      - 196966c1
+      - qr6jhtqz
+      - kfe7k4ab
+      0.3:
+      - cyh6h7k0
+      - opm4v6un
+      - wx0l3dk0
+      - 7nwpetz4
+      - 0briz40l
+      0.5:
+      - 3r36j9hr
+      - mghyv1eh
+      - kgc1xbh7
+      - mx8xmqin
+      - e6cmo0xq
+      1:
+      - 58eujuzw
+      - 5hzv06um
+      - ybogot88
+      - e0ygzu5t
+      - fhpb4cme
+    ViT_pre:
+      0.01:
+      - n209kxft
+      - t3i4ki7j
+      - z1tomqrg
+      - wsv7yozs
+      - 6bh5d8sl
+      0.05:
+      - gdv85y5d
+      - jnz0g86e
+      - raky6iv1
+      - p22ukaod
+      - jr0gymns
+      0.1:
+      - l4eda7dz
+      - joifjuhc
+      - 2snxyl67
+      - cw1j4me7
+      - yoxsbnqz
+      0.3:
+      - 10oeoro3
+      - zb6mj1z1
+      - vsuzk0un
+      - nl9z39aq
+      - f3inyxzc
+      0.5:
+      - lfvivjvp
+      - j0arexvq
+      - pbpz8bg9
+      - 6untlian
+      - 54dsbb1q
+      1:
+      - y0i49ygi
+      - jb4hqhl1
+      - 0uyrngsx
+      - wi6h7udi
+      - 0eda163l
