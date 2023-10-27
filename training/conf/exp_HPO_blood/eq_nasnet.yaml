@@ -1,0 +1,40 @@
+# @package _global_
+defaults:
+  - override /training: blood-training
+  - override /model: eq_nasnet
+  - override /model/blocks_args_dict: 4blocks
+  - override /wandb: default
+  - _self_
+  
+
+
+training:
+  optimizer:
+    lr: 0.005
+    weight_decay: 1e-5
+
+  scheduler:
+    _target_: null
+    #factor: 0.5
+    #patience: 10
+    #verbose: True
+  
+
+  earlystop:
+    stop: True          
+    monitor: valid.loss
+    mode: min
+    patience: 20
+    min_delta: 0.001
+    store_in_memory: True
+    baseline: null
+
+  
+
+wandb:
+  project: SL-HPO-by-hand
+  give_name: True
+  tags: []
+
+
+# python training/main.py other.debug=True +exp_model_specific_overwrites=eq_nasnet_DeepDRiD --info config

@@ -47,7 +47,7 @@ dataset:
     training: ${dataset.name}-training 
     training.dataset.resolution: 128
     other.should_test: True
-    other.verbose: 2
+    other.verbose: 1
 
     training.dataset.reduction_factor: 1
     training.earlystop.baseline: null
