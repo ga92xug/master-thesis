@@ -7,6 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 import wandb
 import matplotlib.pyplot as plt
 import numpy as np
+from joblib import Memory
 
 import os
 import sys
@@ -120,7 +121,10 @@ def get_wandbdata_with_filters(
 
     return results
 
+cache_dir = './home/frischs/cache/'
+memory = Memory(location=cache_dir, verbose=0)
 
+@memory.cache
 def get_data_for_exp(
         paths_dict: dict,
         wandb_entity: str,
@@ -271,6 +275,8 @@ def produce_all_scaling_plots(
 
 
 def main():
+    cache_dir = './home/frischs/cache/'
+    memory = Memory(location=cache_dir, verbose=1)
     cfg, save_folder_name = plot_init("c_scaling/individual/", override=True)
     wandb_entity = cfg.wandb.entity
     wandb_projects = "SL-Scaling"

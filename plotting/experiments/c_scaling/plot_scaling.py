@@ -156,6 +156,11 @@ def multipath_individual_scaling_plot(
     if legend_labels is not None:
         ax.legend(legend_handles, legend_labels, loc='best')
 
+    # x-ticks
+    max_flops = max([max(flops) for flops in flops_lists]) / 1e9
+    nbins = int(max_flops) if max_flops < 10 else 5
+    nbins = max(nbins, 4)
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True, min_n_ticks=1))
 
     if fig is not None:
         save_plot(

@@ -1,0 +1,1 @@
+{"duration": 20.97904658317566, "input_args": {"paths_dict": "{'b3_d-1-2-2_wX_r96': {'filters': {'display_name': {'$regex': 'b3_d-1-2-2_w.*_r96'}, 'tags': 'constant_scheduler', 'config.training.epochs': 120}, 'group_by': 'model.width_coefficient'}}", "wandb_entity": "'ga92xug'", "wandb_projects": "'SL-Scaling'", "metric": "'valid.acc_weighted'"}}
