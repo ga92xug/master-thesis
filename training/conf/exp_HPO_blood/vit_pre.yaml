@@ -10,24 +10,14 @@ model:
 
 training:
   optimizer:
-    lr: 0.005
-    weight_decay: 1e-5
+    lr: 0.0000583916347414611
+    weight_decay: 0.00000829577246037681
 
   scheduler:
     _target_: null
-    #factor: 0.5
-    #patience: 10
-    #verbose: True
   
 
-  earlystop:
-    stop: True          
-    monitor: valid.loss
-    mode: min
-    patience: 20
-    min_delta: 0.001
-    store_in_memory: True
-    baseline: null
+
 
   
 

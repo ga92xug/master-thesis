@@ -1,0 +1,77 @@
+EfficientNet:
+  0.1:
+  - ob4bzsw7
+  - 3w86uyff
+  0.3:
+  - ovjdvtuz
+  - sx6mlfci
+  0.5:
+  - bxa7276p
+  - f8qn33x5
+  1:
+  - heiy0urg
+  - oqhsmuzr
+  - benfdvtw
+  - 02m0farz
+  - ypolxjy7
+EfficientNet_pre:
+  0.1:
+  - 5mvvkh1w
+  - 09pvrgn2
+  0.3:
+  - o4pyk4cc
+  - wi1vr729
+  0.5:
+  - e18aqo3q
+  - wpsrituv
+  1:
+  - cnbpjtqj
+  - 7y0569gr
+  - qjj9gtkt
+  - e8d0pe4t
+  - qly6pb5e
+EquivariantNASNet:
+  0.1:
+  - z4srm5zc
+  - qnuaflhq
+  0.3:
+  - e88cjf21
+  - f0uyd5yf
+  0.5:
+  - af9uqna4
+  - ltvqoxd6
+  1:
+  - 65n49gve
+  - 33qmd1m1
+  - 268wimi9
+  - iggn1id7
+  - nbgoambk
+ViT:
+  0.1:
+  - ryx8pea6
+  - 8c1yllzd
+  0.3:
+  - 769ccx3w
+  - 8crwcz1e
+  0.5:
+  - 6e2mrqrp
+  - w4tfqf71
+  1:
+  - 58eujuzw
+  - 5hzv06um
+  - ybogot88
+  - e0ygzu5t
+  - fhpb4cme
+ViT_pre:
+  0.1:
+  - 2ahka702
+  0.3:
+  - jzd1xtas
+  0.5:
+  - mpzk0ymm
+  1:
+  - y0i49ygi
+  - jb4hqhl1
+  - 0uyrngsx
+  - wi6h7udi
+  - 0eda163l

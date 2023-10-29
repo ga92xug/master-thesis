@@ -7,6 +7,7 @@ from sympy import O
 sys.path.append(f"{os.getcwd()}")
 from plotting.util import *
 from plotting.plot_functions import *
+from plotting.experiments.d_application._3_low_data_regime.get_run_ids import get_run_ids
 from plotting.experiments.d_application._3_low_data_regime.plot import plot_metric_vs_reduction
 
 
@@ -74,9 +75,13 @@ def main():
 
     experiments_2_run_ids = OmegaConf.to_container(
             cfg.experiments, resolve=True, throw_on_missing=True)["experiments"]
+
+    run_ids = get_run_ids()
+    experiments_2_run_ids = {"DeepDRiD": run_ids}
     
     for name, model2label_run_ids_dict in experiments_2_run_ids.items():
         print("name", name)
+        print("model2label_run_ids_dict", model2label_run_ids_dict)
         
         plot(
             metric=metric,

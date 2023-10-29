@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - dataset: Blood # DeepDRiD
+  - dataset: DeepDRiD # DeepDRiD
 
 HPOs: 
   eq_nasnet:
@@ -49,7 +49,8 @@ dataset:
     other.should_test: True
     other.verbose: 1
 
-    training.dataset.reduction_factor: 1
+    training.dataset.reduction_factor: ${low_data_regime}
+    training.earlystop.monitor: valid.loss
     training.earlystop.baseline: null
 
     wandb.mode: online
@@ -57,4 +58,5 @@ dataset:
     #training.epochs: 1
 
     
-debug: 2 # 0: no debug, 1: debug trainingsprocess with short training, 2: debug init process no training
+debug: 0 # 0: no debug, 1: debug trainingsprocess with short training, 2: debug init process no training
+low_data_regime: 0.1

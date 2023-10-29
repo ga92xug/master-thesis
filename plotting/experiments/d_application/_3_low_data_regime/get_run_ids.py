@@ -15,9 +15,10 @@ def create_name_run(config):
 
     return name
 
-def get_runs():
+def wandb_connection():
     api = wandb.Api()
     filters = {
+        "state": "finished",
         "tags": "test_performance_HPO",
         "config.training.earlystop.monitor": "valid.loss",
     }
@@ -34,8 +35,10 @@ def save_2_yaml(save_run_ids: Dict[str, Dict[float, list]], file_name: str):
 
 
 
-def main():
-    runs = get_runs()
+def get_run_ids(
+        save: bool = True,
+    ):
+    runs = wandb_connection()
     save_run_ids = {}
 
     for run in runs:
@@ -52,12 +55,17 @@ def main():
 
         save_run_ids[name][reduction_factor].append(run.id)
 
+    for name, values in save_run_ids.items():
+        save_run_ids[name] = dict(sorted(values.items()))
 
     #print(save_run_ids)
-    save_2_yaml(save_run_ids, "run_ids.yaml")
+    if save:
+        save_2_yaml(save_run_ids, "run_ids.yaml")
+    
+    return save_run_ids
 
 if __name__ == "__main__":
-    main()
+    get_run_ids()
 
 
         

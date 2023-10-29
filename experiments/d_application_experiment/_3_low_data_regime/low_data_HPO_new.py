@@ -42,6 +42,7 @@ def get_search_space(
 
     search_space = {
         # The BO engine can decide to disabled the scheduler by setting patience == epochs
+
         "training.scheduler.patience": tune.randint(int(0.05 * epochs), epochs),
         "training.scheduler.factor": tune.loguniform(0.01, 0.5),
         "training.optimizer.lr": tune.loguniform(5e-5, 1e-2),
@@ -140,7 +141,8 @@ def hydra_main(cfg: DictConfig) -> None:
         print(f"Debug level {cfg.debug}")
         global_overrides = cfg.dataset.global_overrides 
         global_overrides["wandb.mode"] = "disabled"
-        cfg.dataset.initial_epochs = 2   
+        cfg.dataset.initial_epochs = 2  
+        cfg.dataset.BO_optimizer.num_trials = 2 
     iterate_HPOs(cfg)
 
 

@@ -121,10 +121,8 @@ def get_wandbdata_with_filters(
 
     return results
 
-cache_dir = './home/frischs/cache/'
-memory = Memory(location=cache_dir, verbose=0)
-
-@memory.cache
+#
+#@memory.cache
 def get_data_for_exp(
         paths_dict: dict,
         wandb_entity: str,

@@ -288,11 +288,13 @@ class EarlyStopping:
         else:
             self.counter += 1
 
-        if self.counter >= self.patience:
+        if self.counter >= self.patience or epoch - 1 == self.logger.max_epochs:
             log_dict = self.best_metrics 
-            self.logger.log(log_dict, split="early_stop", verbose=0)
-            self.logger.print_verbose_check(1, f"Early stopping in {epoch}. No improvement in {self.monitor} for {self.patience} epochs.")
-            return True
+            self.logger.log(log_dict, split="best", verbose=0)
+            
+            if self.counter >= self.patience:
+                self.logger.print_verbose_check(1, f"Early stopping in {epoch}. No improvement in {self.monitor} for {self.patience} epochs.")
+                return True
         return False
 
     def save_model(self, model: torch.nn.Module) -> None:

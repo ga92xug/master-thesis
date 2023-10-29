@@ -19,16 +19,6 @@ training:
     #patience: 10
     #verbose: True
   
-
-  earlystop:
-    stop: True          
-    monitor: valid.loss
-    mode: min
-    patience: 20
-    min_delta: 0.001
-    store_in_memory: True
-    baseline: null
-
   
 
 wandb:

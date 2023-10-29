@@ -86,6 +86,9 @@ def download_run(
     if run is None:
         run = find_run(entity, projects, run_id)
 
+    if run.state != "finished":
+        raise ValueError(f"Run {run_id} is not finished.")
+
     result = {}
 
     result[metric] = run.history(keys=[metric]).values[:, 1] * 100
