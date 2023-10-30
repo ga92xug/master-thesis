@@ -17,12 +17,8 @@ training:
     _target_: null
   
 
-
-
-  
-
 wandb:
-  project: SL-HPO-by-hand
+  project: SL-Application
   give_name: True
   tags: []
 

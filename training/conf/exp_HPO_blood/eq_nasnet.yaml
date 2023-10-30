@@ -15,14 +15,9 @@ training:
 
   scheduler:
     _target_: null
-    #factor: 0.5
-    #patience: 10
-    #verbose: True
-  
-  
 
 wandb:
-  project: SL-HPO-by-hand
+  project: SL-Application
   give_name: True
   tags: []
 

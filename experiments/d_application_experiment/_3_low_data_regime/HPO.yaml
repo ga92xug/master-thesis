@@ -2,11 +2,11 @@
 
 defaults:
   - _self_
-  - dataset: DeepDRiD # DeepDRiD
+  - dataset: Blood # DeepDRiD
 
 HPOs: 
   eq_nasnet:
-    done: False
+    done: True
     restore: False
     eval_only: False
     dropout_rate: True          # if not defined False
@@ -15,9 +15,10 @@ HPOs:
       "model/blocks_args_dict": 4blocks
 
   efficientnet:
-    done: False
+    done: True
     eval_only: False
     restore: False
+    more_trials: False
     model_overrides:
       model: efficientnet
       model.pretrained: False
@@ -30,13 +31,13 @@ HPOs:
       model.pretrained: True
 
   vit:
-    done: False
+    done: True
     model_overrides:
       model: vit
       model.pretrained: False
 
   vit_pre:
-    done: False
+    done: True
     model_overrides:
       model: vit
       model.pretrained: True
@@ -59,4 +60,4 @@ dataset:
 
     
 debug: 0 # 0: no debug, 1: debug trainingsprocess with short training, 2: debug init process no training
-low_data_regime: 0.1
+low_data_regime: 1

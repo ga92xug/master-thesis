@@ -10,19 +10,18 @@ model:
 
 training:
   optimizer:
-    lr: 0.005
-    weight_decay: 1e-5
+    lr: 0.00742131046509759
+    weight_decay: 0.00005534613181513859
 
   scheduler:
-    _target_: null
-    #factor: 0.5
-    #patience: 10
-    #verbose: True
+    factor: 0.18941789833885067
+    patience: 11
+    verbose: True
   
   
 
 wandb:
-  project: SL-HPO-by-hand
+  project: SL-Application
   give_name: True
   tags: []
 

@@ -131,6 +131,7 @@ def iterate_HPOs(cfg: DictConfig):
             restore=hpo.get("restore", False),
             debug=cfg.debug,
             only_eval=hpo.get("eval_only", False),
+            more_trials=hpo.get("more_trials", False),   
         )
 
 

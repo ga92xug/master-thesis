@@ -4,24 +4,16 @@ import os
 import re
 import yaml
 
-
-
-
 def create_name_run(config):
     name = config["model"]["_target_"].split(".")[-1]
     pretrained = config["model"].get("pretrained", False)
     if pretrained:
         name += "_pre"
-
     return name
 
-def wandb_connection():
+def wandb_connection(filters: Dict[str, str]):
     api = wandb.Api()
-    filters = {
-        "state": "finished",
-        "tags": "test_performance_HPO",
-        "config.training.earlystop.monitor": "valid.loss",
-    }
+    filters["state"] = "finished"
     runs = api.runs(path=f"ga92xug/SL-Application", filters=filters)
 
     print("Number of runs:", len(runs))
@@ -36,9 +28,10 @@ def save_2_yaml(save_run_ids: Dict[str, Dict[float, list]], file_name: str):
 
 
 def get_run_ids(
-        save: bool = True,
+        filters: Dict[str, str],
+        save: bool = False,
     ):
-    runs = wandb_connection()
+    runs = wandb_connection(filters)
     save_run_ids = {}
 
     for run in runs:

@@ -28,7 +28,6 @@ class ViT(torch.nn.Module):
         super().__init__()
         if pretrained:
             weights='IMAGENET1K_V1'
-
         else:
             weights=None
 

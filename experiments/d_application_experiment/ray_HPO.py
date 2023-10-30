@@ -31,6 +31,7 @@ def run_HPO(
         experiment_level_early_stop: bool = False,
         debug: int = 0,
         only_eval: bool = False,
+        more_trials: bool = False,
     ):
     print("Search space:", search_space)
     print("Additional overrides:", additional_overrides)
@@ -40,6 +41,13 @@ def run_HPO(
         additional_overrides=additional_overrides)
 
     algo = AxSearch()
+    if more_trials:
+        # add more trials to an existing experiment
+        algo.restore_from_dir(os.path.expanduser(f"~/ray_results/{name}"))
+        name = name + "_more_trials"
+        search_space = None # is already saved in algo
+        print("Restored from", os.path.expanduser(f"~/ray_results/{name}"))
+
     algo = ConcurrencyLimiter(algo, max_concurrent=2)
     asha_scheduler = ASHAScheduler(time_attr="training_iteration", 
                                    max_t=epochs, grace_period=grace_period)
@@ -79,6 +87,7 @@ def run_HPO(
     else:
         # remove old results
         if os.path.exists(os.path.expanduser(f"~/ray_results/{name}")):
+            #print("Removing old results...", os.path.expanduser(f"~/ray_results/{name}") )
             os.system(f"rm -rf ~/ray_results/{name}")
         tuner = tune.Tuner(
             trainable_with_parameters,

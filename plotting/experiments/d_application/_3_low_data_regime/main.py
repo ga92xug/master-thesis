@@ -73,23 +73,23 @@ def main():
     wandb_projects = ["SL-Application"]
     metric = "test.acc"
 
-    experiments_2_run_ids = OmegaConf.to_container(
-            cfg.experiments, resolve=True, throw_on_missing=True)["experiments"]
+    experiments2filters = OmegaConf.to_container(
+            cfg.experiments, resolve=True, throw_on_missing=True)
+    print("experiments2filters", experiments2filters)
 
-    run_ids = get_run_ids()
-    experiments_2_run_ids = {"DeepDRiD": run_ids}
-    
-    for name, model2label_run_ids_dict in experiments_2_run_ids.items():
-        print("name", name)
-        print("model2label_run_ids_dict", model2label_run_ids_dict)
-        
+    for exp_name, values in experiments2filters.items():
+        filters = values["filters"]
+        print("name", exp_name)
+        print("filters", filters)
+        model2run_ids = get_run_ids(filters)
+             
         plot(
             metric=metric,
             wandb_entity=wandb_entity, 
             wandb_projects=wandb_projects, 
             save_folder_name=save_folder_name,
-            save_name=name,
-            model2label_run_ids_dict=model2label_run_ids_dict
+            save_name=exp_name,
+            model2label_run_ids_dict=model2run_ids
         )
 
 
