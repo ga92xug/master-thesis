@@ -74,9 +74,7 @@ class Experiment:
             if normalize_weights is not None:
                 # if we want to get the weighted acc we can pass a none list 
                 self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
-                self.train_metrics["recall_mean"] = MulticlassRecall(self.n_outputs, average="macro").to(self.device)
                 self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
-                self.valid_metrics["recall_mean"] = MulticlassRecall(self.n_outputs, average="macro").to(self.device)
                 if isinstance(normalize_weights, list):
                     normalize_weights = torch.tensor(normalize_weights, dtype=torch.float32).to(self.device)
                 else:

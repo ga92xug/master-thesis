@@ -1,14 +1,11 @@
-from ast import Tuple
-from calendar import c
 from copy import deepcopy
-from typing import List
+from typing import List, Tuple
 import numpy as np
 import pandas as pd
 from torchvision import transforms
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
-
 
 import sys
 import os
@@ -40,7 +37,7 @@ def get_transforms(
         channel_wise_mean_images: list,
         channel_wise_std_images: list,
         verbose: int ,
-    ) -> Tuple(transforms.Compose, transforms.Compose):
+    ) -> Tuple[transforms.Compose, transforms.Compose]:
 
     augment = deepcopy(original_augment)
     train_transform = get_one_transform(resolution, augment, channel_wise_mean_images, channel_wise_std_images, validation=False)
@@ -94,16 +91,27 @@ def get_one_transform(
     transform_list = []
 
     # resize
-    if "short_side_center_crop" in augment.keys():
+    if "RandomResizedCrop" in augment.keys() and not validation:
+        kwargs = augment.pop("RandomResizedCrop")
+        transform_list.append(
+            transforms.RandomResizedCrop(
+                size=resolution,
+                **kwargs,
+            )
+        )
+    elif "short_side_center_crop" in augment.keys():
         transform_list.extend(
             [
                 transforms.Resize(resolution),
                 transforms.CenterCrop(resolution),
             ]
         )
-        augment.pop("short_side_center_crop")
     else:
         transform_list.append(transforms.Resize(resolution))
+
+    # pop all size augmentations
+    augment.pop("RandomResizedCrop", None)
+    augment.pop("short_side_center_crop", None)
 
     # add augmentations
     if isinstance(augment, dict):
