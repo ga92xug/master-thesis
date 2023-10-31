@@ -12,7 +12,7 @@ import wandb
 import math
 import torch
 import torch.nn as nn
-from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy
+from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy, MulticlassRecall
 from torchmetrics import MetricCollection
 import sys
 sys.path.append(os.getcwd()) # add current directory
@@ -74,7 +74,9 @@ class Experiment:
             if normalize_weights is not None:
                 # if we want to get the weighted acc we can pass a none list 
                 self.train_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
+                self.train_metrics["recall_mean"] = MulticlassRecall(self.n_outputs, average="macro").to(self.device)
                 self.valid_metrics["acc_weighted"] = MulticlassAccuracy(self.n_outputs, average="macro").to(self.device)
+                self.valid_metrics["recall_mean"] = MulticlassRecall(self.n_outputs, average="macro").to(self.device)
                 if isinstance(normalize_weights, list):
                     normalize_weights = torch.tensor(normalize_weights, dtype=torch.float32).to(self.device)
                 else:

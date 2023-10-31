@@ -157,3 +157,4 @@ def save_plot(figure, name, folder_name='figures/first_experiments'):
 
     figure.savefig(f'{folder_name}/{name}.png', dpi=300, bbox_inches = "tight")
 
+

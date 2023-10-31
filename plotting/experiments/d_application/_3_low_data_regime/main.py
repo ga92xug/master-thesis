@@ -3,7 +3,6 @@ import sys
 import numpy as np
 from typing import List, Union
 from omegaconf import OmegaConf
-from sympy import O
 sys.path.append(f"{os.getcwd()}")
 from plotting.util import *
 from plotting.plot_functions import *

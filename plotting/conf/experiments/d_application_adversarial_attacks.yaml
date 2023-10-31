@@ -1,0 +1,9 @@
+#DeepDRiD:
+#  filters:
+#    tags: test_performance_HPO
+#    config.training.earlystop.monitor: valid.loss 
+#    # intial experiments have been with valid.acc but more variance accross all models
+Blood:
+  filters:
+    config.training.adversarial_attack: Foolbox
+    config.training.epochs: 100 # full training

@@ -3,13 +3,10 @@ import wandb
 import os
 import re
 import yaml
+import sys
 
-def create_name_run(config):
-    name = config["model"]["_target_"].split(".")[-1]
-    pretrained = config["model"].get("pretrained", False)
-    if pretrained:
-        name += "_pre"
-    return name
+sys.path.append(f"{os.getcwd()}")
+from plotting.experiments.d_application.util import create_name_comparision_models
 
 def wandb_connection(filters: Dict[str, str]):
     api = wandb.Api()
@@ -36,7 +33,7 @@ def get_run_ids(
 
     for run in runs:
         config = run.config
-        name = create_name_run(config)
+        name = create_name_comparision_models(config)
         if name not in save_run_ids:
             save_run_ids[name] = {}
 
