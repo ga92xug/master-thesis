@@ -310,9 +310,6 @@ class Experiment:
                         self.model = self.early_stopping.restore_best_weights(self.model)
                         self.global_step += 1
                         break
-            
-            if self.cfg.other.backup_frequency < 0 and self.epoch % (-self.cfg.other.backup_frequency) == 0:
-                self.backup()
 
             # adapt learning rate
             self.scheduler.step_epoch_end()

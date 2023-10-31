@@ -29,13 +29,19 @@ def foolbox_attack(
         preprocessing = dict(mean=mean, std=std, axis=-3)
     )
 
-    attacks = [fb.attacks.LinfPGD(), fb.attacks.LinfFastGradientAttack()]
-    epsilons = [0.01] # [0.0, 0.001, 0.01, 0.03, 0.1, 0.3, 0.5, 1.0]
+    attacks = [
+        fb.attacks.LinfProjectedGradientDescentAttack(), 
+        fb.attacks.L2ProjectedGradientDescentAttack(),
+        fb.attacks.LinfFastGradientAttack(),
+        fb.attacks.LinfBasicIterativeAttack(),
+    ]
+    epsilons = [0.0, 0.0005, 0.001, 0.01, 0.03, 0.1]
 
     for attack in attacks:
         attack_name = attack.__class__.__name__
         results[attack_name] = {}
         for epsilon in epsilons:
+            print(f"Running {attack_name} attack with epsilon {epsilon}")
             results[attack_name][epsilon] = {}
             total = 0
             count_adv = 0
@@ -53,6 +59,7 @@ def foolbox_attack(
             results[attack_name][epsilon]["count_adv"] = count_adv
             results[attack_name][epsilon]["robust_acc"] = robust_accuracy
 
+    results["total"] = total
     return results
 
 

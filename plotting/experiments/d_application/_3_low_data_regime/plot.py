@@ -33,7 +33,11 @@ def plot_metric_vs_reduction(
     custom_lines = []
     reduction_points_longest = None
 
+    # order metrics_dict by key
+    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0]))
+
     #print("metrics_dict", metrics_dict)
+    
     
     for model, values in metrics_dict.items():
         metric_values = values.values()
@@ -57,9 +61,12 @@ def plot_metric_vs_reduction(
         
         custom_lines.append(Line2D([0], [0], color=line_color, marker='o', markersize=8, linestyle='-', linewidth=2))
     
-    plt.xlabel('Dataset Size (%)')
+    plt.xlabel('Dataset size (%)')
+    metric_name = metric_name.replace(".", " ")
+    metric_name = metric_name.replace("acc", "accuracy")
+    metric_name = metric_name[0].upper() + metric_name[1:]
     plt.ylabel(f'{metric_name}')
-    plt.title(f'{metric_name} vs. Dataset Size')
+    plt.title(f'{metric_name} vs. Dataset size')
     plt.grid(True)
     if invert_xaxis:
         plt.gca().invert_xaxis()
@@ -72,7 +79,7 @@ def plot_metric_vs_reduction(
 def main():
     metrics_dict = example_data()
     plot_metric_vs_reduction(metrics_dict, "test.acc")
-    save_plot(plt, name=f"vs_dataset_size", folder_name='plotting/figures/d_application/low_data_regime')
+    save_plot(plt, name=f"example", folder_name='plotting/figures/d_application/low_data_regime')
 
 
 if __name__ == '__main__':

@@ -71,7 +71,7 @@ def debug_auto_attack_eval():
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    model, dataloaders, cfg = hydra_compose(overrides=["training=isic2019-training", "model=eq_nasnet"])
+    model, dataloaders, cfg = hydra_compose(overrides=["training=isic2019-training", "model=efficientnet"])
 
     global_start_time = time.time()
     adversarial_attack(
