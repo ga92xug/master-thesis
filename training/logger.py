@@ -155,9 +155,12 @@ class Custom_Logger():
         split = split.capitalize()
         duration = metrics.get("duration", 0)
         print('-'*80)
-        print(f'{split} Epoch: {self.epoch} lasted {duration:.3f} seconds')
-        metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration", "epoch"]])
-        print(f'{metrics}')
+        try:
+            print(f'{split} Epoch: {self.epoch} lasted {duration:.3f} seconds')
+            metrics = ", ".join([f"{key}: {value:.3f}" for key, value in metrics.items() if key not in ["duration", "epoch"]])
+            print(f'{metrics}')
+        except:
+            print(split, metrics)
 
     def log2ray(self, to_log: dict):
         if self.ray is None:

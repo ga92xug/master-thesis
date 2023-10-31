@@ -6,8 +6,6 @@ defaults:
   - override /wandb: default
   - _self_
   
-
-
 training:
   optimizer:
     lr: 0.005
@@ -15,6 +13,10 @@ training:
 
   scheduler:
     _target_: null
+    #_target_: multi_step_lr
+    #milestones: [0,1]
+    #factor: 0.5
+    #patience: 10
 
 wandb:
   project: SL-Application

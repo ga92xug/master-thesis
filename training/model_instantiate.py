@@ -41,6 +41,7 @@ def get_model(
         stats["param_count"] = get_param_count(model, in_mb=False, verbose=verbose)
         stats["GFLOPs"] = get_gflops(model, cfg.training.dataset.batch_size, n_inputs, 
                             image_size, device=device, logger=logger)
+        stats["GFLOPs_per_image"] = stats["GFLOPs"] / cfg.training.dataset.batch_size
     else:
         # Set the maximum allowed execution time in seconds
         max_building_time = cfg.NAS.max_building_time

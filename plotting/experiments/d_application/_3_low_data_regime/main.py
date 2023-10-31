@@ -78,6 +78,8 @@ def main():
     print("experiments2filters", experiments2filters)
 
     for exp_name, values in experiments2filters.items():
+        if exp_name != "Blood":
+            continue
         filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)

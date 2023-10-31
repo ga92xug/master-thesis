@@ -92,7 +92,7 @@ class Experiment:
         self._loss_function = torch.nn.CrossEntropyLoss(weight=normalize_weights)
 
         # model
-        self.model, _ = get_model(
+        self.model, stats = get_model(
             cfg=cfg, 
             n_inputs=n_inputs, 
             n_outputs=self.n_outputs, 
@@ -101,6 +101,9 @@ class Experiment:
             logger=self.logger,
             verbose=self._verbose,
         )
+        self.gflops_per_sample = stats["GFLOPs_per_image"]
+        self.max_flops = self.cfg.training.max_gflops
+        self.gflop_count = 0
         
         utils.give_wandb_name(self.model, self.wandb_run)
         self.logger.print_verbose_check(1, "Stage 2: model built")
@@ -161,11 +164,12 @@ class Experiment:
             # compute prediction    
             y = self.model(x)
             # compute loss and accuracy
-            n_samples += x.shape[0]
+            n_samples += x.shape[0]            
             loss = self._loss_function(y, t)
             metrics = self.train_metrics(y.detach(), t.detach()) 
             train_loss_epoch += loss.item() * x.shape[0]
             metrics["loss"] = loss.item()
+            self.gflop_count += x.shape[0] * self.gflops_per_sample
 
             # log intermediate results
             self.logger.log(metrics, split="train", verbose=3)
@@ -187,7 +191,8 @@ class Experiment:
                     self.valid()
                 
                 # short training for testing
-                if self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch:
+                if (self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch) \
+                    or (self.gflop_count > self.max_flops and self.max_flops > 0):
                     break
             
             self.global_step += x.shape[0]
@@ -287,7 +292,8 @@ class Experiment:
         """
         self._iteration = 0
         
-        while self.epoch < self.max_epochs and not self.time_limit_reached():
+        while self.epoch < self.max_epochs and not self.time_limit_reached() \
+            and (self.gflop_count < self.max_flops or self.max_flops < 0):
             # check if we are allowed to run
             utils.allowed_usage_time(self.cfg.other.gpu_time_limit)
             

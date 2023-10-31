@@ -1,8 +1,74 @@
-import os
 from pathlib import Path
+import torch
+from typing import Dict, List, Tuple
+import torch
+import sys
+import os
 import re
 from autoattack import AutoAttack
-import torch
+
+sys.path.append(f"{os.getcwd()}")
+from training import utils
+
+
+def run_autoattack(
+        model: torch.nn.Module,
+        dataloader: torch.utils.data.DataLoader,
+        device: torch.device,
+        global_start_time: float,
+        mean: torch.Tensor,
+        std: torch.Tensor,
+        verbose: int,
+        num_classes: int,
+    )-> Dict:
+
+    # get results
+    aa_state = _AutoAttackState(global_start_time)
+    
+    adversary = configure_attack(
+        model=model,
+        aa_state_path=aa_state.path,
+        num_classes=num_classes,
+        verbose=verbose,
+    )
+
+    images, labels = preprocess_images(
+        dataloader=dataloader,
+        device=device,
+        mean=mean,
+        std=std,
+    )
+
+    # run attack
+    adversarial_images = adversary.run_standard_evaluation(images, labels)
+    results = aa_state.extract_percentages()
+    aa_state.remove_file()
+
+    return results
+
+def preprocess_images(
+        dataloader: torch.utils.data.DataLoader,
+        device: torch.device,
+        mean: List[float],
+        std: List[float],
+        normalize: bool = False,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Preprocess images from dataloader.
+    """
+
+    list_images = []
+    list_labels = []
+    for i, out_dataloader in enumerate(dataloader):
+        images, labels, meta_data = utils.get_out_dataloader(out_dataloader, device)
+        if normalize:
+            images = images * std[:, None, None] + mean[:, None, None]
+        list_images.append(images)
+        list_labels.append(labels)
+
+    images = torch.cat(list_images, dim=0)
+    labels = torch.cat(list_labels, dim=0)
+    return images, labels
 
 class _AutoAttackState:
     def __init__(self, global_start_time, location="/home/frischs/aa_state"):

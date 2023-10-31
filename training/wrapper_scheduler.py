@@ -48,8 +48,8 @@ class Wrapper_Scheduler:
             # adapt lr    
             self.scheduler.step(metric)
 
-            # log the current learning rate
-            lr = self.optimizer.param_groups[0]['lr']
-            self.logger.log({"scheduler": {"lr": lr, "epoch": self.logger.epoch.value}}, verbose=5)
+        # log the current learning rate and epoch
+        lr = self.optimizer.param_groups[0]['lr']
+        self.logger.log({"scheduler": {"lr": lr, "epoch": self.logger.epoch.value}}, verbose=5)
 
             

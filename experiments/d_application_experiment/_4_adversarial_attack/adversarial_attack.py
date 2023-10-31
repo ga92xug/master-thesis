@@ -11,45 +11,12 @@ import sys
 import os
 
 
-
 sys.path.append(f"{os.getcwd()}")
+from experiments.d_application_experiment._4_adversarial_attack.attack_options.autoattack_option import run_autoattack
+from experiments.d_application_experiment._4_adversarial_attack.attack_options.foolbox_option import foolbox_attack
 from training.logger import Custom_Logger
 from training import utils
 from training.model_instantiate import hydra_compose 
-from experiments.d_application_experiment._4_adversarial_attack.utils import (
-    configure_attack, 
-    _AutoAttackState
-)
-
-
-def preprocess_images(
-        dataloader: torch.utils.data.DataLoader,
-        device: torch.device,
-        mean: List[float],
-        std: List[float],
-        normalize: bool = False,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """
-    Preprocess images from dataloader.
-    """
-    if isinstance(mean, List):
-        mean = torch.tensor(mean).to(device)
-    if isinstance(std, List):
-        std = torch.tensor(std).to(device)
-
-
-    list_images = []
-    list_labels = []
-    for i, out_dataloader in enumerate(dataloader):
-        images, labels, meta_data = utils.get_out_dataloader(out_dataloader, device)
-        if normalize:
-            images = images * std[:, None, None] + mean[:, None, None]
-        list_images.append(images)
-        list_labels.append(labels)
-
-    images = torch.cat(list_images, dim=0)
-    labels = torch.cat(list_labels, dim=0)
-    return images, labels
 
 
 def adversarial_attack(
@@ -65,30 +32,31 @@ def adversarial_attack(
         message = f"-"*50 + "\nAdversarial Attack"
         logger.print_verbose_check(0, message)
 
-    if mode != "AutoAttack":
-        raise NotImplementedError(f"mode {mode} not implemented")
+    mean = torch.tensor(cfg.training.dataset.channel_wise_mean_images).to(device)
+    std = torch.tensor(cfg.training.dataset.channel_wise_std_images).to(device)
 
     # get results
-    aa_state = _AutoAttackState(global_start_time)
-    
-    adversary = configure_attack(
-        model=model,
-        aa_state_path=aa_state.path,
-        num_classes=cfg.training.dataset.n_out_classes,
-        verbose=cfg.other.verbose,
-    )
-
-    images, labels = preprocess_images(
-        dataloader=dataloader,
-        device=device,
-        mean=list(cfg.training.dataset.channel_wise_mean_images),
-        std=list(cfg.training.dataset.channel_wise_std_images),
-    )
-
-    # run attack
-    adversarial_images = adversary.run_standard_evaluation(images, labels)
-    results = aa_state.extract_percentages()
-    aa_state.remove_file()
+    if mode == "AutoAttack":
+        results = run_autoattack(
+            model=model,
+            dataloader=dataloader,
+            device=device,
+            global_start_time=global_start_time,
+            mean=mean,
+            std=std,
+            verbose=cfg.other.verbose,
+            num_classes=cfg.training.dataset.n_out_classes,
+        )
+    elif mode == "Foolbox":
+        results = foolbox_attack(
+            model=model,
+            device=device,
+            dataloader=dataloader,
+            mean=mean,
+            std=std,
+        )
+    else:
+        raise NotImplementedError(f"mode {mode} not implemented")
 
     # report results
     if logger is not None:
@@ -103,11 +71,11 @@ def debug_auto_attack_eval():
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    model, dataloaders, cfg = hydra_compose(overrides=["training=isic2019-training", "model=efficientnet"])
+    model, dataloaders, cfg = hydra_compose(overrides=["training=isic2019-training", "model=eq_nasnet"])
 
     global_start_time = time.time()
     adversarial_attack(
-        mode="AutoAttack",
+        mode="Foolbox",
         model=model,
         dataloader=dataloaders["test"],
         cfg=cfg,
