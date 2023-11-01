@@ -142,7 +142,7 @@ class Experiment:
                 store_in_memory=cfg.training.earlystop.store_in_memory,
                 logger=self.logger,
             )
-        self.logger.print_verbose_check(1, f"Stage 3: training starts {self._global_start_time}")
+        self.logger.print_verbose_check(1, f"Stage 3: training starts")
     
 
     def train(self):
@@ -337,7 +337,7 @@ class Experiment:
     def time_limit_reached(self):
         if self._time_limit is not None and \
             (datetime.datetime.now().timestamp() - \
-            self._global_start_time.timestamp()) / 60. \
+            self._global_start_time.timestamp()) \
             > self._time_limit:
             print(f"Time limit of {self._time_limit} minutes reached. Stopping training at epoch {self.epoch}.")
             return True

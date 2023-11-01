@@ -88,6 +88,11 @@ def init_wandb(cfg: DictConfig):
         if cfg.ray and False:
             wandb_run = setup_wandb(rank_zero_only=False, **kwargs_wandb)
         else:
+            try:
+                wandb.finish()
+            except:
+                pass
+
             wandb_run = wandb.init(project=cfg.wandb.project, config=wandb_config, \
             mode=cfg.wandb.mode, notes=cfg.wandb.notes, tags=cfg.wandb.tags)
 

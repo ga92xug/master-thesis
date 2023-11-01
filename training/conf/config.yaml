@@ -35,7 +35,7 @@ other:
   seed: 42                      # Seed for random number generators
   output_path: '/home/frischs/outputs/'  # Path to the output directory
   verbose: 1                    # Verbose Level
-  time_limit: null              # Maximum time limit for training (in Minutes)
+  time_limit: null              # Maximum time limit for training (in seconds)
   should_test: False
   gpu_time_limit: False
   debug: False
