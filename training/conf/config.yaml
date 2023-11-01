@@ -32,9 +32,6 @@ training:
 other:
   valid_conf_matrix_frequency: 25
   backup_model: False           # Backup the model in a file
-  plot_frequency: 100           # Plot frequency (counts iterations if positive, epochs if negative. Use -1 to plot at the end of each epoch)
-  store_plot: False              # Store the plot
-  show: False                   # Show the plot during training
   seed: 42                      # Seed for random number generators
   output_path: '/home/frischs/outputs/'  # Path to the output directory
   verbose: 1                    # Verbose Level
