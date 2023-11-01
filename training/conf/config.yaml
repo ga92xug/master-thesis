@@ -21,6 +21,7 @@ training:
     patience: 20
     min_delta: 0.001
     store_in_memory: True
+    baseline: null
 
   dataset:
     data_dir: '/home/frischs/Data/frischs/datasets/'  # Path to the datasets        

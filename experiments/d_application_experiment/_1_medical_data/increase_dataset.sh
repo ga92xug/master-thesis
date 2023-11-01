@@ -9,7 +9,6 @@ python training/main.py -m +exp_HPO_blood=eq_nasnet \
     wandb.mode=disabled
     #other.seed=0,1,2 
     
-
 #python training/main.py -m +exp_HPO_blood=efficientnet training=blood-training \
 #    wandb.tags=[CNN_augmentation] \
 #    +training.dataset.augment.train='{RandomHorizontalFlip: {p: 0.5}, Own_RandomRotation: {degrees: [0,90,180,270]}}' \

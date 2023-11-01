@@ -2,7 +2,7 @@
 
 defaults:
   - _self_
-  - dataset: Blood # DeepDRiD
+  - dataset: isic2019 # DeepDRiD
 
 HPOs: 
   eq_nasnet:
@@ -15,7 +15,7 @@ HPOs:
       "model/blocks_args_dict": 4blocks
 
   efficientnet:
-    done: True
+    done: False
     eval_only: False
     restore: False
     more_trials: False
@@ -31,13 +31,13 @@ HPOs:
       model.pretrained: True
 
   vit:
-    done: True
+    done: False
     model_overrides:
       model: vit
       model.pretrained: False
 
   vit_pre:
-    done: True
+    done: False
     model_overrides:
       model: vit
       model.pretrained: True

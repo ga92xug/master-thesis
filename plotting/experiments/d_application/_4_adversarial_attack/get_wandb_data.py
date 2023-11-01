@@ -31,6 +31,9 @@ def get_wandb_adversarial_attack_data(
 
     restructed_data = restructuring_data(data)
 
+    # sort by key
+    restructed_data = dict(sorted(restructed_data.items(), key=lambda item: item[0]))
+
     return restructed_data
 
 def run2data(run):
