@@ -5,6 +5,7 @@ import torch
 import sys
 import os
 import re
+import time
 from autoattack import AutoAttack
 
 sys.path.append(f"{os.getcwd()}")
@@ -15,12 +16,12 @@ def run_autoattack(
         model: torch.nn.Module,
         dataloader: torch.utils.data.DataLoader,
         device: torch.device,
-        global_start_time: float,
         mean: torch.Tensor,
         std: torch.Tensor,
         verbose: int,
         num_classes: int,
     )-> Dict:
+    global_start_time = time.time()
 
     # get results
     aa_state = _AutoAttackState(global_start_time)

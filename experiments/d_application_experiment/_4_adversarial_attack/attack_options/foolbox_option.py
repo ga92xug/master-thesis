@@ -18,6 +18,7 @@ def foolbox_attack(
         dataloader: torch.utils.data.DataLoader,
         mean: torch.Tensor,
         std: torch.Tensor,
+        sanity_check: bool = False,
     ) -> Dict:
 
     results = {}
@@ -30,38 +31,64 @@ def foolbox_attack(
     )
 
     attacks = [
-        fb.attacks.LinfProjectedGradientDescentAttack(), 
-        fb.attacks.L2ProjectedGradientDescentAttack(),
-        fb.attacks.LinfFastGradientAttack(),
-        fb.attacks.LinfBasicIterativeAttack(),
+        # not in use
+        #fb.attacks.LinfFastGradientAttack(), # epsilons go up after inital drop
+
+        # used
+        #fb.attacks.LinfProjectedGradientDescentAttack(), 
+        #fb.attacks.L2ProjectedGradientDescentAttack(),
+        #fb.attacks.LinfBasicIterativeAttack(),
+
+        fb.attacks.L2BasicIterativeAttack(), # potential candidate
+        #fb.attacks.LinfDeepFoolAttack(), # potential candidate
+        #fb.attacks.LinfRepeatedAdditiveUniformNoiseAttack(), # potential candidate
     ]
     epsilons = [0.0, 0.0005, 0.001, 0.01, 0.03, 0.1]
 
     for attack in attacks:
         attack_name = attack.__class__.__name__
         results[attack_name] = {}
-        for epsilon in epsilons:
-            print(f"Running {attack_name} attack with epsilon {epsilon}")
-            results[attack_name][epsilon] = {}
-            total = 0
-            count_adv = 0
+        total = 0
+        count_adv = torch.zeros(len(epsilons)).to(device)
+        correct = torch.zeros(len(epsilons)).to(device)
 
-            for i, out_dataloader in enumerate(dataloader):
-                images, labels, _ = utils.get_out_dataloader(out_dataloader, device)
-                # denormalize for attack
-                images = images * std[:, None, None] + mean[:, None, None]
 
-                _, advs_images, is_adv = attack(fmodel, images, labels, epsilons=epsilon)
-                count_adv += is_adv.sum().item()
-                total += images.shape[0]
+        for i, out_dataloader in enumerate(dataloader):
+            images, labels, _ = utils.get_out_dataloader(out_dataloader, device)
+            # denormalize for attack
+            images = images * std[:, None, None] + mean[:, None, None]
 
-            robust_accuracy = 1 - (count_adv / total)
-            results[attack_name][epsilon]["count_adv"] = count_adv
-            results[attack_name][epsilon]["robust_acc"] = robust_accuracy
+            _, advs_list, is_adv = attack(fmodel, images, labels, epsilons=epsilons)
+            count_adv += is_adv.sum(dim=1)
+            total += images.shape[0]
 
+            if sanity_check:
+                for i, advs in enumerate(advs_list):
+                    # normalize for model
+                    advs_images = (advs - mean[:, None, None]) / std[:, None, None]
+                    preds = model(advs_images).argmax(dim=1)
+                    correct[i] += (preds == labels).sum().item()  # Compute accuracy for each epsilon
+
+
+        robust_accuracies = 1 - (count_adv / total)
+        for i, epsilon in enumerate(epsilons):
+            results[attack_name][epsilon] = {
+                "count_adv": count_adv[i].item(),
+                "robust_acc": robust_accuracies[i].item(),
+            }
+            
+            print(f"Epsilon {epsilon} Robust accuracy: {robust_accuracies[i]}")
+            
+        if sanity_check:
+            print(f"Accuracy vector for each epsilon: {correct / total}")
+            
     results["total"] = total
     return results
 
 
-    
+def min_max_images(images: torch.tensor):
+    min_ = images.min().item()
+    max_ = images.max().item()
+    print(f"min: {min_}, max: {max_}")
+
 

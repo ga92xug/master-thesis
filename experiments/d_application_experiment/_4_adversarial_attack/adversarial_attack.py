@@ -24,7 +24,6 @@ def adversarial_attack(
         model: nn.Module,
         dataloader: torch.utils.data.DataLoader,
         cfg: DictConfig,
-        global_start_time: str,
         device: torch.device,
         logger: Custom_Logger = None,
     ): 
@@ -41,7 +40,6 @@ def adversarial_attack(
             model=model,
             dataloader=dataloader,
             device=device,
-            global_start_time=global_start_time,
             mean=mean,
             std=std,
             verbose=cfg.other.verbose,
@@ -64,29 +62,29 @@ def adversarial_attack(
     else:
         print(results)
 
+    return results
 
-def debug_auto_attack_eval():
+
+def debug_adversarial_attack():
     """
     This function can be used to debug the auto_attack_eval function.
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    model, dataloaders, cfg = hydra_compose(overrides=["training=isic2019-training", "model=efficientnet"])
+    model, dataloaders, cfg = hydra_compose(overrides=["training=DeepDRiD-training", "model=efficientnet"])
 
-    global_start_time = time.time()
     adversarial_attack(
         mode="Foolbox",
         model=model,
         dataloader=dataloaders["test"],
         cfg=cfg,
-        global_start_time=global_start_time,
         device=device,
     )
 
 
 
 if __name__ == "__main__":
-    debug_auto_attack_eval()
+    debug_adversarial_attack()
 
 
 

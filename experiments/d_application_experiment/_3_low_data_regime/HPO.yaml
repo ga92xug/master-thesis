@@ -15,7 +15,7 @@ HPOs:
       "model/blocks_args_dict": 4blocks
 
   efficientnet:
-    done: False
+    done: True
     eval_only: False
     restore: False
     more_trials: False
@@ -53,6 +53,7 @@ dataset:
     training.dataset.reduction_factor: ${low_data_regime}
     training.earlystop.monitor: valid.loss
     training.earlystop.baseline: null
+    training.earlystop.stop: True
 
     wandb.mode: online
     #training.earlystop.patience: 0

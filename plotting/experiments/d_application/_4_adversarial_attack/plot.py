@@ -20,6 +20,7 @@ def plot(
     ):
     # order metrics_dict by key so the colors are the same
     data = dict(sorted(data.items(), key=lambda item: item[0]))
+    print("data", data.keys())
 
     if plot_type == 'individual':
         for attack, values in data.items():
@@ -80,14 +81,21 @@ def main():
     experiments2filters = OmegaConf.to_container(
             cfg.experiments, resolve=True, throw_on_missing=True)
 
+    attack_name_list = [
+        "LinfProjectedGradientDescentAttack", 
+        "L2ProjectedGradientDescentAttack", 
+        "LinfBasicIterativeAttack", 
+        "L2BasicIterativeAttack"
+    ]
+
     for exp_name, values in experiments2filters.items():
-        #if exp_name != "Blood":
+        #if exp_name == "Blood":
         #    continue
         filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)
         # get data
-        data = get_wandb_adversarial_attack_data(filters)
+        data = get_wandb_adversarial_attack_data(filters, attack_name_list)
              
         plot(
             save_folder_name=save_folder_name,

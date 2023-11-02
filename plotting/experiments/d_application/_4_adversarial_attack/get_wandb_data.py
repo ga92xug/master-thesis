@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 import wandb
 import os
 import re
@@ -17,6 +17,7 @@ def wandb_connection(filters: Dict[str, str]):
 
 def get_wandb_adversarial_attack_data(
         filters: Dict[str, str],
+        attack_name_list: List[str],
     ):
     runs = wandb_connection(filters)
     data = {}
@@ -29,7 +30,7 @@ def get_wandb_adversarial_attack_data(
 
         data[name] = run2data(run)
 
-    restructed_data = restructuring_data(data)
+    restructed_data = restructuring_data(data, attack_name_list)
 
     # sort by key
     restructed_data = dict(sorted(restructed_data.items(), key=lambda item: item[0]))
@@ -39,6 +40,45 @@ def get_wandb_adversarial_attack_data(
 def run2data(run):
     # adversarial_attack.L2ProjectedGradientDescentAttack.0.0.robust_acc
     adversarial_attacks = run.summary["adversarial_attack"]
+    #print(run.summary)
+    history = run.history()
+    #print("history", history)
+    # all columns that have the word adversarial_attack
+    adversarial_attack_columns = [column for column in history.columns if "adversarial_attack" in column]
+    adversarial_attack_columns = sorted(adversarial_attack_columns)
+    #print("adversarial_attack_columns", adversarial_attack_columns)
+
+    results = {}
+
+    for column in adversarial_attack_columns:
+        if len(column.split(".")) != 5:
+            continue
+
+        attack_column = run.history(keys=[column])
+        last_value = attack_column.values[-1, 1]    
+
+        # get the attack name
+        attack_name = column.split(".")[1] 
+        epsilon = column.split(".")[2:4]
+        epsilon = ".".join(epsilon)
+        metric = column.split(".")[-1]
+
+        if attack_name not in results:
+            results[attack_name] = {
+                "robust_accs": [],
+                "count_advs": [],
+                "epsilons": [],
+            }
+        if metric == "robust_acc":
+            results[attack_name]["robust_accs"].append(last_value)
+            results[attack_name]["epsilons"].append(epsilon)
+        elif metric == "count_adv":
+            results[attack_name]["count_advs"].append(last_value)
+
+    return results
+    #print("history", history)
+    """
+    now the values are not in summary anymore
 
     results = {}
 
@@ -65,25 +105,28 @@ def run2data(run):
             results[k]["epsilons"].append(epsilon)
 
     return results
+    """
 
     
-def restructuring_data(data: Dict):
+
+    
+def restructuring_data(data: Dict, attack_name_list: List):
     """
     """
 
     restructured_data = {}
     # get attacks from first model
-    attacks = list(data.values())[0].keys()
+    #attack_name_list = list(data.values())[0].keys()
 
     # all models have the same attacks
-    for attack in attacks:
+    for attack in attack_name_list:
         restructured_data[attack] = {}
 
     for model, values in data.items():
         attack_current = values.keys()
-        assert attack_current == attacks, f"All models should have the same attacks. {attack_current} != {attacks}"
+        #assert attack_current == attacks, f"All models should have the same attacks. {attack_current} != {attacks}"
 
-        for attack in attacks:
+        for attack in attack_name_list:
             restructured_data[attack][model] = {}
             restructured_data[attack][model]["epsilons"] = values[attack]["epsilons"]
             restructured_data[attack][model]["robust_accs"] = values[attack]["robust_accs"]
