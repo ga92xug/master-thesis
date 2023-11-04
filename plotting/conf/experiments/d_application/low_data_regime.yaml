@@ -6,3 +6,5 @@ DeepDRiD:
 Blood:
   filters:
     tags: Blood_low_data
+
+wandb_projects: ["SL-Application"]

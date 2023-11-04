@@ -2,10 +2,11 @@ from omegaconf import DictConfig, OmegaConf
 import os
 import sys
 
+
 sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.c_scaling.plotting_functions import *
 from plotting.experiments.c_scaling.wandb_data import *
-from plotting.experiments.util import *
+from plotting.experiments.plotting_utils import *
 
 def scaling_plot_data(
         paths2filter_dict: dict,

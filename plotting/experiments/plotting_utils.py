@@ -1,8 +1,12 @@
 import os
+import numpy as np
 from typing import Dict, List, Optional, Tuple
 import wandb
 from hydra import compose, initialize
 import matplotlib.pyplot as plt
+
+def smooth_data(data, w: int = 3):
+    return np.convolve(data, np.ones(w), 'valid') / w
 
 def plot_init(individual_location:str, override: bool = False):
     """
@@ -10,10 +14,14 @@ def plot_init(individual_location:str, override: bool = False):
     """
     overrides = []
     if override:
-        overrides = [f"experiments={individual_location.replace('/', '_')[:-1]}"]
+        overrides = [
+            f"experiments={individual_location}", 
+            # tell hydra to look for the config in the experiments folder
+            "hydra.searchpath=[file://plotting/conf/experiments]"
+        ]
 
-    with initialize(config_path="conf", version_base="1.2"):
-        cfg = compose(config_name="config", overrides=overrides)
+    with initialize(config_path="../conf", version_base="1.2"):
+        cfg = compose(config_name="plotting_config", overrides=overrides)
 
     # Set the font size for labels, tick labels, and titles
     plt.rcParams.update({'font.size': cfg.fontsize})

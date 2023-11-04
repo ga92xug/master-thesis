@@ -8,10 +8,7 @@ textwidth_latex: 5.78853 # in inches
 fontsize: 12
 figsize: [6.4, 4.8]
 
-wandb:
-  entity: ga92xug
-  projects: ["SL-NAS-common-best"]
-
+wandb_entity: ga92xug
 
 dataset2metric: {
     # normal

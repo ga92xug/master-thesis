@@ -9,51 +9,43 @@ import os
 import sys
 
 sys.path.append(f"{os.getcwd()}")
-from plotting.util import get_fig_size
+from plotting.experiments.plotting_utils import *
+
 
 METRIC_2_YLABEL = {
     "valid.acc": "Validation accuracy",
     "valid.acc_weighted": "Weighted validation accuracy",
 }
 
-def get_short_labels(labels: List[str], short_labels: str):
-    if short_labels is None:
+def get_short_labels(labels: List[str], short_labels_function: str):
+    if short_labels_function is None:
         return labels
     else:
-        transform_label = eval(f"lambda s: {short_labels}")
+        transform_label = eval(f"lambda s: {short_labels_function}")
         return [transform_label(label) for label in labels]
 
-def smooth_data(data, w: int = 3):
-    return np.convolve(data, np.ones(w), 'valid') / w
 
-def plot_flops(ax, downloaded_data, short_labels: str = None):
-    data = get_metric_from_downloaded_data(downloaded_data, "flops")
-    labels = get_short_labels(list(data.keys()), short_labels)
+def plot_histogram(
+        ax, 
+        data,
+        mode: str = "param_count", # ["param_count", "flops"]
+        short_labels_function: str = None
+    ):
+    data = get_metric_from_downloaded_data(data, mode)
+    short_labels_function = get_short_labels(list(data.keys()))
 
     flops = list(data.values())
 
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
-    x = np.arange(len(labels))  # Create an array of evenly spaced x values
+    x = np.arange(len(short_labels_function))  # Create an array of evenly spaced x values
     ax.bar(x, flops, color=colors)
-    ax.set_ylabel('FLOPs')
+
+    ylabel = mode.replace("_", " ")
+    ylabel = ylabel[0].upper() + ylabel[1:]
+    ax.set_ylabel(ylabel)
 
     ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
-    ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
-
-
-def plot_total_parameters(ax, downloaded_data, short_labels: str = None):
-    data = get_metric_from_downloaded_data(downloaded_data, "param_count")
-    labels = get_short_labels(list(data.keys()), short_labels)
-
-    total_params = list(data.values())
-
-    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
-    x = np.arange(len(labels))  # Create an array of evenly spaced x values
-    ax.bar(x, total_params, color=colors)
-    ax.set_ylabel('Param count')
-
-    ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
-    ax.set_xticklabels(labels, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
+    ax.set_xticklabels(short_labels_function, rotation=90, ha='center')  # Rotate labels by 45 degrees and align to the right
 
 
 def plot_validation_accuracy(
@@ -229,10 +221,10 @@ def create_combined_plot(
     plot_validation_accuracy(ax2, downloaded_data, metric, **kwargs)
     
     ax1 = plt.subplot(gs[1])
-    plot_flops(ax1, downloaded_data, short_labels=short_labels)
+    plot_histogram(ax1, downloaded_data, short_labels_function=short_labels, mode="flops")
 
     ax3 = plt.subplot(gs[2])
-    plot_total_parameters(ax3, downloaded_data, short_labels=short_labels)
+    plot_histogram(ax3, downloaded_data, short_labels_function=short_labels, mode="param_count")
     
     plt.tight_layout()
     plt.show()

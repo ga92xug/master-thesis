@@ -135,7 +135,7 @@ def iterate_HPOs(cfg: DictConfig):
         )
 
 
-@hydra.main(config_path=".", config_name="HPO", version_base="1.2")
+@hydra.main(config_path="conf", config_name="HPO", version_base="1.2")
 def hydra_main(cfg: DictConfig) -> None:
     print(cfg)
     if cfg.debug:

@@ -7,5 +7,5 @@ export PY_HPO="python experiments/d_application_experiment/_3_low_data_regime/lo
 
 
 # 1
-$PY_HPO -m dataset=isic2019 \
+$PY_HPO dataset=isic2019 \
     debug=0

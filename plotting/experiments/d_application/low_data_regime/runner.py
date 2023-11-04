@@ -3,9 +3,11 @@ import sys
 import numpy as np
 from typing import List, Union
 from omegaconf import OmegaConf
+
 sys.path.append(f"{os.getcwd()}")
-from plotting.experiments.util import *
+from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params import *
+from plotting.experiments.wandb_utils import get_wandb_data_multiple_runs
 from plotting.experiments.d_application.low_data_regime.wandb_data import get_wandb_low_data_regime_run_ids
 from plotting.experiments.d_application.low_data_regime.plotting_functions import plot_low_data_regime
 
@@ -28,12 +30,13 @@ def restructure_data(
     return restructured_data
 
 
-def plot(
+def one_low_data_regime_plot(
         metric: Dict[str, str],
         wandb_entity: str,
         wandb_projects: str,
         save_folder_name: str,
         save_name: str,
+        fig_size: Tuple[int, int],
         model2label_run_ids_dict: Dict[str, Union[List[str], str]],
         **kwargs,
     ):
@@ -69,9 +72,7 @@ def plot(
     
 
 def main():
-    cfg, save_folder_name = plot_init("d_application/low_data_regime/", override=True)
-    wandb_entity = cfg.wandb.entity
-    wandb_projects = ["SL-Application"]
+    cfg, save_folder_name = plot_init("d_application/low_data_regime", override=True)
     metric = "test.acc"
 
     experiments2filters = OmegaConf.to_container(
@@ -81,17 +82,21 @@ def main():
     for exp_name, values in experiments2filters.items():
         #if exp_name != "Blood":
         #    continue
-        filters = values["filters"]
+        filters = values.get("filters", None)
+        if filters is None:
+            # This is not a experiment
+            continue
         print("name", exp_name)
         print("filters", filters)
         model2run_ids = get_wandb_low_data_regime_run_ids(filters)
              
-        plot(
+        one_low_data_regime_plot(
             metric=metric,
-            wandb_entity=wandb_entity, 
-            wandb_projects=wandb_projects, 
+            wandb_entity=cfg.wandb_entity, 
+            wandb_projects=cfg.experiments.wandb_projects, 
             save_folder_name=save_folder_name,
             save_name=exp_name,
+            fig_size=cfg.figsize,
             model2label_run_ids_dict=model2run_ids
         )
 

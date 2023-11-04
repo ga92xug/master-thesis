@@ -1,5 +1,6 @@
 import os
 from typing import Dict, List, Optional, Tuple
+from joblib import Memory
 import wandb
 from hydra import compose, initialize
 import matplotlib.pyplot as plt
@@ -77,6 +78,9 @@ def download_run(
     return result
 
 
+cache_dir = '/home/frischs/.cache/get_wandb_data_multiple_runs/'
+memory = Memory(location=cache_dir, verbose=1)
+@memory.cache
 def get_wandb_data_multiple_runs(
         entity: str, 
         projects: str, 

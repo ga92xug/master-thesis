@@ -6,26 +6,29 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 sys.path.append(os.getcwd())
-from plotting.experiments.util import get_fig_size, save_plot
-
+from plotting.experiments.plotting_utils import *
 
 def plot_low_data_regime(
         metrics_dict: Dict[str, np.ndarray],
         metric_name: str,
+        fig_size: Tuple[int, int],
         errorbar: bool = False,
-        invert_xaxis: bool = True,
-        fig_size: Tuple[int, int] = (8, 4),
+        reverse_order: bool = True,
     ):
     plt.figure(figsize=fig_size)
     custom_lines = []
     reduction_points_longest = None
 
     # order metrics_dict by key
-    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0], reverse=True))    
+    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0]))    
     
     for model, values in metrics_dict.items():
-        metric_values = values.values()
+        metric_values = list(values.values())
         reduction_points = list(values.keys())
+        if reverse_order:
+            metric_values.reverse()
+            reduction_points.reverse()
+
         reduction_points = [int((float(reduction_point) * 100)) for reduction_point in reduction_points]
 
         if reduction_points_longest is None:
@@ -52,8 +55,6 @@ def plot_low_data_regime(
     plt.ylabel(f'{metric_name}')
     plt.title(f'{metric_name} vs. Dataset size')
     plt.grid(True)
-    if invert_xaxis:
-        plt.gca().invert_xaxis()
     
     plt.legend(handles=custom_lines, title='Models', labels=list(metrics_dict.keys()))
     return plt.gcf()
