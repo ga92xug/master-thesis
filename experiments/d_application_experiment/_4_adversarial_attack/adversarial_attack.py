@@ -71,7 +71,12 @@ def debug_adversarial_attack():
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    model, dataloaders, cfg = hydra_compose(overrides=["training=DeepDRiD-training", "model=efficientnet"])
+    model, dataloaders, cfg = hydra_compose(overrides=["training=DeepDRiD-training", "model=eq_nasnet"])
+
+    # load model
+    run_id = "myw54oac"
+    path = f"/home/frischs/outputs/{run_id}/model.pth"
+    model.load_state_dict(torch.load(path))
 
     adversarial_attack(
         mode="Foolbox",

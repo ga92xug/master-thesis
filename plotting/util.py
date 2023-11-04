@@ -146,7 +146,12 @@ def download_data(
     return result
 
 
-def save_plot(figure, name, folder_name='figures/first_experiments'):
+def save_plot(
+        figure: plt.Figure, 
+        name: str, 
+        folder_name: str,
+        file_format: str = "png",
+    ):
     """
     Safe a matplotlib figure to a file.
     """
@@ -155,6 +160,6 @@ def save_plot(figure, name, folder_name='figures/first_experiments'):
     if not os.path.exists(f'{folder_name}'):
         os.makedirs(f'{folder_name}')
 
-    figure.savefig(f'{folder_name}/{name}.png', dpi=300, bbox_inches = "tight")
+    figure.savefig(f'{folder_name}/{name}.{file_format}', dpi=300, bbox_inches = "tight")
 
 

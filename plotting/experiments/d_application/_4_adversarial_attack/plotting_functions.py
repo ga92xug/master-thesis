@@ -8,7 +8,7 @@ import math
 
 sys.path.append(f"{os.getcwd()}")
 from plotting.util import *
-from plotting.plot_functions import *
+from plotting.plot_acc_flops_params import *
 from plotting.experiments.d_application._4_adversarial_attack.get_wandb_data import get_wandb_adversarial_attack_data
 
 
@@ -84,8 +84,8 @@ def main():
     attack_name_list = [
         "LinfProjectedGradientDescentAttack", 
         "L2ProjectedGradientDescentAttack", 
-        "LinfBasicIterativeAttack", 
-        "L2BasicIterativeAttack"
+        "LinfDeepFoolAttack", 
+        "L2DeepFoolAttack"
     ]
 
     for exp_name, values in experiments2filters.items():

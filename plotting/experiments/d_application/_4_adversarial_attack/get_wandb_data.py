@@ -28,7 +28,7 @@ def get_wandb_adversarial_attack_data(
         if name in data:
             raise ValueError(f"Name {name}, {run.id} already in save_run_ids.")
 
-        data[name] = run2data(run)
+        data[name] = run2data_new(run, attack_name_list)
 
     restructed_data = restructuring_data(data, attack_name_list)
 
@@ -37,19 +37,37 @@ def get_wandb_adversarial_attack_data(
 
     return restructed_data
 
-def run2data(run):
-    # adversarial_attack.L2ProjectedGradientDescentAttack.0.0.robust_acc
-    adversarial_attacks = run.summary["adversarial_attack"]
-    #print(run.summary)
-    history = run.history()
-    #print("history", history)
-    # all columns that have the word adversarial_attack
-    adversarial_attack_columns = [column for column in history.columns if "adversarial_attack" in column]
-    adversarial_attack_columns = sorted(adversarial_attack_columns)
-    #print("adversarial_attack_columns", adversarial_attack_columns)
+
+def run2data_new(run, attack_name_list):
+    print("run", run.id)
 
     results = {}
 
+    for attack_name in attack_name_list:
+        data = run.summary[attack_name]
+
+        results[attack_name] = {
+            "robust_accs": data[0],
+            "epsilons": data[1],
+        }
+
+    return results
+    
+
+
+
+def run2data(run):
+    print("run", run.id)
+
+    #table = run.use_artifact("table_name:version").download()
+
+    """
+    history = run.history()
+    # all columns that have the word adversarial_attack
+    adversarial_attack_columns = [column for column in history.columns if "adversarial_attack" in column]
+    adversarial_attack_columns = sorted(adversarial_attack_columns)
+
+    results = {}
     for column in adversarial_attack_columns:
         if len(column.split(".")) != 5:
             continue
@@ -78,7 +96,9 @@ def run2data(run):
     return results
     #print("history", history)
     """
-    now the values are not in summary anymore
+    """
+    adversarial_attacks = run.summary["adversarial_attack"]
+    #now the values are not in summary anymore
 
     results = {}
 
@@ -130,7 +150,7 @@ def restructuring_data(data: Dict, attack_name_list: List):
             restructured_data[attack][model] = {}
             restructured_data[attack][model]["epsilons"] = values[attack]["epsilons"]
             restructured_data[attack][model]["robust_accs"] = values[attack]["robust_accs"]
-            restructured_data[attack][model]["count_advs"] = values[attack]["count_advs"]
+            #restructured_data[attack][model]["count_advs"] = values[attack]["count_advs"]
 
         
     return restructured_data

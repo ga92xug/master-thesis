@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 sys.path.append(f"{os.getcwd()}")
 from plotting.util import *
-from plotting.plot_functions import *
+from plotting.plot_acc_flops_params import *
 
 
 dict_runs_ids = {

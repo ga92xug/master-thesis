@@ -5,7 +5,7 @@ from typing import List, Union
 from omegaconf import OmegaConf
 sys.path.append(f"{os.getcwd()}")
 from plotting.util import *
-from plotting.plot_functions import *
+from plotting.plot_acc_flops_params import *
 from plotting.experiments.d_application._3_low_data_regime.get_run_ids import get_run_ids
 from plotting.experiments.d_application._3_low_data_regime.plot import plot_metric_vs_reduction
 

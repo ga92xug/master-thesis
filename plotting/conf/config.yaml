@@ -5,7 +5,7 @@ defaults:
 save_folder: "plotting/figures/"
 textwidth_latex: 5.78853 # in inches
 
-fontsize: 8
+fontsize: 12
 
 wandb:
   entity: ga92xug

@@ -1,6 +1,7 @@
 import os
 from typing import Dict, List
 import foolbox as fb
+import numpy as np
 import torch
 
 import sys
@@ -39,11 +40,15 @@ def foolbox_attack(
         #fb.attacks.L2ProjectedGradientDescentAttack(),
         #fb.attacks.LinfBasicIterativeAttack(),
 
-        fb.attacks.L2BasicIterativeAttack(), # potential candidate
-        #fb.attacks.LinfDeepFoolAttack(), # potential candidate
+        #fb.attacks.L2BasicIterativeAttack(), # potential candidate
+        fb.attacks.LinfDeepFoolAttack(), # potential candidate
+        fb.attacks.L2DeepFoolAttack(),
         #fb.attacks.LinfRepeatedAdditiveUniformNoiseAttack(), # potential candidate
     ]
-    epsilons = [0.0, 0.0005, 0.001, 0.01, 0.03, 0.1]
+
+
+    epsilons = np.linspace(0.0, 0.1, num=20)
+    #epsilons = [0.0, 0.0005, 0.001, 0.01, 0.03, 0.1]
 
     for attack in attacks:
         attack_name = attack.__class__.__name__
@@ -71,18 +76,20 @@ def foolbox_attack(
 
 
         robust_accuracies = 1 - (count_adv / total)
-        for i, epsilon in enumerate(epsilons):
-            results[attack_name][epsilon] = {
-                "count_adv": count_adv[i].item(),
-                "robust_acc": robust_accuracies[i].item(),
-            }
+        results[attack_name] = [robust_accuracies.tolist(), epsilons.tolist()]
+        #for i, epsilon in enumerate(epsilons):
+            #results[attack_name][epsilon] = {
+            #    "count_adv": count_adv[i].item(),
+            #    "robust_acc": robust_accuracies[i].item(),
+            #}
             
-            print(f"Epsilon {epsilon} Robust accuracy: {robust_accuracies[i]}")
+            
+            #print(f"Epsilon {epsilon} Robust accuracy: {robust_accuracies[i]}")
             
         if sanity_check:
             print(f"Accuracy vector for each epsilon: {correct / total}")
             
-    results["total"] = total
+    #results["total"] = total
     return results
 
 

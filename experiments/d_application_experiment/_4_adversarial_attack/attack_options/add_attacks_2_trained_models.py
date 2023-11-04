@@ -1,3 +1,5 @@
+#import pandas as pd
+import numpy as np
 import wandb
 import torch
 import torch.nn as nn
@@ -36,20 +38,22 @@ def add_attacks_to_trained_model(
         model_name: str,
         dataset_name: str,
         run_id: str,
+        log_results: bool = True,
     ):
     """
     This function can be used to debug the auto_attack_eval function.
     """
 
     # wandb run
-    run = wandb.init(
-        entity="ga92xug",
-        project="SL-Application",
-        id=run_id, 
-        resume="must",
-    )
-    run.finish()
-    return
+    if log_results:
+        run = wandb.init(
+            entity="ga92xug",
+            project="SL-Application",
+            id=run_id, 
+            resume="must",
+        )
+    #run.finish()
+    
     
     model, dataloaders, cfg = hydra_compose(
         overrides=[f"training={dataset_name}-training", f"model={model_name}"])
@@ -64,12 +68,17 @@ def add_attacks_to_trained_model(
         cfg=cfg,
         device=device,
     )
-    results = {"adversarial_attack": results}
 
-    #quit()
-    run.log(results)
-    run.finish()
-    #run.summary.update(results)
+    if log_results:
+        to_log = {}
+        for attack_name, values in results.items():
+            # transpose values
+            values_transposed = np.array(values).T.tolist()
+            wandb_table = wandb.Table(columns=["robust_acc", "epsilon"], data=values_transposed)
+            to_log[attack_name] = wandb_table
+
+        run.log(results)
+        run.finish()
 
 
 def model_name2model_cfg_name(model_name: str):
@@ -91,7 +100,7 @@ def iterate_over_datasets_models():
 
     for dataset_name, models in models2runids.items():
         for model_name, run_id in models.items():
-            if dataset_name != "DeepDRiD" and "ViT" not in model_name:
+            if not (dataset_name == "DeepDRiD" and "EfficientNet" in model_name):
                 continue
 
             print(f"dataset: {dataset_name}, model: {model_name}, run_id: {run_id}")
@@ -103,6 +112,7 @@ def iterate_over_datasets_models():
                 dataset_name=dataset_name,
                 run_id=run_id,
             ) 
+            #quit()
 
     
 

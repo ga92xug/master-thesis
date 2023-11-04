@@ -6,7 +6,7 @@ from plotting.experiments.b_NAS.plot_nas_results import scalar_mappable
 from experiments.b_NAS.common_best_architecture.util import *
 from experiments.b_NAS.util import *
 from plotting.util import *
-from plotting.plot_functions import *
+from plotting.plot_acc_flops_params import *
 
 
 def plot_scalar_mappable(ax_client, save_folder_name, dataset_name):
