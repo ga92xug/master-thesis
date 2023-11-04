@@ -5,21 +5,15 @@ import re
 import sys
 import yaml
 sys.path.append(f"{os.getcwd()}")
-from plotting.experiments.d_application.util import create_name_comparision_models
+from plotting.experiments.d_application.util import *
 
-def wandb_connection(filters: Dict[str, str]):
-    api = wandb.Api()
-    filters["state"] = "finished"
-    runs = api.runs(path=f"ga92xug/SL-Application", filters=filters)
 
-    print("Number of runs:", len(runs))
-    return runs
 
 def get_wandb_adversarial_attack_data(
         filters: Dict[str, str],
         attack_name_list: List[str],
     ):
-    runs = wandb_connection(filters)
+    runs = get_wandb_runs_from_filters(filters)
     data = {}
 
     for run in runs:
@@ -28,24 +22,30 @@ def get_wandb_adversarial_attack_data(
         if name in data:
             raise ValueError(f"Name {name}, {run.id} already in save_run_ids.")
 
-        data[name] = run2data_new(run, attack_name_list)
+        data[name] = run_id2data(run, attack_name_list)
 
     restructed_data = restructuring_data(data, attack_name_list)
-
     # sort by key
     restructed_data = dict(sorted(restructed_data.items(), key=lambda item: item[0]))
-
     return restructed_data
 
 
-def run2data_new(run, attack_name_list):
-    print("run", run.id)
+def run_id2data(
+        run: wandb.sdk.wandb_run.Run, 
+        attack_name_list: List[str],
+    ):
+    """
+    Extracts the data (robust_acc, epsilon) from the run.
 
+    Returns:
+        Dict[str, List[float]]: Dict with the keys "robust_accs", "epsilons" which are lists of same length.
+    """
+
+    print("run", run.id)
     results = {}
 
     for attack_name in attack_name_list:
         data = run.summary[attack_name]
-
         results[attack_name] = {
             "robust_accs": data[0],
             "epsilons": data[1],
@@ -53,15 +53,38 @@ def run2data_new(run, attack_name_list):
 
     return results
     
+def restructuring_data(data: Dict, attack_name_list: List):
+    """
+    """
+
+    restructured_data = {}
+    # get attacks from first model
+    #attack_name_list = list(data.values())[0].keys()
+
+    # all models have the same attacks
+    for attack in attack_name_list:
+        restructured_data[attack] = {}
+
+    for model, values in data.items():
+        attack_current = values.keys()
+        #assert attack_current == attacks, f"All models should have the same attacks. {attack_current} != {attacks}"
+
+        for attack in attack_name_list:
+            restructured_data[attack][model] = {}
+            restructured_data[attack][model]["epsilons"] = values[attack]["epsilons"]
+            restructured_data[attack][model]["robust_accs"] = values[attack]["robust_accs"]
+            #restructured_data[attack][model]["count_advs"] = values[attack]["count_advs"]
+
+        
+    return restructured_data
 
 
-
-def run2data(run):
+def run2data_old(run):
     print("run", run.id)
-
+    """
     #table = run.use_artifact("table_name:version").download()
 
-    """
+    
     history = run.history()
     # all columns that have the word adversarial_attack
     adversarial_attack_columns = [column for column in history.columns if "adversarial_attack" in column]
@@ -96,7 +119,7 @@ def run2data(run):
     return results
     #print("history", history)
     """
-    """
+    
     adversarial_attacks = run.summary["adversarial_attack"]
     #now the values are not in summary anymore
 
@@ -125,36 +148,7 @@ def run2data(run):
             results[k]["epsilons"].append(epsilon)
 
     return results
-    """
-
     
-
-    
-def restructuring_data(data: Dict, attack_name_list: List):
-    """
-    """
-
-    restructured_data = {}
-    # get attacks from first model
-    #attack_name_list = list(data.values())[0].keys()
-
-    # all models have the same attacks
-    for attack in attack_name_list:
-        restructured_data[attack] = {}
-
-    for model, values in data.items():
-        attack_current = values.keys()
-        #assert attack_current == attacks, f"All models should have the same attacks. {attack_current} != {attacks}"
-
-        for attack in attack_name_list:
-            restructured_data[attack][model] = {}
-            restructured_data[attack][model]["epsilons"] = values[attack]["epsilons"]
-            restructured_data[attack][model]["robust_accs"] = values[attack]["robust_accs"]
-            #restructured_data[attack][model]["count_advs"] = values[attack]["count_advs"]
-
-        
-    return restructured_data
-
 
 if __name__ == "__main__":
     filters = {

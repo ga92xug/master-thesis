@@ -11,7 +11,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import get_name_performance_metric
-from plotting.util import get_fig_size
+from plotting.experiments.util import get_fig_size
 
 # textwidth latex 5.78853in
 # textwidth in cm: \printinunitsof{in}\prntlen{\textwidth}

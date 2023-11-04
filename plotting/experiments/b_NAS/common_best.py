@@ -4,8 +4,8 @@ from typing import List, Union
 from omegaconf import OmegaConf
 
 sys.path.append(f"{os.getcwd()}")
-from plotting.util import *
-from plotting.plot_acc_flops_params import *
+from plotting.experiments.util import *
+from plotting.experiments.plot_acc_flops_params import *
 
 
 dict_runs_ids = {
@@ -95,7 +95,7 @@ def plot(
     ):
     metric = dataset2metric[dataset]
 
-    downloaded_data = download_data(
+    downloaded_data = get_wandb_data_multiple_runs(
         entity=wandb_entity, 
         projects=wandb_projects, 
         labels_run_ids=labels_run_ids,

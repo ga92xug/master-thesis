@@ -1,18 +1,15 @@
 import os
 import sys
-import numpy as np
-from typing import List, Union
-from omegaconf import OmegaConf
 import matplotlib.pyplot as plt
 import math
 
 sys.path.append(f"{os.getcwd()}")
-from plotting.util import *
-from plotting.plot_acc_flops_params import *
-from plotting.experiments.d_application._4_adversarial_attack.get_wandb_data import get_wandb_adversarial_attack_data
+from plotting.experiments.util import *
+from plotting.experiments.plot_acc_flops_params import *
+from plotting.experiments.d_application.adversarial_attack.wandb_data import *
 
 
-def plot(
+def plot_adversarial_attacks(
         save_folder_name: str,
         save_name: str,
         data: Dict,
@@ -20,7 +17,6 @@ def plot(
     ):
     # order metrics_dict by key so the colors are the same
     data = dict(sorted(data.items(), key=lambda item: item[0]))
-    print("data", data.keys())
 
     if plot_type == 'individual':
         for attack, values in data.items():
@@ -74,37 +70,3 @@ def plot(
     else:
         raise ValueError(f"plot_type {plot_type} not supported.")
     
-
-def main():
-    cfg, save_folder_name = plot_init("d_application/adversarial_attacks/", override=True)
-
-    experiments2filters = OmegaConf.to_container(
-            cfg.experiments, resolve=True, throw_on_missing=True)
-
-    attack_name_list = [
-        "LinfProjectedGradientDescentAttack", 
-        "L2ProjectedGradientDescentAttack", 
-        "LinfDeepFoolAttack", 
-        "L2DeepFoolAttack"
-    ]
-
-    for exp_name, values in experiments2filters.items():
-        #if exp_name == "Blood":
-        #    continue
-        filters = values["filters"]
-        print("name", exp_name)
-        print("filters", filters)
-        # get data
-        data = get_wandb_adversarial_attack_data(filters, attack_name_list)
-             
-        plot(
-            save_folder_name=save_folder_name,
-            save_name=exp_name,
-            data=data
-        )
-
-
-if __name__ == "__main__":
-    main()    
-
-

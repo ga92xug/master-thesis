@@ -6,23 +6,10 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 sys.path.append(os.getcwd())
-from plotting.util import get_fig_size, save_plot
+from plotting.experiments.util import get_fig_size, save_plot
 
-def example_data():
-    """
-    Some example data to test the plotting function.
-    """
-    metrics_dict = {
-        'eq_nasnet': {'1': [73.50000143, 74.25000072, 73.75000119, 73.75000119, 73.25000167], '0.5': [74.75000024, 74.25000072, 72.50000238], '0.3': [74.75000024, 74.25000072, 73.00000191], '0.1': [74.25000072, 74.25000072, 72.25000262], '0.05': [73.25000167, 73.50000143, 72.75000215]}, 
-        'vit_pre': {'1': [74.50000048, 74.25000072, 73.25000167, 74.25000072, 71.74999714], '0.3': [69.74999905, 70.99999785, 68.75      , 72.25000262, 72.75000215]}, 
-        'vit': {'1': [64.74999785, 68.00000072, 69.24999952, 63.49999905, 69.24999952], '0.3': [70.24999857, 69.24999952, 71.74999714, 66.50000215, 64.24999833]}, 
-        'efficientnet_pre': {'1': [71.49999738, 70.99999785, 72.00000286, 73.00000191, 72.25000262], '0.5': [65.24999738, 64.74999785, 66.75000191, 67.50000119, 65.24999738], '0.3': [72.00000286, 70.99999785, 70.99999785, 69.74999905, 70.74999809]}, 
-        'efficientnet': {'1': [70.74999809, 77.49999762, 73.75000119, 74.25000072, 68.99999976], '0.3': [74.75000024, 71.74999714, 71.24999762, 70.99999785, 72.25000262]}
-    }
 
-    return metrics_dict
-
-def plot_metric_vs_reduction(
+def plot_low_data_regime(
         metrics_dict: Dict[str, np.ndarray],
         metric_name: str,
         errorbar: bool = False,
@@ -34,10 +21,7 @@ def plot_metric_vs_reduction(
     reduction_points_longest = None
 
     # order metrics_dict by key
-    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0]))
-
-    #print("metrics_dict", metrics_dict)
-    
+    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0], reverse=True))    
     
     for model, values in metrics_dict.items():
         metric_values = values.values()
@@ -75,14 +59,23 @@ def plot_metric_vs_reduction(
     return plt.gcf()
     
 
-
-def main():
-    metrics_dict = example_data()
-    plot_metric_vs_reduction(metrics_dict, "test.acc")
-    save_plot(plt, name=f"example", folder_name='plotting/figures/d_application/low_data_regime')
+def example_data():
+    """
+    Some example data to test the plotting function.
+    """
+    metrics_dict = {
+        'eq_nasnet': {'1': [73.50000143, 74.25000072, 73.75000119, 73.75000119, 73.25000167], '0.5': [74.75000024, 74.25000072, 72.50000238], '0.3': [74.75000024, 74.25000072, 73.00000191], '0.1': [74.25000072, 74.25000072, 72.25000262], '0.05': [73.25000167, 73.50000143, 72.75000215]}, 
+        'vit_pre': {'1': [74.50000048, 74.25000072, 73.25000167, 74.25000072, 71.74999714], '0.3': [69.74999905, 70.99999785, 68.75      , 72.25000262, 72.75000215]}, 
+        'vit': {'1': [64.74999785, 68.00000072, 69.24999952, 63.49999905, 69.24999952], '0.3': [70.24999857, 69.24999952, 71.74999714, 66.50000215, 64.24999833]}, 
+        'efficientnet_pre': {'1': [71.49999738, 70.99999785, 72.00000286, 73.00000191, 72.25000262], '0.5': [65.24999738, 64.74999785, 66.75000191, 67.50000119, 65.24999738], '0.3': [72.00000286, 70.99999785, 70.99999785, 69.74999905, 70.74999809]}, 
+        'efficientnet': {'1': [70.74999809, 77.49999762, 73.75000119, 74.25000072, 68.99999976], '0.3': [74.75000024, 71.74999714, 71.24999762, 70.99999785, 72.25000262]}
+    }
+    return metrics_dict
 
 
 if __name__ == '__main__':
-    main()
+    metrics_dict = example_data()
+    plot_low_data_regime(metrics_dict, "test.acc")
+    save_plot(plt, name=f"example", folder_name='plotting/figures/d_application/low_data_regime')
 
 

@@ -16,8 +16,8 @@ from joblib import Memory
 import os
 import sys
 sys.path.append(f"{os.getcwd()}")
-from plotting.util import download_run
-from plotting.plot_acc_flops_params import get_metric_from_downloaded_data, transform_data_to_arrays
+from plotting.experiments.util import download_run
+from plotting.experiments.plot_acc_flops_params import get_metric_from_downloaded_data, transform_data_to_arrays
 from networks.util import flatten_dict
 
 

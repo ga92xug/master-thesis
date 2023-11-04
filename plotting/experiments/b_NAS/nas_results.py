@@ -5,7 +5,7 @@ sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.b_NAS.plot_nas_results import scalar_mappable
 from experiments.b_NAS.common_best_architecture.util import *
 from experiments.b_NAS.util import *
-from plotting.util import *
+from plotting.experiments.util import *
 from plotting.plot_acc_flops_params import *
 
 

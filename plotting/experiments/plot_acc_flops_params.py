@@ -27,7 +27,7 @@ def smooth_data(data, w: int = 3):
     return np.convolve(data, np.ones(w), 'valid') / w
 
 def plot_flops(ax, downloaded_data, short_labels: str = None):
-    data = get_metric_from_downloaded_data(downloaded_data, "flops", **kwargs)
+    data = get_metric_from_downloaded_data(downloaded_data, "flops")
     labels = get_short_labels(list(data.keys()), short_labels)
 
     flops = list(data.values())

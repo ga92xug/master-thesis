@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
-from plotting.util import get_fig_size, save_plot
+from plotting.experiments.util import get_fig_size, save_plot
 
 def single_path_individual_scaling_plot(
         ax, 

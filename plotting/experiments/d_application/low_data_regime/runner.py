@@ -4,16 +4,19 @@ import numpy as np
 from typing import List, Union
 from omegaconf import OmegaConf
 sys.path.append(f"{os.getcwd()}")
-from plotting.util import *
-from plotting.plot_acc_flops_params import *
-from plotting.experiments.d_application._3_low_data_regime.get_run_ids import get_run_ids
-from plotting.experiments.d_application._3_low_data_regime.plot import plot_metric_vs_reduction
+from plotting.experiments.util import *
+from plotting.experiments.plot_acc_flops_params import *
+from plotting.experiments.d_application.low_data_regime.wandb_data import get_wandb_low_data_regime_run_ids
+from plotting.experiments.d_application.low_data_regime.plotting_functions import plot_low_data_regime
 
 
-def restructure_data(data: Dict, metric: str):
+def restructure_data(
+        data: Dict, 
+        metric: str
+    ):
     restructured_data = {}
     for label, values in data.items():
-        factor = label # .split("=")[-1]
+        factor = label
 
         metric_list = []
         for run_id, run_data in values.items():
@@ -22,7 +25,6 @@ def restructure_data(data: Dict, metric: str):
         if len(metric_list) > 0:
             restructured_data[factor] = np.array(metric_list)
 
-    #print("restructured_data", restructured_data)
     return restructured_data
 
 
@@ -39,19 +41,19 @@ def plot(
     for model_name, value in model2label_run_ids_dict.items():
         labels_run_ids = value # ["labels_run_ids"]
         
-        downloaded_data = download_data(
+        data = get_wandb_data_multiple_runs(
             entity=wandb_entity, 
             projects=wandb_projects, 
             labels_run_ids=labels_run_ids,
             metric=metric,
             name_param_count="param_count"
         )
-        data = restructure_data(downloaded_data, metric)
+        data = restructure_data(data, metric)
         model2data[model_name] = data
 
 
-    fig_size = get_fig_size((8,4))
-    fig = plot_metric_vs_reduction(
+    #fig_size = get_fig_size((8,4))
+    fig = plot_low_data_regime(
         metrics_dict=model2data,
         metric_name=metric,
         fig_size=fig_size,
@@ -82,7 +84,7 @@ def main():
         filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)
-        model2run_ids = get_run_ids(filters)
+        model2run_ids = get_wandb_low_data_regime_run_ids(filters)
              
         plot(
             metric=metric,
