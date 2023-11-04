@@ -63,6 +63,7 @@ def main(cfg: DictConfig) -> None:
     print("valid:", length_valid, "of all", length_valid/lenght_all)
     print("test:", length_test, "of all", length_test/lenght_all)
     
+    return
     
     for name, dataloader in dataloaders.items():
         print("\nDataloader: ", name)

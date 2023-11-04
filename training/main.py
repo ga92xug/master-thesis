@@ -1,4 +1,5 @@
 from calendar import c
+import random
 from typing import Dict, List, Tuple, Union
 import numpy as np
 
@@ -54,6 +55,7 @@ class Experiment:
         # seed
         torch.manual_seed(cfg.other.seed)
         np.random.seed(cfg.other.seed)
+        random.seed(0)
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         

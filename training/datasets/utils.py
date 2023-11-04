@@ -164,67 +164,69 @@ def split_without_stratify(images, labels, random_seed):
 def split_with_stratify(
         images, 
         labels, 
-        random_seed, 
         reduction_factor=1.0,
         val_size=0.1,
         test_size=0.1,
     ):
+    """
+    Splits the images and labels into train, val, and test arrays.
+    The train set can be reduced by the reduction_factor.
+
+    Note: The test set is always the same regardless of the random seed set in the experiment.
+        The other sets are split based on the numpy random seed.
+    """
+
     assert val_size + test_size < 1.0, "val_size + test_size should be less than to 1.0"
     assert val_size >= 0.0, "val_size should be greater than or equal to 0.0"
     assert test_size >= 0.0, "test_size should be greater than or equal to 0.0"
     assert reduction_factor <= 1.0 and reduction_factor > 0.0, "reduction_factor should be in the range (0.0, 1.0]"
     
+    if test_size > 0.0:
+        images, test_images, labels, test_labels = \
+            train_test_split(
+                *[images, labels], 
+                test_size=test_size, 
+                random_state=42, # the test set should be the same for all experiments
+                stratify=labels
+            )
+    else:
+        test_images = None
+        test_labels = None
+
     # Reduction
     if reduction_factor < 1.0:
         images, additional_images, labels, additional_labels = \
             train_test_split(
                 *[images, labels], 
                 train_size=reduction_factor, 
-                random_state=random_seed, 
                 stratify=labels
             )
 
     # Val_test
-    if val_size + test_size > 0.0:
-        train_images, val_test_images, train_labels, val_test_labels = \
+    if val_size > 0.0:
+        train_images, val_images, train_labels, val_labels = \
             train_test_split(
                 *[images, labels], 
                 test_size=val_size + test_size, 
-                random_state=random_seed, 
                 stratify=labels
             )
     else:
         train_images = images
         train_labels = labels
-        val_test_images = None
-        val_test_labels = None
+        val_images = None
+        val_labels = None
     
-    # Test
-    if test_size == 0.0:
-        val_images = val_test_images
-        val_labels = val_test_labels
-        test_images = None
-        test_labels = None
-    else:
-        val_images, test_images, val_labels, test_labels = \
-            train_test_split(
-                *[val_test_images, val_test_labels], 
-                test_size=test_size / (val_size + test_size), 
-                random_state=random_seed, 
-                stratify=val_test_labels
-            )
-
     
-    if reduction_factor < 1.0:
-        # what to do with the additional images
-        if test_size != 0.0:
-            # if the test set is not distinct from the train set we can use the additional images for evaluation
-            # otherwise no it breaks the independence of the test set
-            test_images = np.concatenate([test_images, additional_images])
-            test_labels = np.concatenate([test_labels, additional_labels])
-        else:
-            # we do not use the additional images for evaluation
-            # we can not add them to the val set because that breaks the logic of reducing the size of the train set
-            print("Not using additional images for evaluation.")
+    # if reduction_factor < 1.0:
+    #     # what to do with the additional images
+    #     if test_size != 0.0:
+    #         # if the test set is not distinct from the train set we can use the additional images for evaluation
+    #         # otherwise no it breaks the independence of the test set
+    #         test_images = np.concatenate([test_images, additional_images])
+    #         test_labels = np.concatenate([test_labels, additional_labels])
+    #     else:
+    #         # we do not use the additional images for evaluation
+    #         # we can not add them to the val set because that breaks the logic of reducing the size of the train set
+    #         print("Not using additional images for evaluation.")
 
     return train_images, train_labels, val_images, val_labels, test_images, test_labels

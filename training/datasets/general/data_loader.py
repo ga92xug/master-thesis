@@ -69,7 +69,6 @@ def build_loaders(
     verbose: int,
     test_as_valid: bool = False,
 ):
-    random_seed = 42
 
     if isinstance(images, dict):
         # split the data; assume there are train and test sets; create val set from train set if not exists
@@ -88,7 +87,6 @@ def build_loaders(
             train_images, train_labels, val_images, val_labels, _, _ = split_with_stratify(
                 images=train_images, 
                 labels=train_labels, 
-                random_seed=random_seed, 
                 reduction_factor=reduction_factor,
                 val_size=val_size,
                 test_size=test_size,
@@ -97,7 +95,6 @@ def build_loaders(
             train_images, train_labels, _, _, _, _ = split_with_stratify(
                 images=train_images, 
                 labels=train_labels, 
-                random_seed=random_seed, 
                 reduction_factor=reduction_factor,
                 val_size=0.0,
                 test_size=0.0,
@@ -108,7 +105,6 @@ def build_loaders(
             split_with_stratify(
                 images=images, 
                 labels=labels, 
-                random_seed=random_seed, 
                 reduction_factor=reduction_factor,
                 val_size=val_size,
                 test_size=test_size,
