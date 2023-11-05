@@ -10,7 +10,6 @@ import time
 import sys
 import os
 
-
 sys.path.append(f"{os.getcwd()}")
 from experiments.d_application_experiment._4_adversarial_attack.attack_options.autoattack_option import run_autoattack
 from experiments.d_application_experiment._4_adversarial_attack.attack_options.foolbox_option import foolbox_attack
@@ -71,10 +70,10 @@ def debug_adversarial_attack():
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
-    model, dataloaders, cfg = hydra_compose(overrides=["training=DeepDRiD-training", "model=eq_nasnet"])
+    model, dataloaders, cfg = hydra_compose(overrides=["training=blood-training", "model=eq_nasnet"])
 
     # load model
-    run_id = "myw54oac"
+    run_id = "ra78gixb"
     path = f"/home/frischs/outputs/{run_id}/model.pth"
     model.load_state_dict(torch.load(path))
 

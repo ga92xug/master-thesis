@@ -19,7 +19,7 @@ def foolbox_attack(
         dataloader: torch.utils.data.DataLoader,
         mean: torch.Tensor,
         std: torch.Tensor,
-        sanity_check: bool = False,
+        sanity_check: bool = True,
     ) -> Dict:
 
     results = {}
@@ -42,20 +42,20 @@ def foolbox_attack(
 
         #fb.attacks.L2BasicIterativeAttack(), # potential candidate
         fb.attacks.LinfDeepFoolAttack(), # potential candidate
-        fb.attacks.L2DeepFoolAttack(),
+        #fb.attacks.L2DeepFoolAttack(),
         #fb.attacks.LinfRepeatedAdditiveUniformNoiseAttack(), # potential candidate
     ]
 
 
-    epsilons = np.linspace(0.0, 0.1, num=20)
-    #epsilons = [0.0, 0.0005, 0.001, 0.01, 0.03, 0.1]
+    #epsilons = np.linspace(0.0, 0.1, num=20)
+    epsilons = [0.0, 0.0005, 0.1]
 
     for attack in attacks:
         attack_name = attack.__class__.__name__
         results[attack_name] = {}
         total = 0
         count_adv = torch.zeros(len(epsilons)).to(device)
-        correct = torch.zeros(len(epsilons)).to(device)
+        correct = torch.zeros(len(epsilons) + 1).to(device)
 
 
         for i, out_dataloader in enumerate(dataloader):
@@ -68,11 +68,17 @@ def foolbox_attack(
             total += images.shape[0]
 
             if sanity_check:
+                normal_images = (images - mean[:, None, None]) / std[:, None, None]
+                preds = model(normal_images).argmax(dim=1)
+                correct[0] += (preds == labels).sum().item()  # Compute accuracy for each epsilon
+
                 for i, advs in enumerate(advs_list):
                     # normalize for model
                     advs_images = (advs - mean[:, None, None]) / std[:, None, None]
                     preds = model(advs_images).argmax(dim=1)
-                    correct[i] += (preds == labels).sum().item()  # Compute accuracy for each epsilon
+                    correct[i+1] += (preds == labels).sum().item()  # Compute accuracy for each epsilon
+
+                print(f"Accuracy vector for each epsilon: {correct / total}")
 
 
         robust_accuracies = 1 - (count_adv / total)

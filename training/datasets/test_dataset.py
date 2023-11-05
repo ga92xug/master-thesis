@@ -4,6 +4,10 @@ import numpy as np
 
 import sys
 import os
+import hashlib
+
+import torch
+
 #from pandas import value_counts
 
 sys.path.append(f"{os.getcwd()}")
@@ -11,7 +15,13 @@ from training import utils
 from training.datasets.utils import get_normalize_weights
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
-def get_stats(dataloader):
+def hash_tensor(tensor):
+    return hashlib.sha256(tensor.tobytes()).hexdigest()
+
+def get_stats(
+        dataloader: torch.utils.data.DataLoader,
+        check_test_set_same: bool = False,
+    ):
     list_images = []
     list_labels = []
     for i, out_dataloader in enumerate(dataloader):
@@ -21,6 +31,10 @@ def get_stats(dataloader):
         list_labels.append(labels.cpu().numpy())
 
     images = np.concatenate(list_images, axis=0)
+    if check_test_set_same:
+        hash_images = hash_tensor(images)
+        print("hash_tensor", hash_images)
+
     mean = np.mean(images, axis=(0, 2, 3)).tolist()
     std = np.std(images, axis=(0, 2, 3)).tolist()
     print("mean", mean)
@@ -40,6 +54,7 @@ def get_stats(dataloader):
 
 @hydra.main(config_path="../conf", config_name="config", version_base="1.2")
 def main(cfg: DictConfig) -> None:
+    np.random.seed(cfg.other.seed)
 
     if hasattr(cfg, 'mean_std_test'):
         print("mean_std_test")
@@ -63,7 +78,7 @@ def main(cfg: DictConfig) -> None:
     print("valid:", length_valid, "of all", length_valid/lenght_all)
     print("test:", length_test, "of all", length_test/lenght_all)
     
-    return
+    
     
     for name, dataloader in dataloaders.items():
         print("\nDataloader: ", name)

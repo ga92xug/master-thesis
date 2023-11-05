@@ -8,7 +8,6 @@ sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.d_application.util import *
 
 
-
 def get_wandb_adversarial_attack_data(
         filters: Dict[str, str],
         attack_name_list: List[str],
@@ -19,6 +18,7 @@ def get_wandb_adversarial_attack_data(
     for run in runs:
         config = run.config
         name = create_name_comparision_models(config)
+        print("name", name)
         if name in data:
             raise ValueError(f"Name {name}, {run.id} already in save_run_ids.")
 
@@ -51,6 +51,7 @@ def run_id2data(
             "epsilons": data[1],
         }
 
+    print("results", results)
     return results
     
 def restructuring_data(data: Dict, attack_name_list: List):

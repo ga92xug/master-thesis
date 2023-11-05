@@ -2,14 +2,14 @@ import os
 import sys
 from omegaconf import OmegaConf
 sys.path.append(f"{os.getcwd()}")
-from plotting.experiments.util import *
+from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params import *
 from plotting.experiments.d_application.adversarial_attack.wandb_data import *
 from plotting.experiments.d_application.adversarial_attack.plotting_functions import *
 
 
 def main():
-    cfg, save_folder_name = plot_init("d_application/adversarial_attacks/", override=True)
+    cfg, save_folder_name = plot_init("d_application/adversarial_attacks", override=True)
     experiments2filters = OmegaConf.to_container(
             cfg.experiments, resolve=True, throw_on_missing=True)
 

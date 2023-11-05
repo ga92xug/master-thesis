@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import math
 
 sys.path.append(f"{os.getcwd()}")
-from plotting.experiments.util import *
+from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params import *
 from plotting.experiments.d_application.adversarial_attack.wandb_data import *
 
