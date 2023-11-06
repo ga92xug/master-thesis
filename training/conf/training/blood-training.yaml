@@ -15,11 +15,11 @@ optimizer:
   lr: 0.005
   weight_decay: 1e-5
 
-scheduler:
+#scheduler: null
   #_target_: null
-  factor: 0.5
-  patience: 10
-  verbose: True
+  #factor: 0.5
+  #patience: 10
+  #verbose: True
 
 
 earlystop:

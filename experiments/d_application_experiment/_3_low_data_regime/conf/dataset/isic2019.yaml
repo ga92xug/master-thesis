@@ -3,7 +3,7 @@ name: isic2019
 initial_epochs: 150
 
 BO_optimizer:
-  num_trials: 25
+  num_trials: 19
   grace_period: 0.5
   metric: valid.acc_weighted
   goal: max

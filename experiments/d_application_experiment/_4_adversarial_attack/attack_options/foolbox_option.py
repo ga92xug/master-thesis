@@ -10,6 +10,24 @@ import os
 sys.path.append(f"{os.getcwd()}")
 from training import utils
 
+def model_eval_mode(model: torch.nn.Module):
+    print(model.__class__.__name__)
+
+    if "Equivariant" in model.__class__.__name__:
+        # workaround for equivariant models
+        # basis expansion is performed in the forward pass which slows down attack
+        # but otherwise the gradients are not available (check equivariant code)
+        model.train()
+        for name, module in model.named_modules():
+            if "dropout" in name:
+                module.p = 0.0
+                print(module)
+            if "batch_norm" in name:
+                module.track_running_stats = True
+                print(module)
+    else:
+        model = model.eval()
+
 
 def foolbox_attack(
         model: torch.nn.Module,
@@ -24,6 +42,7 @@ def foolbox_attack(
 
     results = {}
     #model = model.eval()
+    #model_eval_mode(model)
 
     fmodel = fb.PyTorchModel(
         model=model, 
@@ -36,19 +55,19 @@ def foolbox_attack(
         #fb.attacks.LinfFastGradientAttack(), # epsilons go up after inital drop
 
         # used
-        #fb.attacks.LinfProjectedGradientDescentAttack(), 
-        #fb.attacks.L2ProjectedGradientDescentAttack(),
+        fb.attacks.LinfProjectedGradientDescentAttack(), 
+        fb.attacks.L2ProjectedGradientDescentAttack(),
         #fb.attacks.LinfBasicIterativeAttack(),
 
         #fb.attacks.L2BasicIterativeAttack(), # potential candidate
         fb.attacks.LinfDeepFoolAttack(), # potential candidate
-        #fb.attacks.L2DeepFoolAttack(),
+        fb.attacks.L2DeepFoolAttack(),
         #fb.attacks.LinfRepeatedAdditiveUniformNoiseAttack(), # potential candidate
     ]
 
 
-    #epsilons = np.linspace(0.0, 0.1, num=20)
-    epsilons = [0.0, 0.0005, 0.1]
+    epsilons = np.linspace(0.0, 0.1, num=20)
+    #epsilons = [0.0, 0.1]
 
     for attack in attacks:
         attack_name = attack.__class__.__name__
@@ -69,6 +88,7 @@ def foolbox_attack(
 
             if sanity_check:
                 normal_images = (images - mean[:, None, None]) / std[:, None, None]
+                model.eval()
                 preds = model(normal_images).argmax(dim=1)
                 correct[0] += (preds == labels).sum().item()  # Compute accuracy for each epsilon
 
@@ -79,6 +99,7 @@ def foolbox_attack(
                     correct[i+1] += (preds == labels).sum().item()  # Compute accuracy for each epsilon
 
                 print(f"Accuracy vector for each epsilon: {correct / total}")
+                model.train()
 
 
         robust_accuracies = 1 - (count_adv / total)

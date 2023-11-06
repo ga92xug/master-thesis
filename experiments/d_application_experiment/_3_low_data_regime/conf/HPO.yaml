@@ -38,6 +38,7 @@ HPOs:
 
   vit_pre:
     done: False
+    restore: True
     model_overrides:
       model: vit
       model.pretrained: True
@@ -51,7 +52,8 @@ dataset:
     other.verbose: 1
 
     training.dataset.reduction_factor: ${low_data_regime}
-    training.earlystop.monitor: valid.loss
+    training.earlystop.monitor: valid.acc_weighted
+    training.earlystop.mode: max
     training.earlystop.baseline: null
     training.earlystop.stop: True
 

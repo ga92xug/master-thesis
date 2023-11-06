@@ -9,3 +9,6 @@ export PY_HPO="python experiments/d_application_experiment/_3_low_data_regime/lo
 #$PY_HPO dataset=Blood low_data_regime=1 \
 #    HPOs.eq_nasnet.done=True HPOs.vit.done=True HPOs.vit_pre.done=True
 #$PY_HPO -m dataset=Blood low_data_regime=0.1,0.3
+
+experiments/d_application_experiment/_3_low_data_regime/sh_files/low_data_DeepDRiD.sh
+experiments/d_application_experiment/_3_low_data_regime/sh_files/low_data_blood.sh

@@ -2,9 +2,13 @@
 defaults:
   - override /training: blood-training
   - override /model: eq_nasnet
+  - override /training/scheduler: multi_step_lr
   - override /model/blocks_args_dict: 4blocks
   - override /wandb: default
   - _self_
+
+model:
+  dropout_rate: 0.3
   
 training:
   optimizer:
@@ -12,10 +16,10 @@ training:
     weight_decay: 1e-5
 
   scheduler:
-    _target_: null
-    #_target_: multi_step_lr
-    #milestones: [0,1]
-    #factor: 0.5
+    #_target_: null
+    #_target_: torch.optim.lr_scheduler.MultiStepLR
+    milestones: [5,10,15,20]
+    gamma: 0.5
     #patience: 10
 
 wandb:

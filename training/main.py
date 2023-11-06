@@ -331,7 +331,6 @@ class Experiment:
                 model=self.model,
                 dataloader=self._dataloaders["test"],
                 cfg=self.cfg,
-                global_start_time=self._global_start_time,
                 device=self.device,
                 logger=self.logger,
             )

@@ -39,14 +39,11 @@ def get_stats(
     std = np.std(images, axis=(0, 2, 3)).tolist()
     print("mean", mean)
     print("std", std)
-    print("images min", np.min(images))
-    print("images max", np.max(images))
 
     labels = np.concatenate(list_labels, axis=0)
     print("labels", labels.shape)
     values, counts = np.unique(labels, return_counts=True)
     print(f"values: {values}, counts: {counts}")
-    #print("value_counts", value_counts(labels))
 
     #get_normalize_weights(labels)
 
@@ -77,9 +74,7 @@ def main(cfg: DictConfig) -> None:
     print("train:", length_train, "of all", length_train/lenght_all)
     print("valid:", length_valid, "of all", length_valid/lenght_all)
     print("test:", length_test, "of all", length_test/lenght_all)
-    
-    
-    
+        
     for name, dataloader in dataloaders.items():
         print("\nDataloader: ", name)
         #if name != "test":

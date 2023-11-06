@@ -22,7 +22,7 @@ models2runids = {
     "blood": {
         "ViT_pre": "6sf7aw46",
         "ViT": "xfmi9gmi",
-        "eq_nasnet": "ra78gixb",
+        "eq_nasnet": "7p2gpphs",
         "EfficientNet_pre": "1pud3wdh",
         "EfficientNet": "25zaw08u",
     },
@@ -38,7 +38,7 @@ def add_attacks_to_trained_model(
         model_name: str,
         dataset_name: str,
         run_id: str,
-        log_results: bool = True,
+        log_results: bool = False,
     ):
     """
     This function can be used to debug the auto_attack_eval function.
@@ -100,7 +100,7 @@ def iterate_over_datasets_models():
 
     for dataset_name, models in models2runids.items():
         for model_name, run_id in models.items():
-            if not (dataset_name == "DeepDRiD" and "EfficientNet" in model_name):
+            if not (dataset_name == "blood" and "eq_nasnet" in model_name):
                 continue
 
             print(f"dataset: {dataset_name}, model: {model_name}, run_id: {run_id}")
