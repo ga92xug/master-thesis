@@ -142,6 +142,8 @@ def hydra_main(cfg: DictConfig) -> None:
         print(f"Debug level {cfg.debug}")
         global_overrides = cfg.dataset.global_overrides 
         global_overrides["wandb.mode"] = "disabled"
+    
+    if cfg.debug == 1:
         cfg.dataset.initial_epochs = 2  
         cfg.dataset.BO_optimizer.num_trials = 2 
     iterate_HPOs(cfg)

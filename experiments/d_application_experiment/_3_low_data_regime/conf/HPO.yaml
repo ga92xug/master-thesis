@@ -2,20 +2,20 @@
 
 defaults:
   - _self_
-  - dataset: isic2019 # DeepDRiD
+  - dataset: DeepDRiD # DeepDRiD
 
 HPOs: 
   eq_nasnet:
-    done: True
+    done: False
     restore: False
     eval_only: False
-    dropout_rate: True          # if not defined False
+    dropout_rate: False          # if not defined False
     model_overrides:
       model: eq_nasnet
       "model/blocks_args_dict": 4blocks
 
   efficientnet:
-    done: True
+    done: False
     eval_only: False
     restore: False
     more_trials: False
@@ -38,7 +38,7 @@ HPOs:
 
   vit_pre:
     done: False
-    restore: True
+    restore: False
     model_overrides:
       model: vit
       model.pretrained: True
@@ -52,7 +52,7 @@ dataset:
     other.verbose: 1
 
     training.dataset.reduction_factor: ${low_data_regime}
-    training.earlystop.monitor: valid.acc_weighted
+    training.earlystop.monitor: valid.acc
     training.earlystop.mode: max
     training.earlystop.baseline: null
     training.earlystop.stop: True
@@ -63,4 +63,4 @@ dataset:
 
     
 debug: 0 # 0: no debug, 1: debug trainingsprocess with short training, 2: debug init process no training
-low_data_regime: 1
+low_data_regime: 0.1

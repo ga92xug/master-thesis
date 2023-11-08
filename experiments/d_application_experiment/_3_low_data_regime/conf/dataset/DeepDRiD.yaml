@@ -7,5 +7,5 @@ BO_optimizer:
   
   num_trials: 20
   grace_period: 0.5
-  metric: best.valid.loss
-  goal: min
+  metric: valid.acc
+  goal: max

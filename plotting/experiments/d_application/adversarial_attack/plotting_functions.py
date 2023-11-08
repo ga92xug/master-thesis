@@ -15,25 +15,30 @@ def plot_adversarial_attacks(
         data: Dict,
         plot_type: str = 'combined',  # Either 'individual' or 'combined'
     ):
+    
     # order metrics_dict by key so the colors are the same
     data = dict(sorted(data.items(), key=lambda item: item[0]))
+    for attack, values in data.items():
+        # order values by key so the colors are the same
+        data[attack] = dict(sorted(values.items(), key=lambda item: item[0]))
 
     if plot_type == 'individual':
         for attack, values in data.items():
             fig, ax = plt.subplots()
             
             for model, model_data in values.items():
-                ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model)
+                color = name2color(model)
+                ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
             
             ax.set_title(f'Robust Accuracy vs Epsilon for {attack}')
             ax.set_xlabel('Epsilon')
-            ax.set_ylabel('Robust Accuracy')
+            ax.set_ylabel('Robust acc [%]')
             ax.legend()
             
             save_plot(
                 figure=fig,
-                name=attack,
-                folder_name=save_folder_name + "/" + save_name,
+                name=save_name + "_" + attack,
+                folder_name=save_folder_name,
             )
             plt.close(fig)
             
@@ -49,11 +54,12 @@ def plot_adversarial_attacks(
             ax = axs[idx]
             
             for model, model_data in values.items():
-                ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model)
+                color = name2color(model)
+                ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
                 
             ax.set_title(f'{attack}')
             ax.set_xlabel('Epsilon')
-            ax.set_ylabel('Robust Accuracy')
+            ax.set_ylabel('Robust acc [%]')
             ax.legend()
         
         # Remove any unused subplots
@@ -62,8 +68,8 @@ def plot_adversarial_attacks(
         
         save_plot(
             figure=fig,
-            name="combined",
-            folder_name=save_folder_name + "/" + save_name,
+            name=save_name,
+            folder_name=save_folder_name,
         )
         plt.close(fig)
 

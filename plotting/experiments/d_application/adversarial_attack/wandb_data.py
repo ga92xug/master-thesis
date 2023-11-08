@@ -16,6 +16,9 @@ def get_wandb_adversarial_attack_data(
     data = {}
 
     for run in runs:
+        if run.id == "ra78gixb":
+            # old run
+            continue
         config = run.config
         name = create_name_comparision_models(config)
         print("name", name)
@@ -25,8 +28,6 @@ def get_wandb_adversarial_attack_data(
         data[name] = run_id2data(run, attack_name_list)
 
     restructed_data = restructuring_data(data, attack_name_list)
-    # sort by key
-    restructed_data = dict(sorted(restructed_data.items(), key=lambda item: item[0]))
     return restructed_data
 
 
@@ -45,7 +46,12 @@ def run_id2data(
     results = {}
 
     for attack_name in attack_name_list:
-        data = run.summary[attack_name]
+        if attack_name in run.summary:
+            data = run.summary[attack_name]
+        elif "adversarial_attack" in run.summary:
+            data = run.summary["adversarial_attack"][attack_name]
+        else:
+            raise ValueError(f"attack_name {attack_name} not in run.summary")
         results[attack_name] = {
             "robust_accs": data[0],
             "epsilons": data[1],
@@ -73,7 +79,8 @@ def restructuring_data(data: Dict, attack_name_list: List):
         for attack in attack_name_list:
             restructured_data[attack][model] = {}
             restructured_data[attack][model]["epsilons"] = values[attack]["epsilons"]
-            restructured_data[attack][model]["robust_accs"] = values[attack]["robust_accs"]
+            robust_accs = [robust_acc * 100 for robust_acc in values[attack]["robust_accs"]]
+            restructured_data[attack][model]["robust_accs"] = robust_accs
             #restructured_data[attack][model]["count_advs"] = values[attack]["count_advs"]
 
         

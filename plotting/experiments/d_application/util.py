@@ -1,5 +1,6 @@
 import wandb
 from typing import Dict, List, Union
+import matplotlib.colors as mcolors
 
 def create_name_comparision_models(config):
     """
@@ -25,3 +26,13 @@ def get_wandb_runs_from_filters(
 
     print("Number of runs:", len(runs))
     return runs
+
+def name2color(name: str):
+    name2color_dict = {
+        "EquivariantNASNet": mcolors.CSS4_COLORS["red"],
+        "ViT": mcolors.CSS4_COLORS["blue"],
+        "ViT pre-trained": mcolors.CSS4_COLORS["navy"],
+        "EfficientNet": mcolors.CSS4_COLORS["limegreen"],
+        "EfficientNet pre-trained": mcolors.CSS4_COLORS["green"],
+    }
+    return name2color_dict[name]

@@ -43,7 +43,8 @@ def one_low_data_regime_plot(
     model2data = {}
     for model_name, value in model2label_run_ids_dict.items():
         labels_run_ids = value # ["labels_run_ids"]
-        
+        print("labels_run_ids", labels_run_ids)
+
         data = get_wandb_data_multiple_runs(
             entity=wandb_entity, 
             projects=wandb_projects, 
@@ -80,12 +81,14 @@ def main():
     print("experiments2filters", experiments2filters)
 
     for exp_name, values in experiments2filters.items():
-        #if exp_name != "Blood":
-        #    continue
-        filters = values.get("filters", None)
-        if filters is None:
+        if exp_name == "Blood":
+            continue
+
+        
+        if isinstance(values, list):
             # This is not a experiment
             continue
+        filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)
         model2run_ids = get_wandb_low_data_regime_run_ids(filters)
