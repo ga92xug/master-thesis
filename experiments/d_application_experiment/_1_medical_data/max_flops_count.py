@@ -18,8 +18,8 @@ def main():
 
     # we check for the average best epoch with early stopping in wandb 
     # and use this epoch for the max flops count for eq_nasnet
-    epochs = 40
-    dataset = "DeepDRiD"
+    epochs = 37
+    dataset = "blood"
     train_dataset_length = lenght_datasets[dataset]
 
     gflops_per_image_efficientnet_r128_b64 = 0.137015781
