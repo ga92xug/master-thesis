@@ -1,0 +1,31 @@
+# @package _global_
+defaults:
+  - override /training: isic2019-training
+  - override /model: efficientnet
+  - override /wandb: default
+  - override /training/scheduler: reduce_lr_on_plateau
+  - _self_
+  
+model:
+  pretrained: False
+
+
+training:
+  optimizer:
+    lr: 0.01
+    weight_decay: 0.0000001
+
+  scheduler:
+    factor: 0.02493979877210027
+    patience: 7
+    metric: valid.acc_weighted
+    mode: max
+    #verbose: True
+  
+wandb:
+  project: SL-Application
+  give_name: True
+  tags: []
+
+
+# python training/main.py other.debug=True +exp_model_specific_overwrites=eq_nasnet_DeepDRiD --info config
