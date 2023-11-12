@@ -12,6 +12,9 @@ def create_name_comparision_models(config):
     pretrained = config["model"].get("pretrained", False)
     if pretrained:
         name += " pre-trained"
+
+    if "EquivariantNASNet" in name:
+        name = "Eq-NASNet"
     return name
 
 
@@ -29,7 +32,7 @@ def get_wandb_runs_from_filters(
 
 def name2color(name: str):
     name2color_dict = {
-        "EquivariantNASNet": mcolors.CSS4_COLORS["red"],
+        "Eq-NASNet": mcolors.CSS4_COLORS["red"],
         "ViT": mcolors.CSS4_COLORS["blue"],
         "ViT pre-trained": mcolors.CSS4_COLORS["navy"],
         "EfficientNet": mcolors.CSS4_COLORS["limegreen"],

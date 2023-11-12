@@ -31,8 +31,8 @@ def plot_adversarial_attacks(
                 ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
             
             ax.set_title(f'Robust Accuracy vs Epsilon for {attack}')
-            ax.set_xlabel('Epsilon')
-            ax.set_ylabel('Robust acc [%]')
+            ax.set_xlabel('Epsilon [$\epsilon$]')
+            ax.set_ylabel('Robust Accuracy [%]')
             ax.legend()
             
             save_plot(
@@ -56,11 +56,15 @@ def plot_adversarial_attacks(
             for model, model_data in values.items():
                 color = name2color(model)
                 ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
-                
-            ax.set_title(f'{attack}')
-            ax.set_xlabel('Epsilon')
-            ax.set_ylabel('Robust acc [%]')
+
+            title = attack.replace("ProjectedGradientDescentAttack", "PGD")
+            title = title.replace("DeepFoolAttack", "DeepFool")
+            title = title.replace("L2", "$L_2$")    
+            ax.set_title(title)
+            ax.set_xlabel('Epsilon [$\epsilon$]')
+            ax.set_ylabel('Robust Accuracy [%]')
             ax.legend()
+            ax.grid(True)
         
         # Remove any unused subplots
         for idx in range(n_attacks, n_rows * n_cols):

@@ -14,9 +14,9 @@ def main():
             cfg.experiments, resolve=True, throw_on_missing=True)
 
     attack_name_list = [
-        "LinfProjectedGradientDescentAttack", 
+        #"LinfProjectedGradientDescentAttack", 
         "L2ProjectedGradientDescentAttack", 
-        "LinfDeepFoolAttack", 
+        #"LinfDeepFoolAttack", 
         "L2DeepFoolAttack",
     ]
 
