@@ -3,9 +3,10 @@ import sys
 import numpy as np
 from typing import List, Union
 from omegaconf import OmegaConf
-from sympy import O
+
 sys.path.append(f"{os.getcwd()}")
-from plotting.experiments.util import *
+from plotting.experiments.wandb_utils import *
+from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params import *
 
 
@@ -13,11 +14,22 @@ def add_flops(downloaded_data, GFLOPs):
     i = 0
     for label, runs_data in downloaded_data.items():
         for run_id, run_data in runs_data.items():
-            run_data["flops"] = GFLOPs[i] * 1e9
-            print(f"Added to {label} {run_id} gflops: {GFLOPs[i]}")
+            manual_flops = GFLOPs[i] * 1e9
+            
+            wandb_flops = run_data.get("flops", None)
+            if isinstance(wandb_flops, float):
+                print("Run already has flops!")
+                continue
+
+            if callable(wandb_flops):
+                # normalise flops
+                run_data["flops"] = run_data["flops"](manual_flops)
+            else:
+                run_data["flops"] = manual_flops
+
+            print(f"Added to {label} {run_id} gflops: {run_data['flops']}")
             i += 1
     return downloaded_data
-
 
 def plot(
         dataset2metric: Dict[str, str],
@@ -46,11 +58,9 @@ def plot(
             GFLOPs=GFLOPs,
         )
 
-    fig_size = get_fig_size((8,4))
     fig = create_combined_plot(
         downloaded_data=downloaded_data,
         metric=metric,
-        fig_size=fig_size,
         short_labels=short_labels,
         **kwargs,
     )
@@ -63,8 +73,8 @@ def plot(
     
 
 def main():
-    cfg, save_folder_name = plot_init("a_initial_experiments/main_experiment/", override=True)
-    wandb_entity = cfg.wandb.entity
+    cfg, save_folder_name = plot_init("a_initial_experiments/main_experiment", override=True)
+    wandb_entity = cfg.wandb_entity
     wandb_projects = ["SL-first-experiments"]
 
     experiments_2_run_ids = OmegaConf.to_container(
@@ -73,7 +83,7 @@ def main():
             cfg.dataset2metric, resolve=True, throw_on_missing=True)
 
     for name, run_info in experiments_2_run_ids.items():
-        #if name == "mnist_rot":
+        #if name != "width":
         #    continue
         print(name)
         

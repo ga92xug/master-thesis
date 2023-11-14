@@ -11,7 +11,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import get_name_performance_metric
-from plotting.experiments.util import get_fig_size
+from plotting.experiments.plotting_utils import get_fig_size
 
 # textwidth latex 5.78853in
 # textwidth in cm: \printinunitsof{in}\prntlen{\textwidth}
@@ -19,21 +19,25 @@ from plotting.experiments.util import get_fig_size
 METADATA = {
         "mnist_rot": {
             "name": "MNIST-rot",
-            "point": {"location": [0.9915000200271606, 313.543363446], "label": "EQ-WRN-16-4"},
+            "point": {"location": [0.9915000200271606, 313.543363446], "label": "Eq-WRN-16-4"},
+            "batch_size": 64,
         },
         "cifar10": {
             "name": "CIFAR10",
-            "point": {"location": [0.921999990940094, 540.934433542], "label": "EQ-WRN-16-4"},
+            "point": {"location": [0.921999990940094, 540.934433542], "label": "Eq-WRN-16-4"},
+            "batch_size": 128,
         },
         "galaxy10": {
             "name": "Galaxy10",
-            "point": {"location": [0.8116401433944702, 6144.474499862], "label": "EQ-WRN-16-4"},
+            "point": {"location": [0.8116401433944702, 6144.474499862], "label": "Eq-WRN-16-4"},
+            "batch_size": 128,
         },
         "isic2019": {
             "name": "ISIC2019",
-            "point": {"location": [0.5097538232803345, 6144.474499862], "label": "EQ-WRN-16-4"},
+            "point": {"location": [0.5097538232803345, 6144.474499862], "label": "Eq-WRN-16-4"},
             # https://paperswithcode.com/sota/classification-on-isic-2019
-            "line": {"x": 0.6519, "label": "SOTA", "color": "red", "linestyle": "dashed"},
+            #"line": {"x": 0.6519, "label": "SOTA", "color": "red", "linestyle": "dashed"},
+            "batch_size": 128,
         },
         "unkown": {
             "name": "Unknown",
@@ -46,17 +50,18 @@ METADATA = {
 def scalar_mappable(
         experiment,
         title: str = None,
-        fig_size: tuple = (10, 7),
+        fig_size: tuple = (7, 3.5),
         reduction: float = 0.49,
     ):
     """
     This function creates a scatter plot of an experiment's data sorted by trial_index.
     The points are color-coded based on their iteration (trial_index). An optional point can be added and highlighted.
     """
-    fig_size = get_fig_size(fig_size, reduction=reduction)
+    #fig_size = get_fig_size(fig_size, reduction=reduction)
     
     meta_data = get_meta_information(experiment.name)
     name = meta_data["name"]
+    batch_size = meta_data["batch_size"]
 
     title = title if title else f"Equivariant NAS on {name}"
 
@@ -65,6 +70,8 @@ def scalar_mappable(
     
     # Extract required data columns
     name_performance_metric = get_name_performance_metric(experiment)
+    df["gflops"] = df["gflops"] / batch_size
+    df[name_performance_metric] = df[name_performance_metric] * 100
     outcomes = df[[name_performance_metric, "gflops"]].values
 
     # Create figure and axes for the plot
@@ -83,20 +90,20 @@ def scalar_mappable(
     #axes.set_title(title)
 
     
-    xlabel = "Weighted validation accuracy" if name_performance_metric == "valid_acc_weighted" else "Validation accuracy"
+    xlabel = "Validation Accuracy Weighted [%]" if name_performance_metric == "valid_acc_weighted" else "Validation Accuracy [%]"
     axes.set_xlabel(xlabel)
-    axes.set_ylabel("GFLOPs")
+    axes.set_ylabel("FLOPs [$10^9$]")
 
     # Add a new point if given
     baseline_point = meta_data["point"]["location"]
     baseline_label = meta_data["point"]["label"]
     if baseline_point and baseline_label:
-        baseline_point = np.array([baseline_point])
-        sc_new = axes.scatter(baseline_point[:, 0], baseline_point[:, 1], c='blue', label=baseline_label)
+        baseline_point = np.array([baseline_point[0] * 100, baseline_point[1] / batch_size]) 
+        sc_new = axes.scatter(baseline_point[0], baseline_point[1], c='blue', label=baseline_label)
 
         # Add description close to the label of the point
         if baseline_label:
-            axes.text(baseline_point[:, 0] - 0.01, baseline_point[:, 1] - 0.01, baseline_label, color='blue', va='top', ha='right')
+            axes.text(baseline_point[0] - 0.02, baseline_point[1] - 0.09, baseline_label, color='blue', va='top', ha='right')
 
     # Add a line if given
     line = meta_data.get("line", None)
@@ -123,7 +130,7 @@ def scalar_mappable(
 
     # Extract the height from the position
     axis_height = axis_position.y1 - axis_position.y0
-    cbar_ax = fig.add_axes([0.95, axis_position.y0, 0.04, axis_height])
+    cbar_ax = fig.add_axes([0.92, axis_position.y0, 0.04, axis_height])
     cbar = fig.colorbar(sm, cax=cbar_ax)
     cbar.ax.set_title("#Trials")
 

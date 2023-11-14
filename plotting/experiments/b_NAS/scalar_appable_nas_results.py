@@ -1,12 +1,11 @@
-import torch
 import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.b_NAS.plot_nas_results import scalar_mappable
 from experiments.b_NAS.common_best_architecture.util import *
 from experiments.b_NAS.util import *
-from plotting.experiments.util import *
-from plotting.plot_acc_flops_params import *
+from plotting.experiments.plotting_utils import *
+from plotting.experiments.wandb_utils import *
 
 
 def plot_scalar_mappable(ax_client, save_folder_name, dataset_name):
@@ -16,8 +15,6 @@ def plot_scalar_mappable(ax_client, save_folder_name, dataset_name):
         name=dataset_name,
         folder_name=save_folder_name,
     )
-
-
 
 def main():
     cfg, save_folder_name = plot_init("b_NAS/nas_results/")
@@ -29,7 +26,6 @@ def main():
         client = get_ax_client_from_folder(folder = experiment_name)
         plot_scalar_mappable(client, save_folder_name, dataset_name)
         
-
 
 
 if __name__ == "__main__":

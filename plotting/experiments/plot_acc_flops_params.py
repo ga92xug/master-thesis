@@ -13,8 +13,8 @@ from plotting.experiments.plotting_utils import *
 
 
 METRIC_2_YLABEL = {
-    "valid.acc": "Validation accuracy",
-    "valid.acc_weighted": "Weighted validation accuracy",
+    "valid.acc": "Validation Accuracy [%]",
+    "valid.acc_weighted": "Validation Accuracy Weighted [%]",
 }
 
 def get_short_labels(labels: List[str], short_labels_function: str):
@@ -31,17 +31,25 @@ def plot_histogram(
         mode: str = "param_count", # ["param_count", "flops"]
         short_labels_function: str = None
     ):
-    data = get_metric_from_downloaded_data(data, mode)
-    short_labels_function = get_short_labels(list(data.keys()))
+    assert mode in ["param_count", "flops"], f"Mode {mode} is not supported!"
 
-    flops = list(data.values())
+    data = get_metric_from_downloaded_data(data, mode)
+    short_labels_function = get_short_labels(list(data.keys()), short_labels_function)
+
+    data = list(data.values())
+
+    if mode == "param_count":
+        data = [d / 1e6 for d in data]
+    else:
+        data = [d / 1e9 for d in data]
+    
 
     colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
     x = np.arange(len(short_labels_function))  # Create an array of evenly spaced x values
-    ax.bar(x, flops, color=colors)
+    ax.bar(x, data, color=colors)
 
     ylabel = mode.replace("_", " ")
-    ylabel = ylabel[0].upper() + ylabel[1:]
+    ylabel = f"FLOPs [$10^9$]" if ylabel == "flops" else "Parameters [$10^6$]"
     ax.set_ylabel(ylabel)
 
     ax.set_xticks(x)  # Set the x-ticks to the evenly spaced values
@@ -107,10 +115,13 @@ def plot_validation_accuracy(
     ax.set_ylabel(METRIC_2_YLABEL[metric])
     ylim_min = max(0, min_acc - (ylim_percentage / 100) * (max_acc - min_acc)) # Set the lower limit to 0
     ylim_max = min(100, max_acc + (ylim_percentage / 100) * (max_acc - min_acc)) # Set the upper limit to 100
-    ax.set_ylim(ylim_min, ylim_max)
-    ax.set_xlim(0, len(runs_data[0]) - 1)
-    ax.legend()
-    plt.legend(loc='lower right')
+    # ax.set_ylim(ylim_min, ylim_max)
+    # ax.set_xlim(0, len(runs_data[0]) - 1)
+
+    # Set the legend labels to upper case
+    h, legends = ax.get_legend_handles_labels()
+    legends = [l[0].upper() + l[1:] for l in legends]
+    ax.legend(h, legends, loc='lower right')
     ax.grid(True)
 
 
@@ -201,7 +212,7 @@ def create_combined_plot(
         downloaded_data: Dict[str, Dict[str, Dict[str, List]]], 
         metric: str,
         short_labels: str = None,
-        fig_size: Tuple = (10, 6),
+        fig_size: Tuple = (8, 5),
         **kwargs,
     ) -> plt.Figure:
     """

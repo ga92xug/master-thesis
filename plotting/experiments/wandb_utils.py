@@ -4,6 +4,10 @@ from joblib import Memory
 import wandb
 from hydra import compose, initialize
 import matplotlib.pyplot as plt
+import sys
+
+sys.path.append(f"{os.getcwd()}")
+from networks.util import flatten_dict
 
 def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:
     """
@@ -61,25 +65,51 @@ def download_run(
     result = {}
 
     result[metric] = run.history(keys=[metric]).values[:, 1] * 100
-    result["param_count"] = run.history(keys=[name_param_count]).values[:, 1][0] * 1e6
+
+    result["param_count"] = run.history(keys=[name_param_count]).values[:, 1][0] 
+    if name_param_count == "param_count":
+        result["param_count"] *= 1e6
         
     # some of the runs do not have flops
-    try:
+    if "GFLOPs" in run.history().columns:
         result["flops"] = run.history(keys=['GFLOPs']).values[:, 1][0] * 1e9
+    else:
+        print(f"Run {run_id} does not have flops!")
+        result["flops"] = None
 
-        # normalize flops
-        if normalize_flops:
-            run_config = run.config
-            batch_size = run_config["training"]["dataset"]["batch_size"]
+    if normalize_flops:
+        run_config = run.config
+        batch_size = get_batch_size(run_config)
+        if result["flops"] is not None:
             result["flops"] = result["flops"] / batch_size
-    except:
-        pass
-
+        else:
+            result["flops"] = lambda x: x / batch_size
+        
     return result
+
+
+def get_batch_size(run_config: dict):
+    try:
+        # this is the standard way
+        batch_size = run_config["training"]["dataset"]["batch_size"]
+    except KeyError:
+        # legacy
+        flatten_run_config = flatten_dict(run_config)
+        batch_size = None
+        for key, value in flatten_run_config.items():
+            if "batch_size" in key:
+                batch_size = value
+                break
+
+    assert batch_size is not None, "Could not find batch size in run config."
+    
+    return batch_size
+
 
 
 cache_dir = '/home/frischs/.cache/get_wandb_data_multiple_runs/'
 memory = Memory(location=cache_dir, verbose=1)
+#memory.clear(warn=False)  # Set warn=False to suppress warning messages
 @memory.cache
 def get_wandb_data_multiple_runs(
         entity: str, 

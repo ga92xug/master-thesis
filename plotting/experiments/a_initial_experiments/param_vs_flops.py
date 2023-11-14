@@ -4,7 +4,11 @@ import os
 from typing import Tuple
 from fvcore.nn import FlopCountAnalysis, flop_count_table, parameter_count_table, parameter_count
 from matplotlib import pyplot as plt
+from matplotlib.artist import setp
 import torch
+from joblib import Memory
+from matplotlib.ticker import MaxNLocator
+
 
 sys.path.append(f"{os.getcwd()}")
 from nn import (
@@ -70,6 +74,9 @@ class EQ_TestNet(EquivariantModule):
         assert input_shape[1] == self.original_in_type.size
         return input_shape
 
+cache_dir = '/home/frischs/.cache/param_vs_flops/'
+memory = Memory(location=cache_dir, verbose=1)
+@memory.cache
 def get_data_eq_conv(input_channels: int, rotations: list, reflections: list):
     data = {}
     for mode in ["ad", "no"]:
@@ -101,6 +108,7 @@ def get_data_eq_conv(input_channels: int, rotations: list, reflections: list):
 
     return data
 
+@memory.cache
 def get_data_cnn_conv(input_channels: int):
     model = CNN_TestNet(input_channels=input_channels).cuda()
     param_count = parameter_count(model)["conv"]
@@ -113,44 +121,84 @@ def get_data_cnn_conv(input_channels: int):
     return data
 
 
-def visualize_data(data_eq_conv, data_cnn_conv, rotations, figsize=(10, 10)):
+def reduce_data(data_eq_conv: dict, data_cnn_conv: dict, param_count_in: int, flops_in: int):
+    param_divisor = 10 ** param_count_in
+    flops_divisor = 10 ** flops_in
+    data_out = {}
+    #print(data_eq_conv)
+    for mode, mode_data in data_eq_conv.items():
+        data_out[mode] = {}
+        for ref, ref_data in mode_data.items():
+            data_out[mode][ref] = {}
+            for rot, rot_data in ref_data.items():
+
+                param_count, flops = rot_data
+
+                param_count /= param_divisor
+                flops /= flops_divisor
+
+                data_out[mode][ref][rot] = (param_count, flops)
+
+    param_count, flops = data_cnn_conv
+    param_count /= param_divisor
+    flops /= flops_divisor
+    data_cnn_conv = (param_count, flops)
+    return data_out, data_cnn_conv
+
+
+def visualize_data(
+        data_eq_conv, 
+        data_cnn_conv, 
+        rotations, 
+        figsize=(10, 10),
+        param_count_in: int = 3,
+        flops_in: int = 9,
+    ):
     figsize = get_fig_size(figsize)
 
-    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig, axs = plt.subplots(2, 2, figsize=(8, 8))
     plt.subplots_adjust(hspace=0.4)
+
+    axs[0, 0].yaxis.set_major_locator(MaxNLocator(nbins=1, integer=True))
+
+    data_eq_conv, data_cnn_conv = reduce_data(data_eq_conv, data_cnn_conv, param_count_in, flops_in)    
 
     ad_data = data_eq_conv['ad']
     no_data = data_eq_conv['no']
 
     # Ref -1 - Flops
-    axs[0, 0].plot(ad_data[-1].keys(), [item[1] for item in ad_data[-1].values()], 'r-o', label='EQ param adjusted')
-    axs[0, 0].plot(no_data[-1].keys(), [item[1] for item in no_data[-1].values()], 'g-o', label='EQ FLOPs adjusted')
-    axs[0, 0].set_title('Cyclic group')
-    #axs[0, 0].set_xlabel('Rotations')
-    #axs[0, 0].set_xticks(rotations)
-    axs[0, 0].set_ylabel('FLOPs')
-    axs[0, 0].xaxis.set_visible(False)
+    axs[0, 0].plot(ad_data[-1].keys(), [item[1] for item in ad_data[-1].values()], 'r-o', label='Equivariant Convolution Parameter Adjusted')
+    axs[0, 0].plot(no_data[-1].keys(), [item[1] for item in no_data[-1].values()], 'g-o', label='Equivariant Convolution FLOPs Adjusted')
+    axs[0, 0].set_title('Cyclic Group')
+    axs[0, 0].set_ylabel(f'FLOPs [$10^{flops_in}$]')
+    setp(axs[0, 0].get_xticklabels(), visible=False)
+    axs[0, 0].grid(True)
 
     # Ref 0 - Flops
-    axs[0, 1].plot(ad_data[0].keys(), [item[1] for item in ad_data[0].values()], 'r-o', label='AD')
-    axs[0, 1].plot(no_data[0].keys(), [item[1] for item in no_data[0].values()], 'g-o', label='NO')
-    axs[0, 1].set_title('Dihedral group')
-    axs[0, 1].yaxis.set_visible(False)
-    axs[0, 1].xaxis.set_visible(False)
+    axs[0, 1].plot(ad_data[0].keys(), [item[1] for item in ad_data[0].values()], 'r-o', label='Equivariant Convolution Parameter Adjusted')
+    axs[0, 1].plot(no_data[0].keys(), [item[1] for item in no_data[0].values()], 'g-o', label='Equivariant Convolution FLOPs Adjusted')
+    axs[0, 1].set_title('Dihedral Group')
+    axs[0, 1].grid(True)
+    setp(axs[0, 1].get_xticklabels(), visible=False)
+    setp(axs[0, 1].get_yticklabels(), visible=False)
+    
 
     # Ref -1 - Param Count
     axs[1, 0].plot(ad_data[-1].keys(), [item[0] for item in ad_data[-1].values()], 'r-o', label='AD')
     axs[1, 0].plot(no_data[-1].keys(), [item[0] for item in no_data[-1].values()], 'g-o', label='NO')
     axs[1, 0].set_xlabel('Rotations')
-    axs[1, 0].set_ylabel('Param Count')
+    axs[1, 0].set_ylabel(f'Parameters [$10^{param_count_in}$]')
     axs[1, 0].set_xticks(rotations)
+    axs[1, 0].grid(True)
 
     # Ref 0 - Param Count
     axs[1, 1].plot(ad_data[0].keys(), [item[0] for item in ad_data[0].values()], 'r-o', label='AD')
     axs[1, 1].plot(no_data[0].keys(), [item[0] for item in no_data[0].values()], 'g-o', label='NO')
     axs[1, 1].set_xlabel('Rotations')
     axs[1, 1].set_xticks(rotations)
-    axs[1, 1].yaxis.set_visible(False)
+    axs[1, 1].grid(True)
+    setp(axs[1, 1].get_yticklabels(), visible=False)
+    
 
     if data_cnn_conv is not None:
         # add line for cnn
@@ -164,16 +212,19 @@ def visualize_data(data_eq_conv, data_cnn_conv, rotations, figsize=(10, 10)):
     axs[1, 0].sharey(axs[1, 1])
     axs[0, 0].sharex(axs[1, 0])
     axs[0, 1].sharex(axs[1, 1])
-    axs[0, 0].legend()
+
+    fig.legend(*axs[0, 0].get_legend_handles_labels(), loc='upper left', bbox_to_anchor=(0.11, 0.95))
+    #axs[0, 0].legend(loc='upper left', bbox_to_anchor=(0, 0.95))
     plt.tight_layout()
     return fig
 
 
-def main(input_channels: int = 64, rotations: list = [1, 2,4,6,8,10,12,14,16], reflections: list = [-1,0]):
+def main(input_channels: int = 64, rotations: list = [1,2,4,6,8,10,12,14,16], reflections: list = [-1,0]):
     cfg, save_folder_name = plot_init("a_initial_experiments/param_vs_flops/")
 
     data_eq_conv = get_data_eq_conv(input_channels, rotations, reflections)
     data_cnn_conv = get_data_cnn_conv(input_channels)
+
     fig = visualize_data(data_eq_conv, data_cnn_conv, rotations)
 
     save_plot(
