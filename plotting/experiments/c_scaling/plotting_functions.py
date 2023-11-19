@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
-from plotting.experiments.util import get_fig_size, save_plot
+from plotting.experiments.plotting_utils import get_fig_size, save_plot
+
+FIG_SIZE = (4.5, 4.5)
 
 def single_path_individual_scaling_plot(
         ax, 
@@ -50,6 +52,8 @@ def single_path_individual_scaling_plot(
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
 
+    flops = [flop / 1e9 for flop in flops]
+
     handle = None
     for i, acc in enumerate(accuracy_values):
         if len(acc) > 1 and has_error_bars:
@@ -76,7 +80,7 @@ def single_path_individual_scaling_plot(
 
     # Label individual points
     if labels is not None:
-        standard_fig_size = (6.4, 4.8)
+        standard_fig_size = FIG_SIZE
         # adjust the label location based on the fig size
         xloc_org = 15
         yloc_org = -15
@@ -100,6 +104,7 @@ def multipath_individual_scaling_plot(
         accuracy_values_lists: List[List[List[float]]], 
         colors: List[str], 
         linestyles: List[str],
+        fig_size: tuple,
         xlabel: str = "FLOPs", 
         ylabel: str = "Weigthed Validation Accuracy",
         labels_lists: List[List[str]] = None,
@@ -107,7 +112,6 @@ def multipath_individual_scaling_plot(
         ax=None,
         has_error_bars=True,
         connect_dots: bool = True,
-        fig_size: tuple = (6.4, 4.8),
         save_name: str = None,
         save_folder_name: str = None,
     ):
@@ -124,6 +128,7 @@ def multipath_individual_scaling_plot(
     
 
     if ax is None:
+        fig_size = FIG_SIZE if fig_size is None else fig_size
         fig, ax = plt.subplots(figsize=fig_size)
     else:
         fig = None
@@ -154,13 +159,13 @@ def multipath_individual_scaling_plot(
         legend_handles.append(handle)
 
     if legend_labels is not None:
-        ax.legend(legend_handles, legend_labels, loc='best')
+        ax.legend(legend_handles, legend_labels, loc='lower right')
 
     # x-ticks
     max_flops = max([max(flops) for flops in flops_lists]) / 1e9
-    nbins = int(max_flops) if max_flops < 10 else 5
+    nbins = int(max_flops)
     nbins = max(nbins, 4)
-    ax.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True, min_n_ticks=1))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=nbins, integer=True))
 
     if fig is not None:
         save_plot(
@@ -186,7 +191,7 @@ def combined_individual_scaling(
     xlabel: A list of x-axis labels.
     ylabel: A list of y-axis labels.
     """
-    fig_size = (9, 3)
+    fig_size = (FIG_SIZE[0] * 3, FIG_SIZE[1])
     #fig_size = get_fig_size(fig_size)
 
     # Create a figure object.
@@ -237,8 +242,8 @@ def get_list(
 def plot_scaling_compound_baseline(
         flops_lists: List[List[float]],
         accuracy_lists: List[List[float]],
-        xlabel: str = "GFLOPs",
-        ylabel: str = "ISIC 2019 Valid Acc Weighted (%)",
+        xlabel: str = "FLOPs [10^9]",
+        ylabel: str = "ISIC2019 Validation Accuracy Weighted [%]",
         legend_labels: List[str] = None
     ):
     fig, ax = plt.subplots(figsize=(6, 4))  # Adjust the figure size as needed

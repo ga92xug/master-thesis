@@ -51,6 +51,7 @@ def scaling_plot_data(
             ylabel=ylabel,
             save_name = name,
             save_folder_name=save_folder_name,
+            fig_size=FIG_SIZE,
         )
     return kwargs
 
@@ -61,8 +62,8 @@ def produce_all_scaling_plots(
         wandb_projects: str,
         metric: str,
         save_folder_name: str,
-        xlabel: str = "GFLOPs",
-        ylabel: str = "ISIC 2019 Valid Acc (%)",
+        xlabel: str = "FLOPs [10^9]",
+        ylabel: str = "ISIC2019 Validation Accuracy Weighted [%]",
         combined_plot: bool = False, 
     ):
     """
@@ -125,9 +126,9 @@ def produce_all_scaling_plots(
 
 
 def main():
-    cfg, save_folder_name = plot_init("c_scaling/individual/", override=True)
-    save_folder_name = f"{save_folder_name}_paper"
-    wandb_entity = cfg.wandb.entity
+    cfg, save_folder_name = plot_init("c_scaling/individual", override=True)
+    save_folder_name = f"{save_folder_name}_new"
+    wandb_entity = cfg.wandb_entity
     wandb_projects = "SL-Scaling"
     metric = "valid.acc_weighted"
 
@@ -137,7 +138,7 @@ def main():
         wandb_projects=wandb_projects,
         metric=metric,
         save_folder_name=save_folder_name, 
-        combined_plot=False,
+        combined_plot=True,
     )
 
 

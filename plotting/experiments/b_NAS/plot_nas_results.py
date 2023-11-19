@@ -11,7 +11,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 from experiments.b_NAS.util import get_name_performance_metric
-from plotting.experiments.plotting_utils import get_fig_size
+from plotting.experiments.plotting_utils import get_fig_size, label2color
 
 # textwidth latex 5.78853in
 # textwidth in cm: \printinunitsof{in}\prntlen{\textwidth}
@@ -97,13 +97,13 @@ def scalar_mappable(
     # Add a new point if given
     baseline_point = meta_data["point"]["location"]
     baseline_label = meta_data["point"]["label"]
-    if baseline_point and baseline_label:
+    if baseline_point:
+        color = label2color(baseline_label)
         baseline_point = np.array([baseline_point[0] * 100, baseline_point[1] / batch_size]) 
-        sc_new = axes.scatter(baseline_point[0], baseline_point[1], c='blue', label=baseline_label)
+        sc_new = axes.scatter(baseline_point[0], baseline_point[1], c=color)
 
         # Add description close to the label of the point
-        if baseline_label:
-            axes.text(baseline_point[0] - 0.02, baseline_point[1] - 0.09, baseline_label, color='blue', va='top', ha='right')
+        axes.text(baseline_point[0] - 0.02, baseline_point[1] - 0.09, baseline_label, color=color, va='top', ha='right')
 
     # Add a line if given
     line = meta_data.get("line", None)
@@ -152,6 +152,3 @@ def match_substring(string):
     else:
         return None
 
-if __name__ == "__main__":
-    r = get_fig_size((10, 7))
-    print(r)

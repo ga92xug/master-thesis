@@ -55,6 +55,7 @@ class EquivariantWideResNet(nn.Module):
         act_func: str = "ReLU",
         image_size: int = 32,
         average_adaptive_pooling: int = 1,
+        **kwargs,
     ):
         restrict = [None, restrict] if isinstance(restrict, str) else restrict
         restrict = list(restrict)

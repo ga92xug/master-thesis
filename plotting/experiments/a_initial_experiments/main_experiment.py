@@ -19,13 +19,13 @@ def add_flops(downloaded_data, GFLOPs):
             wandb_flops = run_data.get("flops", None)
             if isinstance(wandb_flops, float):
                 print("Run already has flops!")
-                continue
+                #continue
 
             if callable(wandb_flops):
                 # normalise flops
                 run_data["flops"] = run_data["flops"](manual_flops)
             else:
-                run_data["flops"] = manual_flops
+                run_data["flops"] = manual_flops / 128
 
             print(f"Added to {label} {run_id} gflops: {run_data['flops']}")
             i += 1
@@ -83,8 +83,8 @@ def main():
             cfg.dataset2metric, resolve=True, throw_on_missing=True)
 
     for name, run_info in experiments_2_run_ids.items():
-        #if name != "width":
-        #    continue
+        if name != "rotation":
+            continue
         print(name)
         
         plot(

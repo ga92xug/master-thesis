@@ -24,7 +24,7 @@ def plot_low_data_regime(
     metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0]))    
     
     for model, values in metrics_dict.items():
-        color = name2color(model)
+        color = label2color(model)
         metric_values = list(values.values())
         reduction_points = list(values.keys())
         if reverse_order:

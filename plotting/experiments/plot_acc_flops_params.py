@@ -29,9 +29,15 @@ def plot_histogram(
         ax, 
         data,
         mode: str = "param_count", # ["param_count", "flops"]
-        short_labels_function: str = None
+        short_labels_function: str = None,
+        use_color_palette: bool = False,
     ):
     assert mode in ["param_count", "flops"], f"Mode {mode} is not supported!"
+
+    if use_color_palette:
+        colors = [label2color(label) for label in list(data.keys())]
+    else:
+        colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
 
     data = get_metric_from_downloaded_data(data, mode)
     short_labels_function = get_short_labels(list(data.keys()), short_labels_function)
@@ -43,8 +49,6 @@ def plot_histogram(
     else:
         data = [d / 1e9 for d in data]
     
-
-    colors = [color['color'] for color in plt.rcParams['axes.prop_cycle']]
     x = np.arange(len(short_labels_function))  # Create an array of evenly spaced x values
     ax.bar(x, data, color=colors)
 
@@ -63,6 +67,7 @@ def plot_validation_accuracy(
         ylim_percentage: float = 10.0,
         horizontal_line: dict = None, 
         window_size: int = 3,
+        use_color_palette: bool = False,
     ):
     """
     Plot the validation accuracy for all labels and runs. \
@@ -83,21 +88,24 @@ def plot_validation_accuracy(
     min_acc = np.inf
     max_acc = -np.inf    
     for label, runs_data in transformed_data.items():
+        color = label2color(label) if use_color_palette else None
+
         if runs_data.shape[0] > 1:
             # Multiple runs for this label
             # Plot the mean and standard deviation
             mean = np.mean(runs_data, axis=0)
             std = np.std(runs_data, axis=0)
-        
-            ax.plot(mean, label=label, linewidth=1)
-            ax.fill_between(range(len(mean)), mean - std, mean + std, alpha=0.2)
+
+            
+            ax.plot(mean, label=label, linewidth=1, color=color)
+            ax.fill_between(range(len(mean)), mean - std, mean + std, alpha=0.2, color=color)
 
             min_acc = min(min_acc, mean.min())
             max_acc = max(max_acc, mean.max())
         else:
             # Only one run for this label
             # Plot the single run
-            ax.plot(runs_data[0], label=label, linewidth=1)
+            ax.plot(runs_data[0], label=label, linewidth=1, color=color)
 
             min_acc = min(min_acc, runs_data[0].min())
             max_acc = max(max_acc, runs_data[0].max())
@@ -212,7 +220,8 @@ def create_combined_plot(
         downloaded_data: Dict[str, Dict[str, Dict[str, List]]], 
         metric: str,
         short_labels: str = None,
-        fig_size: Tuple = (8, 5),
+        fig_size: Tuple = (8, 4.5),
+        use_color_palette: bool = False,
         **kwargs,
     ) -> plt.Figure:
     """
@@ -229,13 +238,13 @@ def create_combined_plot(
     gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])
 
     ax2 = plt.subplot(gs[0])
-    plot_validation_accuracy(ax2, downloaded_data, metric, **kwargs)
+    plot_validation_accuracy(ax2, downloaded_data, metric, use_color_palette=use_color_palette, **kwargs)
     
     ax1 = plt.subplot(gs[1])
-    plot_histogram(ax1, downloaded_data, short_labels_function=short_labels, mode="flops")
+    plot_histogram(ax1, downloaded_data, short_labels_function=short_labels, use_color_palette=use_color_palette, mode="flops")
 
     ax3 = plt.subplot(gs[2])
-    plot_histogram(ax3, downloaded_data, short_labels_function=short_labels, mode="param_count")
+    plot_histogram(ax3, downloaded_data, short_labels_function=short_labels, use_color_palette=use_color_palette, mode="param_count")
     
     plt.tight_layout()
     plt.show()

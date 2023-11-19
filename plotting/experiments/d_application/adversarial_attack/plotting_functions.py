@@ -27,7 +27,7 @@ def plot_adversarial_attacks(
             fig, ax = plt.subplots()
             
             for model, model_data in values.items():
-                color = name2color(model)
+                color = label2color(model)
                 ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
             
             ax.set_title(f'Robust Accuracy vs Epsilon for {attack}')
@@ -54,7 +54,7 @@ def plot_adversarial_attacks(
             ax = axs[idx]
             
             for model, model_data in values.items():
-                color = name2color(model)
+                color = label2color(model)
                 ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
 
             title = attack.replace("ProjectedGradientDescentAttack", "PGD")

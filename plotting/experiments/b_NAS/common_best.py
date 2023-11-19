@@ -44,6 +44,7 @@ def plot(
     fig = create_combined_plot(
         downloaded_data=downloaded_data,
         metric=metric,
+        use_color_palette=True,
         **kwargs,
     )
 

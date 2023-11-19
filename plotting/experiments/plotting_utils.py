@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import wandb
 from hydra import compose, initialize
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 def smooth_data(data, w: int = 3):
     return np.convolve(data, np.ones(w), 'valid') / w
@@ -45,6 +46,34 @@ def get_fig_size(fig_size : Tuple, textwidth_in: float = 5.78853, reduction: flo
     fig_size = (fig_width, fig_height)
     return fig_size
 
+def label2color(name: str):
+    name2color_dict = {
+        "Eq-NASNet": mcolors.CSS4_COLORS["red"],
+        "ViT": mcolors.CSS4_COLORS["blue"],
+        "ViT pre-trained": mcolors.CSS4_COLORS["navy"],
+        "EfficientNet": mcolors.CSS4_COLORS["limegreen"],
+        "EfficientNet pre-trained": mcolors.CSS4_COLORS["green"],
+        "Eq-WRN-16-4": mcolors.CSS4_COLORS["peru"],
+        "WRN-16-4": mcolors.CSS4_COLORS["dodgerblue"],
+        "NAS-on": mcolors.CSS4_COLORS["purple"],
+    }
+
+    if name in name2color_dict:
+        # direct match
+        return name2color_dict[name]
+    else:
+        # try to find a match
+        for key in name2color_dict:
+            if key in name:
+                return name2color_dict[key]
+            
+    # no match found
+    # use hash to get a color
+    return mcolors.CSS4_COLORS[hash(name) % len(mcolors.CSS4_COLORS)]
+
+
+
+    
 
 def save_plot(
         figure: plt.Figure, 

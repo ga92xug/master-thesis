@@ -17,7 +17,7 @@ def plot_scalar_mappable(ax_client, save_folder_name, dataset_name):
     )
 
 def main():
-    cfg, save_folder_name = plot_init("b_NAS/nas_results/")
+    cfg, save_folder_name = plot_init("b_nas/nas_results/")
 
     final_experiment_names = ["isic2019_4", "galaxy10_weighted_folder_2", "cifar10_2.2", "mnist_rot_2.2"]
     datasets = ["isic2019", "galaxy10", "cifar10", "mnist_rot"]
