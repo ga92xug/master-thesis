@@ -16,6 +16,8 @@ dataset2metric: {
     "mnist_rot": "valid.acc",
     "cifar10": "valid.acc",
     "ciar10_rot": "valid.acc",
+    "blood": "valid.acc",
+    "DeepDRiD": "valid.acc",
 
     # weighted
     "galaxy10": "valid.acc_weighted",

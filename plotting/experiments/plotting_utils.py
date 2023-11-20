@@ -72,9 +72,6 @@ def label2color(name: str):
     return mcolors.CSS4_COLORS[hash(name) % len(mcolors.CSS4_COLORS)]
 
 
-
-    
-
 def save_plot(
         figure: plt.Figure, 
         name: str, 

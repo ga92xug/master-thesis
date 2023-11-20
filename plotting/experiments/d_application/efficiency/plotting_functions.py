@@ -4,9 +4,11 @@ from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
-from plotting.experiments.d_application.util import name2color
+
+from plotting.experiments.plot_acc_flops_params import metric2label
 
 sys.path.append(os.getcwd())
+from plotting.experiments.d_application.util import name2color
 from plotting.experiments.plotting_utils import *
 
 def plot_low_data_regime(
@@ -62,23 +64,87 @@ def plot_low_data_regime(
     return plt.gcf()
     
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def plot_model_efficiency_with_test_acc_histogram(
+        model_data, 
+        valid_metric_name="val_accuracy",
+        test_metric_name="test_accuracy",
+        title='Model Efficiency and Test Accuracy Comparison'
+    ):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [3, 1]})
+
+    # Plot FLOPs vs. Validation Accuracy
+    for model_name, data in model_data.items():
+        color = label2color(model_name)
+        # Calculate mean and standard deviation for validation accuracy
+        mean_val_acc = np.mean(data["valid_metric"], axis=0)
+        std_val_acc = np.std(data["valid_metric"], axis=0)
+        flops = data['FLOPs_4_val_values']
+
+        # Plotting the mean validation accuracy
+        line, = ax1.plot(flops, mean_val_acc, label=model_name, color=color)
+
+        # Plotting the standard deviation for validation accuracy
+        ax1.fill_between(flops, mean_val_acc - std_val_acc, mean_val_acc + std_val_acc, alpha=0.2, color=line.get_color())
+
+    ax1.set_xlabel('FLOPs')
+    ylabel = metric2label(valid_metric_name)
+    ax1.set_ylabel(ylabel)
+    ax1.set_title(title)
+    ax1.legend()
+    ax1.grid(True)
+
+    # Plot Mean Test Accuracy Histogram with Whiskers for Standard Deviation
+    for i, model_name in enumerate(model_data.keys()):
+        mean_test_acc = np.mean(model_data[model_name]["test_metric"])
+        std_test_acc = np.std(model_data[model_name]["test_metric"])
+        
+        # Bar for mean test accuracy
+        color = label2color(model_name)
+        ax2.bar(i, mean_test_acc, color=color)
+
+        # Whisker for standard deviation
+        ax2.errorbar(i, mean_test_acc, yerr=std_test_acc, color='black', fmt='none')
+
+    ax2.set_xticks(range(len(model_data)))
+    ax2.set_xticklabels(model_data.keys())
+    #ax2.set_xlabel('Model')
+    ylabel = metric2label(test_metric_name)
+    ax2.set_ylabel(ylabel)
+    #ax2.set_title('Mean Test Accuracy per Model')
+
+    plt.tight_layout()
+    plt.show()
+    return fig
+
+
 def example_data():
     """
     Some example data to test the plotting function.
     """
-    metrics_dict = {
-        'eq_nasnet': {'1': [73.50000143, 74.25000072, 73.75000119, 73.75000119, 73.25000167], '0.5': [74.75000024, 74.25000072, 72.50000238], '0.3': [74.75000024, 74.25000072, 73.00000191], '0.1': [74.25000072, 74.25000072, 72.25000262], '0.05': [73.25000167, 73.50000143, 72.75000215]}, 
-        'vit_pre': {'1': [74.50000048, 74.25000072, 73.25000167, 74.25000072, 71.74999714], '0.3': [69.74999905, 70.99999785, 68.75      , 72.25000262, 72.75000215]}, 
-        'vit': {'1': [64.74999785, 68.00000072, 69.24999952, 63.49999905, 69.24999952], '0.3': [70.24999857, 69.24999952, 71.74999714, 66.50000215, 64.24999833]}, 
-        'efficientnet_pre': {'1': [71.49999738, 70.99999785, 72.00000286, 73.00000191, 72.25000262], '0.5': [65.24999738, 64.74999785, 66.75000191, 67.50000119, 65.24999738], '0.3': [72.00000286, 70.99999785, 70.99999785, 69.74999905, 70.74999809]}, 
-        'efficientnet': {'1': [70.74999809, 77.49999762, 73.75000119, 74.25000072, 68.99999976], '0.3': [74.75000024, 71.74999714, 71.24999762, 70.99999785, 72.25000262]}
+    num_values_eq_nasnet = 4
+
+    example_data = {
+        'EfficientNet': {
+            'flops': np.linspace(0, 100, 10),
+            'val_accuracy': np.random.rand(5, 10),  # Random validation accuracy values for 5 runs
+            'test_accuracy': np.random.rand(5)      # Random test accuracy values
+        },
+        'EQ-NASNet': {
+            'flops': np.linspace(0, 100, num_values_eq_nasnet),
+            'val_accuracy': np.random.rand(5, num_values_eq_nasnet) * 1.4,  # Higher validation accuracy for EQ-NASNet
+            'test_accuracy': np.random.rand(5) * 1.4      # Higher test accuracy for EQ-NASNet
+        }
     }
-    return metrics_dict
+    return example_data
 
 
 if __name__ == '__main__':
     metrics_dict = example_data()
-    plot_low_data_regime(metrics_dict, "test.acc")
-    save_plot(plt, name=f"example", folder_name='plotting/figures/d_application/low_data_regime')
+    plot_model_efficiency_with_test_acc_histogram(metrics_dict)
+    save_plot(plt, name=f"example", folder_name='plotting/figures/d_application/efficiency')
 
 

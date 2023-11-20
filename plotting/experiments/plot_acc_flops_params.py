@@ -15,7 +15,12 @@ from plotting.experiments.plotting_utils import *
 METRIC_2_YLABEL = {
     "valid.acc": "Validation Accuracy [%]",
     "valid.acc_weighted": "Validation Accuracy Weighted [%]",
+    "test.acc": "Test Accuracy [%]",
+    "test.acc_weighted": "Test Accuracy Weighted [%]",
 }
+
+def metric2label(metric: str):
+    return METRIC_2_YLABEL[metric]
 
 def get_short_labels(labels: List[str], short_labels_function: str):
     if short_labels_function is None:
