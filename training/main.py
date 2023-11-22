@@ -155,6 +155,11 @@ class Experiment:
         train_loss_epoch = 0
         n_samples = 0
 
+        # validation more than once per epoch
+        eval_points = []
+        if self._eval_frequency > 0 and self._eval_frequency < 1:
+            eval_points = [int(self.train_n_batches_len * self._eval_frequency * i) for i in range(1, int(1/self._eval_frequency))]
+
         if self.cfg.wandb.watch:
             wandb.watch(self.model, self._loss_function, log="all", log_freq=10)
 
@@ -189,8 +194,9 @@ class Experiment:
                 epoch_iterations += 1
 
                 # validation more than once per epoch
-                if self._eval_frequency > 0 and self._iteration % self._eval_frequency == 0:
+                if batch_idx in eval_points:
                     self.valid()
+                    self.model.train()
                 
                 # short training for testing
                 if (self.steps_per_epoch > 0 and epoch_iterations >= self.steps_per_epoch) \
@@ -303,7 +309,7 @@ class Experiment:
             self.train()
             
             # validate
-            if self._eval_frequency < 0 and self.epoch % (-self._eval_frequency) == 0:
+            if self._eval_frequency > 0 and self.epoch % (self._eval_frequency) == 0:
                 valid_metrics = self.valid()
 
                 if self.early_stopping:

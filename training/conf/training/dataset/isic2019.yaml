@@ -28,7 +28,7 @@ augment: False
   #    scale: [0.8,1.2]
   #    shear: 10          
 workers: 8                 
-resolution: 96
+resolution: 128
 reduction_factor: 1.0
 
 should_normalize_weights: True

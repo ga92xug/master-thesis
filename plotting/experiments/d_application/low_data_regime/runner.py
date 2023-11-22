@@ -81,13 +81,13 @@ def main():
     print("experiments2filters", experiments2filters)
 
     for exp_name, values in experiments2filters.items():
-        #if exp_name == "Blood":
-        #    continue
-
-        
         if isinstance(values, list):
             # This is not a experiment
             continue
+
+        if exp_name != "DeepDRiD":
+            continue
+
         filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)

@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os.path
 import sqlite3
 from omegaconf import DictConfig, OmegaConf
@@ -304,8 +305,10 @@ class EarlyStopping:
         Args:
         - model (torch.nn.Module): The model to save.
         """
+        # pffusch to save the model
+
         if self.store_in_memory:
-            self.weights = model.state_dict()
+            self.weights = deepcopy(model.state_dict())
         else:
             if os.path.exists(self.save_path):
                 os.remove(self.save_path)
@@ -322,8 +325,13 @@ class EarlyStopping:
         - torch.nn.Module: The model with the best weights restored.
         """
         if self.store_in_memory:
+            # check weights
             model.load_state_dict(self.weights)
+            model.cuda()
         else:
             model.load_state_dict(torch.load(self.save_path))
+            # remove the file
+            os.remove(self.save_path)
+            model.cuda()
         return model
 

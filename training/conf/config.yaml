@@ -7,7 +7,7 @@ defaults:
 
 # Dataset parameters        
 training:
-  eval_frequency: -1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
+  eval_frequency: 1           # Evaluation frequency (counts iterations if positive, epochs if negative. Use -1 to evaluate at the end of each epoch)
   compile: False
   steps_per_epoch: -1
   accumulate: 1
@@ -30,7 +30,7 @@ training:
 
 # Other experiment's parameters
 other:
-  valid_conf_matrix_frequency: 25
+  valid_conf_matrix_frequency: -1
   backup_model: False           # Backup the model in a file
   seed: 42                      # Seed for random number generators
   output_path: '/home/frischs/outputs/'  # Path to the output directory

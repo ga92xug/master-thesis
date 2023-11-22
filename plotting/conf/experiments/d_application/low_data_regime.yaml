@@ -1,7 +1,7 @@
 DeepDRiD:
   filters:
     tags: DeepDRiD_low_data_2
-    #config.training.earlystop.monitor: valid.loss
+    config.training.earlystop.monitor: valid.loss
     #config.training.dataset._target_: "training.datasets.general.data_loader.get_DeepDRiD" 
     # created_at:
     #     $gt: '2023-11-03###'

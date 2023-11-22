@@ -7,7 +7,7 @@ export PY_HPO="python experiments/d_application_experiment/_3_low_data_regime/lo
 
 # 1
 $PY_SCRIPT -m other.seed=0,1,2,3,4 +exp_HPs_isic2019=vit \
-    wandb.tags=[low_data] other.should_test=True \
+    wandb.tags=[isic2019_low_data_3] other.should_test=True \
     training.dataset.reduction_factor=1 \
     training.earlystop.stop=True \
     training.earlystop.patience=30 \

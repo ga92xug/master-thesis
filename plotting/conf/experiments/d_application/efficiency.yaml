@@ -15,7 +15,7 @@ DeepDRiD:
 blood:
   filters:
     tags: CNN_augmentation_blood
-    #config.training.earlystop.stop: false
+    config.training.earlystop.stop: false
     #created_at:
     #    $gt: '2023-11-06###'
 

@@ -9,3 +9,4 @@ export PY_HPO="python experiments/d_application_experiment/_3_low_data_regime/lo
 
 bash experiments/d_application_experiment/_1_medical_data/sh_files/constant_investment_DeepDRiD.sh
 bash experiments/d_application_experiment/_1_medical_data/sh_files/constant_investment_blood.sh
+bash experiments/d_application_experiment/_1_medical_data/sh_files/constant_investment_isic2019.sh

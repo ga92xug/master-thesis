@@ -1,8 +1,8 @@
 
 lenght_datasets = {
-    "blood": 11964, # 35
+    "blood": 9571, # 35
     "DeepDRiD": 1200, # 56
-    "isic2019": 18237, # epochs 36
+    "isic2019": 18237, # epochs 43
 }
 
 def max_gflops_count(epochs: int, train_dataset_length: int, gflops_per_image: int):
@@ -19,8 +19,8 @@ def main():
 
     # we check for the average best epoch with early stopping in wandb 
     # and use this epoch for the max flops count for eq_nasnet
-    epochs = 35
-    dataset = "blood"
+    epochs = 43
+    dataset = "isic2019"
     train_dataset_length = lenght_datasets[dataset]
 
     gflops_per_image_efficientnet_r128_b64 = 0.137015781 # 0.137015808

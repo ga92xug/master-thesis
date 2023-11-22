@@ -11,62 +11,6 @@ sys.path.append(os.getcwd())
 from plotting.experiments.d_application.util import name2color
 from plotting.experiments.plotting_utils import *
 
-def plot_low_data_regime(
-        metrics_dict: Dict[str, np.ndarray],
-        metric_name: str,
-        fig_size: Tuple[int, int],
-        errorbar: bool = False,
-        reverse_order: bool = True,
-    ):
-    plt.figure(figsize=fig_size)
-    custom_lines = []
-    reduction_points_longest = None
-
-    # order metrics_dict by key
-    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0]))    
-    
-    for model, values in metrics_dict.items():
-        color = label2color(model)
-        metric_values = list(values.values())
-        reduction_points = list(values.keys())
-        if reverse_order:
-            metric_values.reverse()
-            reduction_points.reverse()
-
-        reduction_points = [int((float(reduction_point) * 100)) for reduction_point in reduction_points]
-
-        if reduction_points_longest is None:
-            reduction_points_longest = reduction_points
-        elif len(reduction_points) > len(reduction_points_longest):
-            reduction_points_longest = reduction_points
-
-        means = [np.mean(values) for values in metric_values]
-        stds = [np.std(values) for values in metric_values]
-        
-        if errorbar:
-            errorbar_container = plt.errorbar(reduction_points, means, yerr=stds, label=model, marker='o', capsize=5, linestyle='-', color=color)
-            line_color = errorbar_container[0].get_color()
-        else:
-            line, = plt.plot(reduction_points, means, label=model, marker='o', linestyle='-', color=color)
-            line_color = line.get_color()
-        
-        custom_lines.append(Line2D([0], [0], color=color, marker='o', markersize=8, linestyle='-', linewidth=2))
-    
-    plt.xlabel('Dataset Size [%]')
-    metric_name = metric_name.replace(".", " ")
-    metric_name = metric_name.replace("acc", "Accuracy [%]")
-    metric_name = metric_name[0].upper() + metric_name[1:]
-    plt.ylabel(f'{metric_name}')
-    #plt.title(f'{metric_name} vs. Dataset size')
-    plt.grid(True)
-    
-    plt.legend(handles=custom_lines, labels=list(metrics_dict.keys()))
-    return plt.gcf()
-    
-
-import matplotlib.pyplot as plt
-import numpy as np
-
 
 def plot_model_efficiency_with_test_acc_histogram(
         model_data, 
@@ -74,7 +18,7 @@ def plot_model_efficiency_with_test_acc_histogram(
         test_metric_name="test_accuracy",
         title='Model Efficiency and Test Accuracy Comparison'
     ):
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [3, 1]})
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 6), gridspec_kw={'width_ratios': [3, 1]})
 
     # Plot FLOPs vs. Validation Accuracy
     for model_name, data in model_data.items():
@@ -90,7 +34,7 @@ def plot_model_efficiency_with_test_acc_histogram(
         # Plotting the standard deviation for validation accuracy
         ax1.fill_between(flops, mean_val_acc - std_val_acc, mean_val_acc + std_val_acc, alpha=0.2, color=line.get_color())
 
-    ax1.set_xlabel('FLOPs')
+    ax1.set_xlabel('FLOPs [$10^9$]')
     ylabel = metric2label(valid_metric_name)
     ax1.set_ylabel(ylabel)
     ax1.set_title(title)
