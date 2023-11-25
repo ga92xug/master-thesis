@@ -27,7 +27,7 @@ def one_efficiency_plot(
         project=wandb_project, 
         labels_run_ids=model2label_run_ids_dict,
         metric_is_weighted=metric_is_weighted,
-        smoothing_window_size=1,
+        smoothing_window_size=2,
     )
 
 
@@ -58,11 +58,10 @@ def main():
             # This is not a experiment
             continue
         
-        #if exp_name != "blood":
-        #    continue
+        if exp_name == "isic2019":
+            continue
 
         metric_is_weighted = True if "weighted" in dataset2metric[exp_name] else False
-        
         
 
         filters = values["filters"]

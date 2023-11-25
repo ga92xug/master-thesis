@@ -153,7 +153,7 @@ def get_wandb_data_efficieny_from_ids(
         project: list,
         labels_run_ids: dict,
         metric_is_weighted: Dict[str, str],
-        smoothing_window_size: int = 1,
+        smoothing_window_size: int = 3,
     ):
     api = wandb.Api()
     data = {}
@@ -174,7 +174,7 @@ def get_wandb_data_efficieny_from_ids(
 
             valid_metric = run.history(keys=[valid_metric_name]).values[:, 1] * 100
             if smoothing_window_size > 1:
-                valid_metric = smooth_data(valid_metric, smoothing_window_size)
+                valid_metric = smooth_data(valid_metric, smoothing_window_size, keep_size=True)
 
             test_metric = run.summary[test_metric_name.split(".")[0]][test_metric_name.split(".")[1]] * 100
 

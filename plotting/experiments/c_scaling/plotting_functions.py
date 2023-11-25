@@ -242,7 +242,7 @@ def get_list(
 def plot_scaling_compound_baseline(
         flops_lists: List[List[float]],
         accuracy_lists: List[List[float]],
-        xlabel: str = "FLOPs [10^9]",
+        xlabel: str = "FLOPs [$10^9$]",
         ylabel: str = "ISIC2019 Validation Accuracy Weighted [%]",
         legend_labels: List[str] = None
     ):

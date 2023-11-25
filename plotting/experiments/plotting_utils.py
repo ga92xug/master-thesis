@@ -6,8 +6,13 @@ from hydra import compose, initialize
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-def smooth_data(data, w: int = 3):
-    return np.convolve(data, np.ones(w), 'valid') / w
+def smooth_data(data, w: int = 3, keep_size: bool = False):
+    smoothed = np.convolve(data, np.ones(w), 'valid') / w
+    if keep_size:
+        # Pad the smoothed array to match the original size
+        pad_width = (w - 1) // 2
+        smoothed = np.pad(smoothed, (pad_width, pad_width), mode='edge')
+    return smoothed
 
 def plot_init(individual_location:str, override: bool = False):
     """

@@ -52,6 +52,11 @@ def run_id2data(
             data = run.summary["adversarial_attack"][attack_name]
         else:
             raise ValueError(f"attack_name {attack_name} not in run.summary")
+        
+        if "test" in run.summary:
+            zero_point = run.summary["test"]["acc"]
+            data [0][0] = zero_point if data[0][0] < zero_point else data[0][0]
+
         results[attack_name] = {
             "robust_accs": data[0],
             "epsilons": data[1],

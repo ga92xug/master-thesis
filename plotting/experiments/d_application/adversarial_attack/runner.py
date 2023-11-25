@@ -36,7 +36,8 @@ def main():
         plot_adversarial_attacks(
             save_folder_name=save_folder_name,
             save_name=exp_name,
-            data=data
+            data=data,
+            plot_type='individual',
         )
 
 

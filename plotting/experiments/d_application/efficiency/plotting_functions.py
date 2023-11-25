@@ -22,6 +22,7 @@ def plot_model_efficiency_with_test_acc_histogram(
 
     # Plot FLOPs vs. Validation Accuracy
     for model_name, data in model_data.items():
+        print("model_name", model_name)
         color = label2color(model_name)
         # Calculate mean and standard deviation for validation accuracy
         mean_val_acc = np.mean(data["valid_metric"], axis=0)
@@ -34,10 +35,10 @@ def plot_model_efficiency_with_test_acc_histogram(
         # Plotting the standard deviation for validation accuracy
         ax1.fill_between(flops, mean_val_acc - std_val_acc, mean_val_acc + std_val_acc, alpha=0.2, color=line.get_color())
 
-    ax1.set_xlabel('FLOPs [$10^9$]')
+    ax1.set_xlabel('FLOPs Consumed in Training [$10^9$]')
     ylabel = metric2label(valid_metric_name)
     ax1.set_ylabel(ylabel)
-    ax1.set_title(title)
+    #ax1.set_title(title)
     ax1.legend()
     ax1.grid(True)
 
@@ -53,9 +54,10 @@ def plot_model_efficiency_with_test_acc_histogram(
         # Whisker for standard deviation
         ax2.errorbar(i, mean_test_acc, yerr=std_test_acc, color='black', fmt='none')
 
-    ax2.set_xticks(range(len(model_data)))
-    ax2.set_xticklabels(model_data.keys())
+    #ax2.set_xticks(range(len(model_data)))
+    #ax2.set_xticklabels(model_data.keys())
     #ax2.set_xlabel('Model')
+    ax2.set_xticks([])
     ylabel = metric2label(test_metric_name)
     ax2.set_ylabel(ylabel)
     #ax2.set_title('Mean Test Accuracy per Model')
