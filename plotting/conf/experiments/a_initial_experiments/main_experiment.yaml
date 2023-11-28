@@ -3,23 +3,26 @@ depth:
     depth=16: [i1xirj9q]
     depth=22: [zej6qb0b]
     depth=28: [to2jjlyp]
-  short_labels: "s[0] + '=' + s.split('=')[1]"
+    depth=34: [nickumf7]
+    depth=40: [9qo9ev3t]
+  #short_labels: "s[0] + '=' + s.split('=')[1]"
+  
 
 width:
   labels_run_ids:
     width=1: [vk37jyq8]
     width=2: [nl4adi0o]
     width=4: [x5ajaryv]
-  short_labels: "s[0] + '=' + s.split('=')[1]"
+  #short_labels: "s[0] + '=' + s.split('=')[1]"
   GFLOPs: [43.086858824, 148.618137432, 611.961191606]
 # G_CNN_exp3
 rotation:
   labels_run_ids:
-    C=2: [1b6hywk3]
-    C=4: [ymdhnpug]
-    C=8: [kl7sg4c3]
-    C=12: [bv1hfyo4]
-  short_labels: null
+    "C$_2$": [1b6hywk3]
+    "C$_4$": [ymdhnpug]
+    "C$_8$": [kl7sg4c3]
+    "C$_{12}$": [bv1hfyo4]
+  #short_labels: null
   GFLOPs: [67.359442844, 119.576, 226.288036046, 313.57]
   # 16: 423.225014106
   # 20: 511.692473268
@@ -34,14 +37,14 @@ rotation_5x5:
     C=12: [bv1hfyo4]
     C=16: [bv1hfyo4]
     C=20: [bv1hfyo4]
-  short_labels: null
+  #short_labels: null
   GFLOPs: [184.507381912, 327.797367425, 466.53433024, 621.08362177, 734.797687934, 861.263894734, 1163.956753166, 1407.564055544]
 
 cyclic_or_dihedral:
   labels_run_ids:
-    C8: [kl7sg4c3]
-    D8: [v48n24cc]
-  short_labels: null
+    "C$_8$": [kl7sg4c3]
+    "D$_8$": [v48n24cc]
+  split_labels_on: "s[0]"
   GFLOPs: [226.288036046, 226.288036046]
 
 

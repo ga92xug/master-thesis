@@ -5,7 +5,7 @@ from omegaconf import OmegaConf
 
 sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.plotting_utils import *
-from plotting.experiments.plot_acc_flops_params import *
+from plotting.experiments.plot_acc_flops_params_nicer import *
 from plotting.experiments.wandb_utils import *
 
 

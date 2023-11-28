@@ -62,8 +62,8 @@ def produce_all_scaling_plots(
         wandb_projects: str,
         metric: str,
         save_folder_name: str,
-        xlabel: str = "FLOPs [10^9]",
-        ylabel: str = "ISIC2019 Validation Accuracy Weighted [%]",
+        xlabel: str = "FLOPs [$10^9$]",
+        ylabel: str = "Validation Accuracy Weighted [%]",
         combined_plot: bool = False, 
     ):
     """

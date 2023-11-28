@@ -30,6 +30,8 @@ def one_efficiency_plot(
         smoothing_window_size=2,
     )
 
+    print("data", data)
+
 
     #fig_size = get_fig_size((8,4))
     fig = plot_model_efficiency_with_test_acc_histogram(

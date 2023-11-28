@@ -132,7 +132,7 @@ def scalar_mappable(
     axis_height = axis_position.y1 - axis_position.y0
     cbar_ax = fig.add_axes([0.92, axis_position.y0, 0.04, axis_height])
     cbar = fig.colorbar(sm, cax=cbar_ax)
-    cbar.ax.set_title("#Trials")
+    cbar.ax.set_title("Iteration")
 
     return fig
 

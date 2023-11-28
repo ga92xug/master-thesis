@@ -7,7 +7,7 @@ from omegaconf import OmegaConf
 sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.wandb_utils import *
 from plotting.experiments.plotting_utils import *
-from plotting.experiments.plot_acc_flops_params import *
+from plotting.experiments.plot_acc_flops_params_nicer import *
 
 
 def add_flops(downloaded_data, GFLOPs):
@@ -40,7 +40,7 @@ def plot(
         labels_run_ids: Dict[str, Dict[str, Union[List[str], str]]],
         dataset: str,  
         GFLOPs: List[float] = None,
-        short_labels: str = None,
+        split_labels_on: str = None,
         **kwargs,
     ):
     metric = dataset2metric[dataset]
@@ -58,10 +58,11 @@ def plot(
             GFLOPs=GFLOPs,
         )
 
+    print("split_labels_on", split_labels_on)
     fig = create_combined_plot(
         downloaded_data=downloaded_data,
         metric=metric,
-        short_labels=short_labels,
+        split_labels_on=split_labels_on,
         **kwargs,
     )
 
@@ -83,7 +84,7 @@ def main():
             cfg.dataset2metric, resolve=True, throw_on_missing=True)
 
     for name, run_info in experiments_2_run_ids.items():
-        if name != "rotation":
+        if name != "cyclic_or_dihedral":
             continue
         print(name)
         

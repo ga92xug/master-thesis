@@ -6,7 +6,8 @@ from matplotlib.ticker import MaxNLocator
 
 from plotting.experiments.plotting_utils import get_fig_size, save_plot
 
-FIG_SIZE = (4.5, 4.5)
+#FIG_SIZE = (4.5, 4.5)
+FIG_SIZE = (6, 6)
 
 def single_path_individual_scaling_plot(
         ax, 
@@ -20,6 +21,8 @@ def single_path_individual_scaling_plot(
         color: str = 'b',
         linestyle: str = '-',
         connect_dots: bool = True,
+        marker_size: int = 7,
+        lw: int = 2,
         
     ):
     """Creates a single subplot with optional error bars for accuracy values.
@@ -62,10 +65,10 @@ def single_path_individual_scaling_plot(
             accuracy_mean = np.mean(acc)            
 
             accuracy_stddev = np.std(acc)
-            ax.errorbar(flops[i], accuracy_mean, yerr=accuracy_stddev, fmt='o-', markersize=5, color=color)
+            ax.errorbar(flops[i], accuracy_mean, yerr=accuracy_stddev, fmt='o-', markersize=marker_size, color=color)
 
         else:
-            ax.plot(flops[i], acc, 'o-', markersize=5, color=color)
+            ax.plot(flops[i], acc, 'o-', markersize=marker_size, color=color)
 
         # Connect the current data point to the previous one with a line
         if i > 0 and connect_dots:
@@ -73,7 +76,7 @@ def single_path_individual_scaling_plot(
                 flops, 
                 [np.mean(_acc) for _acc in accuracy_values], 
                 linestyle=linestyle, 
-                lw=0.5, 
+                lw=lw, 
                 color=color, 
                 label=labels[i] if labels else None
             )
@@ -159,7 +162,11 @@ def multipath_individual_scaling_plot(
         legend_handles.append(handle)
 
     if legend_labels is not None:
-        ax.legend(legend_handles, legend_labels, loc='lower right')
+        if save_name == "compound_scaling":
+            # move the legend outside of the plot 
+            ax.legend(legend_handles, legend_labels, loc='upper center', bbox_to_anchor=(0.5, -0.13))
+        else:
+            ax.legend(legend_handles, legend_labels, loc='lower right')
 
     # x-ticks
     max_flops = max([max(flops) for flops in flops_lists]) / 1e9

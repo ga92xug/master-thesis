@@ -16,13 +16,17 @@ def plot_model_efficiency_with_test_acc_histogram(
         model_data, 
         valid_metric_name="val_accuracy",
         test_metric_name="test_accuracy",
-        title='Model Efficiency and Test Accuracy Comparison'
+        title='Model Efficiency and Test Accuracy Comparison',
+        add_epoch_to_legend: bool = True,
     ):
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 6), gridspec_kw={'width_ratios': [3, 1]})
 
     # Plot FLOPs vs. Validation Accuracy
     for model_name, data in model_data.items():
         print("model_name", model_name)
+        if add_epoch_to_legend:
+            model_name = f"{model_name}\nEpochs={data['epochs']}"
+
         color = label2color(model_name)
         # Calculate mean and standard deviation for validation accuracy
         mean_val_acc = np.mean(data["valid_metric"], axis=0)
@@ -39,7 +43,13 @@ def plot_model_efficiency_with_test_acc_histogram(
     ylabel = metric2label(valid_metric_name)
     ax1.set_ylabel(ylabel)
     #ax1.set_title(title)
-    ax1.legend()
+    # get legend handles and labels
+    handles, labels = ax1.get_legend_handles_labels()
+    # sort both labels and handles by labels
+    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+    # create the legend
+
+    fig.legend(handles, labels, loc='upper center', ncol=len(labels), bbox_to_anchor=(0.5, 0.05))
     ax1.grid(True)
 
     # Plot Mean Test Accuracy Histogram with Whiskers for Standard Deviation

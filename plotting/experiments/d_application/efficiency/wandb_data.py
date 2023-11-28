@@ -180,11 +180,15 @@ def get_wandb_data_efficieny_from_ids(
 
             if i == 0:
                 FLOPs_4_val_values = get_FLOPs_4_val_values(run, valid_metric)
-
+                epochs = run.summary["scheduler"]["epoch"]
+                if epochs == 0:
+                    epochs = 1
+                
                 data[label] = {
                     "valid_metric": [valid_metric],
                     "test_metric": [test_metric],
                     "FLOPs_4_val_values": FLOPs_4_val_values,
+                    "epochs": epochs,
                 }
 
             else:
