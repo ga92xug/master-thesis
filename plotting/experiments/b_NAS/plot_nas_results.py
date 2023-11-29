@@ -93,6 +93,7 @@ def scalar_mappable(
     xlabel = "Validation Accuracy Weighted [%]" if name_performance_metric == "valid_acc_weighted" else "Validation Accuracy [%]"
     axes.set_xlabel(xlabel)
     axes.set_ylabel("FLOPs [$10^9$]")
+    axes.grid(True)
 
     # Add a new point if given
     baseline_point = meta_data["point"]["location"]

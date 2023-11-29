@@ -59,7 +59,7 @@ def label2color(name: str):
         "EfficientNet": mcolors.CSS4_COLORS["limegreen"],
         "EfficientNet pre-trained": mcolors.CSS4_COLORS["green"],
         "Eq-WRN-16-4": mcolors.CSS4_COLORS["peru"],
-        "WRN-16-4": mcolors.CSS4_COLORS["dodgerblue"],
+        "WRN-16-4": mcolors.CSS4_COLORS["saddlebrown"],
         "NAS-on": mcolors.CSS4_COLORS["purple"],
     }
 
@@ -74,14 +74,16 @@ def label2color(name: str):
             
     # no match found
     # use hash to get a color
-    return mcolors.CSS4_COLORS[hash(name) % len(mcolors.CSS4_COLORS)]
+    names = list(mcolors.CSS4_COLORS)
+    
+    return mcolors.CSS4_COLORS[names[hash(name) % len(mcolors.CSS4_COLORS)]] # [hash(name) % len(mcolors.CSS4_COLORS)]
 
 
 def save_plot(
         figure: plt.Figure, 
         name: str, 
         folder_name: str,
-        file_format: str = "png",
+        file_format: str = "svg",
     ):
     """
     Safe a matplotlib figure to a file.

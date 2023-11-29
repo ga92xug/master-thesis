@@ -17,6 +17,25 @@ def create_name_comparision_models(config):
         name = "Eq-NASNet"
     return name
 
+def sorting_key(name: str):
+    sort_key = None
+    if "EfficientNet" in name:
+        sort_key = 10
+    elif "ViT" in name:
+        sort_key = 20
+    elif "Eq-NASNet" in name:
+        sort_key = 30
+
+    if "pre-trained" in name:
+        sort_key += 1
+
+    if sort_key is None:
+        sort_key = 100
+
+    #print(name, "sort_key", sort_key)
+    return sort_key
+
+
 
 def get_wandb_runs_from_filters(
         filters: Dict[str, str],

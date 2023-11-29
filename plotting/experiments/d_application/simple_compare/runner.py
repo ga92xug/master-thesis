@@ -9,27 +9,16 @@ from plotting.experiments.wandb_utils import *
 from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params_nicer import *
 
+def manual_data():
+    models = {
+        "Gessert et al. single model": {"accuracy": 68.8, "params": 40.76e6, "FLOPs": 19.97e9},
+        "EfficientNet pre-trained": {"accuracy": 62.97, "params": 4.01e6, "FLOPs": 0.14e9},
+        "EfficientNet": {"accuracy": 39.76, "params": 4.01e6, "FLOPs": 0.14e9},
+        "ViT pre-trained": {"accuracy": 66.34, "params": 85.69e6, "FLOPs": 5.5e9},
+        "ViT": {"accuracy": 43.51, "params": 85.69e6, "FLOPs": 5.5e9},
+        "Eq-NASNet": {"accuracy": 69.69, "params": 0.66e6, "FLOPs": 1.7e9}
+    }
 
-def add_flops(downloaded_data, GFLOPs):
-    i = 0
-    for label, runs_data in downloaded_data.items():
-        for run_id, run_data in runs_data.items():
-            manual_flops = GFLOPs[i] * 1e9
-            
-            wandb_flops = run_data.get("flops", None)
-            if isinstance(wandb_flops, float):
-                print("Run already has flops!")
-                #continue
-
-            if callable(wandb_flops):
-                # normalise flops
-                run_data["flops"] = run_data["flops"](manual_flops)
-            else:
-                run_data["flops"] = manual_flops / 128
-
-            print(f"Added to {label} {run_id} gflops: {run_data['flops']}")
-            i += 1
-    return downloaded_data
 
 def plot(
         dataset2metric: Dict[str, str],
@@ -45,18 +34,15 @@ def plot(
     ):
     metric = dataset2metric[dataset]
 
-    downloaded_data = get_wandb_data_multiple_runs(
-        entity=wandb_entity, 
-        projects=wandb_projects, 
-        labels_run_ids=labels_run_ids,
-        metric=metric,
-        name_param_count="total_parameters"
-    )
-    if GFLOPs is not None:
-        downloaded_data = add_flops(
-            downloaded_data=downloaded_data,
-            GFLOPs=GFLOPs,
-        )
+    downloaded_data = {
+        "Gessert et al. single model": {"accuracy": 68.8, "params": 40.76e6, "FLOPs": 19.97e9},
+        "EfficientNet pre-trained": {"accuracy": 62.97, "params": 4.01e6, "FLOPs": 0.14e9},
+        "EfficientNet": {"accuracy": 39.76, "params": 4.01e6, "FLOPs": 0.14e9},
+        "ViT pre-trained": {"accuracy": 66.34, "params": 85.69e6, "FLOPs": 5.5e9},
+        "ViT": {"accuracy": 43.51, "params": 85.69e6, "FLOPs": 5.5e9},
+        "Eq-NASNet": {"accuracy": 69.69, "params": 0.66e6, "FLOPs": 1.7e9}
+    }
+
 
     print("split_labels_on", split_labels_on)
     fig = create_combined_plot(
@@ -84,8 +70,8 @@ def main():
             cfg.dataset2metric, resolve=True, throw_on_missing=True)
 
     for name, run_info in experiments_2_run_ids.items():
-        #if name != "cyclic_or_dihedral":
-        #    continue
+        if name != "cyclic_or_dihedral":
+            continue
         print(name)
         
         plot(

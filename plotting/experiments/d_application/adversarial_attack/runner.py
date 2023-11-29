@@ -37,7 +37,7 @@ def main():
             save_folder_name=save_folder_name,
             save_name=exp_name,
             data=data,
-            plot_type='individual',
+            plot_type='combined',
         )
 
 

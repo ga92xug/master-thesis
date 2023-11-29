@@ -85,8 +85,8 @@ def main():
             # This is not a experiment
             continue
 
-        if exp_name != "DeepDRiD":
-            continue
+        # if exp_name != "DeepDRiD":
+        #     continue
 
         filters = values["filters"]
         print("name", exp_name)

@@ -14,11 +14,12 @@ def get_title(attack: str):
     title = title.replace("L2", "$L_2$")    
     return title
 
-def set_ax_labels(ax, attack: str):
+def set_ax_labels(ax, attack: str, idx: int = None):
     ax.set_title(get_title(attack))
     ax.set_xlabel('Epsilon [$\epsilon$]')
-    ax.set_ylabel('Robust Accuracy [%]')
-    ax.legend()
+    if idx == 0:
+        ax.set_ylabel('Robust Accuracy [%]')
+    
     ax.grid(True)
 
 def plot_adversarial_attacks(
@@ -43,6 +44,7 @@ def plot_adversarial_attacks(
                 ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
             
             set_ax_labels(ax, attack)
+            ax.legend()
             
             save_plot(
                 figure=fig,
@@ -56,7 +58,7 @@ def plot_adversarial_attacks(
         n_cols = 2  # Two attacks per row
         n_rows = math.ceil(n_attacks / n_cols)
         
-        fig, axs = plt.subplots(n_rows, n_cols, figsize=(10, 6 * n_rows))
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(10, 6 * n_rows), sharey="row")
         axs = axs.ravel()  # Flatten the array for easier indexing
         
         for idx, (attack, values) in enumerate(data.items()):
@@ -66,7 +68,14 @@ def plot_adversarial_attacks(
                 color = label2color(model)
                 ax.plot(model_data['epsilons'], model_data['robust_accs'], label=model, color=color)
 
-            set_ax_labels(ax, attack)
+            set_ax_labels(ax, attack, idx)
+            # get legend handles and labels
+            handles, labels = ax.get_legend_handles_labels()
+            # sort both labels and handles by labels
+            labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: sorting_key(t[0])))
+            # create the legend
+
+            fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(0.5, 0.01))
         
         # Remove any unused subplots
         for idx in range(n_attacks, n_rows * n_cols):

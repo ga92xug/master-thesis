@@ -71,7 +71,6 @@ def plot_combined_acc_flops_params(
         max_params: float = 7,
         bubble_mode: str = "legend",
         split_labels_on: str = None,
-        colors: str = None,
     ):
     #max_params = max(model['param_count'] for model in data.values())
     print("max_params", max_params)
@@ -89,14 +88,7 @@ def plot_combined_acc_flops_params(
     print("list_size", list_size)
 
     if split_labels_on is None:
-        if colors is None:
-            pass
-        elif colors == "label2color":
-            colors = [label2color(label) for label in data.keys()]
-        elif colors == "tab10":
-            colors = plt.cm.get_cmap("tab10", len(data.keys()))
-        else:
-            raise NotImplementedError(colors)
+        colors = [label2color(label) for label in data.keys()]
         sc = ax.scatter(list_flops, list_acc, s=list_size, color=colors)
     else:
         labels = list(data.keys())
@@ -134,7 +126,7 @@ def plot_combined_acc_flops_params(
         texts.append(plt.text(model['flops'], model['acc'], model_name, ha='center', va='center'))
 
     # Improve the placement of the text labels to reduce overlaps
-    adjust_text(texts, expand_objects=(1.05, 3), expand_points=(1.05, 3))
+    adjust_text(texts, expand_objects=(1.05, 3), expand_points=(1.05, 6))
 
     # Bubble size legend
     if bubble_mode == "legend":
@@ -149,9 +141,9 @@ def plot_combined_acc_flops_params(
         leg = ax.legend(
             handles=list_scatters,
             loc='center left', 
-            borderpad=1, 
-            labelspacing=1, 
-            bbox_to_anchor=(1, 0.5), 
+            borderpad=3, 
+            labelspacing=2, 
+            bbox_to_anchor=(1.05, 0.5), 
             title="Parameters\n[$10^6$]"
         )
         leg.get_title().set_multialignment('center')
@@ -212,7 +204,7 @@ def create_combined_plot(
         metric: str,
         split_labels_on: str = None,
         fig_size: Tuple = (8, 6),
-        colors: str = None,
+        use_color_palette: bool = False,
         **kwargs,
     ) -> plt.Figure:
     """
@@ -231,7 +223,6 @@ def create_combined_plot(
         transformed_data, 
         metric_name=metric_name,
         split_labels_on=split_labels_on,
-        colors=colors
     )
     
     return fig

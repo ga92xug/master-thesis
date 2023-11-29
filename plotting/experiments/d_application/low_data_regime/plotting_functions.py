@@ -4,7 +4,7 @@ from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.lines import Line2D
-from plotting.experiments.d_application.util import name2color
+from plotting.experiments.d_application.util import name2color, sorting_key
 
 sys.path.append(os.getcwd())
 from plotting.experiments.plotting_utils import *
@@ -21,7 +21,7 @@ def plot_low_data_regime(
     reduction_points_longest = None
 
     # order metrics_dict by key
-    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: item[0]))    
+    metrics_dict = dict(sorted(metrics_dict.items(), key=lambda item: sorting_key(item[0])))    
     
     for model, values in metrics_dict.items():
         color = label2color(model)

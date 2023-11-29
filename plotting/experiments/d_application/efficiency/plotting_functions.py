@@ -8,7 +8,7 @@ from matplotlib.lines import Line2D
 from plotting.experiments.plot_acc_flops_params import metric2label
 
 sys.path.append(os.getcwd())
-from plotting.experiments.d_application.util import name2color
+from plotting.experiments.d_application.util import name2color, sorting_key
 from plotting.experiments.plotting_utils import *
 
 
@@ -46,7 +46,7 @@ def plot_model_efficiency_with_test_acc_histogram(
     # get legend handles and labels
     handles, labels = ax1.get_legend_handles_labels()
     # sort both labels and handles by labels
-    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+    labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: sorting_key(t[0])))
     # create the legend
 
     fig.legend(handles, labels, loc='upper center', ncol=len(labels), bbox_to_anchor=(0.5, 0.05))

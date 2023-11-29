@@ -84,9 +84,11 @@ def get_model(
         compile_time = stop - start
         stats["compile_time"] = compile_time
         
-    logger.print_verbose_check(5, model)
-    if logger is not None and not is_nas:
-        logger.log(stats, verbose=2)
+    
+    if logger is not None:
+        logger.print_verbose_check(5, model)
+        if not is_nas:
+            logger.log(stats, verbose=2)
     return model, stats
 
 
@@ -98,8 +100,9 @@ def get_gflops(model, batch_size, n_inputs, image_size, device, logger: Custom_L
     flops.uncalled_modules_warnings(False)
     gflops = flops.total() / 1e9
     
-    logger.print_verbose_check(5, parameter_count_table(model))
-    logger.print_verbose_check(5, flop_count_table(flops))
+    if logger is not None:
+        logger.print_verbose_check(5, parameter_count_table(model))
+        logger.print_verbose_check(5, flop_count_table(flops))
     return gflops
 
 
