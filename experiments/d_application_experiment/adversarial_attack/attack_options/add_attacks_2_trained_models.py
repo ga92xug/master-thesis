@@ -8,7 +8,7 @@ import os
 
 
 sys.path.append(f"{os.getcwd()}")
-from experiments.d_application_experiment._4_adversarial_attack.adversarial_attack import adversarial_attack
+from experiments.d_application_experiment.adversarial_attack.adversarial_attack import adversarial_attack
 from training.model_instantiate import hydra_compose 
 
 models2runids = {

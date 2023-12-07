@@ -16,7 +16,7 @@ import sys
 sys.path.append(f"{os.getcwd()}")
 #os.environ['TUNE_DISABLE_STRICT_METRIC_CHECKING'] = '1'
 from training.main import hydra_initialize_init
-from experiments.d_application_experiment._3_low_data_regime.utils import HPOEarlyStopper
+from experiments.d_application_experiment.low_data_regime.utils import HPOEarlyStopper
 
 def run_HPO(
         name: str,

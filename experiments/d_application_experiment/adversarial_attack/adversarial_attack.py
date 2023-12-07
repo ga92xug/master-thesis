@@ -11,8 +11,8 @@ import sys
 import os
 
 sys.path.append(f"{os.getcwd()}")
-from experiments.d_application_experiment._4_adversarial_attack.attack_options.autoattack_option import run_autoattack
-from experiments.d_application_experiment._4_adversarial_attack.attack_options.foolbox_option import foolbox_attack
+from experiments.d_application_experiment.adversarial_attack.attack_options.autoattack_option import run_autoattack
+from experiments.d_application_experiment.adversarial_attack.attack_options.foolbox_option import foolbox_attack
 from training.logger import Custom_Logger
 from training import utils
 from training.model_instantiate import hydra_compose 

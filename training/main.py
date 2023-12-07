@@ -21,7 +21,7 @@ from training.model_instantiate import get_model
 from training import utils
 from training.logger import Custom_Logger, SingletonInt
 from training.wrapper_scheduler import Wrapper_Scheduler
-from experiments.d_application_experiment._4_adversarial_attack.adversarial_attack import adversarial_attack
+from experiments.d_application_experiment.adversarial_attack.adversarial_attack import adversarial_attack
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 class Experiment:
