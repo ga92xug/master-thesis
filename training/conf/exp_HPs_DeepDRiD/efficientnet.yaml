@@ -18,8 +18,6 @@ training:
     # patience: 34
     # factor: 0.25655721920153424
 
-  
-
 wandb:
   project: SL-Application
   give_name: True

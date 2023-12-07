@@ -15,8 +15,6 @@ training:
 
   scheduler: # not used -> implement None scheduler
     _target_: null
-    # patience: 99
-    # factor: 0.49999999999999994
 
   
 

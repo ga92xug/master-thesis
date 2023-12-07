@@ -83,7 +83,7 @@ def save_plot(
         figure: plt.Figure, 
         name: str, 
         folder_name: str,
-        file_format: str = "svg",
+        file_format: str = "pdf",
     ):
     """
     Safe a matplotlib figure to a file.

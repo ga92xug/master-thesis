@@ -156,7 +156,7 @@ def visualize_data(
     ):
     figsize = get_fig_size(figsize)
 
-    fig, axs = plt.subplots(2, 2, figsize=(8, 8))
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
     plt.subplots_adjust(hspace=0.4)
 
     axs[0, 0].yaxis.set_major_locator(MaxNLocator(nbins=1, integer=True))

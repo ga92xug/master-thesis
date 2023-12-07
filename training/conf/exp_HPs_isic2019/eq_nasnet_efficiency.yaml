@@ -2,6 +2,7 @@
 defaults:
   - override /training: isic2019-training
   - override /model: eq_nasnet
+  - override /model/blocks_args_dict: 4blocks
   - override /wandb: default
   - override /training/scheduler: reduce_lr_on_plateau
   - _self_
@@ -14,11 +15,6 @@ training:
   scheduler:
     _target_: null
 
-    # factor: 0.02493979877210027
-    # patience: 7
-    # metric: valid.acc_weighted
-    # mode: max
-    #verbose: True
   
 wandb:
   project: SL-Application

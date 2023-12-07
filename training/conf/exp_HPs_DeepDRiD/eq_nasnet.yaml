@@ -22,18 +22,6 @@ training:
     #   patience: 37
     #   factor: 0.10688753617750324
 
-
-  earlystop:
-    stop: True          
-    monitor: valid.loss
-    mode: min
-    patience: 20
-    min_delta: 0.001
-    store_in_memory: True
-    baseline: null
-
-  
-
 wandb:
   project: SL-Application
   give_name: True

@@ -2,6 +2,7 @@
 defaults:
   - override /training: isic2019-training-constant_scheduler
   - override /model: eq_nasnet
+  - override /model/blocks_args_dict: 4blocks
   - override /wandb: default
   - _self_
   
