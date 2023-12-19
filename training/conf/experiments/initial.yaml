@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+  - override /training: cifar10-training
+  - override /model: eq_wrn
+  - override /wandb: default
+  - _self_
+  
+  
+model:
+  fix_params_mode: "heuristic" 
+  restrict: [halved, invariant]
+  group: cyclic 
+  rotation: 8
+  
+
+
+wandb:
+  project: "SL-inital"
+
+  tags: [ablation_nas_architecture, change_conv]
+
+# python training/main.py +experiments_nas_common=galaxy10_match_performance

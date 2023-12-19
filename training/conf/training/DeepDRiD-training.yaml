@@ -4,14 +4,14 @@ defaults:
 - dataset: DeepDRiD
 - scheduler: reduce_lr_on_plateau 
 
-epochs: 100
+epochs: 150
 accumulate: 1
 
 earlystop:
   stop: True          
   monitor: valid.loss
   mode: min
-  patience: 20
+  patience: 40
   min_delta: 0.001
   store_in_memory: True
   baseline: null # 0.70 

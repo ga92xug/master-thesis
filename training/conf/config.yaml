@@ -36,7 +36,7 @@ other:
   output_path: '/home/frischs/outputs/'  # Path to the output directory
   verbose: 1                    # Verbose Level
   time_limit: null              # Maximum time limit for training (in seconds)
-  should_test: False
+  should_test: True
   gpu_time_limit: False
   debug: False
 
@@ -45,6 +45,10 @@ NAS:
   db_path: NAS/data/trial_cache.db                # Path to the database
   max_building_time: -1
   max_gflops: -1
+
+hydra:
+  searchpath:
+    - file://training/conf/experiments
 
 
 ray: False

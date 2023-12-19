@@ -6,6 +6,10 @@ outputs/
 output/
 logs/
 scaling/figures*
+notebooks/
+
+# SLURM
+*.sbatch
 
 
 # Byte-compiled / optimized / DLL files
