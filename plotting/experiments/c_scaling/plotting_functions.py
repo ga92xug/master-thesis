@@ -7,7 +7,7 @@ from matplotlib.ticker import MaxNLocator
 from plotting.experiments.plotting_utils import get_fig_size, save_plot
 
 #FIG_SIZE = (4.5, 4.5)
-FIG_SIZE = (6, 6)
+FIG_SIZE = (5, 6)
 
 def single_path_individual_scaling_plot(
         ax, 
@@ -54,6 +54,7 @@ def single_path_individual_scaling_plot(
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.grid(True)
 
     flops = [flop / 1e9 for flop in flops]
 
@@ -251,7 +252,8 @@ def plot_scaling_compound_baseline(
         accuracy_lists: List[List[float]],
         xlabel: str = "FLOPs [$10^9$]",
         ylabel: str = "ISIC2019 Validation Accuracy Weighted [%]",
-        legend_labels: List[str] = None
+        legend_labels: List[str] = None,
+        marker_size: int = 7,
     ):
     fig, ax = plt.subplots(figsize=(6, 4))  # Adjust the figure size as needed
 
@@ -269,13 +271,14 @@ def plot_scaling_compound_baseline(
         accuracy = accuracy_lists[idx]
         linestyle = linestyles[i % len(linestyles)]  # Cycle through linestyles
         color = plt.cm.tab10(i)
-        ax.plot(flops, accuracy, color=color, marker='o', linestyle=linestyle, markersize=5)
+        ax.plot(flops, accuracy, color=color, marker='o', linestyle=linestyle, markersize=marker_size)
 
     if legend_labels:
         plt.legend([legend_labels[i] for i in sorted_indices], loc='lower right')
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    plt.grid(True)
 
     plt.tight_layout()
 
