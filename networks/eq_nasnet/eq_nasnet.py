@@ -45,7 +45,7 @@ from networks.util import (
     flatten_dict,
 )
 
-from nn import (
+from equivariant.nn import (
     GroupTensor,
     FieldType,
     EquivariantModule,

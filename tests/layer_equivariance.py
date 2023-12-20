@@ -3,7 +3,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 import torch
-from nn import (
+from equivariant.nn import (
     rot2dOnR2,
     flipRot2dOnR2,
     FieldType,

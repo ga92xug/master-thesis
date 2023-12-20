@@ -5,7 +5,7 @@ import numpy as np
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from nn import (
+from equivariant.nn import (
     FieldType,
     EquivariantModule,
     SequentialModule,

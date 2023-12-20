@@ -9,9 +9,12 @@ from torch import nn
 from typing import List, Tuple, Any
 from collections import defaultdict
 import numpy as np
-import re
 
-class GroupPoolingReduction(EquivariantModule):
+
+__all__ = ["GroupPooling", "MaxPoolChannels"]
+
+
+class GroupPooling(EquivariantModule):
     def __init__(self, in_type: FieldType, **kwargs):
         r"""
 
@@ -39,19 +42,13 @@ class GroupPoolingReduction(EquivariantModule):
                 r.name
             )
 
-        super(GroupPoolingReduction, self).__init__()
-
-        self.reduction_factor = calculate_reduction_factor(old_group=parse_groups(str(in_type)), new_group=str(in_type.fibergroup))
-        assert in_type.size % self.reduction_factor == 0, "Error! size must divide the number of channels"
-        index_size = in_type.size // self.reduction_factor
+        super(GroupPooling, self).__init__()
 
         self.space = in_type.gspace
         self.in_type = in_type
 
         # build the output representation substituting each input field with a trivial representation
-        #self.out_type = FieldType(self.space, [self.space.trivial_repr] * len(in_type))
-        self.out_type = FieldType(self.space, [self.space.regular_repr] * len(in_type))
-        # print("self.in_type: ", self.in_type, "len(self.in_type): ", len(self.in_type), "self.in_type.size: ", self.in_type.size)
+        self.out_type = FieldType(self.space, [self.space.trivial_repr] * len(in_type))
 
         # indices of the channels corresponding to fields belonging to each group in the input representation
         _in_indices = defaultdict(list)
@@ -65,12 +62,9 @@ class GroupPoolingReduction(EquivariantModule):
 
         self.in_indices = {}
         self.out_indices = {}
-
-
         for s, (fields, idxs) in indeces.items():
             _in_indices[s] = torch.LongTensor([min(idxs), max(idxs) + 1])
-            # _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
-            _out_indices[s] = torch.LongTensor([0, index_size])
+            _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
 
             # register the indices tensors as parameters of this module
             self.in_indices[s] = _in_indices[s].to(
@@ -79,7 +73,6 @@ class GroupPoolingReduction(EquivariantModule):
             self.out_indices[s] = _out_indices[s].to(
                 f"cuda:{torch.cuda.current_device()}"
             )
-
 
     def forward(self, input: GroupTensor) -> GroupTensor:
         r"""
@@ -94,17 +87,12 @@ class GroupPoolingReduction(EquivariantModule):
 
         """
 
-        assert input.type == self.in_type, f"Error! Input type must be {self.in_type}, but got {input.type}"
-
-        #if self.reduction_factor == 1:
-        #    return input
+        assert input.type == self.in_type
 
         coords = input.coords
         input = input.tensor
         b, c = input.shape[:2]
         spatial_shape = input.shape[2:]
-        #print("coords: ", coords, "b: ", b, "c: ", c, "spatial_shape: ", spatial_shape, "input.shape: ", input.shape)
-        #print("input.shape: ", input.shape)
 
         output = torch.empty(
             self.evaluate_output_shape(input.shape),
@@ -117,13 +105,8 @@ class GroupPoolingReduction(EquivariantModule):
             fm = input[:, in_indices[0] : in_indices[1], ...]
             # split the channel dimension in 2 dimensions, separating fields
             fm = fm.view(b, -1, s, *spatial_shape)
-            _, channels, _, _, _ = fm.shape
-            fm = fm.view(b, channels, s//self.reduction_factor, -1, *spatial_shape)
-            #print("fm.shape: ", fm.shape)
-            #print("torch.max(fm, 3)[0].shape: ", torch.max(fm, 3)[0].view(b, -1, *spatial_shape).shape)
 
-            output = torch.max(fm, 3)[0].view(b, -1, *spatial_shape)
-            #output = output.view(b, -1, *spatial_shape)
+            output = torch.max(fm, 2)[0]
 
         # wrap the result in a GroupTensor
         return GroupTensor(output, self.out_type, coords)
@@ -213,40 +196,35 @@ class GroupPoolingReduction(EquivariantModule):
         return "{in_type}".format(**self.__dict__)
 
 
-def calculate_reduction_factor(old_group: str, new_group: str):
-    #print("old_group: ", old_group, "new_group: ", new_group)
-    old_letter = old_group[0]  # First character represents the letter
-    old_number = int(old_group[1:])  # Remaining characters represent the number
+class MaxPoolChannels(nn.Module):
+    def __init__(self, kernel_size: int):
+        r"""
 
-    new_letter = new_group[0]
-    new_number = int(new_group[1:])
+        Module that computes the maximum activation within each group of ``kernel_size`` consecutive channels.
 
-    assert old_number % new_number == 0, "The new group must be a subgroup of the old group"
-    assert new_letter in ["C", "D"] and old_letter in ["C", "D"], "The group must be either C or D"
-    if old_letter == "C":
-        assert new_letter != "D", "The new group must be a subgroup of the old group"
-    numerical_reduction = old_number // new_number
+        Args:
+            kernel_size (int): the size of the group of channels the max is computed over
 
-    if old_letter == 'D' and new_letter == 'C':
-        letter_reduction = 2
-    else:
-        letter_reduction = 1
+        """
+        super(MaxPoolChannels, self).__init__()
+        self.kernel_size = kernel_size
 
-    overall_reduction_factor = numerical_reduction * letter_reduction
-    return overall_reduction_factor
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
+        assert (
+            input.shape[1] % self.kernel_size == 0
+        ), """
+            Error! The input number of channels ({}) is not divisible by the max pooling kernel size ({})
+        """.format(
+            input.shape[1], self.kernel_size
+        )
 
-def parse_groups(string):
-    new_group_pattern = r"\[(\w\d+)"
-    old_group_pattern = r": \{(\w\d+)"
+        b = input.shape[0]
+        c = input.shape[1] // self.kernel_size
+        s = input.shape[2:]
 
-    new_group_match = re.search(new_group_pattern, string)
-    old_group_match = re.search(old_group_pattern, string)
+        shape = (b, c, self.kernel_size) + s
 
-    if new_group_match:
-        new_group = new_group_match.group(1)
-    else:
-        raise ValueError("New group not found in the string.")
+        return input.view(shape).max(2)[0]
 
-    old_group = old_group_match.group(1) if old_group_match else new_group
-
-    return old_group
+    def extra_repr(self):
+        return "kernel_size={kernel_size}".format(**self.__dict__)

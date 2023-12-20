@@ -35,7 +35,7 @@ from networks.util import (
     get_param_count,
 )
 
-from nn import (
+from equivariant.nn import (
     rot2dOnR2,
     flipRot2dOnR2,
     GroupTensor,
@@ -61,8 +61,8 @@ from nn import (
     RestrictionModule,
     MultipleModule,
 )
-from group_theory import Representation
-from nn.modules import nonlinearities
+from equivariant.group_theory import Representation
+from equivariant.nn.modules import nonlinearities
 
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'

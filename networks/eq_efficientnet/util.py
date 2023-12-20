@@ -18,9 +18,9 @@ from torch.utils import model_zoo
 
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-import nn as nn_eq
+import equivariant.nn as nn_eq
 
-from nn import (
+from equivariant.nn import (
     GroupTensor,
     FieldType,
     EquivariantModule,
@@ -43,7 +43,7 @@ from nn import (
     RestrictionModule,
     MultipleModule,
 )
-from group_theory import Representation
+from equivariant.group_theory import Representation
 from nn.modules import nonlinearities
 
 from networks import (

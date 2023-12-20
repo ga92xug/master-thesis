@@ -6,7 +6,7 @@ sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from networks.eq_other import EquivariantNorm, EquivariantPool
 
-from nn import (
+from equivariant.nn import (
     GroupTensor,
     FieldType,
     EquivariantModule,
@@ -15,7 +15,7 @@ from nn import (
     Swish,
     PointwiseAdaptiveAvgPool,
 )
-from nn.modules import nonlinearities
+from equivariant.nn.modules import nonlinearities
 
 PADDINGS = {
     1: 0,

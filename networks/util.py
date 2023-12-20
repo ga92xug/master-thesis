@@ -6,7 +6,7 @@ import sys
 import torch
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from nn import (
+from equivariant.nn import (
     rot2dOnR2,
     flipRot2dOnR2,
 )

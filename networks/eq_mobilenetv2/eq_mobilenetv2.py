@@ -5,7 +5,7 @@ import torch.nn as nn
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from nn import (
+from equivariant.nn import (
     FieldType,
     GroupTensor,
 )
@@ -21,7 +21,7 @@ from networks import (
     Equivariant_Conv_BN_actF,
 )
 
-from .util_eq_mobilenetv2 import (
+from .util import (
     EquivariantBottleneck,
     EquivariantBottleneckBlock,
 )

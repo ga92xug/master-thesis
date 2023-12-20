@@ -35,7 +35,7 @@ from networks.util import (
     get_param_count,
 )
 
-from nn import (
+from equivariant.nn import (
     GroupTensor,
     FieldType,
     EquivariantModule,

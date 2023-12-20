@@ -3,9 +3,9 @@ from torch import nn
 import numpy as np
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
-import nn as nn_eq
+import equivariant.nn as nn_eq
 
-from nn import (
+from equivariant.nn import (
     FieldType,
     EquivariantModule,
     BatchNorm,
@@ -13,7 +13,7 @@ from nn import (
     PointwiseMaxPool,
     MultipleModule,
 )
-from group_theory import Representation
+from equivariant.group_theory import Representation
 
 __all__ = [
     "Restriction",

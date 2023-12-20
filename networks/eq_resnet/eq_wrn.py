@@ -9,7 +9,7 @@ sys.path.append('../networks') # add parent directory
 
 import numpy as np
 
-from nn import (
+from equivariant.nn import (
     FieldType,
     SequentialModule,
     GroupTensor,
@@ -19,7 +19,7 @@ from networks import (
     EquivariantPool,
     EquivariantConv,
 )
-from nn.modules import nonlinearities
+from equivariant.nn.modules import nonlinearities
 from networks.eq_other import EquivariantNorm
 from networks.CNNs.wrn import WideResNet
 from networks.eq_resnet.util import (

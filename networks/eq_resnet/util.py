@@ -5,13 +5,13 @@ import sys
 from networks.util import cuda_memory_usage, get_fixed_params
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from nn import (
+from equivariant.nn import (
     FieldType,
     EquivariantModule,
     SequentialModule,
     PointwiseDropout,
 )
-from nn.modules import nonlinearities
+from equivariant.nn.modules import nonlinearities
 from networks.eq_other import EquivariantNorm
 from networks.eq_convs import EquivariantConv
 

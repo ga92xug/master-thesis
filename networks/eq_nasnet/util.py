@@ -13,7 +13,7 @@ import os
 
 import wandb
 sys.path.append(f"{os.getcwd()}")
-from nn import FieldType
+from equivariant.nn import FieldType
 
 def convert_to_number(val):
     try:
