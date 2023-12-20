@@ -7,7 +7,7 @@ PY_TEST="python training/model_instantiate.py"
 
 # initial group increase
 $PY_SCRIPT -m +experiments=initial \
-    rotation=2,4,8,12 \
+    model.rotation=2,4,8,12 \
     wandb.tags=[initial_group_increase]
 
 # restriction
