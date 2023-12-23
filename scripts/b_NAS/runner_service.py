@@ -11,7 +11,7 @@ sys.path.append(f"{os.getcwd()}")
 from training.main import hydra_initialize_init
 
 # local imports
-from experiments.util import convert_dict_to_hydra_string
+from src.util import convert_dict_to_hydra_string
 from networks.eq_nasnet.util import encode_parameters
 from new_wandb_run import create_wandb_run
 

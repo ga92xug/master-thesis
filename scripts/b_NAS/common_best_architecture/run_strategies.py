@@ -9,7 +9,7 @@ import os
 # issue with https://github.com/pytorch/pytorch/issues/37377
 os.environ["MKL_THREADING_LAYER"]="GNU"
 sys.path.append(f"{os.getcwd()}")
-from experiments.util import convert_dict_to_hydra_string
+from src.util import convert_dict_to_hydra_string
 from networks.eq_nasnet.util import encode_parameters
 from experiments.run_command import run_command
 
