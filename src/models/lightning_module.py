@@ -46,7 +46,7 @@ class LitModule(LightningModule):
 
     def __init__(
         self,
-        net: Dict[str, Any],
+        network: Dict[str, Any],
         optimizer: Dict[str, Any],
         scheduler: Dict[str, Any],
         num_channels: int,
@@ -69,8 +69,14 @@ class LitModule(LightningModule):
         self.save_hyperparameters(logger=False)
 
         print("self.hparams", self.hparams)
+        print("num_channels", num_channels)
 
-        self.net = hydra.utils.instantiate(net)
+        self.net = hydra.utils.instantiate(
+            network,
+            num_channels=num_channels,
+            num_classes=num_classes,
+            image_size=image_size,
+        )
         self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
         self.scheduler_metric = scheduler.get("metric", None)
         del scheduler.metric

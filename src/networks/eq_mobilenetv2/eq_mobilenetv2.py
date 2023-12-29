@@ -36,7 +36,7 @@ class EquivariantMobileNetV2(nn.Module):
         rotation: int = 4,  # discrete number or frequency
         fix_params_mode: str = "heuristic",
         restrict: List[str] = [None] * 7,  # "invariant", "reflection", "halved"
-        input_channels: int = 3,
+        num_channels: int = 3,
         channel_layout: List[int] = [32, 16, 24, 32, 64, 96, 160, 320, 1280],
         bottleneck_layout: List[int] = [1, 2, 3, 4, 3, 3, 1],
         kernel_size: int = 3,
@@ -59,7 +59,7 @@ class EquivariantMobileNetV2(nn.Module):
         self.bottleneck_layout = (np.round(np.array(bottleneck_layout) * depth_multiplier)).astype(int) 
         
         # Color channels are trivial fields and don't transform when input is rotated/flipped
-        self.input_field_type = FieldType(gspace, [gspace.trivial_repr] * input_channels)
+        self.input_field_type = FieldType(gspace, [gspace.trivial_repr] * num_channels)
 
         # conv 1
         kwargs = {"in_type": self.input_field_type, "out_channels": self.num_channels[0],

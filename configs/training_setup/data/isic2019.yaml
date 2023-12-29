@@ -1,0 +1,42 @@
+#_target_: training.datasets.ISIC_2019.data_loader_ISIC_2019.build_isic2019_loaders
+_target_: training.datasets.general.data_loader.get_ISIC_2019
+name: ISIC_2019             
+augment: False
+  #all:
+  #  short_side_center_crop: True 
+  #train:
+  #  ColorJitter:
+  #    brightness: 0.4
+  #    contrast: 0.4
+  #    saturation: 0.4
+  #    hue: 0.1
+  #  Own_Cutout:
+  #    n_holes: 1
+  #    length: 16
+  #  RandomHorizontalFlip:
+  #    p: 0.5
+  #  RandomVerticalFlip:
+  #    p: 0.5     
+  #  RandomRotation:
+  #    degrees: 180
+  #  RandomResizedCrop:
+  #    scale: [0.8, 1.0]
+  #    ratio: [0.75, 1.3333333333333333]
+  #  RandomAffine:
+  #    degrees: 180
+  #    translate: [0.2, 0.2]  
+  #    scale: [0.8,1.2]
+  #    shear: 10          
+workers: 8                 
+resolution: 128
+reduction_factor: 1.0
+
+should_normalize_weights: True
+# only training set
+#channel_wise_mean_images: [0.6674451, 0.5293318, 0.5243004]
+#channel_wise_std_images: [0.22307414, 0.20243979, 0.21394742]
+# all data
+channel_wise_mean_images: [0.6679, 0.5299, 0.5245] 
+channel_wise_std_images: [0.1332, 0.1475, 0.1588] 
+n_in_channels: 3
+n_out_classes: 8

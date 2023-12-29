@@ -28,7 +28,7 @@ class EquivariantResNet9(nn.Module):
         rotation: int = 4,  # discrete number or frequency
         fix_params: bool = False,
         restrict: str = None,  # "invariant", "reflection", "halved"
-        input_channels: int = 3,
+        num_channels: int = 3,
         layout: Tuple[int] = (64, 128, 256),
         kernel_size: int = 3,
         padding: int = 1,
@@ -83,7 +83,7 @@ class EquivariantResNet9(nn.Module):
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
-            gspace, [gspace.trivial_repr] * input_channels
+            gspace, [gspace.trivial_repr] * num_channels
         )
 
         # "Lifting" conv from trivial to regular feature fields
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     # ((12-3+2*1)/1+1) x ((12-3+2*1)/1+1) = 12 x 12
     # ((12-5+2*1)/1+1) x ((12-5+2*1)/1+1) = 10 x 10
     inp = torch.rand(1, 1, 28, 28).cuda()
-    model = EquivariantResNet9(kernel_size=5, input_channels=inp.size(1), padding=2).cuda()
+    model = EquivariantResNet9(kernel_size=5, num_channels=inp.size(1), padding=2).cuda()
     # inp = torch.rand(1, 3, 32, 32).cuda()
     #inp = torch.rand(1, 3, 32, 32).cuda()
     #model = EquivariantResNet9().cuda()

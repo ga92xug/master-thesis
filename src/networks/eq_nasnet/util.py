@@ -59,7 +59,7 @@ def get_fixed_out_channels2(
     """Calculate and round number of filters based on width multiplier.
        Use width_coefficient, depth_divisor and min_depth of global_params.
     Args:
-        input_channels (int): Filters number to be calculated.
+        num_channels (int): Filters number to be calculated.
         global_params (namedtuple): Global params of the model.
     Returns:
         new_filters: New filters number after calculating.
@@ -80,7 +80,7 @@ def get_fixed_out_channels2(
     elif isinstance(in_type, int):
         out_channels = in_type * increase_factor
     else:
-        raise ValueError(f"input_channels must be int or FieldType, got {type(in_type)}")
+        raise ValueError(f"num_channels must be int or FieldType, got {type(in_type)}")
 
     out_channels = int(round(out_channels))
     print(f"out_channels: {out_channels}")

@@ -71,7 +71,7 @@ class EquivariantNASNet(nn.Module):
             fixed_params=False,
             eq_expand_ratio=2,
             cnn_expand_ratio=6,
-            input_channels=3, 
+            num_channels=3, 
             num_classes=10,
             not_increase_1_layer=True,
             verbose: int = 0,
@@ -112,7 +112,7 @@ class EquivariantNASNet(nn.Module):
         
         
         self.input_field_type = FieldType(
-            self.gspace, [self.gspace.trivial_repr] * input_channels
+            self.gspace, [self.gspace.trivial_repr] * num_channels
         )
 
         # Stem

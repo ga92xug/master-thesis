@@ -158,7 +158,7 @@ class EfficientNet(nn.Module):
     """
 
     def __init__(self, blocks_args=None, global_params=None, 
-                 image_size=None, input_channels=3, num_classes=10):
+                 image_size=None, num_channels=3, num_classes=10):
         super().__init__()
         blocks_args = list(blocks_args)
         assert image_size is not None, 'Please provide image size'
@@ -170,7 +170,7 @@ class EfficientNet(nn.Module):
         self._blocks_args = blocks_args
         self.name = "efficiennet"
 
-        self.input_channels = input_channels
+        self.num_channels = num_channels
         # image_size = list(image_size)
         image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         self.image_size = image_size
@@ -421,7 +421,7 @@ def main(cfg: DictConfig) -> None:
     net = hydra.utils.instantiate(
             cfg.model,
             image_size=image_size,
-            input_channels=n_inputs,
+            num_channels=n_inputs,
             num_classes=n_outputs,
         )
     net.eval()

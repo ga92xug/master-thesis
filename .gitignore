@@ -175,12 +175,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 plots
-data/
 .vscode
 norm_torch
-introduction_scaling_laws.ipynb
-parameter-test.ipynb
-test_equivalence.py
 
 # examples
 examples/

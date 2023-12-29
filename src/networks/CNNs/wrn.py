@@ -143,7 +143,7 @@ class NetworkBlock(nn.Module):
         return self.layer(x)
 
 class WideResNet(nn.Module):
-    def __init__(self, depth, layout, kernel_size, kernel_layout, padding, input_channels, \
+    def __init__(self, depth, layout, kernel_size, kernel_layout, padding, num_channels, \
                  num_classes, widen_factor=1, bias=False, drop_out=0.0, restrict=None,
                  image_size=32):
         super(WideResNet, self).__init__()
@@ -159,7 +159,7 @@ class WideResNet(nn.Module):
             n = int(n / 2)
         block = BasicBlock
         # 1st conv before any network block
-        self.conv1 = nn.Conv2d(input_channels, nChannels[0], kernel_size=kernel_size, stride=1,
+        self.conv1 = nn.Conv2d(num_channels, nChannels[0], kernel_size=kernel_size, stride=1,
                                padding=1, bias=bias)
         image_size = calculate_output_image_size(image_size, stride=1)
         # 1st block

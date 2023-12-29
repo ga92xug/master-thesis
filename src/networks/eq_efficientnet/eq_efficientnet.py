@@ -134,10 +134,10 @@ class MBConvBlock(EquivariantModule):
         # Squeeze and Excitation layer, if desired
         if self.has_se:
             # we don't need same padding as it is a 1x1 conv
-            input_channels_squeeze = len(out_type)
-            num_squeezed_channels = max(1, int(input_channels_squeeze * self._block_args.se_ratio))
+            num_channels_squeeze = len(out_type)
+            num_squeezed_channels = max(1, int(num_channels_squeeze * self._block_args.se_ratio))
             kwargs = {'in_type': out_type, 'squeeze_channels': num_squeezed_channels,
-                      'in_channels': input_channels_squeeze}
+                      'in_channels': num_channels_squeeze}
             self.squeeze = get_fixed_params(EquivariantSqueezeExcitation, fix_params_mode,
                                           nn.Sequential(*[normal_block._se_reduce, 
                                                           normal_block._se_expand]), 
@@ -229,7 +229,7 @@ class EquivariantEfficientNet(nn.Module):
             self, blocks_args, 
             global_params, 
             image_size, 
-            input_channels=3, 
+            num_channels=3, 
             num_classes=10, 
             group: str = "cyclic",
             rotation: int = 4,
@@ -243,7 +243,7 @@ class EquivariantEfficientNet(nn.Module):
         
         self.efficientnet = EfficientNet(
             blocks_args=blocks_args, global_params=global_params, image_size=image_size,
-                input_channels=input_channels, num_classes=num_classes,
+                num_channels=num_channels, num_classes=num_classes,
         )
         blocks_args = list(blocks_args)
         assert image_size is not None, 'Please provide image size'
@@ -256,7 +256,7 @@ class EquivariantEfficientNet(nn.Module):
 
         self.group = group
         self.rotation = rotation
-        self.input_channels = input_channels
+        self.num_channels = num_channels
         image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         self.image_size = image_size
         self.num_classes = num_classes
@@ -274,7 +274,7 @@ class EquivariantEfficientNet(nn.Module):
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
-            self.gspace, [self.gspace.trivial_repr] * self.input_channels
+            self.gspace, [self.gspace.trivial_repr] * self.num_channels
         )
         # Stem
         out_channels = eq_round_filters(32, self._global_params)
@@ -328,7 +328,7 @@ class EquivariantEfficientNet(nn.Module):
         self.field_type = self.restrict_last.out_type
 
         # Head
-        input_channels = block_args.output_filters  # output of final block
+        num_channels = block_args.output_filters  # output of final block
         out_channels = eq_round_filters(1280, self._global_params)
         self._conv_head = Eq_Conv2dSamePadding(self.field_type, out_channels, 
                                                kernel_size=1, image_size=image_size, 

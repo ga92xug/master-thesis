@@ -46,7 +46,7 @@ class EquivariantWideResNet(nn.Module):
         rotation: int = 4,
         fix_params_mode: str = "no", # "iter", "heuristic", "all"
         restrict: List[str] = [None, None],  # "invariant", "reflection", "halved"
-        input_channels: int = 3,
+        num_channels: int = 3,
         layout: List[int] = [16, 16, 32, 64],
         num_classes: int = 10,
         kernel_layout: List[int] = [3,3],
@@ -97,7 +97,7 @@ class EquivariantWideResNet(nn.Module):
                 depth=depth,
                 num_classes=num_classes,
                 widen_factor=widen_factor,
-                input_channels=input_channels,
+                num_channels=num_channels,
                 layout=layout,
                 kernel_layout=self.kernel_layout,
                 drop_out=self.drop_out,
@@ -116,7 +116,7 @@ class EquivariantWideResNet(nn.Module):
 
         # Color channels are trivial fields and don't transform when input is rotated/flipped
         self.input_field_type = FieldType(
-            self.gspace, [self.gspace.trivial_repr] * input_channels
+            self.gspace, [self.gspace.trivial_repr] * num_channels
         )
 
         # "Lifting" conv from trivial to regular feature fields

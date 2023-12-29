@@ -1,0 +1,10 @@
+_target_: training.datasets.domain_shift.data_loader.get_loaders
+name: iwildcam
+augment: False                 # Augment the training set with rotated images
+resolution: 108
+
+
+channel_wise_mean_images: [0.3839106,  0.38799807, 0.36028373]
+channel_wise_std_images: [0.2512182, 0.2505474, 0.25031218]
+n_in_channels: 3
+n_out_classes: 182

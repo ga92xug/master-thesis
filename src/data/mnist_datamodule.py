@@ -97,9 +97,9 @@ class MNISTDataModule(LightningDataModule):
     def num_channels(self) -> int:
         """Get the number of classes.
 
-        :return: The number of MNIST classes (10).
+        :return: The number of MNIST channels (1).
         """
-        return 3
+        return 1
 
     @property
     def image_size(self) -> int:
