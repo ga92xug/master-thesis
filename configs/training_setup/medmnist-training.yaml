@@ -1,0 +1,25 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: PathMNIST # ChestMNIST, DermaMNIST, OCTMNIST, PneumoniaMNIST, RetinaMNIST, BreastMNIST, BloodMNIST, TissueMNIST, OrganAMNIST, OrganCMNIST, OrganSMNIST
+- scheduler: reduce_lr_on_plateau 
+
+epochs: 40
+accumulate: 1
+eval_frequency: -1
+
+dataset:
+  _target_: training.datasets.med_mnist.data_loader.build_loaders
+  batch_size: 128                
+  eval_batch_size: 128  
+  test_as_valid: False
+  resolution: 28    
+
+optimizer:
+  lr: 0.001
+  weight_decay: 1e-5
+
+scheduler:
+  factor: 0.5
+  patience: 2
+  verbose: True

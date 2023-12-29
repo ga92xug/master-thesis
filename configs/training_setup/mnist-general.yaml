@@ -1,0 +1,36 @@
+defaults:
+- _self_
+- optimizer: Adam
+#- dataset: mnist_rot
+- scheduler: exponential
+
+dataset:
+  # same for all mnist
+  _target_: training.datasets.mnist.data_loader_mnist.build_mnist_loaders
+  batch_size: 64                
+  eval_batch_size: 64           
+  augment: True                 # Augment the training set with rotated images
+  interpolation: 2              # Type of interpolation to use for data augmentation
+  reshuffle: True               # Reshuffle train and valid splits instead of using the default split
+  validation: True
+  n_in_channels: 1
+  n_out_classes: 10
+  resolution: 28             
+
+epochs: 40                    # Number of training epochs
+augment_train: False
+earlystop: False               # Whether to use early stopping based on a validation set     
+
+optimizer:
+  lr: 0.015
+  weight_decay: 0.0005
+
+
+scheduler:
+  gamma: 0.7
+
+# original:
+# adapt_lr: exponential                # Adaptive learning rate scheduler to use (exponential, validation, or Null)
+# lr_decay_start: 15            # Epoch to start adaptive learning rate decay
+# lr_decay_factor: 0.8          # Factor to multiply learning rate by during adaptive decay
+# lr_decay_epoch: 1             # Period (in epochs) between adaptive learning rate decay

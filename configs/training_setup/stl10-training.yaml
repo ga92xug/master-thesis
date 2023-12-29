@@ -1,0 +1,18 @@
+defaults:
+- _self_
+- optimizer: SGD
+- dataset: stl10
+- scheduler: multi_step_lr
+
+dataset:
+  name: stl10
+  batch_size: 128              
+  eval_batch_size: 128         
+
+epochs: 1000                    
+earlystop: False                    
+
+
+scheduler:
+  milestones: [300,400,600,800]
+  gamma: 0.2

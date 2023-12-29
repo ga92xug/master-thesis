@@ -93,6 +93,30 @@ class MNISTDataModule(LightningDataModule):
         """
         return 10
 
+    @property
+    def num_channels(self) -> int:
+        """Get the number of classes.
+
+        :return: The number of MNIST classes (10).
+        """
+        return 3
+
+    @property
+    def image_size(self) -> int:
+        """Get the number of classes.
+
+        :return: The number of MNIST classes (10).
+        """
+        return 28
+    
+    @property
+    def normalization_weights(self) -> torch.Tensor:
+        """Get the number of classes.
+
+        :return: The number of MNIST classes (10).
+        """
+        return torch.tensor([1,  1, 1, 1,  1, 1, 1,  1, 1, 1], dtype=torch.float32)
+
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
         within a single process on CPU, so you can safely add your downloading logic within. In

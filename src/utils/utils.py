@@ -3,8 +3,9 @@ from importlib.util import find_spec
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from omegaconf import DictConfig
+from src.logger import pylogger
 
-from src.utils import pylogger, rich_utils
+from src.utils import rich_utils
 
 log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 

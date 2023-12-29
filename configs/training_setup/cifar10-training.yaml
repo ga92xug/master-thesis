@@ -1,0 +1,25 @@
+defaults:
+- _self_
+- optimizer: SGD
+- dataset: cifar
+- scheduler: multi_step_lr
+
+epochs: 100                    
+
+dataset:
+  name: cifar10
+  batch_size: 128                
+  eval_batch_size: 128     
+  augment: True                 
+  reshuffle: True               
+  perturbation_test: False
+  perturbation_location: CIFAR-10-C
+  reduction_factor: 1.0                       
+
+optimizer:
+  lr: 0.1                       
+  weight_decay: 0.0005
+
+scheduler:
+  milestones: [60, 120, 180]
+  gamma: 0.2

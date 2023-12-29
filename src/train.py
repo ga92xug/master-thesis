@@ -31,9 +31,12 @@ from src.utils import (
     extras,
     get_metric_value,
     instantiate_callbacks,
-    instantiate_loggers,
     log_hyperparameters,
     task_wrapper,
+)
+
+from src.logger import (
+    instantiate_loggers
 )
 
 log = RankedLogger(__name__, rank_zero_only=True)
@@ -54,20 +57,40 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("seed"):
         L.seed_everything(cfg.seed, workers=True)
 
-    log.info(f"Instantiating datamodule <{cfg.data._target_}>")
-    datamodule: LightningDataModule = hydra.utils.instantiate(cfg.data)
+    log.info(f"Instantiating datamodule <{cfg.training_setup.data._target_}>")
+    datamodule: LightningDataModule = hydra.utils.instantiate(cfg.training_setup.data)
 
-    log.info(f"Instantiating model <{cfg.model._target_}>")
-    model: LightningModule = hydra.utils.instantiate(cfg.model)
+    log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
+    model: LightningModule = hydra.utils.instantiate(
+        cfg.training_setup.network,
+        cfg.training_setup.optimizer,
+        cfg.training_setup.scheduler,
+        _recursive_=False,
+        num_channels=datamodule.num_channels,
+        num_classes=datamodule.num_classes,
+        image_size=datamodule.image_size,
+        normalization_weights=datamodule.normalization_weights,
+        #**{
+        #    "num_channels": datamodule.num_channels, 
+        #    "num_classes": datamodule.num_classes,
+        #    "image_size": datamodule.image_size,
+        #    "normalization_weights": datamodule.normalization_weights,
+        #},
+    )
 
     log.info("Instantiating callbacks...")
-    callbacks: List[Callback] = instantiate_callbacks(cfg.get("callbacks"))
+    callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
 
     log.info("Instantiating loggers...")
     logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
 
-    log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
-    trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
+    log.info(f"Instantiating trainer")
+    trainer: Trainer = hydra.utils.instantiate(
+        cfg.hardware, 
+        cfg.training_setup.trainer,
+        callbacks=callbacks, 
+        logger=logger
+    )
 
     object_dict = {
         "cfg": cfg,

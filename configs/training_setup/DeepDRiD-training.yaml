@@ -1,0 +1,30 @@
+defaults:
+- _self_
+- optimizer: Adam
+- dataset: DeepDRiD
+- scheduler: reduce_lr_on_plateau 
+
+epochs: 150
+accumulate: 1
+
+earlystop:
+  stop: True          
+  monitor: valid.loss
+  mode: min
+  patience: 40
+  min_delta: 0.001
+  store_in_memory: True
+  baseline: null # 0.70 
+
+dataset:
+  batch_size: 64                
+  eval_batch_size: 64
+
+optimizer:
+  lr: 0.001
+  weight_decay: 1e-5
+
+scheduler:
+  factor: 0.5
+  patience: 50
+  
