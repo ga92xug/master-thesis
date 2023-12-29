@@ -125,6 +125,10 @@ class MNISTDataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
+
+        folder = self.hparams.data_dir + "mnist/"
+        print("folder", folder)
+
         MNIST(self.hparams.data_dir, train=True, download=True)
         MNIST(self.hparams.data_dir, train=False, download=True)
 

@@ -1,0 +1,78 @@
+defaults:
+- _self_
+- callbacks: 
+    - model_checkpoint
+    - early_stopping
+    - model_summary
+    - rich_progress_bar
+- data: a_example
+- network: a_example
+- optimizer: Adam
+- scheduler: reduce_lr_on_plateau 
+
+_target_: src.models.lightning_module.LitModule
+compile: false
+
+dataset:
+  batch_size: 64                # Number of examples to process in a batch during training
+  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
+
+optimizer:
+  lr: 0.005
+  weight_decay: 1e-5
+
+callbacks:
+  model_checkpoint:
+    dirpath: ${paths.output_dir}/checkpoints
+    filename: "epoch_{epoch:03d}"
+    monitor: "valid/acc"
+    mode: "max"
+    save_last: True
+    auto_insert_metric_name: False
+
+  early_stopping:
+    monitor: "valid/acc"
+    patience: 100
+    mode: "max"
+
+  model_summary:
+    max_depth: -1
+
+#scheduler: null
+  #_target_: null
+  #factor: 0.5
+  #patience: 10
+  #verbose: True
+
+
+#earlystop:
+#  stop: True          
+#  monitor: valid.loss
+#  mode: min
+#  patience: 15
+#  min_delta: 0.001
+#  store_in_memory: True
+#  baseline: null # 0.70 
+
+
+
+
+
+
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  #_partial_: true
+  metric: valid/loss
+  mode: min
+  factor: 0.1
+  patience: 10
+
+net:
+  _target_: src.models.components.simple_dense_net.SimpleDenseNet
+  input_size: 784
+  lin1_size: 64
+  lin2_size: 128
+  lin3_size: 64
+  output_size: 10
+

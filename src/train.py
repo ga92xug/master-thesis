@@ -62,9 +62,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
     model: LightningModule = hydra.utils.instantiate(
-        cfg.training_setup.network,
-        cfg.training_setup.optimizer,
-        cfg.training_setup.scheduler,
+        cfg.training_setup,
+        #cfg.training_setup.network,
+        #cfg.training_setup.optimizer,
+        #cfg.training_setup.scheduler,
         _recursive_=False,
         num_channels=datamodule.num_channels,
         num_classes=datamodule.num_classes,
@@ -87,7 +88,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     log.info(f"Instantiating trainer")
     trainer: Trainer = hydra.utils.instantiate(
         cfg.hardware, 
-        cfg.training_setup.trainer,
+        **cfg.training_setup.trainer,
         callbacks=callbacks, 
         logger=logger
     )
