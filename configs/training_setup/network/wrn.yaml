@@ -1,5 +1,5 @@
 # Model parameters          
-_target_: networks.CNNs.wrn.WideResNet
+_target_: src.networks.CNNs.wrn.WideResNet
 depth: 16
 widen_factor: 4
 layout: [16, 16, 32, 64]

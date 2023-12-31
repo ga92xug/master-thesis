@@ -9,7 +9,7 @@ import os
 
 sys.path.append(f"{os.getcwd()}")
 from experiments.d_application.adversarial_attack.adversarial_attack import adversarial_attack
-from training.model_instantiate import hydra_compose 
+from src.training_loop.model_instantiate import hydra_compose 
 
 models2runids = {
     "DeepDRiD": {

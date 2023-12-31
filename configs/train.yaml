@@ -29,7 +29,7 @@ defaults:
   - debug: null
 
 training_setup:
-  _target_: src.models.lightning_module.LitModule
+  _target_: src.training_loop.lightning_module.LitModule
 
   trainer:
     accumulate_grad_batches: 1

@@ -1,4 +1,4 @@
-_target_: networks.CNNs.densenet.DenseNet
+_target_: src.networks.CNNs.densenet.DenseNet
 # global args
 growth_rate: 32
 block_config: [6, 12, 24, 16]

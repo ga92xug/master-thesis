@@ -17,7 +17,7 @@ from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy, Mult
 from torchmetrics import MetricCollection
 import sys
 sys.path.append(os.getcwd()) # add current directory
-from training.model_instantiate import get_model
+from src.training_loop.model_instantiate import get_model
 from training import utils
 from training.logger import Custom_Logger, SingletonInt
 from training.wrapper_scheduler import Wrapper_Scheduler
@@ -96,8 +96,8 @@ class Experiment:
         # model
         self.model, stats = get_model(
             cfg=cfg, 
-            n_inputs=n_inputs, 
-            n_outputs=self.n_outputs, 
+            num_channels=n_inputs, 
+            num_classes=self.n_outputs, 
             image_size=image_size,
             device=self.device,
             logger=self.logger,

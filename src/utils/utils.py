@@ -104,7 +104,7 @@ def get_metric_value(metric_dict: Dict[str, Any], metric_name: Optional[str]) ->
     :return: If a metric name was provided, the value of the metric.
     """
     if not metric_name:
-        log.info("Metric name is None! Skipping metric value retrieval...")
+        #log.info("Metric name is None! Skipping metric value retrieval...")
         return None
 
     if metric_name not in metric_dict:

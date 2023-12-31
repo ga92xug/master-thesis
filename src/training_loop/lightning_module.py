@@ -12,7 +12,7 @@ from torchmetrics.classification.accuracy import (
 
 
 class LitModule(LightningModule):
-    """Example of a `LightningModule` for MNIST classification.
+    """
 
     A `LightningModule` implements 8 key methods:
 
@@ -71,12 +71,20 @@ class LitModule(LightningModule):
         print("self.hparams", self.hparams)
         print("num_channels", num_channels)
 
-        self.net = hydra.utils.instantiate(
-            network,
-            num_channels=num_channels,
-            num_classes=num_classes,
-            image_size=image_size,
+        self.net, to_log = get_model(
+
         )
+
+        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
+
+
+        #self.net = hydra.utils.instantiate(
+        #    network,
+        #    num_channels=num_channels,
+        #    num_classes=num_classes,
+        #    image_size=image_size,
+        #)
+
         self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
         self.scheduler_metric = scheduler.get("metric", None)
         del scheduler.metric

@@ -1,1 +1,1 @@
-_target_: networks.RandomNet
+_target_: src.networks.RandomNet

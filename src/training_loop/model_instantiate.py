@@ -15,13 +15,13 @@ from networks.util import get_param_count
 from training.logger import Custom_Logger, SingletonInt
 
 def get_model(
-        cfg: DictConfig, 
-        n_inputs: int, 
-        n_outputs: int, 
+        net_cfg: DictConfig, 
+        num_channels: int, 
+        num_classes: int, 
         image_size: int,
-        device: torch.device,
-        logger: Custom_Logger,
+        logger,
         verbose: int = 1,
+        is_nas: bool = False,
 ):
     """
     Instantiate the model and return:
@@ -30,16 +30,20 @@ def get_model(
     - train time
     - GFLOPs
     """
-    is_nas = cfg.NAS.trial_index >= 0
     stats = {}
     if not is_nas:
-        
         # create model
-        model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device, verbose)
+        net, net_building_time = init_model(
+            net_cfg, 
+            num_channels, 
+            num_classes, 
+            image_size, 
+            verbose
+        )
 
-        stats["model_building_time"] = model_building_time
-        stats["param_count"] = get_param_count(model, in_mb=False, verbose=verbose)
-        stats["GFLOPs"] = get_gflops(model, cfg.training.dataset.batch_size, n_inputs, 
+        stats["model_building_time"] = net_building_time
+        stats["param_count"] = get_param_count(net, in_mb=False, verbose=verbose)
+        stats["GFLOPs"] = get_gflops(net, cfg.training.dataset.batch_size, num_channels, 
                             image_size, device=device, logger=logger)
         stats["GFLOPs_per_image"] = stats["GFLOPs"] / cfg.training.dataset.batch_size
     else:
@@ -61,13 +65,13 @@ def get_model(
         signal.alarm(max_building_time)
         
         # create model  
-        model, model_building_time = init_model(cfg, n_inputs, n_outputs, image_size, device)
+        net, model_building_time = init_model(cfg, num_channels, num_classes, image_size, device)
         # Cancel alarm
         signal.alarm(0)
         logger.log({"model_building_time": model_building_time}, verbose=2)
         
         # flops
-        gflops = get_gflops(model, cfg.training.dataset.batch_size, n_inputs,
+        gflops = get_gflops(net, cfg.training.dataset.batch_size, num_channels,
                         image_size, device=device, logger=logger)
         logger.log({"GFLOPs": gflops}, verbose=2)
         if gflops > max_gflops:
@@ -76,48 +80,44 @@ def get_model(
     ############################################################################
     # Both NAS and non-NAS
 
-    # Compile the model
-    if cfg.training.compile:
-        start = timeit.default_timer()
-        model = torch.compile(model)
-        stop = timeit.default_timer()
-        compile_time = stop - start
-        stats["compile_time"] = compile_time
-        
-    
-    if logger is not None:
-        logger.print_verbose_check(5, model)
-        if not is_nas:
-            logger.log(stats, verbose=2)
-    return model, stats
+    return net, stats
 
 
-def get_gflops(model, batch_size, n_inputs, image_size, device, logger: Custom_Logger):
-    input_tensor = torch.randn(batch_size, n_inputs, \
+def get_gflops(net, batch_size, num_channels, image_size, device, logger):
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+
+    input_tensor = torch.randn(batch_size, num_channels, \
             image_size, image_size).to(device)
-    flops = FlopCountAnalysis(model, (input_tensor,))
+    flops = FlopCountAnalysis(net, (input_tensor,))
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
     gflops = flops.total() / 1e9
     
     if logger is not None:
+
         logger.print_verbose_check(5, parameter_count_table(model))
         logger.print_verbose_check(5, flop_count_table(flops))
     return gflops
 
 
-def init_model(cfg, n_inputs, n_outputs, image_size, device, verbose):
+def init_model(
+        net_cfg: DictConfig, 
+        num_channels: int, 
+        num_classes: int, 
+        image_size: int,  
+        verbose: int,
+    ):
     start = timeit.default_timer()
-    model = hydra.utils.instantiate(
-            cfg.model,
-            input_channels=n_inputs,
-            num_classes=n_outputs,
+    net = hydra.utils.instantiate(
+            net_cfg,
+            num_channels=num_channels,
+            num_classes=num_classes,
             image_size=image_size,
             verbose=verbose,
-        ).to(device)
+        )
     stop = timeit.default_timer()
-    model_building_time = stop - start
-    return model, model_building_time
+    net_building_time = stop - start
+    return net, net_building_time
     
 
 def test_instantiate(cfg: DictConfig):
@@ -146,8 +146,8 @@ def test_instantiate(cfg: DictConfig):
     # model
     model, stats = get_model(
         cfg=cfg, 
-        n_inputs=n_inputs, 
-        n_outputs=n_outputs, 
+        num_channels=n_inputs, 
+        num_classes=n_outputs, 
         image_size=image_size,
         device=device,
         logger=logger,
