@@ -107,6 +107,75 @@ class LitModule(LightningModule):
         self.valid_acc_weighted_best = MaxMetric()
         self.valid_loss_best = MinMetric()
 
+    def get_model(
+        self,
+        net_cfg: DictConfig, 
+        num_channels: int, 
+        num_classes: int, 
+        image_size: int,
+        logger,
+        verbose: int = 1,
+        is_nas: bool = False,
+    ):
+        """
+        Instantiate the model and return:
+        - number of parameters
+        - model building time
+        - train time
+        - GFLOPs
+        """
+        stats = {}
+        if not is_nas:
+            # create model
+            net, net_building_time = init_model(
+                net_cfg, 
+                num_channels, 
+                num_classes, 
+                image_size, 
+                verbose
+            )
+
+            stats["model_building_time"] = net_building_time
+            stats["param_count"] = get_param_count(net, in_mb=False, verbose=verbose)
+            stats["GFLOPs"] = get_gflops(net, cfg.training.dataset.batch_size, num_channels, 
+                                image_size, device=device, logger=logger)
+            stats["GFLOPs_per_image"] = stats["GFLOPs"] / cfg.training.dataset.batch_size
+        else:
+            # Set the maximum allowed execution time in seconds
+            max_building_time = cfg.NAS.max_building_time
+            max_gflops = cfg.NAS.max_gflops
+
+            assert max_building_time > 0, "max_building_time must be greater than 0"
+            logger.log({"model_building_time": max_building_time}, verbose=2)
+            assert max_gflops > 0, "max_gflops must be greater than 0"
+
+            # Define a function to handle the timeout
+            def timeout_handler(signum, frame):
+                print("Model building time exceeded.")
+                raise TimeoutError()
+
+            # Set the signal handler for the timeout
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(max_building_time)
+            
+            # create model  
+            net, model_building_time = init_model(cfg, num_channels, num_classes, image_size, device)
+            # Cancel alarm
+            signal.alarm(0)
+            logger.log({"model_building_time": model_building_time}, verbose=2)
+            
+            # flops
+            gflops = get_gflops(net, cfg.training.dataset.batch_size, num_channels,
+                            image_size, device=device, logger=logger)
+            logger.log({"GFLOPs": gflops}, verbose=2)
+            if gflops > max_gflops:
+                raise ValueError(f"GFLOPs {gflops} exceeds maximum allowed {max_gflops}")
+
+        ############################################################################
+        # Both NAS and non-NAS
+
+        return net, stats
+
     def create_metrics_collection(self):
         metrics = {
             "acc": MulticlassAccuracy(self.hparams.num_classes, average="micro"),
