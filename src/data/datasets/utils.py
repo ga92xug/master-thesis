@@ -164,9 +164,9 @@ def split_without_stratify(images, labels, random_seed):
 def split_with_stratify(
         images, 
         labels, 
-        reduction_factor=1.0,
-        val_size=0.1,
-        test_size=0.1,
+        val_size: float,
+        test_size: float,
+        reduction_factor: float = 1.0,
     ):
     """
     Splits the images and labels into train, val, and test arrays.
@@ -207,7 +207,7 @@ def split_with_stratify(
         train_images, val_images, train_labels, val_labels = \
             train_test_split(
                 *[images, labels], 
-                test_size=val_size + test_size, 
+                test_size=val_size, 
                 stratify=labels
             )
     else:

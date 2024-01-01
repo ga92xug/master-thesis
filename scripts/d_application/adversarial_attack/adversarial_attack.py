@@ -15,7 +15,7 @@ from experiments.d_application.adversarial_attack.attack_options.autoattack_opti
 from experiments.d_application.adversarial_attack.attack_options.foolbox_option import foolbox_attack
 from training.logger import Custom_Logger
 from training import utils
-from src.training_loop.model_instantiate import hydra_compose 
+from src.training_loop.utils import hydra_compose 
 
 
 def adversarial_attack(

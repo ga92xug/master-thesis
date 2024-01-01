@@ -1,14 +1,18 @@
+import signal
 from typing import Any, Dict, Tuple
 import hydra
 
 import torch
 from lightning import LightningModule
+from omegaconf import DictConfig
 from torchmetrics import MaxMetric, MeanMetric, MetricCollection, MinMetric
 from torchmetrics.classification.accuracy import (
     Accuracy, 
     MulticlassAccuracy, 
     BinaryAccuracy
 )
+
+from src.training_loop.utils import get_stats, init_model, timeout_handler
 
 
 class LitModule(LightningModule):
@@ -71,9 +75,7 @@ class LitModule(LightningModule):
         print("self.hparams", self.hparams)
         print("num_channels", num_channels)
 
-        self.net, to_log = get_model(
-
-        )
+        self.net = self.get_model()
 
         self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
 
@@ -106,75 +108,6 @@ class LitModule(LightningModule):
         self.valid_acc_best = MaxMetric()
         self.valid_acc_weighted_best = MaxMetric()
         self.valid_loss_best = MinMetric()
-
-    def get_model(
-        self,
-        net_cfg: DictConfig, 
-        num_channels: int, 
-        num_classes: int, 
-        image_size: int,
-        logger,
-        verbose: int = 1,
-        is_nas: bool = False,
-    ):
-        """
-        Instantiate the model and return:
-        - number of parameters
-        - model building time
-        - train time
-        - GFLOPs
-        """
-        stats = {}
-        if not is_nas:
-            # create model
-            net, net_building_time = init_model(
-                net_cfg, 
-                num_channels, 
-                num_classes, 
-                image_size, 
-                verbose
-            )
-
-            stats["model_building_time"] = net_building_time
-            stats["param_count"] = get_param_count(net, in_mb=False, verbose=verbose)
-            stats["GFLOPs"] = get_gflops(net, cfg.training.dataset.batch_size, num_channels, 
-                                image_size, device=device, logger=logger)
-            stats["GFLOPs_per_image"] = stats["GFLOPs"] / cfg.training.dataset.batch_size
-        else:
-            # Set the maximum allowed execution time in seconds
-            max_building_time = cfg.NAS.max_building_time
-            max_gflops = cfg.NAS.max_gflops
-
-            assert max_building_time > 0, "max_building_time must be greater than 0"
-            logger.log({"model_building_time": max_building_time}, verbose=2)
-            assert max_gflops > 0, "max_gflops must be greater than 0"
-
-            # Define a function to handle the timeout
-            def timeout_handler(signum, frame):
-                print("Model building time exceeded.")
-                raise TimeoutError()
-
-            # Set the signal handler for the timeout
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(max_building_time)
-            
-            # create model  
-            net, model_building_time = init_model(cfg, num_channels, num_classes, image_size, device)
-            # Cancel alarm
-            signal.alarm(0)
-            logger.log({"model_building_time": model_building_time}, verbose=2)
-            
-            # flops
-            gflops = get_gflops(net, cfg.training.dataset.batch_size, num_channels,
-                            image_size, device=device, logger=logger)
-            logger.log({"GFLOPs": gflops}, verbose=2)
-            if gflops > max_gflops:
-                raise ValueError(f"GFLOPs {gflops} exceeds maximum allowed {max_gflops}")
-
-        ############################################################################
-        # Both NAS and non-NAS
-
-        return net, stats
 
     def create_metrics_collection(self):
         metrics = {
@@ -343,6 +276,67 @@ class LitModule(LightningModule):
                 },
             }
         return {"optimizer": self.optimizer}
+    
+
+    def get_model(
+        self,
+        net_cfg: DictConfig, 
+        num_channels: int, 
+        num_classes: int, 
+        image_size: int,
+        verbose: int = 1,
+        is_nas: bool = False,
+    ):
+        """
+        Instantiate the model and return:
+        - number of parameters
+        - model building time
+        - train time
+        - GFLOPs
+        """
+        if is_nas:
+            # Set the maximum allowed execution time in seconds
+            max_building_time = self.hparams.NAS.max_building_time
+            max_gflops = self.hparams.NAS.max_gflops
+
+            assert max_building_time > 0, "max_building_time must be greater than 0"
+            self.log({"model_building_time": max_building_time}, verbose=2)
+            assert max_gflops > 0, "max_gflops must be greater than 0"
+
+            # Set the signal handler for the timeout
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(max_building_time)
+
+
+        # create model
+        net, net_building_time = init_model(
+            net_cfg, 
+            num_channels, 
+            num_classes, 
+            image_size, 
+            verbose
+        )
+        if is_nas:
+            # Cancel alarm
+            signal.alarm(0)
+        
+        self.log({"net_building_time": net_building_time})
+
+
+        gflops_per_image, param_count = get_stats(
+                net, 
+                self.hparams.data, 
+                num_channels, 
+                image_size
+            )
+        self.log({"GFLOPs_per_image": gflops_per_image})
+        self.log({"param_count": param_count})
+
+        if is_nas and gflops_per_image > max_gflops:
+            raise ValueError(f"GFLOPs {gflops_per_image} exceeds maximum allowed {max_gflops}")
+
+        return net
+
 
 
 if __name__ == "__main__":

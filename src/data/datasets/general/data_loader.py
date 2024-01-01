@@ -1,19 +1,17 @@
-from cgi import test
 from typing import Dict, List, Union
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
 from PIL import Image
-from omegaconf import DictConfig, OmegaConf
-#import cv2
 
 import h5py
 import numpy as np
 
 import sys
 import os
+from src.data.datasets.general.datasets import create_datasets
 sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
 from training.datasets.utils import (
@@ -23,109 +21,6 @@ from training.datasets.utils import (
 )
 
 from training.datasets.general.utils import get_images_and_labels_DeepDRiD, get_images_and_labels_nct
-
-class Custom_Dataset(Dataset):
-    def __init__(self, images, labels, transform=None):
-        super().__init__()
-        assert len(images) == len(labels), "images and labels should have the same length"
-        assert isinstance(images[0], np.ndarray) or isinstance(images[0], str), "images should be a list of numpy arrays or a list of strings"
-
-        self.images = images
-        self.labels = labels
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, index):
-        image = self.images[index]
-        #print("image: ", image)
-        label = self.labels[index]
-
-        if isinstance(image, str):
-            image = Image.open(image)
-        elif isinstance(image, np.ndarray):
-            image = Image.fromarray(image)
-        else:
-            raise RuntimeError("Unknown image type")
-
-        if self.transform is not None:
-            image = self.transform(image)
-
-        label = torch.tensor(label, dtype=torch.int64)
-        return image, label
-
-def build_loaders(
-    images: Union[List, Dict], 
-    labels: Union[List, Dict],
-    train_transform: object,
-    valid_transform: object,
-    batch_size: int,
-    eval_batch_size: int,
-    workers: int,
-    reduction_factor: float,
-    val_size: float,
-    test_size: float,
-    verbose: int,
-    test_as_valid: bool = False,
-):
-
-    if isinstance(images, dict):
-        # split the data; assume there are train and test sets; create val set from train set if not exists
-        assert test_size == 0.0, "test_size should be 0.0 when images is a dictionary. Since images is a dictionary, we assume that it is already split into train, and test sets."
-        train_images = images["train"]
-        train_labels = labels["train"]
-        test_images = images["test"]
-        test_labels = labels["test"]
-
-        val_images = images.get("val", None)
-        val_labels = labels.get("val", None)
-
-        if val_images is None:
-            assert val_size > 0.0, "val_size should be greater than 0.0 when images is a dictionary and val_images is None."
-            # Split the data into train, val
-            train_images, train_labels, val_images, val_labels, _, _ = split_with_stratify(
-                images=train_images, 
-                labels=train_labels, 
-                reduction_factor=reduction_factor,
-                val_size=val_size,
-                test_size=test_size,
-            )
-        else:
-            train_images, train_labels, _, _, _, _ = split_with_stratify(
-                images=train_images, 
-                labels=train_labels, 
-                reduction_factor=reduction_factor,
-                val_size=0.0,
-                test_size=0.0,
-            )
-    else:
-        # Split the data into train, val, and test arrays.
-        train_images, train_labels, val_images, val_labels, test_images, test_labels = \
-            split_with_stratify(
-                images=images, 
-                labels=labels, 
-                reduction_factor=reduction_factor,
-                val_size=val_size,
-                test_size=test_size,
-            )
-
-    # Create the DataLoaders
-    train_loader = DataLoader(Custom_Dataset(train_images, train_labels, transform=train_transform), batch_size=batch_size, shuffle=True, num_workers=workers)
-    val_loader = DataLoader(Custom_Dataset(val_images, val_labels, transform=valid_transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
-    test_loader = DataLoader(Custom_Dataset(test_images, test_labels, transform=valid_transform), batch_size=eval_batch_size, shuffle=False, num_workers=workers)
-
-    if test_as_valid:
-        # swap val_loader and test_loader to test generalization early
-        val_loader, test_loader = test_loader, val_loader
-
-    dataloaders = {
-        "train": train_loader,
-        "valid": val_loader,
-        "test": test_loader,
-    }
-
-    return dataloaders
 
 
 def get_Galaxy10_DECals(
@@ -152,32 +47,17 @@ def get_Galaxy10_DECals(
 
     images = images.astype(np.uint8)
 
-    # Define the transformations
-    train_transform, valid_transform = get_transforms(
-        resolution=resolution, 
-        original_augment=augment, 
-        channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images,
-        verbose=verbose,
-    )
-
-    # normalize weights
-    normalized_weights = get_normalize_weights(labels, verbose) if should_normalize_weights else 1
-
-    dataloaders = build_loaders(
+    return create_datasets(
         images=images, 
         labels=labels, 
-        train_transform=train_transform, 
-        valid_transform=valid_transform, 
         batch_size=batch_size, 
         eval_batch_size=eval_batch_size, 
         workers=workers, 
-        reduction_factor=1.0,
+        reduction_factor=reduction_factor,
         val_size=0.1,
         test_size=0.1,
         verbose=verbose,
     )
-    return dataloaders, normalized_weights
 
 
 def get_ISIC_2019(
@@ -217,23 +97,9 @@ def get_ISIC_2019(
     labels = df['label'].values
     images = df['name'].values
     
-    # Define the transformations
-    train_transform, valid_transform = get_transforms(
-        resolution=resolution, 
-        original_augment=augment, 
-        channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images,
-        verbose=verbose,
-    )
-
-    # normalize weights
-    normalized_weights = get_normalize_weights(labels, verbose) if should_normalize_weights else 1
-
-    dataloaders = build_loaders(
+    return create_datasets(
         images=images, 
         labels=labels, 
-        train_transform=train_transform, 
-        valid_transform=valid_transform, 
         batch_size=batch_size, 
         eval_batch_size=eval_batch_size, 
         workers=workers, 
@@ -242,7 +108,6 @@ def get_ISIC_2019(
         test_size=0.1,
         verbose=verbose,
     )
-    return dataloaders, normalized_weights
 
 
 def get_OCT(
@@ -287,7 +152,7 @@ def get_OCT(
         "test": test_labels,
     }
 
-    dataloaders = build_loaders(
+    dataloaders = create_datasets(
         images=images, 
         labels=labels, 
         train_transform=train_transform, 
@@ -351,7 +216,7 @@ def get_nct(
         "test": test_labels,
     }
 
-    dataloaders = build_loaders(
+    dataloaders = create_datasets(
         images=images, 
         labels=labels, 
         train_transform=train_transform, 
@@ -401,7 +266,7 @@ def get_blood(
     # normalize weights
     normalized_weights = get_normalize_weights(labels, verbose) if should_normalize_weights else 1
 
-    dataloaders = build_loaders(
+    dataloaders = create_datasets(
         images=images, 
         labels=labels, 
         train_transform=train_transform, 
@@ -469,7 +334,7 @@ def get_DeepDRiD(
         "test": test_labels,
     }
 
-    dataloaders = build_loaders(
+    dataloaders = create_datasets(
         images=images, 
         labels=labels, 
         train_transform=train_transform, 

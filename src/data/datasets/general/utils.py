@@ -4,6 +4,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from pandas.core.frame import DataFrame
+import matplotlib.pyplot as plt
 
 def get_images_and_labels_DeepDRiD(df: pd.DataFrame, path: str, mode: str, test: bool = False):
     """
@@ -52,7 +53,6 @@ def get_images_and_labels_nct(folder:str):
     return images, labels
 
 
-
 def plot_stacked_bar_chart(df: DataFrame, title: str = "Patient DR Level vs Overall Quality"):
     # Count the occurrences of each pair (Overall quality, patient_DR_Level)
     grouped_data = df[['Overall quality', 'patient_DR_Level']].groupby("patient_DR_Level").value_counts().unstack().fillna(0)
@@ -86,8 +86,6 @@ def plot_stacked_bar_chart(df: DataFrame, title: str = "Patient DR Level vs Over
     plt.show()
     return fig, ax
 
-
-import matplotlib.pyplot as plt
 
 def plot_multiple_bar_charts(dfs: list, titles: list):
     n = len(dfs)

@@ -17,7 +17,7 @@ from torchmetrics.classification import BinaryAccuracy, MulticlassAccuracy, Mult
 from torchmetrics import MetricCollection
 import sys
 sys.path.append(os.getcwd()) # add current directory
-from src.training_loop.model_instantiate import get_model
+from src.training_loop.utils import get_model
 from training import utils
 from training.logger import Custom_Logger, SingletonInt
 from training.wrapper_scheduler import Wrapper_Scheduler
@@ -59,7 +59,6 @@ class Experiment:
         # device
         self.device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
         
-
         # dataset
         self._dataloaders, normalize_weights = call(cfg.training.dataset, verbose=self._verbose)
         n_inputs = cfg.training.dataset.n_in_channels

@@ -15,7 +15,7 @@ import sys
 sys.path.append('..')
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 from training.utils import allowed_usage_time, build_dataloaders
-from src.training_loop.model_instantiate import get_model
+from src.training_loop.utils import get_model
 from networks.util import (
     cuda_memory_usage,
     get_param_count
