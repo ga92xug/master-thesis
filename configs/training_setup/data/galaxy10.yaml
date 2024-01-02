@@ -1,10 +1,15 @@
-_target_: training.datasets.general.data_loader.get_Galaxy10_DECals
+_target_: training.datasets.general.get_data.get_Galaxy10_DECals
 name: "Galaxy10_DECals"             # The name of the dataset to use
+
 augment: False                 # Augment the training set with rotated images
 resolution: 108
-
-should_normalize_weights: True
 channel_wise_mean_images: [0.01443392, 0.01443392, 0.01443392]
 channel_wise_std_images: [0.12014125, 0.1125077, 0.10281154]
-n_in_channels: 3
-n_out_classes: 10
+
+num_channels: 3
+num_classes: 10
+
+val_size: 0.1
+test_size: 0.1
+
+should_normalize_weights: True

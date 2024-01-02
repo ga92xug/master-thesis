@@ -72,21 +72,13 @@ class LitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        print("self.hparams", self.hparams)
-        print("num_channels", num_channels)
+        self.net = self.get_model(
+            num_channels=num_channels,
+            num_classes=num_classes,
+            image_size=image_size,
+        )
 
-        self.net = self.get_model()
-
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-
-
-        #self.net = hydra.utils.instantiate(
-        #    network,
-        #    num_channels=num_channels,
-        #    num_classes=num_classes,
-        #    image_size=image_size,
-        #)
-
+        # Optimizer and scheduler
         self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
         self.scheduler_metric = scheduler.get("metric", None)
         del scheduler.metric

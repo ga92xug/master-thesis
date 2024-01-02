@@ -41,7 +41,7 @@ def build_loaders(
         channel_wise_mean_images,
         channel_wise_std_images,
         resolution,
-        n_out_classes,
+        num_classes,
         reduction_factor=1.0,
         should_normalize_weights=True,
         workers=8,

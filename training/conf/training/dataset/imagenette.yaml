@@ -8,5 +8,5 @@ workers: 8
 
 channel_wise_mean_images: [0.46947703 0.4485053  0.41963148]
 channel_wise_std_images: [0.26470295 0.25778037 0.27517328]
-n_in_channels: 3
-n_out_classes: 10
+num_channels: 3
+num_classes: 10

@@ -1,22 +1,16 @@
-#_target_: training.datasets.ISIC_2019.data_loader_ISIC_2019.build_isic2019_loaders
-_target_: training.datasets.general.data_loader.get_blood
+_target_: training.datasets.general.get_data.get_blood
 name: blood             
 augment:
   all:
-    short_side_center_crop: True    
-         
-workers: 8                 
+    short_side_center_crop: True             
 resolution: 128
-reduction_factor: 1.0
-
-should_normalize_weights: True
-# only training set
-#channel_wise_mean_images: [0.6674451, 0.5293318, 0.5243004]
-#channel_wise_std_images: [0.22307414, 0.20243979, 0.21394742]
-# all data
 channel_wise_mean_images: [0.873558759689331, 0.7481924295425415, 0.7212643027305603]
 channel_wise_std_images: [0.15711703896522522, 0.18307992815971375, 0.07886549085378647]
-n_in_channels: 3
-n_out_classes: 8
 
-test_as_valid: False
+num_channels: 3
+num_classes: 8
+
+val_size: 0.1
+test_size: 0.2
+
+should_normalize_weights: True

@@ -42,7 +42,7 @@ def adversarial_attack(
             mean=mean,
             std=std,
             verbose=cfg.other.verbose,
-            num_classes=cfg.training.dataset.n_out_classes,
+            num_classes=cfg.training.dataset.num_classes,
         )
     elif mode == "Foolbox":
         results = foolbox_attack(

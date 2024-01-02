@@ -1,5 +1,5 @@
 #_target_: training.datasets.ISIC_2019.data_loader_ISIC_2019.build_isic2019_loaders
-_target_: training.datasets.general.data_loader.get_OCT
+_target_: training.datasets.general.get_data.get_OCT
 name: oct             
 augment:
   all:
@@ -17,7 +17,7 @@ should_normalize_weights: True
 # all data
 channel_wise_mean_images: [0.18939857184886932]  
 channel_wise_std_images: [0.2118094265460968]
-n_in_channels: 1
-n_out_classes: 4
+num_channels: 1
+num_classes: 4
 
 test_as_valid: True

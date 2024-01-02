@@ -1,4 +1,4 @@
-_target_: training.datasets.general.data_loader.get_DeepDRiD
+_target_: training.datasets.general.get_data.get_DeepDRiD
 name: DeepDRiD_patient_DR_Level
 mode: patient_DR_Level            
 augment: 
@@ -30,6 +30,6 @@ reduction_factor: 1.0
 should_normalize_weights: False
 channel_wise_mean_images: [0.38250651955604553, 0.23592887818813324, 0.14257268607616425]
 channel_wise_std_images: [0.324453204870224, 0.21356910467147827, 0.15683040022850037]
-n_in_channels: 3
-n_out_classes: 5
+num_channels: 3
+num_classes: 5
 test_as_valid: True

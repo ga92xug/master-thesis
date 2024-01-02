@@ -1,5 +1,5 @@
 #_target_: training.datasets.ISIC_2019.data_loader_ISIC_2019.build_isic2019_loaders
-_target_: training.datasets.general.data_loader.get_ISIC_2019
+_target_: training.datasets.general.get_data.get_ISIC_2019
 name: ISIC_2019             
 augment: False
   #all:
@@ -38,5 +38,5 @@ should_normalize_weights: True
 # all data
 channel_wise_mean_images: [0.6679, 0.5299, 0.5245] 
 channel_wise_std_images: [0.1332, 0.1475, 0.1588] 
-n_in_channels: 3
-n_out_classes: 8
+num_channels: 3
+num_classes: 8

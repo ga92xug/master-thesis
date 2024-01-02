@@ -3,11 +3,7 @@ from typing import Any, Dict, Optional, Tuple
 import hydra
 import torch
 from lightning import LightningDataModule
-from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
-from torchvision.datasets import MNIST
-from torchvision.transforms import transforms
-
-from src.data.datasets.general.data_loader import Custom_Dataset
+from torch.utils.data import DataLoader, Dataset
 
 
 class DataModule(LightningDataModule):
@@ -50,11 +46,7 @@ class DataModule(LightningDataModule):
 
     def __init__(
         self,
-        data_dir: str = "data/",
-        train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
-        batch_size: int = 64,
-        num_workers: int = 8,
-        pin_memory: bool = False,
+        data_cfg: DictConfig,
     ) -> None:
         """Initialize a `DataModule`.
 
@@ -70,43 +62,42 @@ class DataModule(LightningDataModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.trainset: Optional[Dataset] = None
-        self.valset: Optional[Dataset] = None
-        self.testset: Optional[Dataset] = None
+        self.train_set: Optional[Dataset] = None
+        self.val_set: Optional[Dataset] = None
+        self.test_set: Optional[Dataset] = None
 
-        self.batch_size_per_device = batch_size
+        self.batch_size_per_device = data_cfg.batch_size
+        self.normalization_weights = None
 
     @property
     def num_classes(self) -> int:
         """Get the number of classes.
-
-        :return: The number of MNIST classes (10).
         """
-        return 10
+        return self.hparams.num_classes
 
     @property
     def num_channels(self) -> int:
         """Get the number of classes.
-
-        :return: The number of MNIST channels (1).
         """
-        return 1
+        return self.hparams.num_channels
 
     @property
     def image_size(self) -> int:
-        """Get the number of classes.
-
-        :return: The number of MNIST classes (10).
+        """Get the image size in int (assumes square images).
         """
-        return 28
+        return self.hparams.image_size
     
     @property
     def normalization_weights(self) -> torch.Tensor:
-        """Get the number of classes.
+        """Returns the normalization weights for the loss function. \
+            If they are not yet computed a RuntimeError is raised.
 
-        :return: The number of MNIST classes (10).
+        :return: normalization weights 
         """
-        return torch.tensor([1,  1, 1, 1,  1, 1, 1,  1, 1, 1], dtype=torch.float32)
+        if self.normalization_weights is None:
+            # if we don't want to use them return false
+            raise RuntimeError("Normalization weights not yet computed!")
+        return self.normalization_weights
 
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
@@ -138,18 +129,10 @@ class DataModule(LightningDataModule):
             self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
 
         # load and split datasets only if not loaded already
-        if not self.data_train and not self.data_val and not self.data_test:
-            self.trainset, self.valset, self.testset = hydra.utils.instantiate(
-                self.hparams.dataset, 
-                train_val_test_split=self.hparams.train_val_test_split,
-                train_transform=self.transforms,
-                valid_transform=self.transforms,
-                reduction_factor=self.hparams.reduction_factor,
-                val_size=self.hparams.val_size,
-                test_size=self.hparams.test_size,
-                test_as_valid=self.hparams.test_as_valid,
+        if not self.train_set and not self.val_set and not self.test_set:
+            self.train_set, self.val_set, self.test_set, self.normalization_weights = hydra.utils.instantiate(
+                self.hparams.data_cfg
             )
-
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -157,9 +140,9 @@ class DataModule(LightningDataModule):
         :return: The train dataloader.
         """
         return DataLoader(
-            dataset=self.trainset,
+            dataset=self.train_set,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.num_workers,
+            num_workers=self.hparams.workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=True,
         )
@@ -170,9 +153,9 @@ class DataModule(LightningDataModule):
         :return: The validation dataloader.
         """
         return DataLoader(
-            dataset=self.valset,
+            dataset=self.val_set,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.num_workers,
+            num_workers=self.hparams.workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
         )
@@ -183,9 +166,9 @@ class DataModule(LightningDataModule):
         :return: The test dataloader.
         """
         return DataLoader(
-            dataset=self.testset,
+            dataset=self.test_set,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.num_workers,
+            num_workers=self.hparams.workers,
             pin_memory=self.hparams.pin_memory,
             shuffle=False,
         )

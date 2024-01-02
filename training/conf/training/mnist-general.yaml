@@ -13,8 +13,8 @@ dataset:
   interpolation: 2              # Type of interpolation to use for data augmentation
   reshuffle: True               # Reshuffle train and valid splits instead of using the default split
   validation: True
-  n_in_channels: 1
-  n_out_classes: 10
+  num_channels: 1
+  num_classes: 10
   resolution: 28             
 
 epochs: 40                    # Number of training epochs

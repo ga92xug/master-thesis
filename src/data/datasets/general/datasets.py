@@ -1,8 +1,8 @@
 from typing import Dict, List, Union
+
+import hydra
 import torch
 from torch.utils.data import Dataset
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
 from PIL import Image
 import numpy as np
 
@@ -15,8 +15,6 @@ from training.datasets.utils import (
     get_transforms, 
     split_with_stratify, 
 )
-
-from training.datasets.general.utils import get_images_and_labels_DeepDRiD, get_images_and_labels_nct
 
 class Custom_Dataset(Dataset):
     def __init__(self, images, labels, transform=None):
@@ -49,24 +47,35 @@ class Custom_Dataset(Dataset):
         label = torch.tensor(label, dtype=torch.int64)
         return image, label
 
+
 def create_datasets(
-    images: Union[List, Dict], 
-    labels: Union[List, Dict],
-    train_transform: object,
-    valid_transform: object,
-    reduction_factor: float,
-    val_size: float,
-    test_size: float,
-    should_normalize_weights: bool,
+    # images and labels
+    _target_: str,
+    data_dir: str,
+    name: str,
+    resolution: int,    
     # transforms
-    resolution: int,
-    augment: bool or Dict,
+    augment: Union[bool, Dict],
     channel_wise_mean_images: List,
     channel_wise_std_images: List,
-    verbose: int,
+    # dataset
+    val_size: float,
+    test_size: float,
+    reduction_factor: float,
+    should_normalize_weights: bool,
     # just test
     test_as_valid: bool = False,
+    **kwargs,
     ):
+
+    # get the data
+    images, labels = hydra.utils.call(
+        _target_,
+        data_dir=data_dir, 
+        name=name,
+        resolution=resolution,
+        **kwargs,
+    )
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
@@ -74,7 +83,6 @@ def create_datasets(
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images,
-        verbose=verbose,
     )
 
     if isinstance(images, dict):
@@ -124,11 +132,11 @@ def create_datasets(
         val_images, test_images = test_images, val_images
 
     # Create the DataLoaders
-    trainset = Custom_Dataset(train_images, train_labels, transform=train_transform)
-    validset = Custom_Dataset(val_images, val_labels, transform=valid_transform)
-    testset = Custom_Dataset(test_images, test_labels, transform=valid_transform)
+    train_set = Custom_Dataset(train_images, train_labels, transform=train_transform)
+    val_set = Custom_Dataset(val_images, val_labels, transform=valid_transform)
+    test_set = Custom_Dataset(test_images, test_labels, transform=valid_transform)
 
     # normalize weights
     normalized_weights = get_normalize_weights(train_labels, 1) if should_normalize_weights else 1
 
-    return trainset, validset, testset
+    return train_set, val_set, test_set, normalized_weights

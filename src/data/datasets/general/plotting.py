@@ -6,52 +6,6 @@ import matplotlib.pyplot as plt
 from pandas.core.frame import DataFrame
 import matplotlib.pyplot as plt
 
-def get_images_and_labels_DeepDRiD(df: pd.DataFrame, path: str, mode: str, test: bool = False):
-    """
-    Returns a list of image paths and a list of labels from a dataframe.
-    The image path is transformed to fit the folder structure of the DeepDRiD dataset.
-    """
-    assert mode in ["Overall quality", "patient_DR_Level"]
-    if not test:
-        def replace_backslashes(input_string):
-            # Split the string by backslashes and get everything after the second backslash
-            parts = input_string.split("\\", 2)
-            if len(parts) >= 3:
-                result = parts[2].replace("\\", "/")
-                return result
-            else:
-                raise ValueError("String does not contain enough backslashes.")
-
-        images = df["image_path"].tolist()
-        images = [path + "Images/" + replace_backslashes(image) for image in images]
-
-    else:
-        assert mode == "Overall quality", "Not implemented yet."
-
-        images = df["image_id"].tolist()
-        images = [path + "Images/" + image.split("_")[0] + "/" + image + ".jpg" for image in images]
-
-    labels = df[mode].tolist()
-    labels
-
-    #print("Image ", images[0])
-
-    return images, labels
-
-
-def get_images_and_labels_nct(folder:str):
-    images = []
-    labels = []
-    for label in os.listdir(folder):
-        for image in os.listdir(folder + label):
-            images.append(folder + label + "/" + image)
-            labels.append(label)
-
-    label_encoder = LabelEncoder()
-    labels = label_encoder.fit_transform(labels)
-
-    return images, labels
-
 
 def plot_stacked_bar_chart(df: DataFrame, title: str = "Patient DR Level vs Overall Quality"):
     # Count the occurrences of each pair (Overall quality, patient_DR_Level)

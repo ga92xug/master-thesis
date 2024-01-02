@@ -6,5 +6,5 @@ resolution: 108
 
 channel_wise_mean_images: [0.3839106,  0.38799807, 0.36028373]
 channel_wise_std_images: [0.2512182, 0.2505474, 0.25031218]
-n_in_channels: 3
-n_out_classes: 182
+num_channels: 3
+num_classes: 182

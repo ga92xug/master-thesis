@@ -1,6 +1,6 @@
 name: BreastMNIST #, ChestMNIST, DermaMNIST, OCTMNIST, PneumoniaMNIST, RetinaMNIST, BreastMNIST, BloodMNIST, TissueMNIST, OrganAMNIST, OrganCMNIST, OrganSMNIST
 channel_wise_mean_images: [0.3275805115699768]
 channel_wise_std_images: [0.20573017001152039]
-n_in_channels: 1
-n_out_classes: 2
+num_channels: 1
+num_classes: 2
 should_normalize_weights: True

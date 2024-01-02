@@ -1,5 +1,5 @@
 #_target_: training.datasets.ISIC_2019.data_loader_ISIC_2019.build_isic2019_loaders
-_target_: training.datasets.general.data_loader.get_blood
+_target_: training.datasets.general.get_data.get_blood
 name: blood             
 augment:
   all:
@@ -16,7 +16,7 @@ should_normalize_weights: True
 # all data
 channel_wise_mean_images: [0.873558759689331, 0.7481924295425415, 0.7212643027305603]
 channel_wise_std_images: [0.15711703896522522, 0.18307992815971375, 0.07886549085378647]
-n_in_channels: 3
-n_out_classes: 8
+num_channels: 3
+num_classes: 8
 
 test_as_valid: False

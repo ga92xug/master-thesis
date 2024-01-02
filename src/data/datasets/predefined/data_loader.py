@@ -178,7 +178,7 @@ def build_loaders(
         name,
         channel_wise_mean_images,
         channel_wise_std_images,
-        n_out_classes,
+        num_classes,
         perturbation_test = False,
         perturbation_location = None,
         reduction_factor=None,
@@ -237,7 +237,7 @@ def build_loaders(
 
         train_idx, valid_idx = indices[split:], indices[:split]
     else:
-        train_idx, valid_idx = stratified_subset_indices(train_dataset, reduction_factor=reduction_factor, num_classes=n_out_classes, random_seed=42)
+        train_idx, valid_idx = stratified_subset_indices(train_dataset, reduction_factor=reduction_factor, num_classes=num_classes, random_seed=42)
 
     
     train_sampler = SubsetRandomSampler(train_idx)

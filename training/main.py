@@ -61,8 +61,8 @@ class Experiment:
         
         # dataset
         self._dataloaders, normalize_weights = call(cfg.training.dataset, verbose=self._verbose)
-        n_inputs = cfg.training.dataset.n_in_channels
-        self.n_outputs = cfg.training.dataset.n_out_classes
+        n_inputs = cfg.training.dataset.num_channels
+        self.n_outputs = cfg.training.dataset.num_classes
         #self.n_outputs = 1 if self.n_outputs == 2 else self.n_outputs
         image_size = cfg.training.dataset.resolution
         self.distribution_shift = cfg.training.dataset.distribution_shift
