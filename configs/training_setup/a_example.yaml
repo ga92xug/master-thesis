@@ -10,7 +10,7 @@ defaults:
 - optimizer: Adam
 - scheduler: reduce_lr_on_plateau 
 
-_target_: src.models.lightning_module.LitModule
+_target_: src.training_loop.lightning_module.LitModule
 compile: false
 
 dataset:
