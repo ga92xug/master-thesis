@@ -7,7 +7,7 @@ defaults:
 epochs: 50
 accumulate: 2
 
-dataset:
+data:
   batch_size: 128                # Number of examples to process in a batch during training
   eval_batch_size: 128           # Number of examples to process in a batch during evaluation (default: batch_size)
   distribution_shift: True                    

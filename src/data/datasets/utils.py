@@ -11,7 +11,7 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
-from training.datasets import own_transforms
+from src.data.datasets import own_transforms
 
 def get_normalize_weights(
         labels: List or np.ndarray,

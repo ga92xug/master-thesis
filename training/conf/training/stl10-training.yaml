@@ -4,7 +4,7 @@ defaults:
 - dataset: stl10
 - scheduler: multi_step_lr
 
-dataset:
+data:
   name: stl10
   batch_size: 128              
   eval_batch_size: 128         

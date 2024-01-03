@@ -85,7 +85,7 @@ def get_training_args(
     if dataset == "cifar10_rot":
         training_name = "cifar10"
         args.append('training.dataset.name=cifar10_rot')
-    elif "mnist" in dataset:
+    elif "mnist" in data:
         training_name = "mnist"
         args.append(f"training.dataset.name={dataset}")
     else:
@@ -227,7 +227,7 @@ def runs_to_skip(
     #    #print(f"Skipping Strategy: {strategy_name} on {dataset}, since already ran")
     #        return False
 
-    #if "cifar" in dataset:
+    #if "cifar" in data:
     #    if "fix" in strategy_name and len(adjust) == 3:
     #        return False
     

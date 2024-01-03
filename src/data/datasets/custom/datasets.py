@@ -6,11 +6,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 
-import sys
-import os
-sys.path.append(f"{os.getcwd()}")
-os.environ['HYDRA_FULL_ERROR'] = '1'
-from training.datasets.utils import (
+from src.data.datasets.utils import (
     get_normalize_weights, 
     get_transforms, 
     split_with_stratify, 
@@ -50,11 +46,9 @@ class Custom_Dataset(Dataset):
 
 def create_datasets(
     # images and labels
-    _target_: str,
-    data_dir: str,
-    name: str,
-    resolution: int,    
+    data: tuple,    
     # transforms
+    resolution: int,
     augment: Union[bool, Dict],
     channel_wise_mean_images: List,
     channel_wise_std_images: List,
@@ -68,14 +62,8 @@ def create_datasets(
     **kwargs,
     ):
 
-    # get the data
-    images, labels = hydra.utils.call(
-        _target_,
-        data_dir=data_dir, 
-        name=name,
-        resolution=resolution,
-        **kwargs,
-    )
+    # we use recursive instantiation from hydra to get the data
+    images, labels = data
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
@@ -83,6 +71,7 @@ def create_datasets(
         original_augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images,
+        verbose=1,
     )
 
     if isinstance(images, dict):

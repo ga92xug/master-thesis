@@ -1,21 +1,13 @@
 defaults:
 - _self_
-- callbacks: 
-    - model_checkpoint
-    - early_stopping
-    - model_summary
-    - rich_progress_bar
-- data: a_example
+- callbacks: default
+- dataset/custom@dataset: isic2019
 - network: eq_nasnet
 - optimizer: Adam
 - scheduler: reduce_lr_on_plateau 
 
 _target_: src.training_loop.lightning_module.LitModule
 compile: false
-
-dataset:
-  batch_size: 64                # Number of examples to process in a batch during training
-  eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)
 
 optimizer:
   lr: 0.005

@@ -11,7 +11,7 @@ HPOs:
       model: efficientnet
       model.pretrained: False
 
-dataset:
+data:
   global_overrides:
     wandb.project: SL-ray
     training: ${dataset.name}-training 

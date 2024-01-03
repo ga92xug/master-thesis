@@ -42,6 +42,12 @@ training_setup:
     # perform a validation loop every N training epochs
     check_val_every_n_epoch: 1
 
+  dataset:
+    data:
+      data_dir: ${paths.data_dir}
+
+    workers: 8
+    pin_memory: False
 
 # task name, determines output directory path
 task_name: "train"

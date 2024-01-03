@@ -8,6 +8,9 @@ from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 
+import os
+os.environ['HYDRA_FULL_ERROR'] = '1'
+
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 # ------------------------------------------------------------------------------------ #
 # the setup_root above is equivalent to:
@@ -25,6 +28,8 @@ rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 #
 # more info: https://github.com/ashleve/rootutils
 # ------------------------------------------------------------------------------------ #
+
+from src.data.datamodule import DataModule
 
 from src.utils import (
     RankedLogger,
@@ -57,8 +62,9 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("seed"):
         L.seed_everything(cfg.seed, workers=True)
 
-    log.info(f"Instantiating datamodule <{cfg.training_setup.data._target_}>")
-    datamodule: LightningDataModule = hydra.utils.instantiate(cfg.training_setup.data)
+    #log.info(f"Instantiating datamodule <{cfg.training_setup.data._target_}>")
+    #datamodule: LightningDataModule = hydra.utils.instantiate(cfg.training_setup.data)
+    datamodule: LightningDataModule = DataModule(cfg.training_setup.dataset)
 
     log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
     model: LightningModule = hydra.utils.instantiate(
@@ -72,6 +78,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     log.info("Instantiating callbacks...")
     callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
+    log.info(callbacks)
 
     log.info("Instantiating loggers...")
     logger: List[Logger] = instantiate_loggers(cfg.get("logger"))

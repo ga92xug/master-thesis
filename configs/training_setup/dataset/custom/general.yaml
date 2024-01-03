@@ -1,0 +1,6 @@
+_target_: src.data.datasets.custom.datasets.create_datasets
+reduction_factor: 1
+resolution: 128
+
+batch_size: 64                # Number of examples to process in a batch during training
+eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)

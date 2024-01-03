@@ -23,7 +23,7 @@ training:
     store_in_memory: True
     baseline: null
 
-  dataset:
+  data:
     data_dir: '/home/frischs/Data/frischs/datasets/'  # Path to the datasets        
     workers: 8                    # Number of jobs to load the dataset
     distribution_shift: False

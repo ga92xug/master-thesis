@@ -1,13 +1,10 @@
-import os
 from typing import Dict, List, Tuple, Union
+
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
-
+import os
 import h5py
 import numpy as np
-
-
-from training.datasets.general.utils import get_images_and_labels_DeepDRiD, get_images_and_labels_nct
 
 
 def get_Galaxy10_DECals(
@@ -65,8 +62,8 @@ def get_OCT(
 ) -> Tuple[Dict, Dict]:
     location = data_dir + name + "/CellData/OCT"
 
-    train_images, train_labels = get_images_and_labels_nct(location + "/train/")
-    test_images, test_labels = get_images_and_labels_nct(location + "/test/")
+    train_images, train_labels = get_images_and_labels_from_folder(location + "/train/")
+    test_images, test_labels = get_images_and_labels_from_folder(location + "/test/")
 
     images = {
         "train": train_images,
@@ -87,8 +84,8 @@ def get_nct(
 ) -> Tuple[Dict, Dict]:
     location = data_dir + name 
 
-    train_images, train_labels = get_images_and_labels_nct(location + "/NCT-CRC-HE-100K/")
-    test_images, test_labels = get_images_and_labels_nct(location + "/CRC-VAL-HE-7K/")
+    train_images, train_labels = get_images_and_labels_from_folder(location + "/NCT-CRC-HE-100K/")
+    test_images, test_labels = get_images_and_labels_from_folder(location + "/CRC-VAL-HE-7K/")
 
     images = {
         "train": train_images,
@@ -109,7 +106,7 @@ def get_blood(
 ) -> Tuple[Dict, Dict]:
     location = data_dir + name + "/PBC_dataset_normal_DIB/"
 
-    images, labels = get_images_and_labels_nct(location)
+    images, labels = get_images_and_labels_from_folder(location)
 
     return images, labels
 

@@ -2,6 +2,8 @@ import signal
 from typing import Any, Dict, Tuple
 import hydra
 
+import timeit
+import numpy as np
 import torch
 from lightning import LightningModule
 from omegaconf import DictConfig
@@ -12,7 +14,7 @@ from torchmetrics.classification.accuracy import (
     BinaryAccuracy
 )
 
-from src.training_loop.utils import get_stats, init_model, timeout_handler
+from src.training_loop.utils import get_stats, timeout_handler
 
 
 class LitModule(LightningModule):
@@ -72,23 +74,30 @@ class LitModule(LightningModule):
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
 
-        self.net = self.get_model(
-            num_channels=num_channels,
-            num_classes=num_classes,
-            image_size=image_size,
-        )
+        self.net = self.get_model()
 
         # Optimizer and scheduler
-        self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
-        self.scheduler_metric = scheduler.get("metric", None)
-        del scheduler.metric
-        self.scheduler = hydra.utils.instantiate(scheduler, optimizer=self.optimizer)
+        if self.net is None:
+            self.optimizer = None
+            self.scheduler = None
+        else:
+            self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
+            self.scheduler_metric = scheduler.get("metric", None)
+            del scheduler.metric
+            self.scheduler = hydra.utils.instantiate(scheduler, optimizer=self.optimizer)
 
         self.train_metrics = self.create_metrics_collection()
         self.valid_metrics = self.create_metrics_collection()
         self.test_metrics = self.create_metrics_collection()
         
         # Loss function
+        
+        if isinstance(normalization_weights, np.ndarray):
+            normalization_weights = torch.from_numpy(normalization_weights).float()
+        elif isinstance(normalization_weights, bool):
+            normalization_weights = None
+        else:
+            print("normalization_weights",normalization_weights, type(normalization_weights))
         self.criterion = torch.nn.CrossEntropyLoss(weight=normalization_weights)
 
         # for averaging loss across batches
@@ -272,10 +281,6 @@ class LitModule(LightningModule):
 
     def get_model(
         self,
-        net_cfg: DictConfig, 
-        num_channels: int, 
-        num_classes: int, 
-        image_size: int,
         verbose: int = 1,
         is_nas: bool = False,
     ):
@@ -286,6 +291,10 @@ class LitModule(LightningModule):
         - train time
         - GFLOPs
         """
+        num_channels = self.hparams.num_channels
+        num_classes = self.hparams.num_classes
+        image_size = self.hparams.image_size
+
         if is_nas:
             # Set the maximum allowed execution time in seconds
             max_building_time = self.hparams.NAS.max_building_time
@@ -301,32 +310,22 @@ class LitModule(LightningModule):
 
 
         # create model
-        net, net_building_time = init_model(
-            net_cfg, 
-            num_channels, 
-            num_classes, 
-            image_size, 
-            verbose
-        )
+        net = None
+        start = timeit.default_timer()
+        net = hydra.utils.instantiate(
+                self.hparams.network,
+                num_channels=num_channels,
+                num_classes=num_classes,
+                image_size=image_size,
+                verbose=verbose,
+            )
+        stop = timeit.default_timer()
+        self.net_building_time = stop - start
+
         if is_nas:
             # Cancel alarm
             signal.alarm(0)
         
-        self.log({"net_building_time": net_building_time})
-
-
-        gflops_per_image, param_count = get_stats(
-                net, 
-                self.hparams.data, 
-                num_channels, 
-                image_size
-            )
-        self.log({"GFLOPs_per_image": gflops_per_image})
-        self.log({"param_count": param_count})
-
-        if is_nas and gflops_per_image > max_gflops:
-            raise ValueError(f"GFLOPs {gflops_per_image} exceeds maximum allowed {max_gflops}")
-
         return net
 
 

@@ -7,7 +7,7 @@ defaults:
 epochs: 120
 accumulate: 1
 
-dataset:
+data:
   batch_size: 64                
   eval_batch_size: 64           
 

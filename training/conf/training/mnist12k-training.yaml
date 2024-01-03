@@ -1,4 +1,4 @@
 defaults:
 - mnist-general
-dataset:
+data:
   name: mnist12k

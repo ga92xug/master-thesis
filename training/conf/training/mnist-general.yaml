@@ -4,7 +4,7 @@ defaults:
 #- dataset: mnist_rot
 - scheduler: exponential
 
-dataset:
+data:
   # same for all mnist
   _target_: training.datasets.mnist.data_loader_mnist.build_mnist_loaders
   batch_size: 64                

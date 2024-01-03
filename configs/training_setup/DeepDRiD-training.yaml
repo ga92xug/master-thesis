@@ -16,7 +16,7 @@ earlystop:
   store_in_memory: True
   baseline: null # 0.70 
 
-dataset:
+data:
   batch_size: 64                
   eval_batch_size: 64
 

@@ -43,7 +43,7 @@ HPOs:
       model: vit
       model.pretrained: True
 
-dataset:
+data:
   global_overrides:
     wandb.project: SL-ray
     training: ${dataset.name}-training 

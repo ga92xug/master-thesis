@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional, Tuple
 
 import hydra
+from omegaconf import DictConfig
 import torch
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
@@ -51,41 +52,38 @@ class DataModule(LightningDataModule):
         """Initialize a `DataModule`.
 
         :param data_dir: The data directory. Defaults to `"data/"`.
-        :param train_val_test_split: The train, validation and test split. Defaults to `(55_000, 5_000, 10_000)`.
-        :param batch_size: The batch size. Defaults to `64`.
-        :param num_workers: The number of workers. Defaults to `0`.
-        :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
         super().__init__()
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
+        #print(self.hparams)
 
         self.train_set: Optional[Dataset] = None
         self.val_set: Optional[Dataset] = None
         self.test_set: Optional[Dataset] = None
 
         self.batch_size_per_device = data_cfg.batch_size
-        self.normalization_weights = None
+        self.weights = None
 
     @property
     def num_classes(self) -> int:
         """Get the number of classes.
         """
-        return self.hparams.num_classes
+        return self.hparams.data_cfg.num_classes
 
     @property
     def num_channels(self) -> int:
         """Get the number of classes.
         """
-        return self.hparams.num_channels
+        return self.hparams.data_cfg.num_channels
 
     @property
     def image_size(self) -> int:
         """Get the image size in int (assumes square images).
         """
-        return self.hparams.image_size
+        return self.hparams.data_cfg.resolution
     
     @property
     def normalization_weights(self) -> torch.Tensor:
@@ -94,10 +92,14 @@ class DataModule(LightningDataModule):
 
         :return: normalization weights 
         """
-        if self.normalization_weights is None:
+        if self.weights is None:
             # if we don't want to use them return false
-            raise RuntimeError("Normalization weights not yet computed!")
-        return self.normalization_weights
+            if not self.hparams.data_cfg.should_normalize_weights:
+                return False
+            else:
+                self.setup()
+        
+        return self.weights
 
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
@@ -122,17 +124,19 @@ class DataModule(LightningDataModule):
         """
         # Divide batch size by the number of devices.
         if self.trainer is not None:
-            if self.hparams.batch_size % self.trainer.world_size != 0:
+            if self.hparams.data_cfg.batch_size % self.trainer.world_size != 0:
                 raise RuntimeError(
-                    f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
+                    f"Batch size ({self.hparams.data_cfg.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
                 )
-            self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
+            self.batch_size_per_device = self.hparams.data_cfg.batch_size // self.trainer.world_size
 
         # load and split datasets only if not loaded already
         if not self.train_set and not self.val_set and not self.test_set:
-            self.train_set, self.val_set, self.test_set, self.normalization_weights = hydra.utils.instantiate(
-                self.hparams.data_cfg
+            self.train_set, self.val_set, self.test_set, self.weights = hydra.utils.instantiate(
+                self.hparams.data_cfg,
             )
+        else:
+            print("Datasets already loaded!")
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -142,8 +146,8 @@ class DataModule(LightningDataModule):
         return DataLoader(
             dataset=self.train_set,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.workers,
-            pin_memory=self.hparams.pin_memory,
+            num_workers=self.hparams.data_cfg.workers,
+            pin_memory=self.hparams.data_cfg.pin_memory,
             shuffle=True,
         )
 
@@ -155,8 +159,8 @@ class DataModule(LightningDataModule):
         return DataLoader(
             dataset=self.val_set,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.workers,
-            pin_memory=self.hparams.pin_memory,
+            num_workers=self.hparams.data_cfg.workers,
+            pin_memory=self.hparams.data_cfg.pin_memory,
             shuffle=False,
         )
 
@@ -168,8 +172,8 @@ class DataModule(LightningDataModule):
         return DataLoader(
             dataset=self.test_set,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.workers,
-            pin_memory=self.hparams.pin_memory,
+            num_workers=self.hparams.data_cfg.workers,
+            pin_memory=self.hparams.data_cfg.pin_memory,
             shuffle=False,
         )
 
