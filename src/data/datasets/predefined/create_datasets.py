@@ -25,6 +25,109 @@ sys.path.append(f"{os.getcwd()}")
 from src.data.datasets.utils import get_normalize_weights
 from src.data.datasets.predefined.autoaugment import CIFAR10Policy, Cutout
 
+def create_datasets(
+    # data
+    #data_dir: str,
+    name: str,
+    # transforms
+    resolution: int,
+    augment: Union[bool, Dict],
+    channel_wise_mean_images: List,
+    channel_wise_std_images: List,
+    # dataset
+    valid_size: float,
+    should_normalize_weights: bool,
+    reduction_factor: float,
+    **kwargs,
+) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
+    """
+    Creates [train, valid, test] datasets from the predefined datasets.
+
+    Returns: 
+    Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]: A tuple containing the datasets, the normalization weights and the dataloader kwargs.
+    """
+
+    data_dir = kwargs["data"]["data_dir"]
+    
+    assert name in ["cifar10", "cifar100", "stl10"], "Unknown dataset name."
+
+    location = data_dir + name + "/"
+    
+    # Define the transformations
+    # train_transform, valid_transform = get_transforms(
+    #     resolution=resolution, 
+    #     augment=augment, 
+    #     channel_wise_mean_images=channel_wise_mean_images, 
+    #     channel_wise_std_images=channel_wise_std_images,
+    #     verbose=1,
+    # )
+    train_transform, valid_transform = get_transforms(
+        name=name,
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images,
+        augment=augment,
+        rotation=False,
+    )
+
+    dataset_class = getattr(datasets, name.upper())
+    
+    # load the dataset
+    if "cifar" in name:        
+        train_dataset = dataset_class(root=location, train=True, download=False, transform=None)
+        valid_dataset = None
+        test_dataset = dataset_class(root=location, train=False, download=False, transform=valid_transform)
+
+    elif name == "stl10":
+        train_dataset = dataset_class(root=location, split="train", download=False, transform=None)
+        valid_dataset = None
+        test_dataset = dataset_class(root=location, split="test", download=False, transform=valid_transform)
+
+    if valid_dataset is None or reduction_factor < 1.0:
+        valid_size = int(len(train_dataset) * valid_size)
+        lengths = [len(train_dataset) - valid_size, valid_size]
+        train_subset, val_subset = random_split(train_dataset, lengths, torch.Generator().manual_seed(42))
+
+        if reduction_factor < 1.0:
+            # without a random seed -> random seed from global splits should be different 
+            # randomly select a subset of the data
+            reduction_size = int(len(train_subset) * reduction_factor)
+            lengths = [reduction_size, len(train_subset) - reduction_size]
+            train_subset, _ = random_split(train_subset, lengths)
+
+        train_dataset = Subset_Transform_Dataset(train_subset, train_transform)
+        valid_dataset = Subset_Transform_Dataset(val_subset, valid_transform)
+
+    _datasets = {
+        "train": train_dataset,
+        "valid": valid_dataset,
+        "test": test_dataset,
+    }
+
+    dataloader_kwargs = {}
+
+    # Normalized weights
+    # since we are using the stratified_subset_indices function, we can just use the train_val_dataset
+    # Extract labels from the dataset
+    labels = [label for _, label in train_dataset]
+    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else None
+
+    return _datasets, normalized_weights, dataloader_kwargs
+
+
+class Subset_Transform_Dataset(Dataset):
+    def __init__(self, subset, transform=None):
+        self.subset = subset
+        self.transform = transform
+        
+    def __getitem__(self, index):
+        x, y = self.subset[index]
+        if self.transform:
+            x = self.transform(x)
+        return x, y
+        
+    def __len__(self):
+        return len(self.subset)
+
 
 def get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment=False, rotation=False):
     # define transforms
@@ -76,100 +179,7 @@ def get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augm
         valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
     
     return train_transform, valid_transform
-
-
-def create_datasets(
-    # data
-    #data_dir: str,
-    name: str,
-    # transforms
-    resolution: int,
-    augment: Union[bool, Dict],
-    channel_wise_mean_images: List,
-    channel_wise_std_images: List,
-    # dataset
-    valid_size: float,
-    should_normalize_weights: bool,
-    reduction_factor: float,
-    **kwargs,
-) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
-    """
-    Creates [train, valid, test] datasets from the predefined datasets.
-
-    Returns: 
-    Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]: A tuple containing the datasets, the normalization weights and the dataloader kwargs.
-    """
-
-    data_dir = kwargs["data"]["data_dir"]
     
-    assert name in ["cifar10", "cifar100", "stl10"], "Unknown dataset name."
-
-    location = data_dir + name + "/"
-    
-    # Define the transformations
-    # train_transform, valid_transform = get_transforms(
-    #     resolution=resolution, 
-    #     augment=augment, 
-    #     channel_wise_mean_images=channel_wise_mean_images, 
-    #     channel_wise_std_images=channel_wise_std_images,
-    #     verbose=1,
-    # )
-    train_transform, valid_transform = get_transforms(
-        name=name,
-        channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images,
-        augment=augment,
-        rotation=False,
-    )
-
-    dataset_class = getattr(datasets, name.upper())
-    
-    # load the dataset
-    if "cifar" in name:        
-        train_dataset = dataset_class(root=location, train=True, download=False, transform=train_transform)
-        valid_dataset = dataset_class(root=location, train=True, download=False, transform=valid_transform)
-        test_dataset = dataset_class(root=location, train=False, download=False, transform=valid_transform)
-
-    elif name == "stl10":
-        train_dataset = dataset_class(root=location, split="train", download=False, transform=train_transform)
-        valid_dataset = dataset_class(root=location, split="train", download=False, transform=valid_transform)
-        test_dataset = dataset_class(root=location, split="test", download=False, transform=valid_transform)
-
-    # we can not just split the dataset as the transformations are different for train and valid
-    # so we need to split the indices and then use the SubsetRandomSampler
-    train_idx, valid_idx = stratified_subset_indices(
-        dataset=train_dataset, 
-        reduction_factor=reduction_factor, 
-        validation_split=valid_size,
-        random_seed=42
-    )
-
-    train_sampler = SubsetRandomSampler(train_idx)
-    valid_sampler = SubsetRandomSampler(valid_idx)
-
-    _datasets = {
-        "train": train_dataset,
-        "valid": valid_dataset,
-        "test": test_dataset,
-    }
-
-    dataloader_kwargs = {
-        "train": {
-            "sampler": train_sampler,
-        },
-        "valid": {
-            "sampler": valid_sampler,
-        },
-    }
-
-    # Normalized weights
-    # since we are using the stratified_subset_indices function, we can just use the train_val_dataset
-    # Extract labels from the dataset
-    labels = [label for _, label in train_dataset]
-    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else None
-
-    return _datasets, normalized_weights, dataloader_kwargs
-
 
 def stratified_subset_indices(
     dataset: Dataset, 
@@ -189,6 +199,21 @@ def stratified_subset_indices(
 
     Returns:
     Tuple[List[int], List[int]]: Lists of indices for training and validation subsets.
+
+    # we can not just split the dataset as the transformations are different for train and valid
+    # so we need to split the indices and then use the SubsetRandomSampler
+    # train_idx, valid_idx = stratified_subset_indices(
+    #     dataset=train_dataset, 
+    #     reduction_factor=reduction_factor, 
+    #     validation_split=valid_size,
+    #     random_seed=42
+    # )
+
+    # might pose problem in DDP since DistributedSampler is used
+    # if use maybe define a new dataset or split dataset
+    # train_sampler = SubsetRandomSampler(train_idx)
+    # valid_sampler = SubsetRandomSampler(valid_idx)
+
     """
 
     assert 0 < reduction_factor <= 1, "reduction_factor must be between 0 and 1."

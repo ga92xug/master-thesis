@@ -135,11 +135,14 @@ class DataModule(LightningDataModule):
             datasets, self.weights, self.dataloader_kwargs = hydra.utils.instantiate(
                 self.hparams.data_cfg,
             )
-            self.train_set, self.val_set, self.test_set = datasets
+
+            self.train_set = datasets["train"]
+            self.val_set = datasets["valid"]
+            self.test_set = datasets["test"]
 
             if self.hparams.data_cfg.test_as_valid:
                 # swap val_loader and test_loader to test generalization early
-                val_images, test_images = test_images, val_images
+                self.val_set, self.test_set = self.test_set, self.val_set
         else:
             print("Datasets already loaded!")
 
@@ -170,6 +173,9 @@ class DataModule(LightningDataModule):
             #shuffle=False,
             **self.dataloader_kwargs.get("valid", {}),
         )
+
+
+        return val
 
     def test_dataloader(self) -> DataLoader[Any]:
         """Create and return the test dataloader.
