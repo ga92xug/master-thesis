@@ -132,9 +132,14 @@ class DataModule(LightningDataModule):
 
         # load and split datasets only if not loaded already
         if not self.train_set and not self.val_set and not self.test_set:
-            self.train_set, self.val_set, self.test_set, self.weights = hydra.utils.instantiate(
+            datasets, self.weights, self.dataloader_kwargs = hydra.utils.instantiate(
                 self.hparams.data_cfg,
             )
+            self.train_set, self.val_set, self.test_set = datasets
+
+            if self.hparams.data_cfg.test_as_valid:
+                # swap val_loader and test_loader to test generalization early
+                val_images, test_images = test_images, val_images
         else:
             print("Datasets already loaded!")
 
@@ -148,7 +153,8 @@ class DataModule(LightningDataModule):
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
-            shuffle=True,
+            #shuffle=True,
+            **self.dataloader_kwargs.get("train", {}),
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
@@ -161,7 +167,8 @@ class DataModule(LightningDataModule):
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
-            shuffle=False,
+            #shuffle=False,
+            **self.dataloader_kwargs.get("valid", {}),
         )
 
     def test_dataloader(self) -> DataLoader[Any]:
@@ -174,7 +181,8 @@ class DataModule(LightningDataModule):
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
-            shuffle=False,
+            #shuffle=False,
+            **self.dataloader_kwargs.get("test", {}),
         )
 
     def teardown(self, stage: Optional[str] = None) -> None:

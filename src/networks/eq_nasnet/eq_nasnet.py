@@ -60,22 +60,22 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 
 class EquivariantNASNet(nn.Module):
     def __init__(
-            self, 
-            blocks_args_dict: dict,
-            image_size: int,
-            increase_blocks: dict = None,
-            width_coefficient=1, 
-            depth_coefficient=1,
-            dropout_rate=0.2,
-            stem_channels=16,
-            fixed_params=False,
-            eq_expand_ratio=2,
-            cnn_expand_ratio=6,
-            num_channels=3, 
-            num_classes=10,
-            not_increase_1_layer=True,
-            verbose: int = 0,
-            **kwargs,
+        self, 
+        blocks_args_dict: dict,
+        image_size: int,
+        increase_blocks: dict = None,
+        width_coefficient=1, 
+        depth_coefficient=1,
+        dropout_rate=0.2,
+        stem_channels=16,
+        fixed_params=False,
+        eq_expand_ratio=2,
+        cnn_expand_ratio=6,
+        num_channels=3, 
+        num_classes=10,
+        not_increase_1_layer=True,
+        verbose: int = 0,
+        **kwargs,
     ):
         super().__init__()        
         #blocks_args = list(blocks_args)
@@ -109,8 +109,6 @@ class EquivariantNASNet(nn.Module):
         self.image_size = [image_size]*2 if isinstance(image_size, int) else image_size
         self.set_name()
 
-        
-        
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * num_channels
         )
@@ -295,9 +293,10 @@ class EquivariantNASNet(nn.Module):
 
     
     def set_name(self):
-        name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args)-2}_\
+        regular_name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args)-2}_\
             d{self.depth_coefficient}_w{self.width_coefficient}_\
             r{self.image_size[0]}_drop{self.dropout_rate}"
-        self.name = name
+        scaling_name = get_scaling_name()
+        self.name = regular_name
 
 

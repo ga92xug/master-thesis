@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import hydra
 import torch
@@ -60,15 +60,20 @@ def create_datasets(
     # just test
     test_as_valid: bool = False,
     **kwargs,
-    ):
+) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]:
+    """
+    Creates [train, valid, test] datasets from the predefined datasets.
 
+    Returns: 
+    Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]: A tuple containing the datasets, the normalization weights and the dataloader kwargs.
+    """
     # we use recursive instantiation from hydra to get the data
     images, labels = data
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
         resolution=resolution, 
-        original_augment=augment, 
+        augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images,
         verbose=1,
@@ -116,10 +121,6 @@ def create_datasets(
                 test_size=test_size,
             )
 
-    if test_as_valid:
-        # swap val_loader and test_loader to test generalization early
-        val_images, test_images = test_images, val_images
-
     # Create the DataLoaders
     train_set = Custom_Dataset(train_images, train_labels, transform=train_transform)
     val_set = Custom_Dataset(val_images, val_labels, transform=valid_transform)
@@ -128,4 +129,10 @@ def create_datasets(
     # normalize weights
     normalized_weights = get_normalize_weights(train_labels, 1) if should_normalize_weights else 1
 
-    return train_set, val_set, test_set, normalized_weights
+    datasets = {
+        "train": train_set,
+        "valid": val_set,
+        "test": test_set,
+    }
+
+    return datasets, normalized_weights, {}

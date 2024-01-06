@@ -12,17 +12,13 @@ from PIL import Image
 from torch.utils.data.dataset import Dataset
 import torch
 
-#import sys
-#sys.path.append('../cifar10') # add parent directory
-
-
 import sys
 import os
 
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
 
-from training.datasets.predefined.autoaugment import CIFAR10Policy, Cutout
+from src.data.datasets.predefined.autoaugment import CIFAR10Policy, Cutout
 
 MEAN = np.array([125.3, 123.0, 113.9]) / 255.0  # = np.array([0.49137255, 0.48235294, 0.44666667])
 STD = np.array([63.0, 62.1, 66.7]) / 255.0  # = np.array([0.24705882, 0.24352941, 0.26156863])

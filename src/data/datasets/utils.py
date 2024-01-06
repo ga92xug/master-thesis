@@ -1,7 +1,8 @@
 from copy import deepcopy
-from typing import List, Tuple
+from typing import Dict, List, Tuple, Union
 import numpy as np
 import pandas as pd
+import torch
 from torchvision import transforms
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
@@ -14,9 +15,9 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 from src.data.datasets import own_transforms
 
 def get_normalize_weights(
-        labels: List or np.ndarray,
+        labels: Union[List, np.ndarray],
         verbose: int,
-    ):
+    ) -> torch.Tensor:
     """
     Normalize the weights of the dataset based on the labels.
     """
@@ -28,18 +29,20 @@ def get_normalize_weights(
     weights = weights.values
     if verbose > 2:
         print("weights: ", weights.tolist())
+
+    weights = torch.tensor(weights, dtype=torch.float32)
     return weights
 
 
 def get_transforms(
         resolution: int,
-        original_augment: bool or dict,
-        channel_wise_mean_images: list,
-        channel_wise_std_images: list,
+        augment: Union[bool, Dict],
+        channel_wise_mean_images: List,
+        channel_wise_std_images: List,
         verbose: int ,
     ) -> Tuple[transforms.Compose, transforms.Compose]:
 
-    augment = deepcopy(original_augment)
+    original_augment = deepcopy(augment)
     train_transform = get_one_transform(resolution, augment, channel_wise_mean_images, channel_wise_std_images, validation=False)
     augment = deepcopy(original_augment)
     valid_transform = get_one_transform(resolution, augment, channel_wise_mean_images, channel_wise_std_images, validation=True)

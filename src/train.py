@@ -81,7 +81,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     log.info(callbacks)
 
     log.info("Instantiating loggers...")
-    logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
+    logger: List[Logger] = instantiate_loggers(
+        cfg=cfg,
+        model_name=model.net.name
+    )
 
     log.info(f"Instantiating trainer")
     trainer: Trainer = hydra.utils.instantiate(

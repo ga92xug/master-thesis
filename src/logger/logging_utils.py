@@ -30,23 +30,24 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
         log.warning("Logger not found! Skipping hyperparameter logging...")
         return
 
-    hparams["model"] = cfg["model"]
+    hparams["network"] = cfg["training_setup"]["network"]
+    hparams["dataset"] = cfg["training_setup"]["dataset"]
+    hparams["optimizer"] = cfg["training_setup"]["optimizer"]
+    hparams["scheduler"] = cfg["training_setup"]["scheduler"]
+    hparams["callbacks"] = cfg["training_setup"].get("callbacks")
+    hparams["trainer"] = cfg["training_setup"]["trainer"]
 
     # save number of model parameters
-    hparams["model/params/total"] = sum(p.numel() for p in model.parameters())
-    hparams["model/params/trainable"] = sum(
-        p.numel() for p in model.parameters() if p.requires_grad
-    )
-    hparams["model/params/non_trainable"] = sum(
-        p.numel() for p in model.parameters() if not p.requires_grad
-    )
+    # hparams["model/params/total"] = sum(p.numel() for p in model.parameters())
+    # hparams["model/params/trainable"] = sum(
+    #     p.numel() for p in model.parameters() if p.requires_grad
+    # )
+    # hparams["model/params/non_trainable"] = sum(
+    #     p.numel() for p in model.parameters() if not p.requires_grad
+    # )
 
-    hparams["data"] = cfg["data"]
-    hparams["trainer"] = cfg["trainer"]
-
-    hparams["callbacks"] = cfg.get("callbacks")
+    hparams["hardware"] = cfg["hardware"]
     hparams["extras"] = cfg.get("extras")
-
     hparams["task_name"] = cfg.get("task_name")
     hparams["tags"] = cfg.get("tags")
     hparams["ckpt_path"] = cfg.get("ckpt_path")

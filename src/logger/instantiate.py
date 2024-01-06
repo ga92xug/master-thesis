@@ -4,20 +4,26 @@ import hydra
 from lightning import Callback
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
+import torch
+import wandb
 
 from src.logger import pylogger
+from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
 
 log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 
 
 
-def instantiate_loggers(logger_cfg: DictConfig) -> List[Logger]:
+def instantiate_loggers(cfg: DictConfig, model_name: str) -> List[Logger]:
     """Instantiates loggers from config.
 
-    :param logger_cfg: A DictConfig object containing logger configurations.
+    :param cfg: A DictConfig object containing logger configurations.
+    :param model_name: The name of the model.
     :return: A list of instantiated loggers.
     """
     logger: List[Logger] = []
+
+    logger_cfg = cfg.get("logger")
 
     if not logger_cfg:
         log.warning("No logger configs found! Skipping...")
@@ -31,7 +37,42 @@ def instantiate_loggers(logger_cfg: DictConfig) -> List[Logger]:
             log.info(f"Instantiating logger <{lg_conf._target_}>")
             logger.append(hydra.utils.instantiate(lg_conf))
 
+            if "wandb" in lg_conf._target_:
+                wandb_run = logger[-1].experiment
+                give_wandb_name(
+                    wandb_run, model_name)
+
     return logger
+
+def give_wandb_name(
+        wandb_run: wandb.sdk.wandb_run.Run,
+        config: DictConfig,
+        model_name: str, 
+        ignore_name: bool = False,
+    ) -> None:
+    """
+    Updates the wandb_run name.
+    """
+    if wandb_run is None:
+        return
+    
+    config = wandb_run.config
+    give_name = config["wandb"]["give_name"]
+    project = config["wandb"]["project"]
+    model_target = config["model"]["_target_"]
+
+    if not give_name:
+        return
+
+    if isinstance(give_name, str) and not ignore_name:
+        wandb_run.name = give_name
+    elif project == "SL-Scaling" and "EquivariantNASNet" in model_target:
+        wandb_run.name = get_scaling_name(config)
+    else:
+        wandb_run.name = model_name
+
+    
+
 
 '''
 def init_wandb(cfg: DictConfig):
@@ -84,30 +125,5 @@ def wandb_update_config(cfg: DictConfig, wandb_run: wandb.sdk.wandb_run.Run):
     cfg_dict = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
     recursive_update(cfg_dict, wandb_run.config)
 
-def give_wandb_name(
-        model: torch.nn.Module, 
-        wandb_run: wandb.sdk.wandb_run.Run,
-        ignore_name: bool = False,
-    ) -> None:
-    """
-    Updates the wandb_run name.
-    """
-    if wandb_run is None:
-        return
-    
-    config = wandb_run.config
-    give_name = config["wandb"]["give_name"]
-    project = config["wandb"]["project"]
-    model_name = config["model"]["_target_"]
-
-    if not give_name:
-        return
-
-    if isinstance(give_name, str) and not ignore_name:
-        wandb_run.name = give_name
-    elif project == "SL-Scaling" and "EquivariantNASNet" in model_name:
-        wandb_run.name = get_scaling_name(config)
-    else:
-        wandb_run.name = model.name
 
         '''

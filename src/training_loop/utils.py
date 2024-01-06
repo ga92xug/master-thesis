@@ -33,7 +33,7 @@ def get_stats(
     
     # PARAMS
     param_count = parameter_count(net).get("net")
-    print(f"Number of parameters: {param_count}")
+    #print(f"Number of parameters: {param_count}")
     mparam_count = param_count / 1e6
     
     return gflops_per_image, mparam_count
@@ -61,22 +61,15 @@ class ModelStats(Callback):
                 image_size=pl_module.hparams.image_size,
             )
         
-        try:
-            x = trainer.logger.experiment
-            print("Using experiment")
-            print(x)
-            x.log("param_count", param_count)
-        except:
-            x = trainer.logger
-            print("Using logger instead of experiment")
-            print(x)
-            x.log("param_count", param_count)
+        hparams = {
+            "net_building_time": pl_module.net_building_time,
+            "param_count": param_count,
+            "GFLOPs_per_image": gflops_per_image,
+        }
 
+        for logger in trainer.loggers:
+            logger.log_hyperparams({"param_count": param_count})
 
-        self.log("net_building_time", pl_module.net_building_time)
-        self.log("param_count", param_count)
-        self.log("GFLOPs_per_image", gflops_per_image)
-        
         if self.is_nas and gflops_per_image > self.max_gflops:
             raise ValueError(f"GFLOPs {gflops_per_image} exceeds maximum allowed \
                              {self.max_gflops}")

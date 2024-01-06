@@ -1,8 +1,9 @@
 defaults:
 - _self_
 - callbacks: default
-- dataset/custom@dataset: isic2019
-- network: eq_nasnet
+#- dataset/custom@dataset: isic2019
+- dataset/predefined@dataset: cifar10
+- network: efficientnet
 - optimizer: Adam
 - scheduler: reduce_lr_on_plateau 
 
