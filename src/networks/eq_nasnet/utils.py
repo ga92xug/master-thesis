@@ -2,9 +2,10 @@ import re
 from copy import deepcopy
 import math
 import collections
-from typing import Tuple, Union
+from typing import Dict, List, Tuple, Union
 from numpy import block
 from omegaconf import OmegaConf
+from omegaconf.OmegaConf import DictConfig
 import torch
 from torch import mul, nn
 from torch.nn import functional as F
@@ -14,6 +15,9 @@ import os
 import wandb
 sys.path.append(f"{os.getcwd()}")
 from equivariant.nn import FieldType
+
+
+
 
 def convert_to_number(val):
     try:
@@ -28,7 +32,11 @@ def convert_to_number(val):
 # Help functions for model architecture
 ################################################################################
 
-def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, verbose: int):
+def get_channel_sizes(
+        initial_channel_size: int, 
+        blocks_args: List[BlockArgs], 
+        width_coefficient: float,
+    ) -> List[BlockArgs]:
     list_out_channel = []
     old_channels = initial_channel_size
     for i, block_args in enumerate(blocks_args):
@@ -46,8 +54,27 @@ def get_channel_sizes(initial_channel_size, blocks_args, width_coefficient, verb
             # if there is no head conv
             list_out_channel.append(out_channel)
     
-    if verbose > 3:
-        print(f"list_out_channel: {list_out_channel}")
+    return blocks_args
+
+def update_layers_per_block(
+        blocks_args: List[BlockArgs],
+        depth_coefficient: float, 
+    ) -> int:
+    """
+    Calculate the number layers in the block based on depth_coefficient.
+    """
+    if not depth_coefficient:
+        return blocks_args
+    
+    for i, block_args in enumerate(blocks_args):
+        if i == 0 or i == len(blocks_args) - 1:
+            # head and tail block
+            continue
+    
+        num_layers = block_args.num_layers
+        num_layers = int(round(depth_coefficient * num_layers))
+
+        blocks_args[i] = block_args._replace(num_layers=num_layers)
     return blocks_args
 
 def get_fixed_out_channels2(
@@ -100,21 +127,26 @@ def get_increase_factor(
         
 
 
-def round_repeats(repeats: int, depth_coefficient: float, not_increase_1_layer: bool):
-    """Calculate module's repeat number of a block based on depth multiplier.
-       Use depth_coefficient of global_params.
-    Args:
-        repeats (int): num_repeat to be calculated.
-        global_params (namedtuple): Global params of the model.
-    Returns:
-        new repeat: New repeat number after calculating.
+def update_layers_per_block(
+        blocks_args: List[BlockArgs],
+        depth_coefficient: float, 
+    ) -> int:
     """
-    multiplier = depth_coefficient
-    if not multiplier or (not_increase_1_layer and repeats == 1):
-        return repeats
+    Calculate the number layers in the block based on depth_coefficient.
+    """
+    if not depth_coefficient:
+        return blocks_args
     
-    repeats = int(round(multiplier * repeats))
-    return repeats
+    for i, block_args in enumerate(blocks_args):
+        if i == 0 or i == len(blocks_args) - 1:
+            # head and tail block
+            continue
+    
+        num_layers = block_args.num_layers
+        num_layers = int(round(depth_coefficient * num_layers))
+
+        blocks_args[i] = block_args._replace(num_layers=num_layers)
+    return blocks_args
 
 def encode_parameters_old(params: dict, nas_encoded: bool = True, choice_2_range_params : dict = {
         "group": [1, 2, 4, 8, 16],
@@ -264,64 +296,27 @@ BlockArgs = collections.namedtuple('BlockArgs', [
 BlockArgs.__new__.__defaults__ = (None,) * len(BlockArgs._fields)
 
 
-def get_increased_blocks(blocks_args_dict: dict, increase_blocks: dict):
-    """
-    Increase the number of blocks in the blocks_args_dict by the number specified in increase_blocks.
+def get_blocks_args_from_dict(
+        blocks_args_dict: Union[dict, DictConfig],
+        stem_channels: int,
+        width_coefficient: float,
+        depth_coefficient: float,
+    ) -> List[BlockArgs]:
+    # convert the DictConfig to a dict
+    # do we need this?
+    if isinstance(blocks_args_dict, DictConfig):
+        blocks_args_dict = OmegaConf.to_container(blocks_args_dict)
+        blocks_args_dict = {int(k[1]): v for k, v in blocks_args_dict.items()}
 
-    Args:
-    - blocks_args_dict (dict): A dictionary containing the blocks_args.
-    - increase_blocks (dict): A dictionary containing num_new_blocks for every block (key) that should be increase.
-        And optionally a replace dict, containing the parameters that should be replaced in the new blocks.
+    # convert the dict to a list of BlockArgs
+    blocks_args = [BlockArgs(**block_args_dict) for block_args_dict in blocks_args_dict.values()]
+    BlockDecoder()._check_valid_blocks_args(blocks_args)
+    
+    # Update blocks args with the width and depth multiplier
+    blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)
+    blocks_args = update_layers_per_block(blocks_args, depth_coefficient)
 
-    Returns:
-    - blocks_args_dict_new (dict): A dictionary containing the blocks_args with the increased blocks.
-    """
-    if increase_blocks is None:
-        # no blocks should be increased
-        blocks_args_dict_new = blocks_args_dict
-    else: 
-        assert 0 not in increase_blocks.keys(), "The lifting conv cannot be increased."
-        assert 4 not in increase_blocks.keys(), "The head block cannot be increased."
-
-        
-        keys = list(blocks_args_dict.keys())
-        for block_number_to_increase, value in increase_blocks.items():
-            num_new_blocks = value["num_new_blocks"]
-            if block_number_to_increase not in keys:
-                raise ValueError(f"Block {block_number_to_increase} does not exist in blocks_args_dict.")
-
-            # get the index of the block to increase
-            index = keys.index(block_number_to_increase)
-            # increase the number of blocks
-            for _ in range(num_new_blocks):
-                keys.insert(index, block_number_to_increase)
-
-        # create a new dict with the increased blocks
-        blocks_args_dict_new = {}
-        initial_blocks = set()
-        for i, key in enumerate(keys):
-            blocks_args_dict_new[i] = deepcopy(blocks_args_dict[key])
-
-            if key not in initial_blocks:
-                # this is the inital block
-                initial_blocks.add(key)
-            else:
-                # here we added a block
-                replace_dict = increase_blocks[key].get("replace", {})
-                for k, v in replace_dict.items():
-                    blocks_args_dict_new[i][k] = v          
-
-    # update wandb config with the number of blocks
-    try:
-        model_config = wandb.config.get("model", {})
-        model_config["num_blocks"] = len(blocks_args_dict_new) - 2
-        wandb.config.update({"model": model_config})
-    except:
-        # wandb is not initialized
-        pass
-
-
-    return blocks_args_dict_new
+    return blocks_args
 
 
 class BlockDecoder(object):
@@ -436,57 +431,102 @@ class BlockDecoder(object):
 
             previous_block = block
 
-    @staticmethod
-    def legacy_code():
-        """
-        #blocks_args_dict = dict(kwargs.get("blocks_args_new", None))
-                
-        # flatten dict by prefixing the keys
-        #blocks_args_dict = flatten_dict(blocks_args_dict)
-        print("blocks_args_new: ", blocks_args_dict, type(blocks_args_dict))
 
 
-        blocks_args_config = kwargs.get("blocks_args_dict", None)
-        print("blocks_args_config: ", blocks_args_config)
-
-        # compare 2 dicts to see if they are the same, and print the differences
-        #compare_dicts(blocks_args_dict, blocks_args_config)
-
-        print("blocks_args_config: ", blocks_args_config)
-        if blocks_args_config is not None:
-            # passed the config as a dict, ignore the default blocks_args
-            # the encoder is informed about the conversion of the group
-            blocks_args = encode_parameters(blocks_args_config, nas_encoded=False)
-        
-        blocks_args = BlockDecoder.decode(blocks_args)
-        print("blocks_args: ", blocks_args)
-
-        # update the config for wandb
-        model_description = {}
-        for i, block_args in enumerate(blocks_args):
-            model_description[f"l{i}"] = block_args._asdict()
-        
-        try:
-            pass
-            #wandb.config.update({"model_description": model_description})
-        except:
-            # if wandb is not initialized during NAS
-            pass
-        """
 
 
-if __name__ == "__main__":
-    from hydra import compose, initialize
-    overrides = ["training.dataset.resolution=128", "model.increase_blocks={2:{num_new_blocks:1,replace:{out_channel:1}}}", "other.verbose=6"]
 
-    with initialize(config_path="../../training/conf", version_base="1.2"):
-        cfg = compose(config_name="config", overrides=overrides)
+def get_blocks_args_from_dict(
+        blocks_args_dict: Union[Dict, DictConfig],
+        stem_channels: int,
+        width_coefficient: float,
+        depth_coefficient: float,
+    ) -> List[BlockArgs]:
+    # convert the DictConfig to a dict
+    # do we need this?
+    if isinstance(blocks_args_dict, DictConfig):
+        blocks_args_dict = OmegaConf.to_container(blocks_args_dict)
+        blocks_args_dict = {int(k[1]): v for k, v in blocks_args_dict.items()}
 
-
-    blocks_args_dict = OmegaConf.to_container(cfg.model.blocks_args_dict)
-    blocks_args_dict = {int(k[1]): v for k, v in blocks_args_dict.items()}
-
-    blocks_args_dict = get_increased_blocks(blocks_args_dict, increase_blocks={2:{"num_new_blocks":1,"replace":{"out_channel":1}}})
-
+    # convert the dict to a list of BlockArgs
     blocks_args = [BlockArgs(**block_args_dict) for block_args_dict in blocks_args_dict.values()]
-    print(blocks_args[3].out_channel)
+    check_valid_blocks_args(blocks_args)
+    
+    # Update blocks args with the width and depth multiplier
+    blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient)
+    blocks_args = update_layers_per_block(blocks_args, depth_coefficient)
+
+    return blocks_args
+
+def get_channel_sizes(
+        initial_channel_size: int, 
+        blocks_args: List[BlockArgs], 
+        width_coefficient: float,
+    ) -> List[BlockArgs]:
+    list_out_channel = []
+    old_channels = initial_channel_size
+    for i, block_args in enumerate(blocks_args):
+        # first in out_channels the increase factor is stored
+        # we change that to the actual out_channels
+        increase_factor = block_args.out_channel
+        if i == 0:
+            increase_factor *= width_coefficient
+
+        out_channel = old_channels*increase_factor
+
+        blocks_args[i] = block_args._replace(out_channel=out_channel)
+        old_channels = out_channel
+        if block_args.kernel_size > 0:
+            # if there is no head conv
+            list_out_channel.append(out_channel)
+    
+    return blocks_args
+
+def update_layers_per_block(
+        blocks_args: List[BlockArgs],
+        depth_coefficient: float, 
+    ) -> int:
+    """
+    Calculate the number layers in the block based on depth_coefficient.
+    """
+    if not depth_coefficient:
+        return blocks_args
+    
+    for i, block_args in enumerate(blocks_args):
+        if i == 0 or i == len(blocks_args) - 1:
+            # head and tail block
+            continue
+    
+        num_layers = block_args.num_layers
+        num_layers = int(round(depth_coefficient * num_layers))
+
+        blocks_args[i] = block_args._replace(num_layers=num_layers)
+    return blocks_args
+
+def check_valid_blocks_args(blocks_args):
+    """
+    Helper function for checking argument values in a list of BlockArgs instances.
+    """
+    if not blocks_args:
+        raise ValueError("blocks_args is empty")
+
+    previous_block = None
+    for i, block in enumerate(blocks_args):
+        # Checks that are specific to the list context
+        if i != len(blocks_args) - 1:
+            # The last block may not have a stride
+            assert isinstance(block.stride, int) and block.stride > 0
+
+        if 0 < i < len(blocks_args) - 1:
+            # Middle blocks specific checks
+            assert isinstance(block.num_layers, int) and block.num_layers > 0
+            assert block.conv_op in ["conv", "dconv", "mbconv"]
+            assert isinstance(block.se_ratio, float) and 0 <= block.se_ratio <= 1
+            assert block.skip in ["identity", "no", "conv"], f"Invalid skip value: {block.skip}"
+
+        if previous_block:
+            # Checks involving the previous block
+            assert previous_block.reflection >= block.reflection, "Reflection value should not increase between consecutive blocks"
+            assert previous_block.group >= block.group, "Group value should not increase between consecutive blocks"
+
+        previous_block = block

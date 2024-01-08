@@ -5,6 +5,7 @@ import hydra
 import timeit
 import numpy as np
 import torch
+from torch.nn import CrossEntropyLoss
 from lightning import LightningModule
 from omegaconf import DictConfig
 from torchmetrics import MaxMetric, MeanMetric, MetricCollection, MinMetric
@@ -98,7 +99,7 @@ class LitModule(LightningModule):
             normalization_weights = None
         else:
             print("normalization_weights",normalization_weights, type(normalization_weights))
-        self.criterion = torch.nn.CrossEntropyLoss(weight=normalization_weights)
+        self.criterion = CrossEntropyLoss(weight=normalization_weights)
 
         # for averaging loss across batches
         self.train_loss = MeanMetric()

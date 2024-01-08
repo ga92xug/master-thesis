@@ -1,54 +1,33 @@
-import math
-import re
-from numpy import block
-from requests import get
-import wandb
-from typing import List, Tuple
-from matplotlib.pyplot import stem
+from typing import Tuple, Callable, Iterable, List, Dict, Any
+
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
 import os
+from src.networks.eq_nasnet.block_args import BlockArgsList
+
+from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
 sys.path.append(f"{os.getcwd()}")
 
-from .util import (
-    BlockArgs,
-    BlockDecoder,
-    get_increase_factor,
-    round_repeats,
-    get_channel_sizes,
-    get_increased_blocks,
-)
-from networks.eq_nasnet.util import encode_parameters
 from networks.eq_restriction import Restriction_Group_or_CNN
-from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_Block, NAS_Block
+from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
 
 from networks import (
     EquivariantPool, 
-    Restriction_from_id,
 )
 from networks.eq_convs import (
-    EquivariantConv,
-    EquivariantSqueezeExcitation,
     Eq_Conv2dSamePadding,
-    Eq_Conv2dSamePaddingChangeFactor,
 )
 
 from networks.util import (
-    calculate_output_image_size, 
-    get_fixed_params,
     get_group_id, 
     get_gspace_from_id, 
-    get_param_count,
     adjusted_out_channels,
-    compare_dicts,
-    flatten_dict,
 )
 
 from equivariant.nn import (
     GroupTensor,
     FieldType,
-    EquivariantModule,
     BatchNorm,
     Mish,
     ReLU,
@@ -63,7 +42,6 @@ class EquivariantNASNet(nn.Module):
         self, 
         blocks_args_dict: dict,
         image_size: int,
-        increase_blocks: dict = None,
         width_coefficient=1, 
         depth_coefficient=1,
         dropout_rate=0.2,
@@ -79,9 +57,11 @@ class EquivariantNASNet(nn.Module):
     ):
         super().__init__()        
         #blocks_args = list(blocks_args)
-        assert image_size is not None, 'Please provide image size'
+        assert isinstance(image_size, int), 'Please provide valid image size'
+        self.image_size = image_size
         #assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
         #assert len(blocks_args) > 0, 'block args must be greater than 0'
+        self.verbose = verbose
         self.dropout_rate = dropout_rate
         self.eq_expand_ratio = eq_expand_ratio
         self.cnn_expand_ratio = cnn_expand_ratio
@@ -90,24 +70,16 @@ class EquivariantNASNet(nn.Module):
         self.fixed_params = fixed_params
 
         # BlockArgs
-        blocks_args_dict = OmegaConf.to_container(blocks_args_dict)
-        blocks_args_dict = {int(k[1]): v for k, v in blocks_args_dict.items()}
-        blocks_args_dict = get_increased_blocks(blocks_args_dict, increase_blocks)
+        self.blocks_args_list = BlockArgsList.from_dict(blocks_args_dict, stem_channels, width_coefficient, depth_coefficient)
 
-        blocks_args = [BlockArgs(**block_args_dict) for block_args_dict in blocks_args_dict.values()]
-        BlockDecoder()._check_valid_blocks_args(blocks_args)
         
-        # The channel sizes is first an increase factor. After that it is the number of channels
-        self.blocks_args = get_channel_sizes(stem_channels, blocks_args, width_coefficient, verbose)
-        stem_args = blocks_args[0]
+        stem_args = self.blocks_args_list[0]
+        self.set_name()
 
         # Get group spaces for specified rotations and flips
         group_id = get_group_id(stem_args.reflection, stem_args.group)
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
-
-        self.image_size = [image_size]*2 if isinstance(image_size, int) else image_size
-        self.set_name()
 
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * num_channels
@@ -130,40 +102,18 @@ class EquivariantNASNet(nn.Module):
         )
         self.field_type = self._conv_stem.out_type
         self.prev_channel_size = stem_args.out_channel
-        image_size = calculate_output_image_size(image_size, stem_args.stride)
+        image_size = int(math.ceil(image_size / stem_args.stride))
 
         # Build blocks
-        self._blocks = nn.ModuleList([])
+        self._blocks = nn.ModuleDict({})
+        
         # block 0 is the stem, block -1 is the head
-        for i, block_args in enumerate(self.blocks_args[1:-1]):
-            if verbose > 3:
+        for i, block_args in enumerate(self.blocks_args_list[1:-1]):
+            if self.verbose > 3:
                 print(f"Building block: {i+1}")
-            # Update block input and output filters based on depth multiplier.
-            block_args = block_args._replace(
-                num_layers=round_repeats(
-                    block_args.num_layers, 
-                    depth_coefficient,
-                    not_increase_1_layer,
-                ),
-            )
-            group_id = get_group_id(block_args.reflection, block_args.group)
-            restrict = Restriction_Group_or_CNN(self.field_type,group_id)
-            self._blocks.append(restrict)
-            self.field_type = restrict.out_type
-            # The first block needs to take care of stride and filter size increase.
-            block = self.create_block(restrict, block_args, image_size)
-            self._blocks.append(block)
-            image_size = calculate_output_image_size(image_size, 
-                                                     block_args.stride)
-            if block_args.num_layers > 1:  # modify block_args to keep same output size
-                block_args = block_args._replace(stride=1)
-            
-            for _ in range(block_args.num_layers - 1):
-                block = self.create_block(restrict, block_args, image_size)
-                self._blocks.append(block)
+            self._blocks[f"block{i+1}"] = self.create_block(block_args)
 
-
-        last_block_args = self.blocks_args[-1]
+        last_block_args = self.blocks_args_list[-1]
         group_id = get_group_id(last_block_args.reflection, last_block_args.group)
         self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)
         if last_block_args.kernel_size != 0:
@@ -227,19 +177,20 @@ class EquivariantNASNet(nn.Module):
         else:
             self.fc = nn.Linear(len(self.invariant_map.out_type), num_classes)
 
-
+    
     def forward(self, inputs):
         x = GroupTensor(inputs, self.input_field_type)
         # Stem
         x = self._conv_stem(x)
         # Blocks
-        for idx, restrict_or_MBBlock in enumerate(self._blocks):
+        for _, block in self._blocks:
+            for i, restrict_or_MBBlock in enumerate(block):
             # if isinstance(restrict_or_MBBlock, Eq_NAS_Block):
-            #     print(f"Running block: {idx}")
-            x = restrict_or_MBBlock(x)
+            #     print(f"Running block: {i}")
+                x = restrict_or_MBBlock(x)
 
         # Head
-        if self.blocks_args[-1].kernel_size != 0:
+        if self.blocks_args_list[-1].kernel_size != 0:
             x = self.restrict_last(x)
             x = self._conv_head(self._swish1(self._bn1(x)))
 
@@ -257,18 +208,40 @@ class EquivariantNASNet(nn.Module):
         x = self.dropout(x)
         x = self.fc(x)
         return x
+    
+    def create_block(self, block_args) -> nn.Module:
+        layers = nn.ModuleList([])
+
+        # restriction
+        group_id = get_group_id(block_args.reflection, self.block_args.group)
+        restrict = Restriction_Group_or_CNN(self.field_type,group_id)
+        layers.append(restrict)
+        self.field_type = restrict.out_type
+
+        # The first layer needs to take care of stride and filter size increase.
+        layers.append(self.create_conv_layer(restrict, block_args, image_size))
+        image_size = int(math.ceil(image_size / self.block_args.stride))
+        
+        # Add rest of layers
+        block_args = block_args._replace(stride=1)
+        for _ in range(block_args.num_layers - 1):
+            layers.append(
+                self.create_conv_layer(restrict, block_args, image_size)
+            )
+
+        return layers
 
 
-    def create_block(
+    def create_conv_layer(
         self,
         restrict: nn.Module,
         block_args: BlockArgs,
-        image_size: Tuple[int, int],
-    ):  
+        image_size: int,
+    )-> nn.Module:  
         setting = restrict.setting
         if setting in ["cnn", "switch"]:
             
-            block = NAS_Block(
+            layer = NAS_layer(
                     in_channel_size=self.field_type,
                     block_args=block_args,
                     image_size=image_size,
@@ -277,7 +250,7 @@ class EquivariantNASNet(nn.Module):
                 )
         
         else:
-            block = Eq_NAS_Block(
+            layer = Eq_NAS_layer(
                     in_type=self.field_type,
                     in_channel_size=self.prev_channel_size,
                     fixed_params=self.fixed_params, 
@@ -287,16 +260,19 @@ class EquivariantNASNet(nn.Module):
                     expand_ratio=self.eq_expand_ratio,
                 )
         self.prev_channel_size = block_args.out_channel
-        self.field_type = block.out_type
+        self.field_type = layer.out_type
             
-        return block
+        return layer
 
     
     def set_name(self):
-        regular_name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args)-2}_\
+        model_name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args_list)-2}_\
             d{self.depth_coefficient}_w{self.width_coefficient}_\
             r{self.image_size[0]}_drop{self.dropout_rate}"
-        scaling_name = get_scaling_name()
-        self.name = regular_name
+        scaling_name = get_scaling_name(self.blocks_args_list)
+        self.name = {
+            "model_name": model_name,
+            "scaling_name": scaling_name,
+        }
 
 

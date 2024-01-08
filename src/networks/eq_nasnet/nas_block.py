@@ -6,14 +6,11 @@ from torch import batch_norm, nn
 from torch.nn import functional as F
 import sys
 
+
 sys.path.append('../networks') # add parent directory
 
-from .util import (
-    BlockArgs,
-    BlockDecoder,
-    get_increase_factor,
-    round_repeats,
-)
+from src.networks.eq_nasnet.block_args import BlockArgs
+
 from networks import (
     EquivariantPool, 
     Restriction_from_id,
@@ -47,7 +44,7 @@ from equivariant.nn import (
     PointwiseDropout,
 )
 
-class Eq_NAS_Block(EquivariantModule):
+class Eq_NAS_layer(EquivariantModule):
     """
     Block with variable content based on block_args.
     """
@@ -56,7 +53,7 @@ class Eq_NAS_Block(EquivariantModule):
             in_type: FieldType, 
             in_channel_size, 
             fixed_params, 
-            block_args, 
+            block_args: BlockArgs, 
             image_size, 
             dropout_rate=0.0,
             expand_ratio=2
@@ -214,7 +211,7 @@ class Eq_NAS_Block(EquivariantModule):
         return input_shape
 
 
-class NAS_Block(nn.Module):
+class NAS_layer(nn.Module):
     def __init__(
             self, 
             in_channel_size: int, 
