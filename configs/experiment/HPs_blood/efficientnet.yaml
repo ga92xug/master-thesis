@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /training: blood-training
+  - override /training_setup: blood-training
   - override /model: efficientnet
   - override /wandb: default
   - _self_
@@ -9,7 +9,7 @@ model:
   pretrained: False
 
 
-training:
+training_setup:
   optimizer:
     lr: 0.0005258641063603519
     weight_decay: 0.00000165943876390034
@@ -19,11 +19,10 @@ training:
     #factor: 0.5
     #patience: 10
     #verbose: True
-  
-wandb:
-  project: SL-Application
-  give_name: True
-  tags: []
 
+logger:
+  wandb:
+    project: SL-Application
+    name: True
+    tags: []
 
-# python training/main.py other.debug=True +exp_model_specific_overwrites=eq_nasnet_DeepDRiD --info config

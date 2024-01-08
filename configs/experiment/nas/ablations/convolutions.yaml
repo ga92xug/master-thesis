@@ -19,7 +19,6 @@ model:
 
 
 wandb:
-  give_name: final_isic2019
   notes: change_convolutions_$(model.conv_op)
   tags: [ablation_nas_architecture, change_conv]
 

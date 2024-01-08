@@ -1,15 +1,7 @@
 import re
-from copy import deepcopy
 from typing import List, Union, Dict
 from omegaconf import OmegaConf
 from omegaconf.OmegaConf import DictConfig
-import torch
-from torch import nn
-from torch.nn import functional as F
-import sys
-import os
-
-sys.path.append(f"{os.getcwd()}")
 
 
 class BlockArgs:
@@ -136,11 +128,6 @@ class BlockArgs:
             se_ratio=options.get('se'),
             skip=options.get('sk')
         )
-
-################################################################################
-# List of BlockArgs
-################################################################################
-
 
 
 class BlockArgsList:
