@@ -1,13 +1,22 @@
 import re
 from typing import List, Union, Dict
 from omegaconf import OmegaConf
-from omegaconf.OmegaConf import DictConfig
+from omegaconf import DictConfig
 
 
 class BlockArgs:
-    def __init__(self, reflection: int, group: int, kernel_size: int, stride: int,
-                 out_channel: Union[int, float], num_layers: int, conv_op: str,
-                 se_ratio: float, skip: str):
+    def __init__(
+        self, 
+        reflection: int, 
+        group: int, 
+        kernel_size: int, 
+        out_channel: Union[int, float],
+        stride: int = None,
+        num_layers: int = None, 
+        conv_op: str = None,
+        se_ratio: float = None, 
+        skip: str = None,
+    ) -> None:
         self.reflection = reflection
         self.group = group
         self.kernel_size = kernel_size
@@ -69,8 +78,11 @@ class BlockArgs:
 
     @num_layers.setter
     def num_layers(self, value):
-        assert isinstance(value, int) and value > 0
-        self._num_layers = value
+        if value is None:
+            self._num_layers = None
+        else:
+            assert isinstance(value, int) and value > 0
+            self._num_layers = value
 
     @property
     def se_ratio(self):
@@ -78,6 +90,9 @@ class BlockArgs:
 
     @se_ratio.setter
     def se_ratio(self, value):
+        if value is None:
+            self._se_ratio = None
+            return
         assert isinstance(value, float) and 0 <= value <= 1
         self._se_ratio = value
 
@@ -87,6 +102,9 @@ class BlockArgs:
     
     @skip.setter
     def skip(self, value):
+        if value is None:
+            self._skip = None
+            return
         assert isinstance(value, str) and value in ["identity", "no", "conv"]
         self._skip = value
 
@@ -96,17 +114,12 @@ class BlockArgs:
     
     @conv_op.setter
     def conv_op(self, value):
+        if value is None:
+            self._conv_op = None
+            return
         assert isinstance(value, str) and value in ["conv", "dconv", "mbconv"]
         self._conv_op = value
 
-    @property
-    def num_layers(self):
-        return self._num_layers
-    
-    @num_layers.setter
-    def num_layers(self, value):
-        assert isinstance(value, int) and value >= 1
-        self._num_layers = value
 
 
     @staticmethod
@@ -134,10 +147,20 @@ class BlockArgsList:
     def __init__(self, blocks_args: List[BlockArgs]):
         self.blocks_args = blocks_args
 
+    def __getitem__(self, index):
+        return self.blocks_args[index]
+
+    def __len__(self):
+        return len(self.blocks_args)
+
     @classmethod
-    def from_dict(cls, blocks_args_dict: Union[Dict, DictConfig],
-                  stem_channels: int, width_coefficient: float,
-                  depth_coefficient: float):
+    def from_dict(
+        cls, 
+        blocks_args_dict: Union[Dict, DictConfig],
+        stem_channels: int = None, 
+        width_coefficient: float = None,
+        depth_coefficient: float = None,
+    ):
         # Convert DictConfig to dict if necessary
         if isinstance(blocks_args_dict, DictConfig):
             blocks_args_dict = OmegaConf.to_container(blocks_args_dict)
@@ -151,8 +174,10 @@ class BlockArgsList:
 
         # Perform checks and updates
         instance.check_valid_blocks_args()
-        instance.update_channel_sizes(stem_channels, width_coefficient)
-        instance.update_layers_per_block(depth_coefficient)
+        if stem_channels and width_coefficient:
+            instance.update_channel_sizes(stem_channels, width_coefficient)
+        if depth_coefficient:
+            instance.update_layers_per_block(depth_coefficient)
 
         return instance
 

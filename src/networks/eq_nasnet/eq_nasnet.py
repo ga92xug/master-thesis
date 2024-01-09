@@ -1,13 +1,15 @@
 from typing import Tuple, Callable, Iterable, List, Dict, Any
 
+import math
 from torch import nn
 from omegaconf import DictConfig, OmegaConf
 import sys
 import os
-from src.networks.eq_nasnet.block_args import BlockArgsList
 
-from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
 sys.path.append(f"{os.getcwd()}")
+
+from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
+from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
 
 from networks.eq_restriction import Restriction_Group_or_CNN
 from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
@@ -74,12 +76,13 @@ class EquivariantNASNet(nn.Module):
 
         
         stem_args = self.blocks_args_list[0]
-        self.set_name()
-
+        
         # Get group spaces for specified rotations and flips
         group_id = get_group_id(stem_args.reflection, stem_args.group)
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
+
+        self.set_name()
 
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * num_channels
@@ -102,7 +105,7 @@ class EquivariantNASNet(nn.Module):
         )
         self.field_type = self._conv_stem.out_type
         self.prev_channel_size = stem_args.out_channel
-        image_size = int(math.ceil(image_size / stem_args.stride))
+        self.image_size = int(math.ceil(self.image_size / stem_args.stride))
 
         # Build blocks
         self._blocks = nn.ModuleDict({})
@@ -167,8 +170,8 @@ class EquivariantNASNet(nn.Module):
             raise NotImplementedError(f"This setting: {self.restrict_last.setting} is not implemented")
         # pooling
         if verbose > 3:
-            print("pooling image size: ", image_size)
-        #assert image_size[0] <= 8, "We don't want to pool too much, check num_blocks"
+            print("pooling image size: ", self.image_size)
+        #assert self.image_size <= 8, "We don't want to pool too much, check num_blocks"
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
 
         self.dropout = nn.Dropout(self.dropout_rate)
@@ -183,11 +186,9 @@ class EquivariantNASNet(nn.Module):
         # Stem
         x = self._conv_stem(x)
         # Blocks
-        for _, block in self._blocks:
-            for i, restrict_or_MBBlock in enumerate(block):
-            # if isinstance(restrict_or_MBBlock, Eq_NAS_Block):
-            #     print(f"Running block: {i}")
-                x = restrict_or_MBBlock(x)
+        for _, block in self._blocks.items():
+            for i, restrict_or_layer in enumerate(block):
+                x = restrict_or_layer(x)
 
         # Head
         if self.blocks_args_list[-1].kernel_size != 0:
@@ -209,24 +210,24 @@ class EquivariantNASNet(nn.Module):
         x = self.fc(x)
         return x
     
-    def create_block(self, block_args) -> nn.Module:
+    def create_block(self, block_args: BlockArgs) -> nn.Module:
         layers = nn.ModuleList([])
 
         # restriction
-        group_id = get_group_id(block_args.reflection, self.block_args.group)
+        group_id = get_group_id(block_args.reflection, block_args.group)
         restrict = Restriction_Group_or_CNN(self.field_type,group_id)
         layers.append(restrict)
         self.field_type = restrict.out_type
 
         # The first layer needs to take care of stride and filter size increase.
-        layers.append(self.create_conv_layer(restrict, block_args, image_size))
-        image_size = int(math.ceil(image_size / self.block_args.stride))
+        layers.append(self.create_conv_layer(restrict, block_args))
+        self.image_size = int(math.ceil(self.image_size / block_args.stride))
         
         # Add rest of layers
-        block_args = block_args._replace(stride=1)
+        block_args.stride = 1
         for _ in range(block_args.num_layers - 1):
             layers.append(
-                self.create_conv_layer(restrict, block_args, image_size)
+                self.create_conv_layer(restrict, block_args)
             )
 
         return layers
@@ -236,7 +237,6 @@ class EquivariantNASNet(nn.Module):
         self,
         restrict: nn.Module,
         block_args: BlockArgs,
-        image_size: int,
     )-> nn.Module:  
         setting = restrict.setting
         if setting in ["cnn", "switch"]:
@@ -244,7 +244,7 @@ class EquivariantNASNet(nn.Module):
             layer = NAS_layer(
                     in_channel_size=self.field_type,
                     block_args=block_args,
-                    image_size=image_size,
+                    image_size=self.image_size,
                     dropout_rate=self.dropout_rate,
                     expand_ratio=self.cnn_expand_ratio,
                 )
@@ -255,7 +255,7 @@ class EquivariantNASNet(nn.Module):
                     in_channel_size=self.prev_channel_size,
                     fixed_params=self.fixed_params, 
                     block_args=block_args, 
-                    image_size=image_size,
+                    image_size=self.image_size,
                     dropout_rate=self.dropout_rate,
                     expand_ratio=self.eq_expand_ratio,
                 )
@@ -268,8 +268,12 @@ class EquivariantNASNet(nn.Module):
     def set_name(self):
         model_name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args_list)-2}_\
             d{self.depth_coefficient}_w{self.width_coefficient}_\
-            r{self.image_size[0]}_drop{self.dropout_rate}"
-        scaling_name = get_scaling_name(self.blocks_args_list)
+            r{self.image_size}_drop{self.dropout_rate}"
+        scaling_name = get_scaling_name(
+            blocks_args_list=self.blocks_args_list,
+            width_coefficient=self.width_coefficient,
+            resolution=self.image_size,    
+        )
         self.name = {
             "model_name": model_name,
             "scaling_name": scaling_name,

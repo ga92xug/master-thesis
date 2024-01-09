@@ -1,9 +1,9 @@
 from typing import Dict
 
-from src.networks.eq_nasnet.block_args import BlockArgs
+from src.networks.eq_nasnet.block_args import BlockArgsList
 
 def get_scaling_name(
-        blocks_args: BlockArgs,
+        blocks_args_list: BlockArgsList,
         width_coefficient: float,
         resolution: int,
     ) -> str:
@@ -11,11 +11,11 @@ def get_scaling_name(
     Returns the scaling name for the given config.
     """
     # stem and head are not counted as blocks
-    num_blocks = len(blocks_args) - 2
+    num_blocks = len(blocks_args_list) - 2
 
     # depth
     num_layers_blocks = ""
-    for block_args in blocks_args[1:-1]:
+    for block_args in blocks_args_list[1:-1]:
         num_layers_block = block_args.num_layers
         num_layers_blocks += "-" + str(num_layers_block)
     # remove first "-"

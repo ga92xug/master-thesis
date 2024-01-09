@@ -18,11 +18,15 @@ log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 def print_config_tree(
     cfg: DictConfig,
     print_order: Sequence[str] = (
-        "data",
-        "model",
-        "callbacks",
-        "logger",
-        "trainer",
+        # "data",
+        # "model",
+        # "callbacks",
+        # "logger",
+        # "trainer",
+        # "paths",
+        # "extras",
+    ),
+    not_print: Sequence[str] = (
         "paths",
         "extras",
     ),
@@ -50,7 +54,7 @@ def print_config_tree(
 
     # add all the other fields to queue (not specified in `print_order`)
     for field in cfg:
-        if field not in queue:
+        if field not in queue and field not in not_print:
             queue.append(field)
 
     # generate config tree from queue

@@ -100,7 +100,7 @@ class Eq_NAS_layer(EquivariantModule):
         if block_args.conv_op == 'dconv' and intermedite_channel_size % len(in_type) != 0:
             # depthwise convolution only if no restriction
             # otherwise the input size is not divisible by the number of groups
-            block_args = block_args._replace(conv_op='conv')
+            block_args.conv_op = 'conv'
 
         groups = len(self._swish1.out_type) if block_args.conv_op in ['mbconv', 'dconv'] else 1
         self._conv1 = Eq_Conv2dSamePadding(
