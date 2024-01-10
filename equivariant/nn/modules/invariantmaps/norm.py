@@ -51,12 +51,12 @@ class NormPool(EquivariantModule):
             _out_indices[s] = torch.LongTensor([min(fields), max(fields) + 1])
 
             # register the indices tensors as parameters of this module
-            self.in_indices[s] = _in_indices[s].to(
-                f"cuda:{torch.cuda.current_device()}"
-            )
-            self.out_indices[s] = _out_indices[s].to(
-                f"cuda:{torch.cuda.current_device()}"
-            )
+            self.in_indices[s] = _in_indices[s]#.to(
+            #    f"cuda:{torch.cuda.current_device()}"
+            #)
+            self.out_indices[s] = _out_indices[s]#.to(
+            #    f"cuda:{torch.cuda.current_device()}"
+            #)
 
     def forward(self, input: GroupTensor) -> GroupTensor:
         r"""

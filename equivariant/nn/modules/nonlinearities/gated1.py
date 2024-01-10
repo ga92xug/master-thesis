@@ -158,13 +158,13 @@ class GatedNonLinearity1(EquivariantModule):
                 )
 
             # register the indices tensors as parameters of this module
-            self.input_indices[t] = _input_indices[t].to(
-                f"cuda:{torch.cuda.current_device()}"
-            )
+            self.input_indices[t] = _input_indices[t]#.to(
+            #    f"cuda:{torch.cuda.current_device()}"
+            #)
             if t != GATES_ID or not self.drop_gates:
-                self.output_indices[t] = _output_indices[t].to(
-                    f"cuda:{torch.cuda.current_device()}"
-                )
+                self.output_indices[t] = _output_indices[t]#.to(
+                #    f"cuda:{torch.cuda.current_device()}"
+                #)
 
         # gates need to be distinguished from gated fields
         _gates_indices = _input_indices.pop(GATES_ID)

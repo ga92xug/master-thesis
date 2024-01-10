@@ -49,7 +49,7 @@ class DisentangleModule(EquivariantModule):
             self._sizes[r.name] = r.size
             cob, reprs = disentangle(r)
             disentangled_representations[r.name] = reprs
-            _change_of_basis_matrices[r.name] = torch.FloatTensor(cob).cuda()
+            _change_of_basis_matrices[r.name] = torch.FloatTensor(cob) # .cuda()
             self.change_of_basis[r.name] = _change_of_basis_matrices[r.name]
 
         out_reprs = []
@@ -74,7 +74,7 @@ class DisentangleModule(EquivariantModule):
             fiber_indices = torch.LongTensor(
                 (min(fiber_indices), max(fiber_indices) + 1)
             )
-            self.fiber_indices[repr_name] = fiber_indices.cuda()
+            self.fiber_indices[repr_name] = fiber_indices #.cuda()
 
     def forward(self, input: GroupTensor) -> GroupTensor:
         assert input.type == self.in_type

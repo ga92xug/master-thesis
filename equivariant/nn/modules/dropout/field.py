@@ -85,9 +85,9 @@ class FieldDropout(EquivariantModule):
             )
 
             # register the indices tensors as parameters of this module
-            self.indices[s.size] = _indices[s.size].to(
-                f"cuda:{torch.cuda.current_device()}"
-            )
+            self.indices[s.size] = _indices[s.size]#.to(
+            #    f"cuda:{torch.cuda.current_device()}"
+            #)
 
         self._order = list(self.indices.keys())
 

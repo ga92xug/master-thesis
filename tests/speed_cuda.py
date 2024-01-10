@@ -15,7 +15,7 @@ from equivariant.nn import (
 )
 
 # Define the operations you want to benchmark
-def get_operations(operation_str: str, device: str):
+def get_operations(operation_str: str, device: str, num_forward_passes: int = 100):
     print(f"{device.upper()}: {operation_str}")
     rot=2
     in_channels=3
@@ -45,7 +45,8 @@ def get_operations(operation_str: str, device: str):
         operation = operation.cuda()
 
     # forward pass
-    operation(input)
+    for _ in range(num_forward_passes):
+        operation(input)
 
     return operation
 
@@ -67,15 +68,16 @@ def benchmark_operations():
 
         # CPU
         cpu_forward_timer = benchmark.Timer(
-            stmt='get_operations()',
+            stmt='get_operations(operation_str=name, device=device)',
             setup='from __main__ import get_operations',
             globals={"name": name, "device": "cpu"},
             label=name,
             description="cpu",
         )
 
+        #
+        #results.append(cpu_forward_timer.timeit(5))
         results.append(gpu_forward_timer.timeit(5))
-        #results.append(cpu_forward_timer.timeit(10))
         
     return results
 

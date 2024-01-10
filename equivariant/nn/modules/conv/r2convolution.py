@@ -272,7 +272,7 @@ class R2Conv(_RdConv):
             return GroupTensor(
                 torch.FloatTensor(
                     block_reduce(t.tensor.detach().numpy(), s, func=np.mean)
-                ).cuda(),
+                ), #.cuda(),
                 t.type,
             )
 

@@ -304,7 +304,7 @@ class BasisExpansion(torch.nn.Module):
         sampled_basis = sampled_basis[mask, ...]
 
         # register the bases tensors as parameters of this module
-        return sampled_basis.to(f"cuda:{torch.cuda.current_device()}")
+        return sampled_basis #.to(f"cuda:{torch.cuda.current_device()}")
 
     def _expand_blocks(
         self,
@@ -328,6 +328,9 @@ class BasisExpansion(torch.nn.Module):
             device=weights.device,
             dtype=torch.float32,
         )
+
+        # send to the device the sampled bases
+        sampled_bases = {k: v.to(weights.device) for k, v in sampled_bases.items()}
 
         # Iterate through all input-output field representations pairs
         for io_pair in reprs_pairs:

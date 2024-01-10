@@ -85,7 +85,7 @@ class NormNonLinearity(EquivariantModule):
             _indices[s] = torch.LongTensor([min(_indices[s]), max(_indices[s]) + 1])
 
             # register the indices tensors as parameters of this module
-            self.indices[s] = _indices[s].to(f"cuda:{torch.cuda.current_device()}")
+            self.indices[s] = _indices[s]#.to(f"cuda:{torch.cuda.current_device()}")
 
         if bias:
             # build a bias for each field
@@ -93,7 +93,7 @@ class NormNonLinearity(EquivariantModule):
                 torch.zeros(1, len(self.in_type), 1, 1, dtype=torch.float),
                 requires_grad=True,
             )
-            self.log_bias.data = self.log_bias.data.to(f"cuda:{torch.cuda.current_device()}")
+            self.log_bias.data = self.log_bias.data#.to(f"cuda:{torch.cuda.current_device()}")
         else:
             self.log_bias = None
 

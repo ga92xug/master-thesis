@@ -212,7 +212,7 @@ class PointwiseAvgPoolAntialiased(EquivariantModule):
             (in_type.size, 1, 1, 1)
         )
 
-        self.filter = _filter.to(f"cuda:{torch.cuda.current_device()}")
+        self.filter = _filter#.to(f"cuda:{torch.cuda.current_device()}")
 
         ################################################################################################################
 

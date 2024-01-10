@@ -141,12 +141,12 @@ class QuotientFourierPointwise(EquivariantModule):
         eps = 1e-8
         Ainv = np.linalg.inv(A.T @ A + eps * np.eye(self.rho.size)) @ A.T
 
-        self.A = torch.tensor(A, dtype=torch.get_default_dtype()).to(
-            f"cuda:{torch.cuda.current_device()}"
-        )
-        self.Ainv = torch.tensor(Ainv, dtype=torch.get_default_dtype()).to(
-            f"cuda:{torch.cuda.current_device()}"
-        )
+        self.A = torch.tensor(A, dtype=torch.get_default_dtype())#.to(
+        #    f"cuda:{torch.cuda.current_device()}"
+        #)
+        self.Ainv = torch.tensor(Ainv, dtype=torch.get_default_dtype())#.to(
+        #    f"cuda:{torch.cuda.current_device()}"
+        #)
 
     def forward(self, input: GroupTensor) -> GroupTensor:
         r"""

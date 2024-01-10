@@ -210,9 +210,9 @@ class _RdConv(EquivariantModule, ABC):
                         pi += irr.size
                     p += r.size
 
-                self.bias_expansion = bias_expansion.to(
-                    f"cuda:{torch.cuda.current_device()}"
-                )
+                self.bias_expansion = bias_expansion#.to(
+                #    f"cuda:{torch.cuda.current_device()}"
+                #)
                 self.bias = Parameter(torch.zeros(trivials), requires_grad=True)
                 self.expanded_bias = torch.zeros(out_type.size)
             else:
@@ -293,6 +293,8 @@ class _RdConv(EquivariantModule, ABC):
         if self.bias is None:
             _bias = None
         else:
+            # change back
+            #self.bias_expansion = self.bias_expansion.to(self.bias.device)
             _bias = self.bias_expansion @ self.bias
 
         return _filter, _bias
