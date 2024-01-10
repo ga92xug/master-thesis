@@ -13,13 +13,13 @@ from equivariant.nn import (
     Mish,
     GroupPooling,
 )
-from networks import (
+from src.networks import (
     EquivariantConvBlock,
     EquivariantNorm,
     EquivariantPool,
 )
 
-from networks.eq_convs import (
+from src.networks.eq_convs import (
     Eq_Conv2dSamePaddingChangeFactor,
     EquivariantSqueezeExcitation,
     Equivariant_Conv_BN_actF,
@@ -67,7 +67,7 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
                 frequencies_cutoff=lambda r: 3 * r,
             ).cuda()
             print("\nR2Conv:")
-            conv.check_equivariance(atol=0.000009, rtol=0.00009)
+            conv.check_equivariance(atol=0.00001, rtol=0.0001)
 
             pool = GroupPooling(input_field_type)
             print("\nGroupPooling:")

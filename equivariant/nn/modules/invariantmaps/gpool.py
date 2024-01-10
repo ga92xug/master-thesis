@@ -121,7 +121,7 @@ class GroupPooling(EquivariantModule):
         return (b, self.out_type.size, *spatial_shape)
 
     def check_equivariance(
-        self, atol: float = 1e-6, rtol: float = 1e-5
+        self, atol: float = 1e-6, rtol: float = 1e-5, verbose: bool = True
     ) -> List[Tuple[Any, float]]:
         c = self.in_type.size
 
@@ -137,9 +137,10 @@ class GroupPooling(EquivariantModule):
 
             errs = (out1.tensor - out2.tensor).detach().numpy()
             errs = np.abs(errs).reshape(-1)
-            print(
-                f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
-            )
+            if verbose:
+                print(
+                    f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
+                )
 
             assert torch.allclose(
                 out1.tensor, out2.tensor, atol=atol, rtol=rtol

@@ -101,9 +101,9 @@ class GroupNorm(EquivariantModule):
         return (b, self.out_type.size, *spatial_shape)
 
     def check_equivariance(
-        self, x: torch.Tensor = None, atol: float = 1e-6, rtol: float = 1e-5
+        self, x: torch.Tensor = None, atol: float = 1e-6, rtol: float = 1e-5, verbose: bool = True
     ) -> List[Tuple[Any, float]]:
-        return super(GroupNorm, self).check_equivariance(x=x, atol=atol, rtol=rtol)
+        return super(GroupNorm, self).check_equivariance(x=x, atol=atol, rtol=rtol, verbose=verbose)
 
     def __repr__(self):
         extra_lines = []

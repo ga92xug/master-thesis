@@ -74,7 +74,7 @@ class EquivariantModule(Module, ABC):
         pass
 
     def check_equivariance(
-        self, x: torch.Tensor = None, atol: float = 0.1, rtol: float = 0.1
+        self, x: torch.Tensor = None, atol: float = 0.1, rtol: float = 0.1, verbose=True
     ) -> List[Tuple[Any, float]]:
         r"""
 
@@ -102,9 +102,11 @@ class EquivariantModule(Module, ABC):
 
             errs = out1 - out2
             errs = np.abs(errs).reshape(-1)
-            print(
-                f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
-            )
+
+            if verbose:
+                print(
+                    f"Group {el}: err max: {errs.max()} - err mean: {errs.mean()} - err var: {errs.var()}"
+                )
 
             assert np.allclose(
                 out1, out2, atol=atol, rtol=rtol

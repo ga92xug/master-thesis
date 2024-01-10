@@ -4,7 +4,7 @@ from torch import nn
 import sys
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
-from networks.eq_other import EquivariantNorm, EquivariantPool
+from src.networks.eq_other import EquivariantNorm, EquivariantPool
 
 from equivariant.nn import (
     GroupTensor,
