@@ -5,9 +5,10 @@
 defaults:
   - default
 
-trainer:
-  max_epochs: 20
-  overfit_batches: 3
+training_setup:
+  trainer:
+    max_epochs: 20
+    overfit_batches: 3
 
-# model ckpt and early stopping need to be disabled during overfitting
-callbacks: null
+  # model ckpt and early stopping need to be disabled during overfitting
+  callbacks: null
