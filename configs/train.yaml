@@ -37,7 +37,7 @@ training_setup:
     max_epochs: 10
 
     # mixed precision for extra speed-up
-    precision: 32
+    # precision: 16
 
     # perform a validation loop every N training epochs
     check_val_every_n_epoch: 1
@@ -45,11 +45,12 @@ training_setup:
   dataset:
     test_as_valid: False  
     reduction_factor: 1
-    data:
-      data_dir: ${paths.data_dir}
-
+    
     workers: 8
     pin_memory: False
+
+    data:
+      data_dir: ${paths.data_dir}
 
 # task name, determines output directory path
 task_name: "train"
