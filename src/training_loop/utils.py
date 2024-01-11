@@ -18,13 +18,12 @@ def get_stats(
         net: torch.nn.Module, 
         batch_size: int, 
         num_channels: int, 
-        image_size: int
+        image_size: int,
     ) -> Tuple[float, float]:
-    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+    input_tensor = torch.randn(batch_size, num_channels, \
+            image_size, image_size).to(net.device)
 
     # FLOPS
-    input_tensor = torch.randn(batch_size, num_channels, \
-            image_size, image_size).to(device)
     flops = FlopCountAnalysis(net, (input_tensor,))
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
@@ -54,6 +53,7 @@ class ModelStats(Callback):
             self.is_nas = True
 
     def on_fit_start(self, trainer, pl_module):
+
         gflops_per_image, param_count = get_stats(
                 net=pl_module, 
                 batch_size=pl_module.hparams.dataset.batch_size, 
@@ -62,7 +62,7 @@ class ModelStats(Callback):
             )
         
         hparams = {
-            "net_building_time": pl_module.net_building_time,
+            #"net_building_time": pl_module.net_building_time,
             "param_count": param_count,
             "GFLOPs_per_image": gflops_per_image,
         }

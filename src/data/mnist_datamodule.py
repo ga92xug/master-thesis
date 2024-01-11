@@ -1,14 +1,21 @@
 from typing import Any, Dict, Optional, Tuple
 
-import hydra
-from omegaconf import DictConfig
 import torch
 from lightning import LightningDataModule
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split
+from torchvision.datasets import MNIST
+from torchvision.transforms import transforms
 
 
-class DataModule(LightningDataModule):
-    """`LightningDataModule`
+class MNISTDataModule(LightningDataModule):
+    """`LightningDataModule` for the MNIST dataset.
+
+    The MNIST database of handwritten digits has a training set of 60,000 examples, and a test set of 10,000 examples.
+    It is a subset of a larger set available from NIST. The digits have been size-normalized and centered in a
+    fixed-size image. The original black and white images from NIST were size normalized to fit in a 20x20 pixel box
+    while preserving their aspect ratio. The resulting images contain grey levels as a result of the anti-aliasing
+    technique used by the normalization algorithm. the images were centered in a 28x28 image by computing the center of
+    mass of the pixels, and translating the image so as to position this point at the center of the 28x28 field.
 
     A `LightningDataModule` implements 7 key methods:
 
@@ -47,59 +54,46 @@ class DataModule(LightningDataModule):
 
     def __init__(
         self,
-        data_cfg: DictConfig,
+        data_dir: str = "data/",
+        train_val_test_split: Tuple[int, int, int] = (55_000, 5_000, 10_000),
+        batch_size: int = 64,
+        num_workers: int = 0,
+        pin_memory: bool = False,
+        **kwargs: Any,
     ) -> None:
-        """Initialize a `DataModule`.
+        """Initialize a `MNISTDataModule`.
 
         :param data_dir: The data directory. Defaults to `"data/"`.
+        :param train_val_test_split: The train, validation and test split. Defaults to `(55_000, 5_000, 10_000)`.
+        :param batch_size: The batch size. Defaults to `64`.
+        :param num_workers: The number of workers. Defaults to `0`.
+        :param pin_memory: Whether to pin memory. Defaults to `False`.
         """
         super().__init__()
 
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
-        #print(self.hparams)
 
-        self.train_set: Optional[Dataset] = None
-        self.val_set: Optional[Dataset] = None
-        self.test_set: Optional[Dataset] = None
+        # data transformations
+        self.transforms = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
 
-        self.batch_size_per_device = data_cfg.batch_size
-        self.weights = None
+        self.data_train: Optional[Dataset] = None
+        self.data_val: Optional[Dataset] = None
+        self.data_test: Optional[Dataset] = None
+
+        self.batch_size_per_device = batch_size
+        
 
     @property
     def num_classes(self) -> int:
         """Get the number of classes.
-        """
-        return self.hparams.data_cfg.num_classes
 
-    @property
-    def num_channels(self) -> int:
-        """Get the number of classes.
+        :return: The number of MNIST classes (10).
         """
-        return self.hparams.data_cfg.num_channels
-
-    @property
-    def image_size(self) -> int:
-        """Get the image size in int (assumes square images).
-        """
-        return self.hparams.data_cfg.resolution
-    
-    @property
-    def normalization_weights(self) -> torch.Tensor:
-        """Returns the normalization weights for the loss function. \
-            If they are not yet computed a RuntimeError is raised.
-
-        :return: normalization weights 
-        """
-        if self.weights is None:
-            # if we don't want to use them return false
-            if not self.hparams.data_cfg.should_normalize_weights:
-                return False
-            else:
-                self.setup()
-        
-        return self.weights
+        return 10
 
     def prepare_data(self) -> None:
         """Download data if needed. Lightning ensures that `self.prepare_data()` is called only
@@ -109,8 +103,8 @@ class DataModule(LightningDataModule):
 
         Do not use it to assign state (self.x = y).
         """
-        # We download the data manually since not all datasets are supported by torchvision.
-        pass
+        MNIST(self.hparams.data_dir, train=True, download=True)
+        MNIST(self.hparams.data_dir, train=False, download=True)
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Load data. Set variables: `self.data_train`, `self.data_val`, `self.data_test`.
@@ -124,27 +118,22 @@ class DataModule(LightningDataModule):
         """
         # Divide batch size by the number of devices.
         if self.trainer is not None:
-            if self.hparams.data_cfg.batch_size % self.trainer.world_size != 0:
+            if self.hparams.batch_size % self.trainer.world_size != 0:
                 raise RuntimeError(
-                    f"Batch size ({self.hparams.data_cfg.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
+                    f"Batch size ({self.hparams.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
                 )
-            self.batch_size_per_device = self.hparams.data_cfg.batch_size // self.trainer.world_size
+            self.batch_size_per_device = self.hparams.batch_size // self.trainer.world_size
 
         # load and split datasets only if not loaded already
-        if not self.train_set and not self.val_set and not self.test_set:
-            datasets, self.weights, self.dataloader_kwargs = hydra.utils.instantiate(
-                self.hparams.data_cfg,
+        if not self.data_train and not self.data_val and not self.data_test:
+            trainset = MNIST(self.hparams.data_dir, train=True, transform=self.transforms)
+            testset = MNIST(self.hparams.data_dir, train=False, transform=self.transforms)
+            dataset = ConcatDataset(datasets=[trainset, testset])
+            self.data_train, self.data_val, self.data_test = random_split(
+                dataset=dataset,
+                lengths=self.hparams.train_val_test_split,
+                generator=torch.Generator().manual_seed(42),
             )
-
-            self.train_set = datasets["train"]
-            self.val_set = datasets["valid"]
-            self.test_set = datasets["test"]
-
-            if self.hparams.data_cfg.test_as_valid:
-                # swap val_loader and test_loader to test generalization early
-                self.val_set, self.test_set = self.test_set, self.val_set
-        else:
-            print("Datasets already loaded!")
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create and return the train dataloader.
@@ -152,13 +141,11 @@ class DataModule(LightningDataModule):
         :return: The train dataloader.
         """
         return DataLoader(
-            dataset=self.train_set,
+            dataset=self.data_train,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.data_cfg.workers,
-            pin_memory=self.hparams.data_cfg.pin_memory,
-            persistent_workers=self.hparams.data_cfg.persistent_workers,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
             shuffle=True,
-            **self.dataloader_kwargs.get("train", {}),
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
@@ -167,17 +154,12 @@ class DataModule(LightningDataModule):
         :return: The validation dataloader.
         """
         return DataLoader(
-            dataset=self.val_set,
+            dataset=self.data_val,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.data_cfg.workers,
-            pin_memory=self.hparams.data_cfg.pin_memory,
-            persistent_workers=self.hparams.data_cfg.persistent_workers,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
             shuffle=False,
-            **self.dataloader_kwargs.get("valid", {}),
         )
-
-
-        return val
 
     def test_dataloader(self) -> DataLoader[Any]:
         """Create and return the test dataloader.
@@ -185,12 +167,11 @@ class DataModule(LightningDataModule):
         :return: The test dataloader.
         """
         return DataLoader(
-            dataset=self.test_set,
+            dataset=self.data_test,
             batch_size=self.batch_size_per_device,
-            num_workers=self.hparams.data_cfg.workers,
-            pin_memory=self.hparams.data_cfg.pin_memory,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
             shuffle=False,
-            **self.dataloader_kwargs.get("test", {}),
         )
 
     def teardown(self, stage: Optional[str] = None) -> None:
@@ -218,3 +199,5 @@ class DataModule(LightningDataModule):
         pass
 
 
+if __name__ == "__main__":
+    _ = MNISTDataModule()

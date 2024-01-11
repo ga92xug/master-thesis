@@ -78,14 +78,13 @@ class LitModule(LightningModule):
         self.net = self.get_model()
 
         # Optimizer and scheduler
-        if self.net is None:
-            self.optimizer = None
-            self.scheduler = None
-        else:
-            self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
+        self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
+        if scheduler is not None:
             self.scheduler_metric = scheduler.get("metric", None)
             del scheduler.metric
             self.scheduler = hydra.utils.instantiate(scheduler, optimizer=self.optimizer)
+        else:
+            self.scheduler = None
 
         self.train_metrics = self.create_metrics_collection()
         self.valid_metrics = self.create_metrics_collection()

@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import hydra
 import lightning as L
+from lightning.pytorch.strategies import DDPStrategy
 import rootutils
 import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
@@ -63,10 +64,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         L.seed_everything(cfg.seed, workers=True)
 
     #log.info(f"Instantiating datamodule <{cfg.training_setup.data._target_}>")
-    #datamodule: LightningDataModule = hydra.utils.instantiate(cfg.training_setup.data)
+    #datamodule: LightningDataModule = hydra.utils.instantiate(cfg.training_setup.dataset)
     datamodule: LightningDataModule = DataModule(cfg.training_setup.dataset)
 
-    log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
+    #log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
     model: LightningModule = hydra.utils.instantiate(
         cfg.training_setup,
         _recursive_=False,
@@ -119,6 +120,18 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         if ckpt_path == "":
             log.warning("Best ckpt not found! Using current weights for testing...")
             ckpt_path = None
+
+        if isinstance(trainer.strategy, DDPStrategy):
+            # set number of devices and nodes to 1 for testing
+            trainer = hydra.utils.instantiate(
+                cfg.hardware, 
+                **cfg.training_setup.trainer,
+                callbacks=None, 
+                logger=logger,
+                num_nodes=1,
+                devices=1,
+                strategy="auto"
+            )   
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
         log.info(f"Best ckpt path: {ckpt_path}")
 

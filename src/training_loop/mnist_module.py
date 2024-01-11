@@ -1,4 +1,5 @@
 from typing import Any, Dict, Tuple
+import hydra
 
 import torch
 from lightning import LightningModule
@@ -45,6 +46,7 @@ class MNISTLitModule(LightningModule):
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler,
         compile: bool,
+        **kwargs: Any,
     ) -> None:
         """Initialize a `MNISTLitModule`.
 
@@ -57,8 +59,22 @@ class MNISTLitModule(LightningModule):
         # this line allows to access init params with 'self.hparams' attribute
         # also ensures init params will be stored in ckpt
         self.save_hyperparameters(logger=False)
+        self.net = hydra.utils.instantiate(net)
 
-        self.net = net
+        # Optimizer and scheduler
+        
+        self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
+        if scheduler is not None:
+            self.scheduler_metric = scheduler.get("metric", None)
+            del scheduler.metric
+            self.scheduler = hydra.utils.instantiate(scheduler, optimizer=self.optimizer)
+        else:
+            self.scheduler = None
+
+
+        print(self.hparams)
+
+        #self.net = net
 
         # loss function
         self.criterion = torch.nn.CrossEntropyLoss()
@@ -147,8 +163,8 @@ class MNISTLitModule(LightningModule):
         # update and log metrics
         self.val_loss(loss)
         self.val_acc(preds, targets)
-        self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("val/acc", self.val_acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("valid/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log("valid/acc", self.val_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
@@ -198,6 +214,18 @@ class MNISTLitModule(LightningModule):
 
         :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
         """
+        if self.scheduler is not None:
+            return {
+                "optimizer": self.optimizer,
+                "lr_scheduler": {
+                    "scheduler": self.scheduler,
+                    "monitor": self.scheduler_metric,
+                    "interval": "epoch",
+                    "frequency": 1,
+                },
+            }
+        return {"optimizer": self.optimizer}
+
         optimizer = self.hparams.optimizer(params=self.trainer.model.parameters())
         if self.hparams.scheduler is not None:
             scheduler = self.hparams.scheduler(optimizer=optimizer)

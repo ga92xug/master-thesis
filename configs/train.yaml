@@ -45,6 +45,7 @@ training_setup:
     
     workers: 8
     pin_memory: False
+    persistent_workers: True
 
     data:
       data_dir: ${paths.data_dir}
