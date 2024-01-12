@@ -8,7 +8,7 @@ import os
 import sys
 sys.path.append(f"{os.getcwd()}")
 
-from networks.compare_models.vision_transformer import vit_b_16
+from src.networks.compare_models.vision_transformer import vit_b_16
 
 def pretrained_weights(pretrained: bool):    
     if pretrained:

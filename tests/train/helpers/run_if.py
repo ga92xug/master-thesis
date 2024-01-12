@@ -12,7 +12,7 @@ from packaging.version import Version
 from pkg_resources import get_distribution
 from pytest import MarkDecorator
 
-from tests.helpers.package_available import (
+from tests.train.helpers.package_available import (
     _COMET_AVAILABLE,
     _DEEPSPEED_AVAILABLE,
     _FAIRSCALE_AVAILABLE,

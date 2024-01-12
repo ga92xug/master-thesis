@@ -1,6 +1,7 @@
 """This file prepares config fixtures for other tests."""
 
 from pathlib import Path
+from typing import List
 
 import pytest
 import rootutils
@@ -15,26 +16,25 @@ def cfg_train_global() -> DictConfig:
 
     :return: A DictConfig object containing a default Hydra configuration for training.
     """
-    with initialize(version_base="1.3", config_path="../configs"):
+    with initialize(version_base="1.3", config_path="../../configs"):
         cfg = compose(config_name="train.yaml", return_hydra_config=True, overrides=[])
 
         # set defaults for all tests
         with open_dict(cfg):
-            cfg.paths.root_dir = str(rootutils.find_root(indicator=".project-root"))
-            cfg.trainer.max_epochs = 1
-            cfg.trainer.limit_train_batches = 0.01
-            cfg.trainer.limit_val_batches = 0.1
-            cfg.trainer.limit_test_batches = 0.1
-            cfg.trainer.accelerator = "cpu"
-            cfg.trainer.devices = 1
-            cfg.data.num_workers = 0
-            cfg.data.pin_memory = False
+            cfg.paths.root_dir = str(rootutils.find_root(indicator=".git"))
+            cfg.training_setup.trainer.max_epochs = 1
+            cfg.training_setup.trainer.limit_train_batches = 0.01
+            cfg.training_setup.trainer.limit_val_batches = 0.1
+            cfg.training_setup.trainer.limit_test_batches = 0.1
+            cfg.hardware.accelerator = "cpu"
+            cfg.hardware.devices = 1
+            cfg.training_setup.dataset.num_workers = 0
+            cfg.training_setup.dataset.pin_memory = False
             cfg.extras.print_config = False
             cfg.extras.enforce_tags = False
             cfg.logger = None
 
     return cfg
-
 
 @pytest.fixture(scope="package")
 def cfg_eval_global() -> DictConfig:
@@ -42,7 +42,7 @@ def cfg_eval_global() -> DictConfig:
 
     :return: A DictConfig containing a default Hydra configuration for evaluation.
     """
-    with initialize(version_base="1.3", config_path="../configs"):
+    with initialize(version_base="1.3", config_path="../../configs"):
         cfg = compose(config_name="eval.yaml", return_hydra_config=True, overrides=["ckpt_path=."])
 
         # set defaults for all tests
@@ -82,7 +82,6 @@ def cfg_train(cfg_train_global: DictConfig, tmp_path: Path) -> DictConfig:
     yield cfg
 
     GlobalHydra.instance().clear()
-
 
 @pytest.fixture(scope="function")
 def cfg_eval(cfg_eval_global: DictConfig, tmp_path: Path) -> DictConfig:

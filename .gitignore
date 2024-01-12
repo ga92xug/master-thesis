@@ -7,6 +7,7 @@ output/
 logs/
 scaling/figures*
 notebooks/
+/data/
 
 # SLURM
 *.sbatch

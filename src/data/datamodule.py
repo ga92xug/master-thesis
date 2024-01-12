@@ -176,9 +176,6 @@ class DataModule(LightningDataModule):
             **self.dataloader_kwargs.get("valid", {}),
         )
 
-
-        return val
-
     def test_dataloader(self) -> DataLoader[Any]:
         """Create and return the test dataloader.
 
