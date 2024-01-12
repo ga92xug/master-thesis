@@ -68,6 +68,9 @@ test: True
 # simply provide checkpoint path to resume training
 ckpt_path: null
 
+# eval only
+eval_only: False
+
 # seed for random number generators in pytorch, numpy and python.random
 seed: 0
 

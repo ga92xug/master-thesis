@@ -3,19 +3,14 @@ import torch
 from typing import List, Tuple
 import torch
 import torch.nn as nn
-#import foolbox as fb
-#from torchattacks import PGD
-#from robustbench.utils import clean_accuracy
 import time
 import sys
 import os
+from lightning.pytorch.loggers import Logger
+from src.adversarial_attack.attack_options.autoattack_option import run_autoattack
+from src.adversarial_attack.attack_options.foolbox_option import foolbox_attack
 
-sys.path.append(f"{os.getcwd()}")
-from experiments.d_application.adversarial_attack.attack_options.autoattack_option import run_autoattack
-from experiments.d_application.adversarial_attack.attack_options.foolbox_option import foolbox_attack
-from training.logger import Custom_Logger
-from training import utils
-from src.training_loop.utils import hydra_compose 
+#from src.training_loop.utils import hydra_compose 
 
 
 def adversarial_attack(
@@ -23,12 +18,10 @@ def adversarial_attack(
         model: nn.Module,
         dataloader: torch.utils.data.DataLoader,
         cfg: DictConfig,
-        device: torch.device,
-        logger: Custom_Logger = None,
+        logger: List[Logger],
     ): 
-    if logger is not None:
-        message = f"-"*50 + "\nAdversarial Attack"
-        logger.print_verbose_check(0, message)
+
+    device = model.device
 
     mean = torch.tensor(cfg.training.dataset.channel_wise_mean_images).to(device)
     std = torch.tensor(cfg.training.dataset.channel_wise_std_images).to(device)

@@ -41,10 +41,10 @@ from ax.modelbridge.registry import Models
 from evaluate import evaluate
 
 # Local
-from runner_service import HydraWandbRunner
-from search_space_service import Search_Space
+from scripts.b_NAS.runner import HydraWandbRunner
+from scripts.b_NAS.search_space import Search_Space
 from fetch_trial_data import TrialDataFetcher
-from util import init_wandb, get_largest_saved_version_ax_client
+from scripts.b_NAS.utils import init_wandb, get_largest_saved_version_ax_client
 
 
 def warm_start(old_client_name: str, new_client: AxClient, max_building_time: int = None, initial: bool = False):

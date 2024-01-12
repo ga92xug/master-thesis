@@ -10,6 +10,7 @@ from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 
 import os
+from src.adversarial_attack.adversarial_attack import adversarial_attack
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
@@ -48,23 +49,7 @@ from src.logger import (
 log = RankedLogger(__name__, rank_zero_only=True)
 
 
-@task_wrapper
-def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
-    training.
-
-    This method is wrapped in optional @task_wrapper decorator, that controls the behavior during
-    failure. Useful for multiruns, saving info about the crash, etc.
-
-    :param cfg: A DictConfig configuration composed by Hydra.
-    :return: A tuple with metrics and dict with all instantiated objects.
-    """
-    # set seed for random number generators in pytorch, numpy and python.random
-    if cfg.get("seed"):
-        L.seed_everything(cfg.seed, workers=True)
-
-    #log.info(f"Instantiating datamodule <{cfg.training_setup.data._target_}>")
-    #datamodule: LightningDataModule = hydra.utils.instantiate(cfg.training_setup.dataset)
+def instantiate(cfg: DictConfig):
     datamodule: LightningDataModule = DataModule(cfg.training_setup.dataset)
 
     #log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
@@ -95,6 +80,26 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         logger=logger
     )
 
+    return datamodule, model, callbacks, logger, trainer
+
+
+@task_wrapper
+def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
+    training.
+
+    This method is wrapped in optional @task_wrapper decorator, that controls the behavior during
+    failure. Useful for multiruns, saving info about the crash, etc.
+
+    :param cfg: A DictConfig configuration composed by Hydra.
+    :return: A tuple with metrics and dict with all instantiated objects.
+    """
+    # set seed for random number generators in pytorch, numpy and python.random
+    if cfg.get("seed"):
+        L.seed_everything(cfg.seed, workers=True)
+
+    datamodule, model, callbacks, logger, trainer = instantiate(cfg)
+
     object_dict = {
         "cfg": cfg,
         "datamodule": datamodule,
@@ -109,6 +114,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         log_hyperparameters(object_dict)
 
     if cfg.get("train"):
+        assert not cfg.get("eval_only", False), "No training in eval only mode"
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
 
@@ -116,7 +122,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("test"):
         log.info("Starting testing!")
-        ckpt_path = trainer.checkpoint_callback.best_model_path
+        if cfg.get("eval_only"):
+            ckpt_path = cfg.get("ckpt_path")
+        else:
+            ckpt_path = trainer.checkpoint_callback.best_model_path
         if ckpt_path == "":
             log.warning("Best ckpt not found! Using current weights for testing...")
             ckpt_path = None
@@ -136,6 +145,17 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         log.info(f"Best ckpt path: {ckpt_path}")
 
     test_metrics = trainer.callback_metrics
+
+    if cfg.get("adversarial_attack", False):
+        log.info("Start adversarial attack")
+        adversarial_attack(
+            mode=cfg.adversarial_attack,
+            model=model.net,
+            dataloader=datamodule.test_dataloader,
+            cfg=cfg,
+            logger=logger,
+        )
+
 
     # merge train and test metrics
     metric_dict = {**train_metrics, **test_metrics}

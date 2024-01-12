@@ -7,8 +7,8 @@ import torch
 import sys
 import os
 
-sys.path.append(f"{os.getcwd()}")
-from training import utils
+#sys.path.append(f"{os.getcwd()}")
+#from training import utils
 
 def model_eval_mode(model: torch.nn.Module):
     print(model.__class__.__name__)
@@ -42,7 +42,7 @@ def foolbox_attack(
 
     results = {}
     #model = model.eval()
-    #model_eval_mode(model)
+    model_eval_mode(model)
 
     fmodel = fb.PyTorchModel(
         model=model, 
