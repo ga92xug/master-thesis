@@ -1,6 +1,0 @@
-_target_: torch.optim.lr_scheduler.ReduceLROnPlateau
-metric: valid.acc
-mode: max
-factor: 0.1  # pytorch default
-patience: 10 # pytorch default
-verbose: False

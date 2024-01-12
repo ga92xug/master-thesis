@@ -1,4 +1,0 @@
-_target_: torch.optim.SGD
-momentum: 0.9                 # Momentum for SGD optimizer (if used)
-nesterov: True                # Use Nesterov momentum for SGD optimizer (if used)
-dampening: 0                  # Dampening for momentum (if used)

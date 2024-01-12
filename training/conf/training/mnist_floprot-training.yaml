@@ -1,4 +1,0 @@
-defaults:
-- mnist-general
-data:
-  name: mnist_fliprot
