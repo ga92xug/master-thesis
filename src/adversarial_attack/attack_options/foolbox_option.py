@@ -18,6 +18,7 @@ def model_eval_mode(model: torch.nn.Module):
         # basis expansion is performed in the forward pass which slows down attack
         # but otherwise the gradients are not available (check equivariant code)
         model.train()
+        #model = model.eval()
         for name, module in model.named_modules():
             if "dropout" in name:
                 module.p = 0.0
@@ -78,7 +79,9 @@ def foolbox_attack(
 
 
         for i, out_dataloader in enumerate(dataloader):
-            images, labels, _ = utils.get_out_dataloader(out_dataloader, device)
+            images, labels = out_dataloader
+            images = images.to(device)
+            labels = labels.to(device)
             # denormalize for attack
             images = images * std[:, None, None] + mean[:, None, None]
 

@@ -74,4 +74,5 @@ eval_only: False
 # seed for random number generators in pytorch, numpy and python.random
 seed: 0
 
-
+# adversarial training
+adversarial_attack: False # Foolbox

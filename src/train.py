@@ -10,7 +10,6 @@ from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 
 import os
-from src.adversarial_attack.adversarial_attack import adversarial_attack
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
@@ -45,6 +44,8 @@ from src.utils import (
 from src.logger import (
     instantiate_loggers
 )
+
+from src.adversarial_attack.adversarial_attack import adversarial_attack
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
@@ -148,10 +149,11 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("adversarial_attack", False):
         log.info("Start adversarial attack")
+        datamodule.setup()
         adversarial_attack(
             mode=cfg.adversarial_attack,
             model=model.net,
-            dataloader=datamodule.test_dataloader,
+            dataloader=datamodule.test_dataloader(),
             cfg=cfg,
             logger=logger,
         )

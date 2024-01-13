@@ -9,7 +9,7 @@ import time
 from autoattack import AutoAttack
 
 sys.path.append(f"{os.getcwd()}")
-from training import utils
+#from training import utils
 
 
 def run_autoattack(
@@ -61,7 +61,8 @@ def preprocess_images(
     list_images = []
     list_labels = []
     for i, out_dataloader in enumerate(dataloader):
-        images, labels, meta_data = utils.get_out_dataloader(out_dataloader, device)
+        images, labels = next(out_dataloader)
+        #images, labels, meta_data = utils.get_out_dataloader(out_dataloader, device)
         if normalize:
             images = images * std[:, None, None] + mean[:, None, None]
         list_images.append(images)

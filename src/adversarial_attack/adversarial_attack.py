@@ -21,10 +21,12 @@ def adversarial_attack(
         logger: List[Logger],
     ): 
 
-    device = model.device
+    if cfg.hardware.accelerator == "gpu":
+        device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+        model = model.to(device)
 
-    mean = torch.tensor(cfg.training.dataset.channel_wise_mean_images).to(device)
-    std = torch.tensor(cfg.training.dataset.channel_wise_std_images).to(device)
+    mean = torch.tensor(cfg.training_setup.dataset.channel_wise_mean_images).to(device)
+    std = torch.tensor(cfg.training_setup.dataset.channel_wise_std_images).to(device)
 
     # get results
     if mode == "AutoAttack":
