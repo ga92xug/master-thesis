@@ -1,6 +1,8 @@
 # individual stuff 
 imgs/
 figures/
+environment_from_framework.yaml
+spec-file.txt
 #notebooks/
 
 # Byte-compiled / optimized / DLL files

@@ -7,7 +7,7 @@ import time
 import sys
 import os
 from lightning.pytorch.loggers import Logger
-from src.adversarial_attack.attack_options.autoattack_option import run_autoattack
+#from src.adversarial_attack.attack_options.autoattack_option import run_autoattack
 from src.adversarial_attack.attack_options.foolbox_option import foolbox_attack
 
 #from src.training_loop.utils import hydra_compose 

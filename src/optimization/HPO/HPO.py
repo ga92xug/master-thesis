@@ -6,8 +6,7 @@ from ray import tune
 import os
 import sys
 sys.path.append(f"{os.getcwd()}")
-from experiments.d_application.HPO.ray_connection import run_HPO
-
+from src.optimization.HPO.ray_connection import run_HPO
 
 def epochs_based_on_initial_and_reduction_factor(
         initial_epochs: int, 

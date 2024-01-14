@@ -6,7 +6,7 @@ import sys
 import os
 import re
 import time
-from autoattack import AutoAttack
+#from autoattack import AutoAttack
 
 sys.path.append(f"{os.getcwd()}")
 #from training import utils
