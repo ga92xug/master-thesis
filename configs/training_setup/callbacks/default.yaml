@@ -5,6 +5,7 @@ defaults:
   - rich_progress_bar
   - model_stats
   - log_code
+  - ema
   - _self_
 
 model_checkpoint:

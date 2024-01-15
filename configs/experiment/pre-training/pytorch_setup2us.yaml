@@ -17,13 +17,6 @@
   ra_sampler=True,
   ra_reps=4,
 
-
-  # EMA configuration
-  model_ema=True, 
-  model_ema_steps=32, 
-  model_ema_decay=0.99998, 
-
-
   # Resizing
   interpolation='bilinear', 
   val_resize_size=232, 
@@ -41,6 +34,7 @@ defaults:
   - override training_setup/network: eq_nasnet
   - override training_setup/optimizer: SGD
   - override training_setup/scheduler: 
+  #- override training_setup/callbacks: default 
 
 tags: ["pre-train_imagenet"]
 
@@ -68,3 +62,5 @@ hardware:
   num_nodes: 1
   sync_batchnorm: True
 
+
+#callbacks:

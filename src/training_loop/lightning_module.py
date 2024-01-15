@@ -16,6 +16,7 @@ from torchmetrics.classification.accuracy import (
 )
 
 from src._callbacks.model_stats import get_stats, timeout_handler
+from src.utils.scheduler import get_optim_and_scheduler
 
 
 class LitModule(LightningModule):
@@ -78,13 +79,9 @@ class LitModule(LightningModule):
         self.net = self.get_model()
 
         # Optimizer and scheduler
-        self.optimizer = hydra.utils.instantiate(optimizer, params=self.net.parameters())
-        if scheduler is not None:
-            self.scheduler_metric = scheduler.get("metric", None)
-            del scheduler.metric
-            self.scheduler = hydra.utils.instantiate(scheduler, optimizer=self.optimizer)
-        else:
-            self.scheduler = None
+        self.optimizer, self.scheduler, self.scheduler_metric = get_optim_and_scheduler(
+            self.net, optimizer, scheduler, kwargs["trainer"]["max_epochs"]
+        )
 
         self.train_metrics = self.create_metrics_collection()
         self.valid_metrics = self.create_metrics_collection()
