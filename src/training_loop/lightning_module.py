@@ -15,7 +15,7 @@ from torchmetrics.classification.accuracy import (
     BinaryAccuracy
 )
 
-from src.training_loop.utils import get_stats, timeout_handler
+from src._callbacks.model_stats import get_stats, timeout_handler
 
 
 class LitModule(LightningModule):

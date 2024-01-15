@@ -17,34 +17,20 @@ import logging
 from ax.utils.common.logger import ROOT_STREAM_HANDLER
 ROOT_STREAM_HANDLER.setLevel(logging.ERROR)
 
-#from ax import save, load
-from ax.core import Experiment, Data
-# Objective
-from ax.core import MultiObjective, Objective, ObjectiveThreshold
-from ax.core.optimization_config import MultiObjectiveOptimizationConfig
 # Generation Strategy
-from ax.modelbridge.dispatch_utils import choose_generation_strategy
 from ax.modelbridge.generation_strategy import GenerationStep, GenerationStrategy
 # Visualize
-from ax.plot.pareto_utils import compute_posterior_pareto_frontier
-from ax.plot.contour import plot_contour_plotly
-from ax.plot.pareto_frontier import plot_pareto_frontier
 from ax.service.utils.report_utils import exp_to_df
-from ax.plot.contour import interact_contour_plotly
-from ax.modelbridge.cross_validation import compute_diagnostics, cross_validate
 # check difference between the 2
-from ax.plot.diagnostic import interact_cross_validation_plotly
-from ax.plot.pareto_frontier import scatter_plot_with_pareto_frontier_plotly
-from ax.service.utils.report_utils import _pareto_frontier_scatter_2d_plotly
 # Models
 from ax.modelbridge.registry import Models
 from evaluate import evaluate
 
 # Local
-from scripts.b_NAS.runner import HydraWandbRunner
-from scripts.b_NAS.search_space import Search_Space
-from fetch_trial_data import TrialDataFetcher
-from scripts.b_NAS.utils import init_wandb, get_largest_saved_version_ax_client
+from src.optimization.nas.runner import HydraWandbRunner
+from src.optimization.nas.search_space import Search_Space
+from src.optimization.nas.fetch_trial_data import TrialDataFetcher
+from src.optimization.nas.utils import init_wandb, get_largest_saved_version_ax_client
 
 
 def warm_start(old_client_name: str, new_client: AxClient, max_building_time: int = None, initial: bool = False):

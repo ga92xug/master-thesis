@@ -68,7 +68,7 @@ class ModelStats(Callback):
         }
 
         for logger in trainer.loggers:
-            logger.log_hyperparams({"param_count": param_count})
+            logger.log_hyperparams(hparams)
 
         if self.is_nas and gflops_per_image > self.max_gflops:
             raise ValueError(f"GFLOPs {gflops_per_image} exceeds maximum allowed \
