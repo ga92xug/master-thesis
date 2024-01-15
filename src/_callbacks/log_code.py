@@ -1,8 +1,10 @@
-from typing import List, Tuple
+import os
+from typing import Callable, List, Optional, Tuple, Union
 from lightning import Callback
 from lightning.pytorch.loggers import WandbLogger
 import wandb
 from omegaconf import DictConfig
+from wandb.sdk.lib import filenames
 
 
 class Log_Code(Callback):
@@ -10,9 +12,10 @@ class Log_Code(Callback):
         super().__init__()
 
     def on_fit_start(self, trainer, pl_module):
-        #for logger in trainer.loggers:
-        #    if isinstance(logger, WandbLogger):
-        #        pass
-        wandb.run.log_code(".")
-
+        wandb.run.log_code(
+            root=".", 
+            include_fn=lambda path: path.endswith(".py") or 
+                path.endswith(".yaml"),
+            exclude_fn=lambda path: False,
+        )
         return
