@@ -5,7 +5,7 @@ defaults:
 - dataset/predefined@dataset: cifar10
 - network: efficientnet
 - optimizer: Adam
-- scheduler: reduce_lr_on_plateau 
+#- scheduler: null 
 
 _target_: src.training_loop.lightning_module.LitModule
 compile: false
@@ -13,6 +13,12 @@ compile: false
 optimizer:
   lr: 0.005
   weight_decay: 1e-5
+
+scheduler: null
+#  metric: valid/acc
+#  mode: max
+#  factor: 0.1
+#  patience: 10
 
 callbacks:
   model_checkpoint:
@@ -26,10 +32,6 @@ callbacks:
     patience: 100
     mode: "max"
 
-scheduler:
-  metric: valid/acc
-  mode: max
-  factor: 0.1
-  patience: 10
+
 
 

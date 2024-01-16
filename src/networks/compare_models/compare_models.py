@@ -2,6 +2,8 @@ import torch
 from typing import Any, Optional
 import warnings
 from torchvision import models
+from torchvision.models._api import WeightsEnum
+from torch.hub import load_state_dict_from_url
 warnings.filterwarnings("ignore", message="pytorch_quantization module")
 
 import os
@@ -25,16 +27,19 @@ class EfficientNet(torch.nn.Module):
 
     def __init__(self, num_classes, pretrained=True, size="b0", **kwargs):
         super().__init__()
-        if size == "b0":
+        if size == "b0" and False:
             model_name='nvidia_efficientnet_' + size
             self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', model_name, pretrained=pretrained)
             # Modify the last fully connected layer to have num_classes outputs
             in_features = self.model.classifier[3].in_features  # The 'fc' layer is the 4th layer in 'classifier', so its index is 3
             self.model.classifier[3] = torch.nn.Linear(in_features, num_classes)
         else:
-            if pretrained:
-
-                raise NotImplementedError("Pretrained EfficientNet models are not available in torchvision, at the moment get invalid hash value")
+            # issue with hash of pretrained weights
+            # https://github.com/mrdbourke/pytorch-deep-learning/issues/696#issuecomment-1776124098
+            def get_state_dict(self, *args, **kwargs):
+                kwargs.pop("check_hash")
+                return load_state_dict_from_url(self.url, *args, **kwargs)
+            WeightsEnum.get_state_dict = get_state_dict
 
             self.model = getattr(models, f"efficientnet_{size}")(weights=pretrained_weights(pretrained))
             # Modify the last fully connected layer to have num_classes outputs
