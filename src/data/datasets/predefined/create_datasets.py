@@ -22,8 +22,8 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 
-from src.data.datasets.utils import get_normalize_weights
-from src.data.datasets.predefined.autoaugment import CIFAR10Policy, Cutout
+from src.data.datasets.utils import get_normalize_weights, get_transforms
+from src.data.datasets.transforms.autoaugment import CIFAR10Policy, Cutout
 
 def create_datasets(
     # data
@@ -49,24 +49,17 @@ def create_datasets(
 
     data_dir = kwargs["data"]["data_dir"]
     
-    assert name in ["cifar10", "cifar100", "stl10"], "Unknown dataset name."
+    assert name in ["cifar10", "cifar100", "stl10", "mnist"], "Unknown dataset name."
 
     location = data_dir + name + "/"
-    
+
     # Define the transformations
-    # train_transform, valid_transform = get_transforms(
-    #     resolution=resolution, 
-    #     augment=augment, 
-    #     channel_wise_mean_images=channel_wise_mean_images, 
-    #     channel_wise_std_images=channel_wise_std_images,
-    #     verbose=1,
-    # )
     train_transform, valid_transform = get_transforms(
-        name=name,
+        resolution=resolution, 
+        augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images,
-        augment=augment,
-        rotation=False,
+        verbose=1,
     )
 
     dataset_class = getattr(datasets, name.upper())
@@ -129,7 +122,7 @@ class Subset_Transform_Dataset(Dataset):
         return len(self.subset)
 
 
-def get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment=False, rotation=False):
+def old_get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment=False, rotation=False):
     # define transforms
     normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
 

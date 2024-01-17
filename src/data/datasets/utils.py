@@ -12,7 +12,7 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
-from src.data.datasets.transforms import own_transforms
+from src.data.datasets.transforms import own_transforms, autoaugment
 
 def get_normalize_weights(
         labels: Union[List, np.ndarray],
@@ -37,9 +37,9 @@ def get_normalize_weights(
 def get_transforms(
         resolution: int,
         augment: Union[bool, Dict],
-        channel_wise_mean_images: List,
-        channel_wise_std_images: List,
-        verbose: int ,
+        channel_wise_mean_images: List[float],
+        channel_wise_std_images: List[float],
+        verbose: int,
     ) -> Tuple[transforms.Compose, transforms.Compose]:
 
     original_augment = deepcopy(augment)
@@ -55,9 +55,9 @@ def get_transforms(
 
 def get_one_transform(
     resolution: int,
-    augment: bool or dict,
-    channel_wise_mean_images: list,
-    channel_wise_std_images: list,
+    augment: Union[bool, Dict],
+    channel_wise_mean_images: List[float],
+    channel_wise_std_images: List[float],
     validation: bool = False,
     ) -> transforms.Compose:
     """
@@ -122,6 +122,8 @@ def get_one_transform(
             if "Own" in key:
                 # random rotation does not allow for discrete choices
                 transform_list.append(getattr(own_transforms, key)(**value))
+            elif "CIFAR10Policy" in key:
+                transform_list.append(getattr(autoaugment, key)(**value))
             else:
                 transform_list.append(getattr(transforms, key)(**value))
     elif isinstance(augment, bool):

@@ -49,7 +49,7 @@ class CIFAR10Policy(object):
         >>>     transforms.ToTensor()])
     """
     
-    def __init__(self, fillcolor=(128, 128, 128)):
+    def __init__(self, fillcolor=(128, 128, 128), **kwargs):
         self.policies = [
             SubPolicy(0.1, "invert", 7, 0.2, "contrast", 6, fillcolor),
             SubPolicy(0.7, "rotate", 2, 0.3, "translateX", 9, fillcolor),

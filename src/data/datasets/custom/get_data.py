@@ -5,9 +5,10 @@ import pandas as pd
 import os
 import h5py
 import numpy as np
+from os import path
 
 
-def get_Galaxy10_DECals(
+def get_galaxy10(
     data_dir: str,
     name: str,
     resolution: int,
@@ -21,6 +22,40 @@ def get_Galaxy10_DECals(
         labels = np.array(F['ans'])
 
     images = images.astype(np.uint8)
+
+    return images, labels
+
+def get_imagenette(
+    data_dir: str,
+    name: str,
+    resolution: int,
+) -> Tuple[Dict, Dict]:
+    
+    # Define training and validation data paths
+    if resolution > 320:
+        resolution_folder = "imagenette2/"
+    elif resolution > 160:
+        resolution_folder = "imagenette2-320/"
+    else:
+        resolution_folder = "imagenette2-160/"
+
+    location = path.join(data_dir, name, resolution_folder)
+
+    train_loc = path.join(location, 'train') 
+    val_loc = path.join(location, 'val')
+
+    train_images, train_labels = get_images_and_labels_from_folder(train_loc)
+    val_images, val_labels = get_images_and_labels_from_folder(val_loc)
+
+    images = {
+        "train": train_images,
+        "test": val_images,
+    }
+
+    labels = {
+        "train": train_labels,
+        "test": val_labels,
+    }    
 
     return images, labels
 
@@ -179,8 +214,12 @@ def get_images_and_labels_from_folder(folder:str):
     images = []
     labels = []
     for label in os.listdir(folder):
-        for image in os.listdir(folder + label):
-            images.append(folder + label + "/" + image)
+        folder_label = path.join(folder, label)
+        if not path.isdir(folder_label):
+            # these are files like .DS_Store
+            continue
+        for image in os.listdir(folder_label):
+            images.append(path.join(folder_label, image))
             labels.append(label)
 
     label_encoder = LabelEncoder()

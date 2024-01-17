@@ -1,7 +1,22 @@
 _target_: src.data.datasets.predefined.create_datasets.create_datasets
 name: cifar10
 
-augment: False
+augment: 
+  #all:
+  #  short_side_center_crop: True 
+  train:
+    RandomCrop:
+      size: 32
+      padding: 4
+    RandomHorizontalFlip:
+      p: 0.5
+    CIFAR10Policy:
+      foo: 1 # we need to pass something
+    Own_Cutout:
+      n_holes: 1
+      length: 16
+    
+    
 channel_wise_mean_images: [0.49137255, 0.48235294, 0.44666667]
 channel_wise_std_images: [0.24705882, 0.24352941, 0.26156863]
 resolution: 32

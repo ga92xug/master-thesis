@@ -37,6 +37,9 @@ class Custom_Dataset(Dataset):
         else:
             raise RuntimeError("Unknown image type")
 
+        #print("image: ", image)
+        #image = image.convert("RGB")
+
         if self.transform is not None:
             image = self.transform(image)
 
@@ -60,7 +63,7 @@ def create_datasets(
     # just test
     test_as_valid: bool = False,
     **kwargs,
-) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]:
+) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
     """
     Creates [train, valid, test] datasets from the predefined datasets.
 

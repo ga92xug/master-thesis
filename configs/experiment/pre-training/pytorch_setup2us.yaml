@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  #- override training_setup/dataset: cifar10 # imagenet
+  - override /training_setup/dataset/predefined@training_setup.dataset: cifar10 # imagenet
   - override /training_setup/network: efficientnet #eq_nasnet
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
@@ -16,6 +16,8 @@ tags: ["pre-train_imagenet"]
 seed: 0
 
 training_setup:
+  label_smoothing: 0.1
+
   trainer:
     min_epochs: 10
     max_epochs: 600
@@ -46,17 +48,8 @@ hardware:
 #callbacks:
 
 
-#
-#  lr_scheduler='cosineannealinglr', 
-#  lr_warmup_epochs=5, 
-#  lr_warmup_method='linear', 
-#  lr_warmup_decay=0.01, 
-#
-#
 #  # Regularization and Augmentation
-#  norm_weight_decay=0.0,
 #
-#  label_smoothing=0.1, 
 #  mixup_alpha=0.2, 
 #  cutmix_alpha=1.0, 
 #  auto_augment='ta_wide', 

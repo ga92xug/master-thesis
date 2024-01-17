@@ -9,7 +9,7 @@ defaults:
   - paths: default
   - extras: default
   - hydra: default
-  - training_setup: a_example
+  - training_setup: a_debug
 
   # experiment configs allow for version control of specific hyperparameters
   # e.g. best hyperparameters for given model and datamodule
@@ -27,6 +27,8 @@ defaults:
 
 training_setup:
   _target_: src.training_loop.lightning_module.LitModule
+
+  label_smoothing: 0 #.1
 
   trainer:
     accumulate_grad_batches: 1
@@ -47,6 +49,7 @@ training_setup:
     pin_memory: False
     persistent_workers: True
 
+    data_dir: ${paths.data_dir}
     data:
       data_dir: ${paths.data_dir}
 

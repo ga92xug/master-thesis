@@ -92,13 +92,13 @@ class DataModule(LightningDataModule):
 
         :return: normalization weights 
         """
+        if not self.hparams.data_cfg.should_normalize_weights:
+            return None
+
         if self.weights is None:
-            # if we don't want to use them return false
-            if not self.hparams.data_cfg.should_normalize_weights:
-                return False
-            else:
-                self.setup()
-        
+            self.setup()
+
+        assert isinstance(self.weights, torch.Tensor) or self.weights is None, "weights should be a tensor or None"
         return self.weights
 
     def prepare_data(self) -> None:
@@ -157,7 +157,7 @@ class DataModule(LightningDataModule):
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
             persistent_workers=self.hparams.data_cfg.persistent_workers,
-            shuffle=True,
+            shuffle=False, #True,
             **self.dataloader_kwargs.get("train", {}),
         )
 
@@ -215,3 +215,17 @@ class DataModule(LightningDataModule):
         pass
 
 
+    def setup_mixup_cutmix():
+        mixup_cutmix = get_mixup_cutmix(
+            mixup_alpha=args.mixup_alpha, 
+            cutmix_alpha=args.cutmix_alpha, 
+            num_categories=num_classes, 
+            use_v2=args.use_v2
+        )
+        if mixup_cutmix is not None:
+
+            def collate_fn(batch):
+                return mixup_cutmix(*default_collate(batch))
+
+        else:
+            collate_fn = default_collate

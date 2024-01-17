@@ -1,6 +1,10 @@
 _target_: src.data.datasets.custom.create_datasets.create_datasets
 reduction_factor: 1
-resolution: 128
+data:
+  # for hydra call of get_data 
+  _target_: src.data.datasets.custom.get_data.get_${training_setup.dataset.data.name}
+  resolution: ${training_setup.dataset.resolution}
 
+resolution: 128
 batch_size: 64                # Number of examples to process in a batch during training
 eval_batch_size: 64           # Number of examples to process in a batch during evaluation (default: batch_size)

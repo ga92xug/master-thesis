@@ -14,11 +14,12 @@ training_setup:
   callbacks: null
   trainer:
     max_epochs: 1
-    detect_anomaly: true # raise exception if NaN or +/-inf is detected in any tensor
+    check_val_every_n_epoch: 50
+    log_every_n_steps: 1
 
   dataset:
-    num_workers: 0 # debuggers don't like multiprocessing
-    pin_memory: False # disable gpu memory pin
+    num_workers: 0 
+    pin_memory: False 
    
 
 extras:
@@ -36,8 +37,8 @@ hydra:
   # verbose: True
 
 hardware:
-  accelerator: cpu # debuggers don't like gpus
-  devices: 1 # debuggers don't like multiprocessing
+  accelerator: gpu 
+  devices: 1 
 
 
 

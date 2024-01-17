@@ -7,8 +7,11 @@ defaults:
 
 training_setup:
   trainer:
-    max_epochs: 30
-    overfit_batches: 3
+    max_epochs: 10
+    overfit_batches: 1
 
   # model ckpt and early stopping need to be disabled during overfitting
   callbacks: null
+
+hardware:
+  accelerator: gpu

@@ -1,11 +1,10 @@
 defaults:
-- general
+- _custom_defaults
 - _self_
 
 data:
-  _target_: src.data.datasets.custom.get_data.get_ISIC_2019
+  #_target_: src.data.datasets.custom.get_data.get_ISIC_2019
   name: ISIC_2019
-  resolution: ${training_setup.dataset.resolution}
 
 augment: False
   #all:

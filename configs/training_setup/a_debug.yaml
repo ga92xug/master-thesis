@@ -1,5 +1,6 @@
 defaults:
-  - dataset/custom@dataset: isic2019 # cifar10
+  #- dataset/custom@dataset: isic2019 # cifar10
+  - dataset: custom/cifar10
   #- callbacks: default
   - network: efficientnet
 
