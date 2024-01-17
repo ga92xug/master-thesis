@@ -16,6 +16,7 @@ from torchvision.datasets import (
     CIFAR10,
     CIFAR100,
     STL10,
+    MNIST,
 )
 
 import sys
@@ -38,6 +39,8 @@ def create_datasets(
     valid_size: float,
     should_normalize_weights: bool,
     reduction_factor: float,
+    # download
+    download: bool = False,
     **kwargs,
 ) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
     """
@@ -51,7 +54,10 @@ def create_datasets(
     
     assert name in ["cifar10", "cifar100", "stl10", "mnist"], "Unknown dataset name."
 
-    location = data_dir + name + "/"
+    #location = data_dir + name + "/"
+    location = os.path.join(data_dir, name)
+    print("location: ", location)
+    
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(
@@ -66,14 +72,22 @@ def create_datasets(
     
     # load the dataset
     if "cifar" in name:        
-        train_dataset = dataset_class(root=location, train=True, download=False, transform=None)
+        train_dataset = dataset_class(root=location, train=True, download=download, transform=None)
         valid_dataset = None
-        test_dataset = dataset_class(root=location, train=False, download=False, transform=valid_transform)
+        test_dataset = dataset_class(root=location, train=False, download=download, transform=valid_transform)
 
     elif name == "stl10":
-        train_dataset = dataset_class(root=location, split="train", download=False, transform=None)
+        train_dataset = dataset_class(root=location, split="train", download=download, transform=None)
         valid_dataset = None
-        test_dataset = dataset_class(root=location, split="test", download=False, transform=valid_transform)
+        test_dataset = dataset_class(root=location, split="test", download=download, transform=valid_transform)
+
+    elif name == "mnist":
+        train_dataset = dataset_class(root=location, train=True, download=download, transform=None)
+        valid_dataset = None
+        test_dataset = dataset_class(root=location, train=False, download=download, transform=valid_transform)
+
+    else:
+        raise RuntimeError(f"Unknown dataset name: {name}.")
 
     if valid_dataset is None or reduction_factor < 1.0:
         valid_size = int(len(train_dataset) * valid_size)
