@@ -109,12 +109,15 @@ def get_one_transform(
                 transforms.CenterCrop(resolution),
             ]
         )
+    elif "NoResize" in augment.keys():
+        pass
     else:
         transform_list.append(transforms.Resize(resolution))
 
     # pop all size augmentations
     augment.pop("RandomResizedCrop", None)
     augment.pop("short_side_center_crop", None)
+    augment.pop("NoResize", None)
 
     # add augmentations
     if isinstance(augment, dict):

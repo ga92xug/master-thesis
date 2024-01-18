@@ -3,8 +3,8 @@ name: mnist
 
 augment: False
 
-channel_wise_mean_images: [0.5]
-channel_wise_std_images: [1]
+channel_wise_mean_images: [0.1308618187904358]
+channel_wise_std_images: [0.30833175778388977]
 resolution: 28
 
 num_channels: 1

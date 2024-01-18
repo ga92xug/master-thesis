@@ -2,8 +2,8 @@ _target_: src.data.datasets.predefined.create_datasets.create_datasets
 name: cifar10
 
 augment: 
-  #all:
-  #  short_side_center_crop: True 
+  all:
+    NoResize: True 
   train:
     RandomCrop:
       size: 32

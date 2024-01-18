@@ -56,8 +56,6 @@ def create_datasets(
 
     #location = data_dir + name + "/"
     location = os.path.join(data_dir, name)
-    print("location: ", location)
-    
 
     # Define the transformations
     train_transform, valid_transform = get_transforms(

@@ -32,8 +32,8 @@ augment: False
   #    translate: [0.2, 0.2]  
   #    scale: [0.8,1.2]
   #    shear: 10          
-channel_wise_mean_images: [0.6679, 0.5299, 0.5245] 
-channel_wise_std_images: [0.1332, 0.1475, 0.1588] 
+channel_wise_mean_images: [0.6674857139587402, 0.5294152498245239, 0.5243144631385803]
+channel_wise_std_images: [0.22288909554481506, 0.2025708705186844, 0.21405166387557983]
 
 num_channels: 3
 num_classes: 8

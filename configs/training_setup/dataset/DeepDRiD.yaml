@@ -1,6 +1,12 @@
-_target_: training.datasets.general.get_data.get_DeepDRiD
-name: DeepDRiD_quality
-mode: "Overall quality" # patient_DR_Level            
+defaults:
+- _custom_defaults
+- _self_
+
+data:
+  #_target_: src.data.datasets.custom.get_data.get_ISIC_2019
+  name: DeepDRiD
+  mode: "Overall quality" # patient_DR_Level
+            
 augment: 
   all:
     short_side_center_crop: True 
