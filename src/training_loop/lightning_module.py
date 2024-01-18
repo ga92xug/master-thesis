@@ -15,43 +15,11 @@ from torchmetrics.classification.accuracy import (
     BinaryAccuracy
 )
 
-from src._callbacks.model_stats import get_stats, timeout_handler
+from src._callbacks.model_stats import timeout_handler
 from src.utils.scheduler import get_optim_and_scheduler
 
 
 class LitModule(LightningModule):
-    """
-
-    A `LightningModule` implements 8 key methods:
-
-    ```python
-    def __init__(self):
-    # Define initialization code here.
-
-    def setup(self, stage):
-    # Things to setup before each stage, 'fit', 'validate', 'test', 'predict'.
-    # This hook is called on every process when using DDP.
-
-    def training_step(self, batch, batch_idx):
-    # The complete training step.
-
-    def validation_step(self, batch, batch_idx):
-    # The complete validation step.
-
-    def test_step(self, batch, batch_idx):
-    # The complete test step.
-
-    def predict_step(self, batch, batch_idx):
-    # The complete predict step.
-
-    def configure_optimizers(self):
-    # Define and configure optimizers and LR schedulers.
-    ```
-
-    Docs:
-        https://lightning.ai/docs/pytorch/latest/common/lightning_module.html
-    """
-
     def __init__(
         self,
         network: Dict[str, Any],
@@ -125,7 +93,6 @@ class LitModule(LightningModule):
         # by default lightning executes validation step sanity checks before training starts,
         # so it's worth to make sure validation metrics don't store results from these checks
         self.valid_loss.reset()
-        #self.val_acc.reset()
         self.valid_metrics.reset()
         self.valid_acc_best.reset()
         self.valid_acc_weighted_best.reset()
@@ -246,7 +213,9 @@ class LitModule(LightningModule):
         return {"optimizer": self.optimizer}
     
 
-    def log_metrics(self, mode: str, loss, preds, targets) -> None:
+    def log_metrics(self, mode: str, loss: torch.Tensor, preds: torch.Tensor, 
+        targets: torch.Tensor
+    ) -> None:
         """
         Log metrics for a given mode (train, valid, test).
 
@@ -270,8 +239,6 @@ class LitModule(LightningModule):
         metrics_func(preds, targets)
         for key, metric in metrics_func.items():
             self.log(f"{mode}/{key}", metric, on_step=False, on_epoch=True, prog_bar=True)
-
-    
 
     def get_model(
         self,

@@ -6,6 +6,8 @@ import torch
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset
 
+from src.data.datasets._transforms.cut_mix import get_mixup_cutmix
+
 
 class DataModule(LightningDataModule):
     """`LightningDataModule`
@@ -145,6 +147,8 @@ class DataModule(LightningDataModule):
             if self.hparams.data_cfg.test_as_valid:
                 # swap val_loader and test_loader to test generalization early
                 self.val_set, self.test_set = self.test_set, self.val_set
+
+            self.setup_mixup_cutmix()
         else:
             print("Datasets already loaded!")
 
@@ -217,17 +221,23 @@ class DataModule(LightningDataModule):
         pass
 
 
-    def setup_mixup_cutmix():
+    def setup_mixup_cutmix(self):
         mixup_cutmix = get_mixup_cutmix(
             mixup_alpha=args.mixup_alpha, 
             cutmix_alpha=args.cutmix_alpha, 
-            num_categories=num_classes, 
-            use_v2=args.use_v2
+            num_categories=self.num_classes, 
+            #use_v2=args.use_v2
         )
         if mixup_cutmix is not None:
+
+            for mode in ["train", "valid", "test"]:
+                mode_data_loader_kwargs = self.dataloader_kwargs.get(mode, {})
+                if "collate_fn" in mode_data_loader_kwargs:
+                    default_collate = mode_data_loader_kwargs["collate_fn"]
+                else:
+                    default_collacte
+                    
 
             def collate_fn(batch):
                 return mixup_cutmix(*default_collate(batch))
 
-        else:
-            collate_fn = default_collate
