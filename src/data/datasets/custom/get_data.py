@@ -6,6 +6,7 @@ import os
 import h5py
 import numpy as np
 from os import path
+from PIL import Image
 
 
 def get_galaxy10(
@@ -44,8 +45,8 @@ def get_imagenette(
     train_loc = path.join(location, 'train') 
     val_loc = path.join(location, 'val')
 
-    train_images, train_labels = get_images_and_labels_from_folder(train_loc)
-    val_images, val_labels = get_images_and_labels_from_folder(val_loc)
+    train_images, train_labels = get_images_and_labels_from_folder(train_loc, exclude_1_channel=True)
+    val_images, val_labels = get_images_and_labels_from_folder(val_loc, exclude_1_channel=True)
 
     images = {
         "train": train_images,
@@ -210,7 +211,10 @@ def get_images_and_labels_DeepDRiD(df: pd.DataFrame, path: str, mode: str, test:
     return images, labels
 
 
-def get_images_and_labels_from_folder(folder:str):
+def get_images_and_labels_from_folder(
+    folder:str,
+    exclude_1_channel: bool = False,
+) -> Tuple[List[str], List[int]]:
     images = []
     labels = []
     for label in os.listdir(folder):
@@ -219,8 +223,14 @@ def get_images_and_labels_from_folder(folder:str):
             # these are files like .DS_Store
             continue
         for image in os.listdir(folder_label):
-            images.append(path.join(folder_label, image))
-            labels.append(label)
+            image_path = path.join(folder_label, image)
+            if exclude_1_channel:
+                with Image.open(image_path) as img:
+                    if len(np.array(img).shape) < 3 or np.array(img).shape[2] == 1:
+                        # This is a grayscale image or has less than 3 dimensions, skip it
+                        continue
+                images.append(image_path)
+                labels.append(label)
 
     label_encoder = LabelEncoder()
     labels = label_encoder.fit_transform(labels)

@@ -11,19 +11,19 @@ sys.path.append('../networks') # add parent directory
 
 from src.networks.eq_nasnet.block_args import BlockArgs
 
-from networks import (
+from src.networks import (
     EquivariantPool, 
     Restriction_from_id,
 )
-from networks.eq_convs import (
+from src.networks.eq_convs import (
     EquivariantConv,
     EquivariantSqueezeExcitation,
     Eq_Conv2dSamePadding,
     Eq_Conv2dSamePaddingChangeFactor,
 )
-from networks.gpool_reduction import GroupPoolingReduction
+from src.networks.gpool_reduction import GroupPoolingReduction
 
-from networks.util import (
+from src.networks.util import (
     calculate_output_image_size, 
     adjusted_out_channels,
     get_fixed_params,

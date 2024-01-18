@@ -11,17 +11,17 @@ sys.path.append(f"{os.getcwd()}")
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
 from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
 
-from networks.eq_restriction import Restriction_Group_or_CNN
-from networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
+from src.networks.eq_restriction import Restriction_Group_or_CNN
+from src.networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
 
-from networks import (
+from src.networks import (
     EquivariantPool, 
 )
-from networks.eq_convs import (
+from src.networks.eq_convs import (
     Eq_Conv2dSamePadding,
 )
 
-from networks.util import (
+from src.networks.util import (
     get_group_id, 
     get_gspace_from_id, 
     adjusted_out_channels,
@@ -36,8 +36,6 @@ from equivariant.nn import (
     Swish,
 )
 
-import os
-os.environ['HYDRA_FULL_ERROR'] = '1'
 
 class EquivariantNASNet(nn.Module):
     def __init__(

@@ -92,7 +92,9 @@ class DataModule(LightningDataModule):
 
         :return: normalization weights 
         """
-        if not self.hparams.data_cfg.should_normalize_weights:
+        if not self.hparams.data_cfg.should_normalize_weights \
+            or self.hparams.data_cfg.reduction_factor > 1:
+            # if we overfit on few training samples, we do not need to normalize the weights
             return None
 
         if self.weights is None:
@@ -157,7 +159,7 @@ class DataModule(LightningDataModule):
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
             persistent_workers=self.hparams.data_cfg.persistent_workers,
-            shuffle=False, #True,
+            shuffle=True,
             **self.dataloader_kwargs.get("train", {}),
         )
 

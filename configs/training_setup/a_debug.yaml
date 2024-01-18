@@ -1,7 +1,7 @@
 defaults:
   #- dataset/custom@dataset: isic2019 # cifar10
   - dataset: custom/cifar10
-  #- callbacks: default
+  - callbacks: none
   - network: efficientnet
 
 _target_: src.training_loop.lightning_module.LitModule 

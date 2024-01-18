@@ -19,6 +19,7 @@ def instantiate_callbacks(callbacks_cfg: DictConfig) -> List[Callback]:
     callbacks: List[Callback] = []
 
     if not callbacks_cfg:
+        quit()
         log.warning("No callback configs found! Skipping..")
         return callbacks
 

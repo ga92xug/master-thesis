@@ -177,7 +177,7 @@ def main(cfg: DictConfig) -> Optional[float]:
     extras(cfg)
 
     # train the model
-    metric_dict, _ = train(cfg)
+    metric_dict, _ = train(cfg) 
 
     # safely retrieve metric value for hydra-based hyperparameter optimization
     metric_value = get_metric_value(

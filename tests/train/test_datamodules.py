@@ -19,9 +19,9 @@ from src.data.mnist_datamodule import MNISTDataModule
 from src.data.datamodule import DataModule
 from tests.train.helpers.hydra_init import hydra_compose
 
+DATASETS = ["cifar10", "isic2019", "mnist", "DeepDRiD", "blood", "imagenette"]
 
-
-@pytest.mark.parametrize("dataset", ["cifar10", "isic2019", "mnist", "DeepDRiD", "blood"])
+@pytest.mark.parametrize("dataset", DATASETS)
 def test_datamodule(
     dataset: str,
     get_mean_std: bool = False,
@@ -61,7 +61,11 @@ def test_datamodule(
     assert dm.train_set and dm.val_set and dm.test_set
     assert dm.train_dataloader() and dm.val_dataloader() and dm.test_dataloader()
 
-    num_datapoints = len(dm.train_set) + len(dm.val_set) + len(dm.test_set)
+    len_train = len(dm.train_set)
+    len_val = len(dm.val_set)
+    len_test = len(dm.test_set)
+    num_datapoints = len_train + len_val + len_test
+    print("len_train: ", len_train, "len_val: ", len_val, "len_test: ", len_test)
     print("num_datapoints: ", num_datapoints)
 
     dataloaders = {
@@ -179,5 +183,5 @@ def hash_tensor(tensor):
     return hashlib.sha256(tensor.tobytes()).hexdigest()
 
 if __name__ == "__main__":
-    test_datamodule("blood", get_mean_std=False, no_augment=True)
+    test_datamodule("imagenette", get_mean_std=False, no_augment=True)
 

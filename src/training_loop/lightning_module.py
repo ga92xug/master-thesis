@@ -88,7 +88,6 @@ class LitModule(LightningModule):
         self.test_metrics = self.create_metrics_collection()
         
         # Loss function
-        print("weights: ", normalization_weights, type(normalization_weights))
         self.criterion = CrossEntropyLoss(
             weight=normalization_weights,
             label_smoothing=kwargs.get("label_smoothing", 0),
@@ -145,10 +144,8 @@ class LitModule(LightningModule):
             - A tensor of target labels.
         """
         x, y = batch
-        print("x", x.__hash__())
         logits = self.forward(x)
         loss = self.criterion(logits, y)
-        print("loss", loss.item())
         preds = torch.argmax(logits, dim=1)
         return loss, preds, y
 
@@ -162,19 +159,8 @@ class LitModule(LightningModule):
         :param batch_idx: The index of the current batch.
         :return: A tensor of losses between model predictions and targets.
         """
-        print("train batch_idx", batch_idx)
         loss, preds, targets = self.model_step(batch)
-
-        # update and log metrics
-        self.train_loss(loss)
-        self.train_metrics(preds, targets)
-        #self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=False)
-        for key, metric in self.train_metrics.items():
-            self.log(f"train/{key}", metric, on_step=False, on_epoch=True, prog_bar=False)
-
-        #self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=False)
-
+        self.log_metrics("train", loss, preds, targets)
         # return loss or backpropagation will fail
         return loss
 
@@ -190,15 +176,7 @@ class LitModule(LightningModule):
         :param batch_idx: The index of the current batch.
         """
         loss, preds, targets = self.model_step(batch)
-
-        # update and log metrics
-        self.valid_loss(loss)
-        #self.val_acc(preds, targets)
-        self.valid_metrics(preds, targets)
-        self.log("valid/loss", self.valid_loss, on_step=False, on_epoch=True, prog_bar=False)
-        for key, metric in self.valid_metrics.items():
-            self.log(f"valid/{key}", metric, on_step=False, on_epoch=True, prog_bar=False)
-        #self.log("val/acc", self.val_acc, on_step=False, on_epoch=True, prog_bar=False)
+        self.log_metrics("valid", loss, preds, targets)
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
@@ -216,9 +194,9 @@ class LitModule(LightningModule):
         
         # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("valid/acc_best", self.valid_acc_best.compute(), sync_dist=True, prog_bar=False)
-        self.log("valid/acc_weighted_best", self.valid_acc_weighted_best.compute(), sync_dist=True, prog_bar=False)
-        self.log("valid/loss_best", self.valid_loss_best.compute(), sync_dist=True, prog_bar=False)
+        self.log("valid/acc_best", self.valid_acc_best.compute(), sync_dist=True, prog_bar=True)
+        self.log("valid/acc_weighted_best", self.valid_acc_weighted_best.compute(), sync_dist=True, prog_bar=True)
+        self.log("valid/loss_best", self.valid_loss_best.compute(), sync_dist=True, prog_bar=True)
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
@@ -228,15 +206,7 @@ class LitModule(LightningModule):
         :param batch_idx: The index of the current batch.
         """
         loss, preds, targets = self.model_step(batch)
-
-        # update and log metrics
-        self.test_loss(loss)
-        #self.test_acc(preds, targets)
-        self.test_metrics(preds, targets)
-        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=False)
-        #self.log("test/acc", self.test_acc, on_step=False, on_epoch=True, prog_bar=False)
-        for key, metric in self.test_metrics.items():
-            self.log(f"test/{key}", metric, on_step=False, on_epoch=True, prog_bar=False)
+        self.log_metrics("test", loss, preds, targets)
 
     def on_test_epoch_end(self) -> None:
         """Lightning hook that is called when a test epoch ends."""
@@ -274,6 +244,33 @@ class LitModule(LightningModule):
                 },
             }
         return {"optimizer": self.optimizer}
+    
+
+    def log_metrics(self, mode: str, loss, preds, targets) -> None:
+        """
+        Log metrics for a given mode (train, valid, test).
+
+        Args:
+        - mode (str): The mode for logging ('train', 'valid', 'test').
+        - loss: The computed loss for the current batch.
+        - preds: The predictions made by the model.
+        - targets: The actual targets/labels.
+        """
+        if mode not in ['train', 'valid', 'test']:
+            raise ValueError("Mode must be 'train', 'valid', or 'test'.")
+
+        loss_func = getattr(self, f"{mode}_loss")
+        metrics_func = getattr(self, f"{mode}_metrics")
+
+        # Update and log loss
+        loss_func(loss)
+        self.log(f"{mode}/loss", loss_func, on_step=False, on_epoch=True, prog_bar=True)
+
+        # Update and log metrics
+        metrics_func(preds, targets)
+        for key, metric in metrics_func.items():
+            self.log(f"{mode}/{key}", metric, on_step=False, on_epoch=True, prog_bar=True)
+
     
 
     def get_model(

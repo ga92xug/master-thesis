@@ -1,12 +1,21 @@
-_target_: training.datasets.imagenette.data_loader.build_loaders
-name: imagenette             
-batch_size: 128
-eval_batch_size: 128
-augment: False                 # Augment the training set with rotated images
-resolution: 108
-workers: 8                 
+defaults:
+- _custom_defaults
+- _self_
 
-channel_wise_mean_images: [0.46947703 0.4485053  0.41963148]
-channel_wise_std_images: [0.26470295 0.25778037 0.27517328]
+data:
+  name: imagenette
+
+augment: 
+  all:
+    short_side_center_crop: True
+
+channel_wise_mean_images: [0.46947703, 0.4485053, 0.41963148]
+channel_wise_std_images: [0.26470295, 0.25778037, 0.27517328]
+
 num_channels: 3
 num_classes: 10
+
+val_size: 0.1
+test_size: 0.0
+
+should_normalize_weights: False
