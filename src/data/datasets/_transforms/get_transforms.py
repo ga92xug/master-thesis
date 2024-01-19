@@ -45,11 +45,17 @@ def get_one_transform(
     """
     Standard transforms for images. Augmentations can be passed as a dictionary.
     """
+    transform_list = []
+
     if isinstance(augment, bool):
-        transform_list = [
+        if augment:
+            raise RuntimeError("Augmentations are not defined. Define them through a dictionary.")
+
+        transform_list.extend([
             transforms.Resize((resolution, resolution)),
             transforms.ToTensor(),
-        ]
+        ])
+
         if channel_wise_mean_images is not None and channel_wise_std_images is not None:
             transform_list.extend([
                 transforms.Normalize(
@@ -69,37 +75,36 @@ def get_one_transform(
 
     # which augmentations to use
     if validation:
-        augment = augment.get("all", {})
+        augment = {**augment.get("all", {}), **augment.get("eval", {})}
     else:
         augment = {**augment.get("all", {}), **augment.get("train", {})} 
 
-    transform_list = []
+    interpolation = getattr(InterpolationMode, augment.pop("interpolation", "BILINEAR"))
+
 
     # resize
     if "RandomResizedCrop" in augment.keys() and not validation:
         kwargs = augment.pop("RandomResizedCrop")
-        transform_list.append(
-            transforms.RandomResizedCrop(
-                size=resolution,
-                **kwargs,
-            )
-        )
+        if "size" not in kwargs.keys():
+            # if size is not given, use resolution
+            kwargs["size"] = resolution
+        transform_list.append(transforms.RandomResizedCrop(**kwargs, interpolation=interpolation))
     elif "short_side_center_crop" in augment.keys():
-        transform_list.extend(
-            [
-                transforms.Resize(resolution),
-                transforms.CenterCrop(resolution),
-            ]
-        )
+        kwargs: Dict = augment.pop("short_side_center_crop", {})
+        # if size is not given, use resolution
+        # like this we can resize and crop to different sizes like in the torchvision classification script
+        resize_size = kwargs.get("resize_size", resolution)
+        crop_size = kwargs.get("crop_size", resolution)
+        transform_list.extend([
+                transforms.Resize(size=resize_size, interpolation=interpolation),
+                transforms.CenterCrop(size=crop_size),
+        ])
     elif "NoResize" in augment.keys():
+        augment.pop("NoResize", None)
         pass
     else:
         transform_list.append(transforms.Resize(resolution))
 
-    # pop all size augmentations
-    augment.pop("RandomResizedCrop", None)
-    augment.pop("short_side_center_crop", None)
-    augment.pop("NoResize", None)
     # has to be done at last
     random_erase_prob = augment.pop("RandomErasing", 0)
 
@@ -113,7 +118,12 @@ def get_one_transform(
                 transform_list.append(getattr(autoaugment, key)(**value))
             else:
                 if "interpolation" in value:
-                    value["interpolation"] = getattr(InterpolationMode, value["interpolation"])
+                    if isinstance(value["interpolation"], str):
+                        # use the specific interpolation mode
+                        value["interpolation"] = getattr(InterpolationMode, value["interpolation"])
+                    else:
+                        # use the general interpolation mode
+                        value["interpolation"] = getattr(InterpolationMode, interpolation)
                 transform_list.append(getattr(transforms, key)(**value))
     elif isinstance(augment, bool):
         NotImplementedError("Bool Augmentation is not implemented yet")
