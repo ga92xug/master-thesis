@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import hydra
 import lightning as L
@@ -13,23 +13,6 @@ import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
-# ------------------------------------------------------------------------------------ #
-# the setup_root above is equivalent to:
-# - adding project root dir to PYTHONPATH
-#       (so you don't need to force user to install project as a package)
-#       (necessary before importing any local modules e.g. `from src import utils`)
-# - setting up PROJECT_ROOT environment variable
-#       (which is used as a base for paths in "configs/paths/default.yaml")
-#       (this way all filepaths are the same no matter where you run the code)
-# - loading environment variables from ".env" in root dir
-#
-# you can remove it if you:
-# 1. either install project as a package or move entry files to project root dir
-# 2. set `root_dir` to "." in "configs/paths/default.yaml"
-#
-# more info: https://github.com/ashleve/rootutils
-# ------------------------------------------------------------------------------------ #
-
 from src.data.datamodule import DataModule
 
 from src.utils import (
@@ -50,38 +33,60 @@ from src.adversarial_attack.adversarial_attack import adversarial_attack
 log = RankedLogger(__name__, rank_zero_only=True)
 
 
-def instantiate(cfg: DictConfig):
-    datamodule: LightningDataModule = DataModule(cfg.training_setup.dataset)
+def instantiate(
+    cfg: DictConfig
+) -> Dict[str, Union[DictConfig, DataModule, LightningModule, List[Callback], List[Logger], Trainer]]:
+    """
+    Instantiates all objects needed for lightning training (or testing).
+    """
+    
+    is_dist = True if cfg.hardware.devices > 1 or cfg.hardware.num_nodes > 1 else False
 
-    #log.info(f"Instantiating model <{cfg.training_setup.network._target_}>")
-    model: LightningModule = hydra.utils.instantiate(
-        cfg.training_setup,
-        _recursive_=False,
+    log.info("Instantiating datamodule")
+    datamodule = DataModule(cfg.training_setup.dataset, is_dist=is_dist)
+
+    log.info("Instantiating model")
+    model = LightningModule(
+        **cfg.training_setup,
         num_channels=datamodule.num_channels,
         num_classes=datamodule.num_classes,
         image_size=datamodule.image_size,
         normalization_weights=datamodule.normalization_weights,
     )
 
-    log.info("Instantiating callbacks...")
+    log.info("Instantiating callbacks")
     callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
     log.info(callbacks)
 
-    log.info("Instantiating loggers...")
+    log.info("Instantiating loggers")
     logger: List[Logger] = instantiate_loggers(
         cfg=cfg,
         model_name=model.net.name
     )
 
     log.info(f"Instantiating trainer")
-    trainer: Trainer = hydra.utils.instantiate(
-        cfg.hardware, 
-        **cfg.training_setup.trainer,
-        callbacks=callbacks, 
-        logger=logger
+    trainer = Trainer(
+        **{**cfg.training_setup.trainer, **cfg.hardware},
+        callbacks=callbacks,
+        logger=logger,
+        # distributed sampling is already done by our datamodule
+        use_distributed_sampler=False,
     )
 
-    return datamodule, model, callbacks, logger, trainer
+    object_dict = {
+        "cfg": cfg,
+        "datamodule": datamodule,
+        "model": model,
+        "callbacks": callbacks,
+        "logger": logger,
+        "trainer": trainer,
+    }
+
+    if logger:
+        log.info("Logging hyperparameters!")
+        log_hyperparameters(object_dict)
+
+    return object_dict
 
 
 @task_wrapper
@@ -99,20 +104,12 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("seed"):
         L.seed_everything(cfg.seed, workers=True)
 
-    datamodule, model, callbacks, logger, trainer = instantiate(cfg)
-
-    object_dict = {
-        "cfg": cfg,
-        "datamodule": datamodule,
-        "model": model,
-        "callbacks": callbacks,
-        "logger": logger,
-        "trainer": trainer,
-    }
-
-    if logger:
-        log.info("Logging hyperparameters!")
-        log_hyperparameters(object_dict)
+    object_dict = instantiate(cfg)
+    datamodule: DataModule = object_dict["datamodule"]
+    model: LightningModule = object_dict["model"]
+    callbacks: List[Callback] = object_dict["callbacks"]
+    logger: List[Logger] = object_dict["logger"]
+    trainer: Trainer = object_dict["trainer"]  
 
     if cfg.get("train"):
         assert not cfg.get("eval_only", False), "No training in eval only mode"
@@ -133,15 +130,17 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
         if isinstance(trainer.strategy, DDPStrategy):
             # set number of devices and nodes to 1 for testing
-            trainer = hydra.utils.instantiate(
-                cfg.hardware, 
-                **cfg.training_setup.trainer,
-                callbacks=None, 
+            trainer = Trainer(
+                **{**cfg.training_setup.trainer, **cfg.hardware},
+                callbacks=callbacks,
                 logger=logger,
+                # distributed sampling is already done by our datamodule
+                use_distributed_sampler=False,
                 num_nodes=1,
                 devices=1,
                 strategy="auto"
-            )   
+            )
+
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
         log.info(f"Best ckpt path: {ckpt_path}")
 

@@ -33,9 +33,22 @@ training_setup:
     # warmup_method: linear currently not supported
     warmup_decay: 0.01
 
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+
   dataset:
     # we autotune the batch size to fit into memory
     batch_size: 1024 # 128 * 8
+
+    ra_sampler: True
+    ra_reps: 4
+
+    augment:
+      TrivialAugmentWide:
+        interpolation: BILINEAR
+      RandomErasing:
+        probability: 0.1
+
 
 
 hardware:
@@ -47,17 +60,6 @@ hardware:
 
 #callbacks:
 
-
-#  # Regularization and Augmentation
-#
-#  mixup_alpha=0.2, 
-#  cutmix_alpha=1.0, 
-#  auto_augment='ta_wide', 
-#  random_erase=0.1, 
-#  
-#  ra_sampler=True,
-#  ra_reps=4,
-#
 #  # Resizing
 #  interpolation='bilinear', 
 #  val_resize_size=232, 

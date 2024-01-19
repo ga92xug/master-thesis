@@ -14,15 +14,15 @@ def get_mixup_cutmix(*, mixup_alpha, cutmix_alpha, num_categories, use_v2):
     mixup_cutmix = []
     if mixup_alpha > 0:
         mixup_cutmix.append(
-            v2.MixUp(alpha=mixup_alpha, num_categories=num_categories)
+            #v2.MixUp(alpha=mixup_alpha, num_categories=num_categories)
             #if use_v2
-            #else RandomMixUp(num_classes=num_categories, p=1.0, alpha=mixup_alpha)
+            RandomMixUp(num_classes=num_categories, p=1.0, alpha=mixup_alpha)
         )
     if cutmix_alpha > 0:
         mixup_cutmix.append(
-            v2.CutMix(alpha=mixup_alpha, num_categories=num_categories)
+            #v2.CutMix(alpha=mixup_alpha, num_categories=num_categories)
             #if use_v2
-            #else RandomCutMix(num_classes=num_categories, p=1.0, alpha=mixup_alpha)
+            RandomCutMix(num_classes=num_categories, p=1.0, alpha=mixup_alpha)
         )
     if not mixup_cutmix:
         return None

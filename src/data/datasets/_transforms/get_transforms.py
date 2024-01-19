@@ -7,6 +7,7 @@ from torchvision import transforms
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+from torchvision.transforms.functional import InterpolationMode
 
 import sys
 import os
@@ -99,6 +100,8 @@ def get_one_transform(
     augment.pop("RandomResizedCrop", None)
     augment.pop("short_side_center_crop", None)
     augment.pop("NoResize", None)
+    # has to be done at last
+    random_erase_prob = augment.pop("RandomErasing", 0)
 
     # add augmentations
     if isinstance(augment, dict):
@@ -109,6 +112,8 @@ def get_one_transform(
             elif "CIFAR10Policy" in key:
                 transform_list.append(getattr(autoaugment, key)(**value))
             else:
+                if "interpolation" in value:
+                    value["interpolation"] = getattr(InterpolationMode, value["interpolation"])
                 transform_list.append(getattr(transforms, key)(**value))
     elif isinstance(augment, bool):
         NotImplementedError("Bool Augmentation is not implemented yet")
@@ -125,5 +130,8 @@ def get_one_transform(
                 std=channel_wise_std_images,
             )
         ])
+
+    if random_erase_prob > 0:
+        transform_list.append(transforms.RandomErasing(p=random_erase_prob))
 
     return transforms.Compose(transform_list)

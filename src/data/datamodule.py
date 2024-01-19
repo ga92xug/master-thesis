@@ -4,9 +4,14 @@ import hydra
 from omegaconf import DictConfig
 import torch
 from lightning import LightningDataModule
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
 
 from src.data.datasets._transforms.cut_mix import get_mixup_cutmix
+from torch.utils.data.dataloader import default_collate
+from torch.utils.data.distributed import DistributedSampler
+
+from src.data.ra_sampler import RASampler
+
 
 
 class DataModule(LightningDataModule):
@@ -50,6 +55,7 @@ class DataModule(LightningDataModule):
     def __init__(
         self,
         data_cfg: DictConfig,
+        is_dist: bool = False,
     ) -> None:
         """Initialize a `DataModule`.
 
@@ -157,13 +163,21 @@ class DataModule(LightningDataModule):
 
         :return: The train dataloader.
         """
+        if self.hparams.is_dist:
+            if self.hparams.data_cfg.get("ra_sampler", False):
+                train_sampler = RASampler(self.train_set, shuffle=True, repetitions=self.hparams.data_cfg.ra_reps)
+            else:
+                train_sampler = DistributedSampler(self.train_set)
+        else:
+            train_sampler = RandomSampler(self.train_set)
+
         return DataLoader(
             dataset=self.train_set,
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
             persistent_workers=self.hparams.data_cfg.persistent_workers,
-            shuffle=True,
+            sampler=train_sampler,
             **self.dataloader_kwargs.get("train", {}),
         )
 
@@ -172,13 +186,19 @@ class DataModule(LightningDataModule):
 
         :return: The validation dataloader.
         """
+
+        if self.hparams.is_dist:
+            val_sampler = DistributedSampler(self.val_set, shuffle=False)
+        else:
+            val_sampler = SequentialSampler(self.val_set)
+
         return DataLoader(
             dataset=self.val_set,
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
             persistent_workers=self.hparams.data_cfg.persistent_workers,
-            shuffle=False,
+            sampler=val_sampler,
             **self.dataloader_kwargs.get("valid", {}),
         )
 
@@ -187,12 +207,18 @@ class DataModule(LightningDataModule):
 
         :return: The test dataloader.
         """
+
+        if self.hparams.is_dist:
+            test_sampler = DistributedSampler(self.test_set, shuffle=False)
+        else:
+            test_sampler = SequentialSampler(self.test_set)
+
         return DataLoader(
             dataset=self.test_set,
             batch_size=self.batch_size_per_device,
             num_workers=self.hparams.data_cfg.workers,
             pin_memory=self.hparams.data_cfg.pin_memory,
-            shuffle=False,
+            sampler=test_sampler,
             **self.dataloader_kwargs.get("test", {}),
         )
 
@@ -223,21 +249,21 @@ class DataModule(LightningDataModule):
 
     def setup_mixup_cutmix(self):
         mixup_cutmix = get_mixup_cutmix(
-            mixup_alpha=args.mixup_alpha, 
-            cutmix_alpha=args.cutmix_alpha, 
+            mixup_alpha=self.hparams.get("mixup_alpha", 0), 
+            cutmix_alpha=self.hparams.get("cutmix_alpha", 0),
             num_categories=self.num_classes, 
             #use_v2=args.use_v2
         )
         if mixup_cutmix is not None:
-
-            for mode in ["train", "valid", "test"]:
-                mode_data_loader_kwargs = self.dataloader_kwargs.get(mode, {})
-                if "collate_fn" in mode_data_loader_kwargs:
-                    default_collate = mode_data_loader_kwargs["collate_fn"]
-                else:
-                    default_collacte
-                    
-
+            train_data_loader_kwargs = self.dataloader_kwargs.get("train", {})
+            if "collate_fn" in train_data_loader_kwargs:
+                _default_collate = train_data_loader_kwargs["collate_fn"]
+            else:
+                _default_collacte = default_collate
+                
             def collate_fn(batch):
-                return mixup_cutmix(*default_collate(batch))
+                return mixup_cutmix(*_default_collate(batch))
+            
+            train_data_loader_kwargs["collate_fn"] = collate_fn
+            self.dataloader_kwargs["train"] = train_data_loader_kwargs
 
