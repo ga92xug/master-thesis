@@ -8,8 +8,6 @@ defaults:
 - optimizer: Adam
 - scheduler: none 
 
-_target_: src.training_loop.lightning_module.LitModule
-compile: false
 
 optimizer:
   lr: 0.05

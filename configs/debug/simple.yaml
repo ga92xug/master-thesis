@@ -14,8 +14,10 @@ training_setup:
   #callbacks: none
   trainer:
     max_epochs: 10
-    check_val_every_n_epoch: 50
-    log_every_n_steps: 1
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 50
+    enable_checkpointing: False
+
 
   dataset:
     num_workers: 0 

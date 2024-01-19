@@ -29,7 +29,7 @@ def instantiate_loggers(
     logger_cfg = cfg.get("logger")
 
     if not logger_cfg:
-        log.warning("No logger configs found! Skipping...")
+        log.warning("No logger configs found!")
         return logger
 
     if not isinstance(logger_cfg, DictConfig):

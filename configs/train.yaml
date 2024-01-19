@@ -26,8 +26,7 @@ defaults:
   - debug: null
 
 training_setup:
-  _target_: src.training_loop.lightning_module.LitModule
-
+  compile: false
   label_smoothing: 0 #.1
 
   trainer:

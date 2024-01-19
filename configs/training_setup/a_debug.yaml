@@ -4,12 +4,9 @@ defaults:
   - callbacks: none
   - network: efficientnet
 
-_target_: src.training_loop.lightning_module.LitModule 
-#_target_: src.training_loop.mnist_module.MNISTLitModule 
 
 optimizer:
   _target_: torch.optim.Adam
-  #_partial_: true
   lr: 0.001
   weight_decay: 0.0
 
@@ -35,6 +32,3 @@ scheduler: null
 #  train_val_test_split: [55_000, 5_000, 10_000]
 #  num_workers: 0
 #  pin_memory: False
-
-# compile model for faster training with pytorch 2.0
-compile: false

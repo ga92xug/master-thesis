@@ -23,8 +23,8 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 
-from src.data.datasets.utils import get_normalize_weights, get_transforms
-from src.data.datasets.transforms.autoaugment import CIFAR10Policy, Cutout
+from src.data.datasets.utils import get_normalize_weights
+from src.data.datasets._transforms.get_transforms import get_transforms
 
 def create_datasets(
     # data
@@ -133,58 +133,6 @@ class Subset_Transform_Dataset(Dataset):
     def __len__(self):
         return len(self.subset)
 
-
-def old_get_transforms(name, channel_wise_mean_images, channel_wise_std_images, augment=False, rotation=False):
-    # define transforms
-    normalize = transforms.Normalize(mean=channel_wise_mean_images, std=channel_wise_std_images)
-
-    valid_transform = transforms.Compose([
-        transforms.ToTensor(),
-        normalize,
-    ])
-    
-    if "cifar" in name:
-        if augment:
-            train_transform = transforms.Compose([
-                transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
-                CIFAR10Policy(),
-                transforms.ToTensor(),
-                Cutout(16),
-                normalize,
-            ])
-        else:
-            train_transform = transforms.Compose([
-                transforms.RandomCrop(32, padding=4),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                normalize,
-            ])
-
-    elif name == "stl10":
-        if augment:
-            train_transform = transforms.Compose([
-                transforms.RandomCrop(96, padding=12),
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                # Cutout(32),
-                Cutout(60),
-                normalize,
-            ])
-        else:
-            train_transform = transforms.Compose([
-                transforms.ToTensor(),
-                # Cutout(24),
-                Cutout(48),
-                normalize,
-            ])
-        
-    if rotation:
-        train_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
-        valid_transform.transforms.insert(0, transforms.RandomRotation((0,360), Image.BILINEAR))
-    
-    return train_transform, valid_transform
-    
 
 def stratified_subset_indices(
     dataset: Dataset, 

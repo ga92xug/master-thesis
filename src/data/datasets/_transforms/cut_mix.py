@@ -3,12 +3,15 @@ from typing import Tuple
 
 import torch
 #from presets import get_module
+import torchvision
+torchvision.disable_beta_transforms_warning()
 from torchvision.transforms import v2
+
 from torch import Tensor
 from torchvision.transforms import functional as F
 
 
-def get_mixup_cutmix(*, mixup_alpha, cutmix_alpha, num_categories, use_v2):
+def get_mixup_cutmix(*, mixup_alpha, cutmix_alpha, num_categories, use_v2=False):
     #transforms_module = get_module(use_v2)
 
     mixup_cutmix = []

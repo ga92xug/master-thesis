@@ -30,6 +30,7 @@ class LitModule(LightningModule):
         image_size: int,
         normalization_weights: torch.Tensor,
         compile: bool,
+        label_smoothing: float = 0,
         **kwargs: Any,
     ) -> None:
         """Initialize a `LitModule`.
@@ -58,7 +59,7 @@ class LitModule(LightningModule):
         # Loss function
         self.criterion = CrossEntropyLoss(
             weight=normalization_weights,
-            label_smoothing=kwargs.get("label_smoothing", 0),
+            label_smoothing=label_smoothing,
         )
 
         # for averaging loss across batches

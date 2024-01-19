@@ -3,8 +3,6 @@ defaults:
   #- callbacks: default
   - network: efficientnet
 
-_target_: src.training_loop.lightning_module.LitModule 
-#_target_: src.training_loop.mnist_module.MNISTLitModule 
 
 optimizer:
   _target_: torch.optim.Adam

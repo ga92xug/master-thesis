@@ -14,6 +14,7 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src.data.datamodule import DataModule
+from src.training_loop.lightning_module import LitModule
 
 from src.utils import (
     RankedLogger,
@@ -40,13 +41,13 @@ def instantiate(
     Instantiates all objects needed for lightning training (or testing).
     """
     
-    is_dist = True if cfg.hardware.devices > 1 or cfg.hardware.num_nodes > 1 else False
+    is_dist = True if cfg.hardware.get("devices", 1) > 1 or cfg.hardware.get("num_nodes", 1) > 1 else False
 
     log.info("Instantiating datamodule")
     datamodule = DataModule(cfg.training_setup.dataset, is_dist=is_dist)
 
     log.info("Instantiating model")
-    model = LightningModule(
+    model = LitModule(
         **cfg.training_setup,
         num_channels=datamodule.num_channels,
         num_classes=datamodule.num_classes,
@@ -56,7 +57,7 @@ def instantiate(
 
     log.info("Instantiating callbacks")
     callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
-    log.info(callbacks)
+    
 
     log.info("Instantiating loggers")
     logger: List[Logger] = instantiate_loggers(
@@ -88,6 +89,32 @@ def instantiate(
 
     return object_dict
 
+def get_ckpts(cfg: DictConfig, trainer: Trainer) -> str:
+    """Returns the path to the best checkpoint for testing.
+
+    :param cfg: A DictConfig configuration composed by Hydra.
+    :param trainer: A Lightning Trainer object.
+    :return: The path to the best checkpoint.
+
+    :raises RuntimeError: If no checkpoint is found or no ckpt provided for eval only mode.
+    """
+    # load best checkpoint for testing
+    if cfg.get("eval_only"):
+        if cfg.get("ckpt_path") is None:
+            raise RuntimeError("No ckpt path provided for eval only mode!")
+        ckpt_path = cfg.ckpt_path
+    else:
+        # normal training
+        if trainer.checkpoint_callback is None:
+            ckpt_path = ""
+        else:
+            ckpt_path = trainer.checkpoint_callback.best_model_path
+
+    if ckpt_path == "":
+        log.warning("Best ckpt not found! Using current weights for testing.")
+        ckpt_path = None
+
+    return ckpt_path
 
 @task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -112,21 +139,14 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     trainer: Trainer = object_dict["trainer"]  
 
     if cfg.get("train"):
-        assert not cfg.get("eval_only", False), "No training in eval only mode"
+        assert not cfg.get("eval_only", False), "No training in eval only mode!"
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
 
     train_metrics = trainer.callback_metrics
 
     if cfg.get("test"):
-        log.info("Starting testing!")
-        if cfg.get("eval_only"):
-            ckpt_path = cfg.get("ckpt_path")
-        else:
-            ckpt_path = trainer.checkpoint_callback.best_model_path
-        if ckpt_path == "":
-            log.warning("Best ckpt not found! Using current weights for testing...")
-            ckpt_path = None
+        ckpt_path = get_ckpts(cfg, trainer)
 
         if isinstance(trainer.strategy, DDPStrategy):
             # set number of devices and nodes to 1 for testing
@@ -141,8 +161,8 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
                 strategy="auto"
             )
 
+        log.info("Starting testing!")
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
-        log.info(f"Best ckpt path: {ckpt_path}")
 
     test_metrics = trainer.callback_metrics
 
