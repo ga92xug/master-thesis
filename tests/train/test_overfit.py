@@ -10,7 +10,7 @@ import rootutils
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src.utils.utils import get_metric_value
 from tests.train.helpers.hydra_init import hydra_compose
-from src.train import train
+from src.main import main
 from tests.train.helpers.run_if import RunIf
 
 DATASETS = ["cifar10", "isic2019", "mnist", "DeepDRiD", "blood", "imagenette"]
@@ -39,7 +39,7 @@ def test_datamodule(
 
     cfg = hydra_compose(overrides)
     print(cfg)
-    metric_dict, _ = train(cfg) 
+    metric_dict, _ = main(cfg) 
 
     metric_value = get_metric_value(
         metric_dict=metric_dict, metric_name="train/acc"

@@ -8,7 +8,9 @@ defaults:
 training_setup:
   trainer:
     max_epochs: 10
-    overfit_batches: 1
+  
+  dataset:
+    reduction_factor: 25
 
   # model ckpt and early stopping need to be disabled during overfitting
   callbacks: null

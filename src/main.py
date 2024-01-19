@@ -147,20 +147,6 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("test"):
         ckpt_path = get_ckpts(cfg, trainer)
-
-        if isinstance(trainer.strategy, DDPStrategy):
-            # set number of devices and nodes to 1 for testing
-            trainer = Trainer(
-                **{**cfg.training_setup.trainer, **cfg.hardware},
-                callbacks=callbacks,
-                logger=logger,
-                # distributed sampling is already done by our datamodule
-                use_distributed_sampler=False,
-                num_nodes=1,
-                devices=1,
-                strategy="auto"
-            )
-
         log.info("Starting testing!")
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
 

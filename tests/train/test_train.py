@@ -8,7 +8,7 @@ from omegaconf import DictConfig, open_dict
 import rootutils
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 
-from src.train import train
+from src.main import train
 from tests.train.helpers.run_if import RunIf
 
 

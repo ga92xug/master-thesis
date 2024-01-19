@@ -33,7 +33,7 @@ training_setup:
     accumulate_grad_batches: 1
     min_epochs: 1 # prevents early stopping
     max_epochs: 10
-    enable_progress_bar: False
+    enable_progress_bar: True
 
     # mixed precision for extra speed-up
     # precision: 16
