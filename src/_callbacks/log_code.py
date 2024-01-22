@@ -12,10 +12,16 @@ class Log_Code(Callback):
         super().__init__()
 
     def on_fit_start(self, trainer, pl_module):
-        wandb.run.log_code(
-            root=".", 
-            include_fn=lambda path: path.endswith(".py") or 
-                path.endswith(".yaml"),
-            exclude_fn=lambda path: False,
-        )
+        if trainer.logger is None:
+            return
+        for logger in trainer.logger:
+            if isinstance(logger, WandbLogger):
+                wandb.run.log_code(
+                    root=".", 
+                    include_fn=lambda path: path.endswith(".py") or 
+                        path.endswith(".yaml"),
+                    exclude_fn=lambda path: False,
+                )
+                break
+
         return

@@ -21,7 +21,7 @@ def get_transforms(
         augment: Union[bool, Dict],
         channel_wise_mean_images: List[float],
         channel_wise_std_images: List[float],
-        verbose: int,
+        verbose: int = 2,
     ) -> Tuple[transforms.Compose, transforms.Compose]:
 
     original_augment = deepcopy(augment)
@@ -83,14 +83,14 @@ def get_one_transform(
 
 
     # resize
-    if "RandomResizedCrop" in augment.keys() and not validation:
+    if "RandomResizedCrop" in augment.keys():
         kwargs = augment.pop("RandomResizedCrop")
         if "size" not in kwargs.keys():
             # if size is not given, use resolution
             kwargs["size"] = resolution
         transform_list.append(transforms.RandomResizedCrop(**kwargs, interpolation=interpolation))
     elif "short_side_center_crop" in augment.keys():
-        kwargs: Dict = augment.pop("short_side_center_crop", {})
+        kwargs: dict = augment.pop("short_side_center_crop", {})
         # if size is not given, use resolution
         # like this we can resize and crop to different sizes like in the torchvision classification script
         resize_size = kwargs.get("resize_size", resolution)
@@ -106,7 +106,8 @@ def get_one_transform(
         transform_list.append(transforms.Resize(resolution))
 
     # has to be done at last
-    random_erase_prob = augment.pop("RandomErasing", 0)
+    random_erase = augment.pop("RandomErasing", {})
+    random_erase_prob = random_erase.pop("p", 0.0)
 
     # add augmentations
     if isinstance(augment, dict):

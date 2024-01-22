@@ -1,4 +1,6 @@
-# conda create -n scaling python=3.10 pytorch torchvision torchaudio lightning  pytorch-cuda=11.7 -c pytorch -c nvidia
+# conda create -n scaling python=3.10 pytorch torchvision torchaudio lightning pytorch-cuda=11.8  -c pytorch -c nvidia
+# conda create -n scaling2 python=3.10 pytorch torchvision torchaudio lightning pytorch-cuda=12.1 -c pytorch -c nvidia
+
 # conda env update --file environment.yaml
 
 #name: scaling

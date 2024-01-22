@@ -12,7 +12,6 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
-from src.data.datasets._transforms import own_transforms, autoaugment
 
 def get_normalize_weights(
         labels: Union[List, np.ndarray],
@@ -74,7 +73,7 @@ def split_with_stratify(
     assert val_size >= 0.0, "val_size should be greater than or equal to 0.0"
     assert test_size >= 0.0, "test_size should be greater than or equal to 0.0"
     if isinstance(reduction_factor, int):
-        assert reduction_factor > 1, "reduction_factor should be greater than 1"
+        assert reduction_factor >= 1, "reduction_factor should be greater or equal 1"
     else:
         assert reduction_factor <= 1.0 and reduction_factor > 0.0, "reduction_factor should be in the range (0.0, 1.0]"
     

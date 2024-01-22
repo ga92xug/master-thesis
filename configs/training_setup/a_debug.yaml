@@ -3,14 +3,15 @@ defaults:
   - dataset: cifar10
   - callbacks: none
   - network: efficientnet
+  - optimizer: Adam
+  - scheduler: none
 
 
 optimizer:
-  _target_: torch.optim.Adam
   lr: 0.001
   weight_decay: 0.0
 
-scheduler: null
+#scheduler: 
   #_target_: torch.optim.lr_scheduler.ReduceLROnPlateau
   #_partial_: true
   #mode: min

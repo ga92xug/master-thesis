@@ -6,7 +6,7 @@ import torch
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
 
-from src.data.datasets._transforms.cut_mix import get_mixup_cutmix
+from src.data._transforms.cut_mix import get_mixup_cutmix
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.distributed import DistributedSampler
 

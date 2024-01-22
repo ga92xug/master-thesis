@@ -17,9 +17,10 @@ def get_optim_and_scheduler(
 
     optimizer = hydra.utils.instantiate(optimizer, params=net.parameters())
     if scheduler is not None and len(scheduler) > 0:
-        scheduler_metric = scheduler.pop("metric", None)
-        warmup_epochs = scheduler.pop("warmup_epochs", 0)
-        warmup_decay = scheduler.pop("warmup_decay", 0.1)
+        with open_dict(scheduler):
+            scheduler_metric = scheduler.pop("metric", None)
+            warmup_epochs = scheduler.pop("warmup_epochs", 0)
+            warmup_decay = scheduler.pop("warmup_decay", 0.1)
 
         if "CosineAnnealingLR" in scheduler._target_:
             # T_max has to be calculated 

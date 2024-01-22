@@ -8,9 +8,10 @@ import numpy as np
 
 from src.data.datasets.utils import (
     get_normalize_weights, 
-    get_transforms, 
     split_with_stratify, 
 )
+
+from src.data._transforms.get_transforms import get_transforms
 
 class Custom_Dataset(Dataset):
     def __init__(self, images, labels, transform=None):
@@ -79,7 +80,7 @@ def create_datasets(
         augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images,
-        verbose=1,
+        verbose=2,
     )
 
     if isinstance(images, dict):
