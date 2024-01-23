@@ -41,6 +41,7 @@ dependencies:
       - hydra-colorlog
       - rootutils
 
+# pip install everything
 
 # might not be needed on some systems:
 # conda install -c conda-forge libstdcxx-ng=12 

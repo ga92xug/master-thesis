@@ -1,1 +1,3 @@
-data_dir: '$WORK/datasets'
+work_dir: /home/atuin/b180dc/b180dc27
+data_dir: ${local.work_dir}/datasets
+log_dir: ${local.work_dir}/logs

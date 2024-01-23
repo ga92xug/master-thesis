@@ -20,7 +20,6 @@ def instantiate_callbacks(callbacks_cfg: DictConfig) -> List[Callback]:
 
     if not callbacks_cfg:
         log.warning("No callback configs found!")
-        quit()
         return callbacks
 
     if not isinstance(callbacks_cfg, DictConfig):
@@ -32,7 +31,6 @@ def instantiate_callbacks(callbacks_cfg: DictConfig) -> List[Callback]:
             callbacks.append(hydra.utils.instantiate(cb_conf))
 
     log.info(callbacks)
-    quit()
     return callbacks
 
 
