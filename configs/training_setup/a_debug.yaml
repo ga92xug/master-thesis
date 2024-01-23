@@ -1,6 +1,5 @@
 defaults:
-  #- dataset/custom@dataset: isic2019 # cifar10
-  - dataset: cifar10
+  - dataset: imagenette
   - callbacks: none
   - network: efficientnet
   - optimizer: Adam

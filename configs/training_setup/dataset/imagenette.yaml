@@ -5,7 +5,7 @@ defaults:
 data:
   name: imagenette
 
-#augment: 
+augment: False 
 #  all:
 #    short_side_center_crop: True
 

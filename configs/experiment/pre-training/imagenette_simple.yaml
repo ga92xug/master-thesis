@@ -20,7 +20,7 @@ training_setup:
 
   trainer:
     min_epochs: 1
-    max_epochs: 100
+    max_epochs: 10
 
   optimizer:
     nesterov: False
@@ -28,10 +28,10 @@ training_setup:
     lr: 0.5
     weight_decay: 2e-05
 
-  scheduler:
-    warmup_epochs: 5
-    # warmup_method: only linear currently not supported
-    warmup_decay: 0.01
+  #scheduler:
+  #  warmup_epochs: 5
+  #  # warmup_method: only linear currently not supported
+  #  warmup_decay: 0.01
 
   callbacks:
     stop_training:
@@ -41,13 +41,14 @@ training_setup:
     
 
   dataset:
-    mixup_alpha: 0.2
-    cutmix_alpha: 1.0
+    resolution: 320
+    #mixup_alpha: 0.2
+    #cutmix_alpha: 1.0
     # we autotune the batch size to fit into memory
     batch_size: 128 # 128 * 8
 
-    ra_sampler: True
-    ra_reps: 4
+    #ra_sampler: True
+    #ra_reps: 4
 
     augment:
       interpolation: BILINEAR
