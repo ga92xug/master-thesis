@@ -6,27 +6,39 @@
 defaults:
   - override /training_setup/dataset: imagenette # imagenet
   - override /training_setup/network: efficientnet #eq_nasnet
-  - override /training_setup/optimizer: SGD
-  - override /training_setup/scheduler: cosine_annealing_lr
-  - override /logger: wandb
-  - override /training_setup/callbacks: default 
+  - override /training_setup/optimizer: Adam
+  #- override /training_setup/scheduler: none # cosine_annealing_lr
+  #- override /training_setup/callbacks: null
+  - override /training_setup/callbacks: default # Reference to the defaults list in training_setup.callbacks.yaml
+  - override /logger: null 
 
 tags: ["pre-train_imagenette"]
 
 seed: 0
 
 training_setup:
+
+  #callbacks: 
+  #  - model_checkpoint
+  #  - early_stopping
+  #  - model_summary
+  #  - rich_progress_bar
+  #  - model_stats
+  #  - log_code
+  #  - ema
   # label_smoothing: 0.1
 
   trainer:
     min_epochs: 1
-    max_epochs: 10
+    max_epochs: 20
 
   optimizer:
-    nesterov: False
-    momentum: 0.9
-    lr: 0.5
-    weight_decay: 2e-05
+    lr: 0.001
+    weight_decay: 0.0
+    # nesterov: False
+    # momentum: 0.9
+    # lr: 0.5
+    # weight_decay: 2e-05
 
   #scheduler:
   #  warmup_epochs: 5
@@ -34,14 +46,14 @@ training_setup:
   #  warmup_decay: 0.01
 
   callbacks:
-    stop_training:
-      _target_: src._callbacks.stop_training.Stop_After_Epoch
-      stop_after_epoch: 50
+    # stop_training:
+    #   _target_: src._callbacks.stop_training.Stop_After_Epoch
+    #   stop_after_epoch: 50
 
     
 
   dataset:
-    resolution: 320
+    resolution: 128
     #mixup_alpha: 0.2
     #cutmix_alpha: 1.0
     # we autotune the batch size to fit into memory
@@ -51,21 +63,23 @@ training_setup:
     #ra_reps: 4
 
     augment:
-      interpolation: BILINEAR
+      #interpolation: BILINEAR
       train:
-        RandomResizedCrop:
-          size: 176
-        RandomHorizontalFlip:
-          p: 0.5
-        TrivialAugmentWide:
-          interpolation: BILINEAR
-        RandomErasing:
-          p: 0.1
+        short_side_center_crop: True
+        #RandomResizedCrop:
+        #  size: 176
+        # RandomHorizontalFlip:
+        #   p: 0.5
+        # TrivialAugmentWide:
+        #   interpolation: BILINEAR
+        # RandomErasing:
+        #   p: 0.1
 
       eval:
-        short_side_center_crop:
-          resize_size: 232
-          crop_size: 224
+        short_side_center_crop: True
+        #short_side_center_crop:
+        #  resize_size: 232
+        #  crop_size: 224
 
 
 hardware:

@@ -1,15 +1,14 @@
 defaults:
-- _self_
-- callbacks: default
-- dataset/custom@dataset:  isic2019 #imagenette
-- network: efficientnet
-- optimizer: Adam
-- scheduler: none 
+  - dataset: imagenette
+  - callbacks: default
+  - network: efficientnet
+  - optimizer: Adam
+  - scheduler: none
 
 
 optimizer:
-  lr: 0.005
-  weight_decay: 1e-5
+  lr: 0.001
+  weight_decay: 0.0
 
 # scheduler: null
 #  metric: valid/acc
