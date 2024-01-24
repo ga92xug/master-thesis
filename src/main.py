@@ -15,6 +15,7 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src.data.datamodule import DataModule
 from src.training_loop.lightning_module import LitModule
+from src.utils.ckpt_path import get_ckpt_path
 
 from src.utils import (
     RankedLogger,
@@ -35,7 +36,8 @@ log = RankedLogger(__name__, rank_zero_only=True)
 
 
 def instantiate(
-    cfg: DictConfig
+    cfg: DictConfig,
+    train_mode: str,
 ) -> Dict[str, Union[DictConfig, DataModule, LightningModule, List[Callback], List[Logger], Trainer]]:
     """
     Instantiates all objects needed for lightning training (or testing).
@@ -47,13 +49,21 @@ def instantiate(
     datamodule = DataModule(cfg.training_setup.dataset, is_dist=is_dist)
 
     log.info("Instantiating model")
-    model = LitModule(
-        **cfg.training_setup,
-        num_channels=datamodule.num_channels,
-        num_classes=datamodule.num_classes,
-        image_size=datamodule.image_size,
-        normalization_weights=datamodule.normalization_weights,
-    )
+    if train_mode == "train_with_ckpt":
+        # load pretrained model
+        log.info("Loading pretrained model")
+        ckpt_path = get_ckpt_path(cfg, train_mode, trainer=None)
+        assert ckpt_path, "Checkpoint path must be provided for train_with_ckpt mode."
+        model = LitModule.load_from_checkpoint(ckpt_path)
+    else:
+        # for the other modes the trainer will take care of loading the weights if needed
+        model = LitModule(
+            **cfg.training_setup,
+            num_channels=datamodule.num_channels,
+            num_classes=datamodule.num_classes,
+            image_size=datamodule.image_size,
+            normalization_weights=datamodule.normalization_weights,
+        )
 
     log.info("Instantiating callbacks")
     callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
@@ -89,42 +99,6 @@ def instantiate(
 
     return object_dict
 
-def get_ckpt_path(cfg: DictConfig, trainer: Trainer) -> str:
-    """Returns the path to the best checkpoint for testing.
-
-    :param cfg: A DictConfig configuration composed by Hydra.
-    :param trainer: A Lightning Trainer object.
-    :return: The path to the best checkpoint.
-
-    :raises RuntimeError: If no checkpoint is found or no ckpt provided for eval only mode.
-    """
-    # load best checkpoint for testing
-    if cfg.get("eval_only"):
-        if cfg.get("ckpt_path") is None:
-            raise RuntimeError("No ckpt path provided for eval only mode!")
-        ckpt_path = cfg.ckpt_path
-    else:
-        # normal training
-        if trainer.checkpoint_callback is None:
-            ckpt_path = ""
-        else:
-            ckpt_path = trainer.checkpoint_callback.best_model_path
-
-    if ckpt_path == "":
-        log.warning("Best ckpt not found! Using current weights for testing.")
-        ckpt_path = None
-    else:
-        # if the combined path of log_dir and ckpt_path exists we use that
-        combined_path = os.path.join(cfg.paths.log_dir, ckpt_path)
-        print("combined path", combined_path)
-        if not os.path.exists(ckpt_path) and os.path.exists(combined_path):
-            ckpt_path = combined_path
-
-        print("ckpt", ckpt_path)
-
-
-    return ckpt_path
-
 @task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
@@ -140,27 +114,44 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if cfg.get("seed"):
         L.seed_everything(cfg.seed, workers=True)
 
-    object_dict = instantiate(cfg)
+    train_mode = cfg.get("train_mode", "train")
+
+    object_dict = instantiate(cfg, train_mode)
     datamodule: DataModule = object_dict["datamodule"]
     model: LightningModule = object_dict["model"]
     callbacks: List[Callback] = object_dict["callbacks"]
     logger: List[Logger] = object_dict["logger"]
     trainer: Trainer = object_dict["trainer"]  
 
-    if cfg.get("train"):
-        assert not cfg.get("eval_only", False), "No training in eval only mode!"
-        ckpt_path = get_ckpt_path(cfg, trainer)
-        log.info("Starting training!")
-        trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
+    
+    if train_mode == "evaluate_only":
+        log.info("Running in evaluate_only mode.")
+        ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
+        trainer.validate(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+    elif train_mode in ["train", "train_with_ckpt"]:
+        log.info("Starting training.")
+        trainer.fit(model=model, datamodule=datamodule)
+    elif train_mode == "train_continue":
+        log.info("Continuing training from checkpoint.")
+        ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
+        trainer.fit(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+    else:
+        raise ValueError(f"Unknown training mode: {train_mode}")
 
     train_metrics = trainer.callback_metrics
+    test_mode = cfg.get("test", "no_test")
 
-    if cfg.get("test"):
-        ckpt_path = get_ckpt_path(cfg, trainer)
-        log.info("Starting testing!")
+    if test_mode == "test":
+        log.info("Starting testing.")
+        ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+    elif test_mode == "no_test":
+        log.info("Skipping testing.")
+    else:
+        raise ValueError(f"Unknown test mode: {test_mode}")
 
     test_metrics = trainer.callback_metrics
+
 
     if cfg.get("adversarial_attack", False):
         log.info("Start adversarial attack")
@@ -180,7 +171,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     return metric_dict, object_dict
 
 
-@hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
+@hydra.main(version_base="1.3", config_path="../configs", config_name="conf.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
     """Main entry point for training.
 

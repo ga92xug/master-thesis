@@ -8,19 +8,22 @@ defaults:
   - override /training_setup/network: efficientnet #eq_nasnet
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
-  - override /logger: wandb
+  - override /logger: none
   - override /training_setup/callbacks: default 
 
 tags: ["pre-train_imagenette", "no_swa_and_ema"]
 
 seed: 0
 
+ckpt_path: train/runs/2024-01-24_19-58-34/checkpoints/epoch_003.ckpt
+train_mode: train_continue # train_with_ckpt
+
 training_setup:
   # label_smoothing: 0.1
 
   trainer:
     min_epochs: 1
-    max_epochs: 50
+    max_epochs: 5
 
   optimizer:
     nesterov: False
