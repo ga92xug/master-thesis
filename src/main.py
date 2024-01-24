@@ -89,7 +89,7 @@ def instantiate(
 
     return object_dict
 
-def get_ckpts(cfg: DictConfig, trainer: Trainer) -> str:
+def get_ckpt_path(cfg: DictConfig, trainer: Trainer) -> str:
     """Returns the path to the best checkpoint for testing.
 
     :param cfg: A DictConfig configuration composed by Hydra.
@@ -113,6 +113,15 @@ def get_ckpts(cfg: DictConfig, trainer: Trainer) -> str:
     if ckpt_path == "":
         log.warning("Best ckpt not found! Using current weights for testing.")
         ckpt_path = None
+    else:
+        # if the combined path of log_dir and ckpt_path exists we use that
+        combined_path = os.path.join(cfg.paths.log_dir, ckpt_path)
+        print("combined path", combined_path)
+        if not os.path.exists(ckpt_path) and os.path.exists(combined_path):
+            ckpt_path = combined_path
+
+        print("ckpt", ckpt_path)
+
 
     return ckpt_path
 
@@ -140,13 +149,14 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("train"):
         assert not cfg.get("eval_only", False), "No training in eval only mode!"
+        ckpt_path = get_ckpt_path(cfg, trainer)
         log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
 
     train_metrics = trainer.callback_metrics
 
     if cfg.get("test"):
-        ckpt_path = get_ckpts(cfg, trainer)
+        ckpt_path = get_ckpt_path(cfg, trainer)
         log.info("Starting testing!")
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
 
