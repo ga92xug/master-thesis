@@ -1,6 +1,6 @@
 defaults:
   - dataset: imagenette
-  - callbacks: none
+  - callbacks: default
   - network: efficientnet
   - optimizer: Adam
   - scheduler: none

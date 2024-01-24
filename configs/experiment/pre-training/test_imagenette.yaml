@@ -11,7 +11,7 @@ defaults:
   - override /logger: wandb
   - override /training_setup/callbacks: default 
 
-tags: ["pre-train_imagenette"]
+tags: ["pre-train_imagenette", "no_swa_and_ema"]
 
 seed: 0
 
@@ -20,7 +20,7 @@ training_setup:
 
   trainer:
     min_epochs: 1
-    max_epochs: 100
+    max_epochs: 50
 
   optimizer:
     nesterov: False
@@ -34,9 +34,12 @@ training_setup:
     warmup_decay: 0.01
 
   callbacks:
-    stop_training:
-      _target_: src._callbacks.stop_training.Stop_After_Epoch
-      stop_after_epoch: 50
+    swa:
+      _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+      swa_lrs: 0.05
+    # stop_training:
+    #   _target_: src._callbacks.stop_training.Stop_After_Epoch
+    #   stop_after_epoch: 50
 
     
 
