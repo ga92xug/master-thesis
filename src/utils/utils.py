@@ -1,8 +1,13 @@
 import warnings
 from importlib.util import find_spec
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from omegaconf import DictConfig
+from lightning.pytorch.strategies import DDPStrategy
+import lightning as L
+import hydra
+from lightning.pytorch.loggers import Logger
+
 from src.logger import pylogger
 
 from src.utils import rich_utils
@@ -118,3 +123,20 @@ def get_metric_value(metric_dict: Dict[str, Any], metric_name: Optional[str]) ->
     log.info(f"Retrieved metric value! <{metric_name}={metric_value}>")
 
     return metric_value
+
+
+def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], callbacks: List[L.Callback]) -> L.Trainer:
+    # set number of devices and nodes to 1 for testing
+    if isinstance(trainer.strategy, DDPStrategy):
+        trainer = L.Trainer(
+            **{**cfg.training_setup.trainer, **cfg.hardware},
+            callbacks=callbacks,
+            logger=logger,
+            num_nodes=1,
+            devices=1,
+            strategy="auto"
+        )
+        
+    
+    return trainer
+    

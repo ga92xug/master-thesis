@@ -123,6 +123,8 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     logger: List[Logger] = object_dict["logger"]
     trainer: Trainer = object_dict["trainer"]  
 
+    print("trainer", trainer.num_devices, trainer.num_nodes)
+
     
     if train_mode == "evaluate_only":
         log.info("Running in evaluate_only mode.")
@@ -143,8 +145,14 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if test_mode == "test":
         log.info("Starting testing.")
+        trainer = get_test_trainer(cfg, trainer)
         ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+    elif test_mode == "predict_record":
+        log.info("Starting prediction.")
+        trainer = get_test_trainer(cfg, trainer)
+        ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
+        predictions = trainer.predict(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
     elif test_mode == "no_test":
         log.info("Skipping testing.")
     else:

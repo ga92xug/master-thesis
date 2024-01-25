@@ -218,19 +218,24 @@ def get_images_and_labels_from_folder(
     images = []
     labels = []
     for label in os.listdir(folder):
+        print("folder", folder, label)
         folder_label = path.join(folder, label)
         if not path.isdir(folder_label):
             # these are files like .DS_Store
             continue
-        for image in os.listdir(folder_label):
+        for i, image in enumerate(os.listdir(folder_label)):
             image_path = path.join(folder_label, image)
+            if i < 2:
+                print(image_path)
+            
             if exclude_1_channel:
                 with Image.open(image_path) as img:
                     if len(np.array(img).shape) < 3 or np.array(img).shape[2] == 1:
                         # This is a grayscale image or has less than 3 dimensions, skip it
                         continue
-                images.append(image_path)
-                labels.append(label)
+            
+            images.append(image_path)
+            labels.append(label)
 
     label_encoder = LabelEncoder()
     labels = label_encoder.fit_transform(labels)

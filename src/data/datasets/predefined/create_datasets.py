@@ -17,6 +17,7 @@ from torchvision.datasets import (
     CIFAR100,
     STL10,
     MNIST,
+    ImageNet,
 )
 
 import sys
@@ -83,7 +84,10 @@ def create_datasets(
         train_dataset = dataset_class(root=location, train=True, download=download, transform=None)
         valid_dataset = None
         test_dataset = dataset_class(root=location, train=False, download=download, transform=valid_transform)
-
+    elif name == "ILSVRC2012":
+        train_dataset = ImageNet(root=location, split="train", transform=train_transform)
+        valid_dataset = ImageNet(root=location, split="val", transform=valid_transform)
+        
     else:
         raise RuntimeError(f"Unknown dataset name: {name}.")
 
