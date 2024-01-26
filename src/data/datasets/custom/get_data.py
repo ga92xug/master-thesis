@@ -218,16 +218,12 @@ def get_images_and_labels_from_folder(
     images = []
     labels = []
     for label in os.listdir(folder):
-        print("folder", folder, label)
         folder_label = path.join(folder, label)
         if not path.isdir(folder_label):
             # these are files like .DS_Store
             continue
         for i, image in enumerate(os.listdir(folder_label)):
-            image_path = path.join(folder_label, image)
-            if i < 2:
-                print(image_path)
-            
+            image_path = path.join(folder_label, image)            
             if exclude_1_channel:
                 with Image.open(image_path) as img:
                     if len(np.array(img).shape) < 3 or np.array(img).shape[2] == 1:

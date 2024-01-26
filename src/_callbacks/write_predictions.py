@@ -10,18 +10,17 @@ import torch
 from lightning.pytorch.callbacks import BasePredictionWriter
 
 
-class Distributed_Writer(BasePredictionWriter):
+class Prediction_txt_Writer(BasePredictionWriter):
     def __init__(self, output_dir, write_interval):
         super().__init__(write_interval)
-        self.output_dir = output_dir
+        self.output_dir = os.path.join(output_dir, 'submission.txt')
 
-    def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):
-        # this will create N (num processes) files in `output_dir` each containing
-        # the predictions of it's respective rank
-        torch.save(predictions, os.path.join(self.output_dir, f"predictions_{trainer.global_rank}.pt"))
-
-        # optionally, you can also save `batch_indices` to get the information about the data index
-        # from your prediction data
-        torch.save(batch_indices, os.path.join(self.output_dir, f"batch_indices_{trainer.global_rank}.pt"))
-
-
+    def write_on_epoch_end(self, trainer, pl_module, predictions, batch_indices):  
+        print("Writing predictions", self.output_dir)
+        print("trainer rank", trainer.global_rank)
+        print("predictions: ", predictions)
+        # Process and save predictions
+        with open(self.output_dir, 'w') as file:
+            for prediction in predictions:
+                # Format the prediction as needed (e.g., image_id, predicted_label)
+                file.write(prediction + '\n')

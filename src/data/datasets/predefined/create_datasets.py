@@ -87,7 +87,7 @@ def create_datasets(
     elif name == "ILSVRC2012":
         train_dataset = ImageNet(root=location, split="train", transform=train_transform)
         valid_dataset = ImageNet(root=location, split="val", transform=valid_transform)
-        
+        test_dataset = ImageNetTestDataset(test_dir=location, transform=valid_transform)        
     else:
         raise RuntimeError(f"Unknown dataset name: {name}.")
 
@@ -204,3 +204,22 @@ def stratified_subset_indices(
     print("total_size: ", len(train_indices_all) + len(val_indices_all))
 
     return train_indices_all, val_indices_all
+
+
+class ImageNetTestDataset(Dataset):
+    def __init__(self, test_dir, transform=None):
+        self.test_dir = test_dir
+        self.transform = transform
+        self.images = os.listdir(test_dir)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, idx):
+        img_name = os.path.join(self.test_dir, self.images[idx])
+        image = Image.open(img_name).convert('RGB')
+
+        if self.transform:
+            image = self.transform(image)
+
+        return image

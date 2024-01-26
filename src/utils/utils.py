@@ -127,7 +127,7 @@ def get_metric_value(metric_dict: Dict[str, Any], metric_name: Optional[str]) ->
 
 def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], callbacks: List[L.Callback]) -> L.Trainer:
     # set number of devices and nodes to 1 for testing
-    if isinstance(trainer.strategy, DDPStrategy):
+    if trainer.num_devices > 1 or trainer.num_nodes > 1:
         trainer = L.Trainer(
             **{**cfg.training_setup.trainer, **cfg.hardware},
             callbacks=callbacks,
@@ -137,6 +137,5 @@ def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], 
             strategy="auto"
         )
         
-    
     return trainer
     

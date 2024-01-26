@@ -8,8 +8,11 @@ import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
+from lightning.pytorch.callbacks import BasePredictionWriter
 
 import os
+
+from src.utils.utils import get_test_trainer
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
@@ -67,6 +70,10 @@ def instantiate(
 
     log.info("Instantiating callbacks")
     callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
+    test_mode = cfg.get("test", "no_test")
+    if test_mode == "predict":
+        # the should be a write_predictions callback
+        assert any([isinstance(callback, BasePredictionWriter) for callback in callbacks]), "No callback found for writing predictions!"
     
 
     log.info("Instantiating loggers")
@@ -122,9 +129,6 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     callbacks: List[Callback] = object_dict["callbacks"]
     logger: List[Logger] = object_dict["logger"]
     trainer: Trainer = object_dict["trainer"]  
-
-    print("trainer", trainer.num_devices, trainer.num_nodes)
-
     
     if train_mode == "evaluate_only":
         log.info("Running in evaluate_only mode.")
@@ -148,11 +152,12 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         trainer = get_test_trainer(cfg, trainer)
         ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
-    elif test_mode == "predict_record":
+    elif test_mode == "predict":
         log.info("Starting prediction.")
         trainer = get_test_trainer(cfg, trainer)
         ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
-        predictions = trainer.predict(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+        # predictions are saved in the callback
+        trainer.predict(model=model, datamodule=datamodule, ckpt_path=ckpt_path, return_predictions=False)
     elif test_mode == "no_test":
         log.info("Skipping testing.")
     else:

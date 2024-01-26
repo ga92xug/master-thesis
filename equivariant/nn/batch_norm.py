@@ -21,7 +21,7 @@ class BatchNorm(EquivariantModule):
         affine: bool = True,
         eps: float = 1e-05,
         momentum: float = 0.1,
-        track_running_stats: bool = False,
+        track_running_stats: bool = True,
     ):
         r"""
 

@@ -41,9 +41,9 @@ def get_ckpt_path(cfg: DictConfig, mode: str, trainer: Trainer) -> str:
         ckpt_path = cfg.get("ckpt_path")
         if ckpt_path is None:
             raise RuntimeError("No ckpt path provided for train_continue mode!")
-    elif mode == "test":
+    elif mode in ["test", "predict"]:
         if trainer.checkpoint_callback is None:
-            log.warning("No checkpoint found for testing. Using current weights.")
+            log.warning(f"No checkpoint found for {mode}. Using current weights.")
             ckpt_path = ""
         else:
             ckpt_path = trainer.checkpoint_callback.best_model_path
