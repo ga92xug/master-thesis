@@ -1,5 +1,5 @@
 import signal
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple, Union
 import hydra
 
 import timeit
@@ -180,16 +180,24 @@ class LitModule(LightningModule):
         """Lightning hook that is called when a test epoch ends."""
         pass
 
-    '''
-    def predict_step(self, batch: torch.Tensor, batch_idx: int, dataloader_idx: int = 0) -> None:
+    
+    def predict_step(self, batch: Union[torch.Tensor, List[torch.Tensor], Tuple[torch.Tensor, torch.Tensor]], batch_idx: int, dataloader_idx: int = 0) -> None:
         """Perform a single prediction step on a batch of data from the test set.
 
-        :param batch: A batch of data (a tuple) containing the input tensor of images and target
-            labels.
+        :param batch: Can be a tuple of (x, y) or just x.
         :param batch_idx: The index of the current batch.
         :param dataloader_idx: The index of the current dataloader.
         """
-    '''    
+        if isinstance(batch, torch.Tensor):
+            x = batch
+        elif isinstance(batch, tuple) or isinstance(batch, list):
+            # usually in predict we have no labels but useful for testing predict
+            x, _ = batch
+        else:
+            raise ValueError(f"Unknown batch type {type(batch)}")
+        
+        logits = self.forward(x)
+        return logits
 
     def setup(self, stage: str) -> None:
         """Lightning hook that is called at the beginning of fit (train + validate), validate,

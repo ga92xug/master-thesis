@@ -11,8 +11,6 @@ from omegaconf import DictConfig
 from lightning.pytorch.callbacks import BasePredictionWriter
 
 import os
-
-from src.utils.utils import get_test_trainer
 os.environ['HYDRA_FULL_ERROR'] = '1'
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
@@ -27,6 +25,7 @@ from src.utils import (
     instantiate_callbacks,
     log_hyperparameters,
     task_wrapper,
+    get_test_trainer,
 )
 
 from src.logger import (
@@ -70,7 +69,7 @@ def instantiate(
 
     log.info("Instantiating callbacks")
     callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
-    test_mode = cfg.get("test", "no_test")
+    test_mode = cfg.get("test_mode", "no_test")
     if test_mode == "predict":
         # the should be a write_predictions callback
         assert any([isinstance(callback, BasePredictionWriter) for callback in callbacks]), "No callback found for writing predictions!"
@@ -145,7 +144,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         raise ValueError(f"Unknown training mode: {train_mode}")
 
     train_metrics = trainer.callback_metrics
-    test_mode = cfg.get("test", "no_test")
+    test_mode = cfg.get("test_mode", "no_test")
 
     if test_mode == "test":
         log.info("Starting testing.")
@@ -154,7 +153,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
     elif test_mode == "predict":
         log.info("Starting prediction.")
-        trainer = get_test_trainer(cfg, trainer)
+        trainer = get_test_trainer(cfg, trainer, logger=logger, callbacks=callbacks)
         ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
         # predictions are saved in the callback
         trainer.predict(model=model, datamodule=datamodule, ckpt_path=ckpt_path, return_predictions=False)

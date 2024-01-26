@@ -91,12 +91,12 @@ def create_datasets(
     else:
         raise RuntimeError(f"Unknown dataset name: {name}.")
 
-    if valid_dataset is None or reduction_factor < 1.0:
+    if valid_dataset is None:
         valid_size = int(len(train_dataset) * valid_size)
         lengths = [len(train_dataset) - valid_size, valid_size]
         train_subset, val_subset = random_split(train_dataset, lengths, torch.Generator().manual_seed(42))
 
-        if reduction_factor < 1.0:
+        if reduction_factor < 1.0 or reduction_factor > 1.0:
             # without a random seed -> random seed from global splits should be different 
             # randomly select a subset of the data
             reduction_size = int(len(train_subset) * reduction_factor)
@@ -105,6 +105,13 @@ def create_datasets(
 
         train_dataset = Subset_Transform_Dataset(train_subset, train_transform)
         valid_dataset = Subset_Transform_Dataset(val_subset, valid_transform)
+    elif reduction_factor < 1.0 or reduction_factor > 1.0:
+        # without a random seed -> random seed from global splits should be different 
+        # randomly select a subset of the data
+        reduction_size = int(len(train_dataset) * reduction_factor)
+        lengths = [reduction_size, len(train_dataset) - reduction_size]
+        train_dataset, _ = random_split(train_dataset, lengths)
+
 
     _datasets = {
         "train": train_dataset,

@@ -17,13 +17,14 @@ seed: 0
 
 ckpt_path: logs/train/runs/2024-01-24_20-31-21/checkpoints/epoch_001.ckpt # train/runs/2024-01-24_19-58-34/checkpoints/epoch_003.ckpt
 train_mode: train # train_with_ckpt
+test_mode: predict
 
 training_setup:
   # label_smoothing: 0.1
 
   trainer:
     min_epochs: 1
-    max_epochs: 4
+    max_epochs: 1
     limit_train_batches: 0.1
 
   optimizer:
@@ -43,12 +44,10 @@ training_setup:
       swa_lrs: 0.05
     prediction_writer:
       _target_: src._callbacks.write_predictions.Prediction_txt_Writer
-      output_dir: ${paths.log_dir}
+      output_dir: ${paths.output_dir}
     # stop_training:
     #   _target_: src._callbacks.stop_training.Stop_After_Epoch
     #   stop_after_epoch: 50
-
-    
 
   dataset:
     mixup_alpha: 0.2
