@@ -148,7 +148,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if test_mode == "test":
         log.info("Starting testing.")
-        trainer = get_test_trainer(cfg, trainer)
+        trainer = get_test_trainer(cfg, trainer, logger=logger, callbacks=callbacks)
         ckpt_path = get_ckpt_path(cfg, test_mode, trainer)
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
     elif test_mode == "predict":
