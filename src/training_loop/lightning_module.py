@@ -24,12 +24,12 @@ class LitModule(LightningModule):
         self,
         network: Dict[str, Any],
         optimizer: Dict[str, Any],
-        scheduler: Dict[str, Any],
         num_channels: int,
         num_classes: int,
         image_size: int,
         normalization_weights: torch.Tensor,
         compile: bool,
+        scheduler: Dict[str, Any] = None,
         label_smoothing: float = 0,
         **kwargs: Any,
     ) -> None:

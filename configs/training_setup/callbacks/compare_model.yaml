@@ -1,0 +1,2 @@
+compare_model:
+  _target_: src._callbacks.save_and_load.CompareModelCallback

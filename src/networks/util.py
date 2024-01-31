@@ -277,16 +277,16 @@ def get_gspace_from_id(id):
         Returns:
             gspace: Group space.
         """
-        if isinstance(id, Tuple):
+        if isinstance(id, tuple):
             reflection, rotation = id
         elif isinstance(id, int):
             reflection, rotation = -1, id
         else:
             raise ValueError(
-                f'Group id "{id}" is not know.'
+                f'Group id "{id}" is not know. {type(id)}'
             )
 
-        if reflection is None:
+        if reflection is None or reflection == -1:
             # cyclic
             gspace = rot2dOnR2(rotation)
         elif reflection >= 0:

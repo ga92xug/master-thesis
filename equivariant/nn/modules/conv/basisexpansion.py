@@ -56,6 +56,9 @@ class BasisExpansion(torch.nn.Module):
         in_reprs = sorted(in_reprs, key=operator.attrgetter("name"))
         out_reprs = sorted(out_reprs, key=operator.attrgetter("name"))
 
+        #unique_in_reprs = OrderedDict((i_repr, True) for i_repr in in_reprs)
+        #unique_out_reprs = OrderedDict((o_repr, True) for o_repr in out_reprs)
+
         for i_repr in set(in_reprs):
             for o_repr in set(out_reprs):
                 reprs_names = (i_repr.name, o_repr.name)

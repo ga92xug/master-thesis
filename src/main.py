@@ -132,7 +132,21 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if train_mode == "evaluate_only":
         log.info("Running in evaluate_only mode.")
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
-        trainer.validate(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+
+        new_model = model.__class__(**model.hparams)
+        state_dict_new = torch.load("temp_model.pth")
+        print_keys(state_dict_new)
+        
+        new_model.load_state_dict(state_dict_new)
+        out = trainer.validate(model=new_model, datamodule=datamodule)
+        print("New Val out", out)
+
+        
+        
+        out = trainer.validate(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+        print("Normal Val out", out)
+
+        
     elif train_mode in ["train", "train_with_ckpt"]:
         log.info("Starting training.")
         trainer.fit(model=model, datamodule=datamodule)

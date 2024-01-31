@@ -40,7 +40,7 @@ from equivariant.nn import (
 class EquivariantNASNet(nn.Module):
     def __init__(
         self, 
-        blocks_args_dict: dict,
+        blocks_args_dict: Dict[str, Any],
         image_size: int,
         width_coefficient=1, 
         depth_coefficient=1,
@@ -278,3 +278,14 @@ class EquivariantNASNet(nn.Module):
         }
 
 
+    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
+        super().load_state_dict(state_dict, strict)
+        
+        for name, layer in self.named_modules():
+            if isinstance(layer, R2Conv):
+                _filter, _bias = layer.expand_parameters()
+                layer.filter = _filter
+                if _bias is not None:
+                    layer.expanded_bias = _bias
+                else:
+                    layer.expanded_bias = None

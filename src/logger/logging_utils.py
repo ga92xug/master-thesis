@@ -33,7 +33,7 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
     hparams["network"] = cfg["training_setup"]["network"]
     hparams["dataset"] = cfg["training_setup"]["dataset"]
     hparams["optimizer"] = cfg["training_setup"]["optimizer"]
-    hparams["scheduler"] = cfg["training_setup"]["scheduler"]
+    hparams["scheduler"] = cfg["training_setup"].get("scheduler")
     hparams["callbacks"] = cfg["training_setup"].get("callbacks")
     hparams["trainer"] = cfg["training_setup"]["trainer"]
 
