@@ -1,0 +1,12 @@
+defaults:
+  - dataset: imagenette
+  - callbacks: default
+  - network: eq_nasnet
+  - optimizer: Adam
+  - scheduler: none
+
+
+optimizer:
+  lr: 0.001
+  weight_decay: 0.0
+

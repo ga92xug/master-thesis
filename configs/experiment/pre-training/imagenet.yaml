@@ -8,16 +8,16 @@ defaults:
   - override /training_setup/network: efficientnet #eq_nasnet
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
-  - override /logger: null
+  - override /logger: wandb
   - override /training_setup/callbacks: default 
 
 tags: ["pre-train_imagenet"]
 
 seed: 0
-# logger:
-#   wandb:
-#     project: "pre-train"
-#     mode: offline
+logger:
+  wandb:
+    project: "pre-train"
+    mode: offline
 
 train_mode: train
 test_mode: no_test
