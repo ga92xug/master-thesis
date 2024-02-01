@@ -17,6 +17,7 @@ from torchmetrics.classification.accuracy import (
 )
 
 from src._callbacks.model_stats import timeout_handler
+from src.utils.equivariant_utils import is_equivariant_model, update_filters_with_pretrained_weights
 from src.utils.scheduler import get_optim_and_scheduler
 
 
@@ -30,6 +31,7 @@ class LitModule(LightningModule):
         image_size: int,
         normalization_weights: torch.Tensor,
         compile: bool,
+        seed: int,
         scheduler: Dict[str, Any] = None,
         label_smoothing: float = 0,
         **kwargs: Any,
@@ -312,35 +314,55 @@ class LitModule(LightningModule):
         net.eval()        
         return net
 
-    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
-        super().load_state_dict(state_dict, strict)
-        from equivariant.nn.modules.conv import R2Conv
-        # check seed is the same 
-        #assert self.seed == state_dict["seed"], "Save and load seeds are not the same"
-        
-        # the filter and bias have to be recomputed with the loaded weights
-        for name, layer in self.net.named_modules():
-            if isinstance(layer, R2Conv):
-                _filter, _bias = layer.expand_parameters()
-                layer.filter = _filter
-                if _bias is not None:
-                    layer.expanded_bias = _bias
-                else:
-                    layer.expanded_bias = None
+   
+    ############################################################################
+    # Methods for loading and saving the model
+    ############################################################################    
 
+    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
+        if not is_equivariant_model(self.net):
+            # if the model is not equivariant, we can load the state dict directly
+            super().load_state_dict(state_dict, strict)
+            return
+        
+        # if the model is equivariant, we have to do some extra work
+        is_train_mode = self.net.training
+        # load in eval mode
+        if is_train_mode:
+            self.net.eval()
+
+        super().load_state_dict(state_dict, strict)        
+        update_filters_with_pretrained_weights(self.net)
+        # put back in train mode
+        if is_train_mode:
+            self.net.train()
 
     def on_save_checkpoint(self, checkpoint):
+        if not is_equivariant_model(self.net):
+            # if the model is not equivariant nothing to do
+            return 
         # save to seed that was used to initialize the model
         checkpoint['seed'] = self.hparams.seed
+        # equivariant models have to be in eval mode for saving the weights
+        if self.net.training:
+            self.net.eval()
+            checkpoint["state_dict"] = self.state_dict()
+            self.net.train()
+
 
     def on_load_checkpoint(self, checkpoint):
-        print("check what already exists")
+        """This is called before load_state_dict()"""
+        if not is_equivariant_model(self.net):
+            # if the model is not equivariant nothing to do
+            return
+        
         if hasattr(self, "net"):
-            print("net exists")
             if self.hparams.seed != checkpoint['seed']:
+                # we can fix this by initializing a new model with the same seed
                 raise ValueError(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
         else:
             # assume that basically everything is missing
+            print("I think this does not exist")
             print(self)
             L.seed_everything(checkpoint['seed'], workers=True)
 

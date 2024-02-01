@@ -20,6 +20,7 @@ def get_stats(
         num_channels: int, 
         image_size: int,
     ) -> Tuple[float, float]:
+    net.train()
     input_tensor = torch.randn(batch_size, num_channels, \
             image_size, image_size).to(net.device)
 

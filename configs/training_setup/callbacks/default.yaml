@@ -4,7 +4,6 @@ defaults:
   - model_summary
   - rich_progress_bar
   - model_stats
-  - log_code
   #- ema
   - _self_
 

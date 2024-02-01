@@ -8,7 +8,7 @@ from lightning.pytorch.callbacks.model_checkpoint import ModelCheckpoint
 """
 adapted from https://lightning.ai/docs/pytorch/stable/_modules/lightning/pytorch/callbacks/model_checkpoint.html#ModelCheckpoint.state_dict
 
-since we need to save to seed
+not used
 """
 
 
@@ -46,6 +46,7 @@ class _ModelCheckpoint(ModelCheckpoint):
             save_on_train_epoch_end=save_on_train_epoch_end,
             enable_version_counter=enable_version_counter,
         )
+        raise NotImplementedError("This class is not used")
 
     def state_dict(self) -> Dict[str, Any]:
         return {
