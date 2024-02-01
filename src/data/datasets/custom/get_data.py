@@ -176,6 +176,9 @@ def get_DeepDRiD(
 
     return images, labels
 
+def get_imagenet():
+    raise NotImplementedError("Not implemented yet.")
+
 ################################################################################
 # Helper functions
 ################################################################################

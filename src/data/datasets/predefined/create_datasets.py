@@ -17,7 +17,7 @@ from torchvision.datasets import (
     CIFAR100,
     STL10,
     MNIST,
-    ImageNet,
+    ImageNet
 )
 
 import sys
@@ -53,7 +53,7 @@ def create_datasets(
 
     data_dir = kwargs["data"]["data_dir"]
     
-    assert name in ["cifar10", "cifar100", "stl10", "mnist"], "Unknown dataset name."
+    assert name in ["cifar10", "cifar100", "stl10", "mnist", "ILSVRC2012"], "Unknown dataset name."
 
     #location = data_dir + name + "/"
     location = os.path.join(data_dir, name)
@@ -67,7 +67,8 @@ def create_datasets(
         verbose=1,
     )
 
-    dataset_class = getattr(datasets, name.upper())
+    if name != "ILSVRC2012":
+        dataset_class = getattr(datasets, name.upper())
     
     # load the dataset
     if "cifar" in name:        
