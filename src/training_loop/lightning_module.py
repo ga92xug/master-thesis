@@ -1,12 +1,13 @@
 import signal
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union, Mapping
 import hydra
 
 import timeit
 import numpy as np
 import torch
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, Module
 from lightning import LightningModule
+import lightning as L
 from omegaconf import DictConfig
 from torchmetrics import MaxMetric, MeanMetric, MetricCollection, MinMetric
 from torchmetrics.classification.accuracy import (
@@ -264,7 +265,7 @@ class LitModule(LightningModule):
         self,
         verbose: int = 1,
         is_nas: bool = False,
-    ):
+    ) -> torch.nn.Module:
         """
         Instantiate the model and return:
         - number of parameters
@@ -293,7 +294,7 @@ class LitModule(LightningModule):
         # create model
         net = None
         start = timeit.default_timer()
-        net = hydra.utils.instantiate(
+        net: torch.nn.Module = hydra.utils.instantiate(
                 self.hparams.network,
                 num_channels=num_channels,
                 num_classes=num_classes,
@@ -306,9 +307,42 @@ class LitModule(LightningModule):
         if is_nas:
             # Cancel alarm
             signal.alarm(0)
-        
+
+        # the model has to be in eval mode for loading the weights
+        net.eval()        
         return net
 
+    def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
+        super().load_state_dict(state_dict, strict)
+        from equivariant.nn.modules.conv import R2Conv
+        # check seed is the same 
+        #assert self.seed == state_dict["seed"], "Save and load seeds are not the same"
+        
+        # the filter and bias have to be recomputed with the loaded weights
+        for name, layer in self.net.named_modules():
+            if isinstance(layer, R2Conv):
+                _filter, _bias = layer.expand_parameters()
+                layer.filter = _filter
+                if _bias is not None:
+                    layer.expanded_bias = _bias
+                else:
+                    layer.expanded_bias = None
+
+
+    def on_save_checkpoint(self, checkpoint):
+        # save to seed that was used to initialize the model
+        checkpoint['seed'] = self.hparams.seed
+
+    def on_load_checkpoint(self, checkpoint):
+        print("check what already exists")
+        if hasattr(self, "net"):
+            print("net exists")
+            if self.hparams.seed != checkpoint['seed']:
+                raise ValueError(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
+        else:
+            # assume that basically everything is missing
+            print(self)
+            L.seed_everything(checkpoint['seed'], workers=True)
 
 
 if __name__ == "__main__":

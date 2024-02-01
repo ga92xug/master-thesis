@@ -1,4 +1,4 @@
-from typing import Tuple, Callable, Iterable, List, Dict, Any
+from typing import Tuple, Callable, Iterable, List, Dict, Any, Mapping
 
 import math
 from torch import nn
@@ -42,6 +42,7 @@ class EquivariantNASNet(nn.Module):
         self, 
         blocks_args_dict: Dict[str, Any],
         image_size: int,
+        #seed: int,
         width_coefficient=1, 
         depth_coefficient=1,
         dropout_rate=0.2,
@@ -59,6 +60,7 @@ class EquivariantNASNet(nn.Module):
         #blocks_args = list(blocks_args)
         assert isinstance(image_size, int), 'Please provide valid image size'
         self.image_size = image_size
+        #self.seed = seed
         #assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
         #assert len(blocks_args) > 0, 'block args must be greater than 0'
         self.verbose = verbose
@@ -280,6 +282,10 @@ class EquivariantNASNet(nn.Module):
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
         super().load_state_dict(state_dict, strict)
+        from equivariant.nn.modules.conv import R2Conv
+        print("Loading triggered for eq_nasnet")
+        # check seed is the same 
+        #assert self.seed == state_dict["seed"], "Save and load seeds are not the same"
         
         for name, layer in self.named_modules():
             if isinstance(layer, R2Conv):

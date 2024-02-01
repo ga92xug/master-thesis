@@ -26,7 +26,7 @@ def get_ckpt_path(cfg: DictConfig, mode: str, trainer: Trainer) -> str:
         # normal training
         # no ckpt path needed
         raise RuntimeError("No ckpt path needed for train mode!")
-    elif mode == "train_with_ckpt":
+    elif mode == "train_with_pretrain":
         if trainer is None:
             # load pretrained model
             log.info("Loading pretrained model")

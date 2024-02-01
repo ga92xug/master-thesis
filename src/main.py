@@ -51,11 +51,11 @@ def instantiate(
     datamodule = DataModule(cfg.training_setup.dataset, is_dist=is_dist)
 
     log.info("Instantiating model")
-    if train_mode == "train_with_ckpt":
+    if train_mode == "train_with_pretrain":
         # load pretrained model
         log.info("Loading pretrained model")
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer=None)
-        assert ckpt_path, "Checkpoint path must be provided for train_with_ckpt mode."
+        assert ckpt_path, "Checkpoint path must be provided for train_with_pretrain mode."
         model = LitModule.load_from_checkpoint(ckpt_path)
     else:
         # for the other modes the trainer will take care of loading the weights if needed
@@ -124,32 +124,59 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     object_dict = instantiate(cfg, train_mode)
     datamodule: DataModule = object_dict["datamodule"]
-    model: LightningModule = object_dict["model"]
+    model: LitModule = object_dict["model"]
     callbacks: List[Callback] = object_dict["callbacks"]
     logger: List[Logger] = object_dict["logger"]
     trainer: Trainer = object_dict["trainer"]  
     
     if train_mode == "evaluate_only":
         log.info("Running in evaluate_only mode.")
-        ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
+        #ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
+        #out = trainer.validate(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
+        #print("Normal Val out", out)
 
-        new_model = model.__class__(**model.hparams)
-        state_dict_new = torch.load("temp_model.pth")
-        print_keys(state_dict_new)
+        #new_model = model.__class__(**model.hparams)
+        model.net.eval()
+        model.net.cuda()
+        state_dict_new = torch.load("temp_model.pth") # , map_location=torch.device('cuda:0'))
         
-        new_model.load_state_dict(state_dict_new)
-        out = trainer.validate(model=new_model, datamodule=datamodule)
+        model.net.load_state_dict(state_dict_new)
+        trainer.fit(model=model, datamodule=datamodule)
+        #model.net.cuda()
+        out = trainer.validate(model=model, datamodule=datamodule)
         print("New Val out", out)
+        out = trainer.test(model=model, datamodule=datamodule)
+        print("New Test out", out)
+        quit()
+        
 
         
-        
-        out = trainer.validate(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
-        print("Normal Val out", out)
-
-        
-    elif train_mode in ["train", "train_with_ckpt"]:
+    elif train_mode in ["train", "train_with_pretrain"]:
         log.info("Starting training.")
         trainer.fit(model=model, datamodule=datamodule)
+        #model.net.cuda()
+        model.net.eval()
+        torch.save(model.net.state_dict(), 'temp_model.pth')
+        quit()
+        trainer.validate(model=model, datamodule=datamodule, ckpt_path=None, verbose=True)
+        trainer.test(model=model, datamodule=datamodule, ckpt_path=None)
+        print("Saving model")
+        print("hash conv weight", hash_tensor(model.net._conv_stem.conv2d.conv.weights))
+        if not hasattr(model.net._conv_stem.conv2d.conv, "filter"):
+            #print("No filter")
+            from equivariant.nn.modules.conv import R2Conv
+            for name, layer in model.net.named_modules():
+                if isinstance(layer, R2Conv):
+                    #print(f"Loading layer {name}")
+                    _filter, _bias = layer.expand_parameters()
+                    layer.filter = _filter
+                    if _bias is not None:
+                        layer.expanded_bias = _bias
+                    else:
+                        layer.expanded_bias = None
+        print("hash conv filter", hash_tensor(model.net._conv_stem.conv2d.conv.filter))
+        torch.save(model.net.state_dict(), 'temp_model.pth')
+        quit()
     elif train_mode == "train_continue":
         log.info("Continuing training from checkpoint.")
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
@@ -196,6 +223,8 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     return metric_dict, object_dict
 
+def hash_tensor(tensor):
+    return hash(tuple(tensor.reshape(-1).tolist()))
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="conf.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
@@ -204,6 +233,10 @@ def main(cfg: DictConfig) -> Optional[float]:
     :param cfg: DictConfig configuration composed by Hydra.
     :return: Optional[float] with optimized metric value.
     """
+    L.seed_everything(cfg.seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     # apply extra utilities
     # (e.g. ask for tags if none are provided in cfg, print cfg tree, etc.)
     extras(cfg)

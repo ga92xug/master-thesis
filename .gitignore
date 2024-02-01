@@ -4,6 +4,7 @@ figures/
 environment_from_framework.yaml
 spec-file.txt
 #notebooks/
+temp_model.pth
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -156,3 +157,4 @@ configs/local/default.yaml
 /data/
 /logs/
 .env
+

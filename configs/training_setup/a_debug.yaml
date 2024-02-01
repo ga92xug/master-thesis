@@ -1,7 +1,7 @@
 defaults:
   - dataset: imagenette
   - callbacks: default
-  - network: efficientnet
+  - network: eq_nasnet
   - optimizer: Adam
   - scheduler: none
 
