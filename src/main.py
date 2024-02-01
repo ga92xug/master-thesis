@@ -5,6 +5,7 @@ import lightning as L
 from lightning.pytorch.strategies import DDPStrategy
 import rootutils
 import torch
+torch.set_float32_matmul_precision('high')
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig

@@ -76,7 +76,7 @@ training_setup:
 
 
 hardware:
-  strategy: ddp_spawn
+  strategy: auto
   devices: 1
   num_nodes: 1
   sync_batchnorm: True
