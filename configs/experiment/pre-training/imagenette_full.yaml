@@ -1,31 +1,34 @@
 # @package _global_
 
 # to execute this experiment run:
-# python train.py experiment=pre-training/example
+# python train.py experiment=example
 
 defaults:
-  - override /training_setup/dataset: imagenette # imagenet
-  - override /training_setup/network: eq_nasnet #efficientnet eq_nasnet
+  - override /training_setup/dataset: imagenette
+  - override /training_setup/network: eq_nasnet #eq_nasnet
+  - override /training_setup/network/blocks_args_dict: 1_debug
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
   - override /logger: wandb
   - override /training_setup/callbacks: default 
 
-tags: ["pre-train_imagenette", "no_swa_and_ema"]
+tags: ["pre-train_imagenet"]
 
 seed: 0
+logger:
+  wandb:
+    project: "pre-train"
+    mode: online
 
-ckpt_path: logs/train/runs/2024-01-26_19-20-15/checkpoints/last.ckpt # train/runs/2024-01-24_19-58-34/checkpoints/epoch_003.ckpt
-train_mode: train # train_with_pretrain
-test_mode: test
+train_mode: train
+test_mode: no_test
 
 training_setup:
-  # label_smoothing: 0.1
+  label_smoothing: 0.1
 
   trainer:
-    min_epochs: 1
-    max_epochs: 10
-    #limit_train_batches: 0.1
+    min_epochs: 10
+    max_epochs: 50
 
   optimizer:
     nesterov: False
@@ -42,16 +45,17 @@ training_setup:
     swa:
       _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
       swa_lrs: 0.05
-    prediction_writer:
-      _target_: src._callbacks.write_predictions.Prediction_txt_Writer
-      output_dir: ${paths.output_dir}
-
+    # batch_size_finder:
+    #   _target_: lightning.pytorch.callbacks.BatchSizeFinder
+    #   batch_arg_name: batch_size_per_device
+    #   steps_per_trial: 10
+    #   mode: binsearch
 
   dataset:
     mixup_alpha: 0.2
     cutmix_alpha: 1.0
     # we autotune the batch size to fit into memory
-    batch_size: 100 # 128 * 8
+    batch_size: 128 # 128 * 8
 
     ra_sampler: True
     ra_reps: 4
@@ -76,9 +80,8 @@ training_setup:
 
 hardware:
   strategy: auto
-  accelerator: gpu
   devices: 1
   num_nodes: 1
-  #sync_batchnorm: True
+  sync_batchnorm: True
 
 
