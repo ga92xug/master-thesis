@@ -19,6 +19,11 @@ ckpt_path: logs/train/runs/2024-01-26_19-20-15/checkpoints/last.ckpt # train/run
 train_mode: train # train_with_pretrain
 test_mode: test
 
+logger:
+  wandb:
+    project: "pre-train"
+    mode: offline
+
 training_setup:
   # label_smoothing: 0.1
 
@@ -39,9 +44,9 @@ training_setup:
     warmup_decay: 0.01
 
   callbacks:
-    swa:
-      _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-      swa_lrs: 0.05
+    #swa:
+    #  _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+    #  swa_lrs: 0.05
     prediction_writer:
       _target_: src._callbacks.write_predictions.Prediction_txt_Writer
       output_dir: ${paths.output_dir}

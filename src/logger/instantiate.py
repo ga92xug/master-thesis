@@ -44,7 +44,6 @@ def instantiate_loggers(
                     config=lg_conf,
                     model_name=model_name,
                 )
-                print(lg_conf)
                 lg_conf["name"] = name
 
             logger.append(hydra.utils.instantiate(lg_conf))
