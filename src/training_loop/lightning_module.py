@@ -17,8 +17,9 @@ from torchmetrics.classification.accuracy import (
 )
 
 from src._callbacks.model_stats import timeout_handler
-from src.utils.equivariant_utils import is_equivariant_model, update_filters_with_pretrained_weights
+from src.utils.equivariant_utils import is_equivariant_model, create_filters_network
 from src.utils.scheduler import get_optim_and_scheduler
+from src.utils.utils import recursive_print_dict
 
 
 class LitModule(LightningModule):
@@ -311,7 +312,7 @@ class LitModule(LightningModule):
             signal.alarm(0)
 
         # the model has to be in eval mode for loading the weights
-        net.eval()        
+        # net.eval()        
         return net
 
    
@@ -332,7 +333,7 @@ class LitModule(LightningModule):
             self.net.eval()
 
         super().load_state_dict(state_dict, strict)        
-        update_filters_with_pretrained_weights(self.net)
+        #create_filters_network(self.net)
         # put back in train mode
         if is_train_mode:
             self.net.train()
@@ -343,11 +344,17 @@ class LitModule(LightningModule):
             return 
         # save to seed that was used to initialize the model
         checkpoint['seed'] = self.hparams.seed
+        
+        # filters are destroyed before the model is saved
+        #create_filters_network(self.net)
+        #checkpoint["state_dict"] = self.state_dict()
+        
+        # recursive_print_dict(checkpoint["state_dict"])
         # equivariant models have to be in eval mode for saving the weights
-        if self.net.training:
-            self.net.eval()
-            checkpoint["state_dict"] = self.state_dict()
-            self.net.train()
+        #if self.net.training:
+        #    self.net.eval()
+        #    checkpoint["state_dict"] = self.state_dict()
+        #    self.net.train()
 
 
     def on_load_checkpoint(self, checkpoint):

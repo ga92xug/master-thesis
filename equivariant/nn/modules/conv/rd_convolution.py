@@ -214,7 +214,7 @@ class _RdConv(EquivariantModule, ABC):
                 #    f"cuda:{torch.cuda.current_device()}"
                 #)
                 self.bias = Parameter(torch.zeros(trivials), requires_grad=True)
-                self.expanded_bias = torch.zeros(out_type.size)
+                self.register_buffer("expanded_bias", torch.zeros(out_type.size), persistent=False)
             else:
                 self.bias = None
                 self.expanded_bias = None
@@ -250,7 +250,7 @@ class _RdConv(EquivariantModule, ABC):
         )
 
         filter_size = (out_type.size, in_type.size) + (kernel_size,) * d
-        self.filter = torch.zeros(*filter_size)
+        self.register_buffer("filter", torch.zeros(*filter_size), persistent=False)
 
     @abstractmethod
     def _build_kernel_basis(
@@ -285,19 +285,19 @@ class _RdConv(EquivariantModule, ABC):
         std, mean = torch.std_mean(self.weights, dim=(0), unbiased=False, keepdim=True)
         weights = (self.weights - mean) / (std.expand_as(self.weights) + 1e-5)
 
-        _filter = self.basisexpansion(weights)
-        _filter = _filter.reshape(
-            _filter.shape[0], _filter.shape[1], *(self.kernel_size,) * self.d
+        self.filter = self.basisexpansion(weights)
+        self.filter = self.filter.reshape(
+            self.filter.shape[0], self.filter.shape[1], *(self.kernel_size,) * self.d
         )
 
         if self.bias is None:
-            _bias = None
+            self.bias = None
         else:
             # change back
             #self.bias_expansion = self.bias_expansion.to(self.bias.device)
-            _bias = self.bias_expansion @ self.bias
+            self.bias = self.bias_expansion @ self.bias
 
-        return _filter, _bias
+        #return _filter, _bias
 
     @abstractmethod
     def forward(self, input: GroupTensor):
@@ -338,22 +338,19 @@ class _RdConv(EquivariantModule, ABC):
 
         if mode:
             # TODO thoroughly check this is not causing problems
-            if hasattr(self, "filter"):
-                del self.filter
-            if hasattr(self, "expanded_bias"):
-                del self.expanded_bias
+            pass
+            # if hasattr(self, "filter"):
+            #     del self.filter
+            # if hasattr(self, "expanded_bias"):
+            #     del self.expanded_bias
         elif self.training:
             # avoid re-computation of the filter and the bias on multiple consecutive calls of `.eval()`
-
-            _filter, _bias = self.expand_parameters()
-
-            self.filter = _filter
-            if _bias is not None:
-                self.expanded_bias = _bias
-            else:
-                self.expanded_bias = None
+            self.expand_parameters()
+            #self.create_filters()
+            
 
         return super(_RdConv, self).train(mode)
+
 
     def evaluate_output_shape(self, input_shape: Tuple) -> Tuple:
         assert len(input_shape) == 2 + self.d

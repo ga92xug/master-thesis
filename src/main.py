@@ -5,6 +5,7 @@ import lightning as L
 from lightning.pytorch.strategies import DDPStrategy
 import rootutils
 import torch
+
 torch.set_float32_matmul_precision('high')
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
@@ -20,6 +21,7 @@ from src._callbacks.log_code import Log_Code
 from src.data.datamodule import DataModule
 from src.training_loop.lightning_module import LitModule
 from src.utils.ckpt_path import get_ckpt_path
+from src.utils.utils import recursive_print_dict
 
 from src.utils import (
     RankedLogger,
@@ -53,7 +55,6 @@ def instantiate(
     log.info("Instantiating datamodule")
     datamodule = DataModule(cfg.training_setup.dataset, is_dist=is_dist)
 
-    log.info("Instantiating model")
     if train_mode == "train_with_pretrain":
         # load pretrained model
         log.info("Loading pretrained model")
@@ -61,6 +62,7 @@ def instantiate(
         assert ckpt_path, "Checkpoint path must be provided for train_with_pretrain mode."
         model = LitModule.load_from_checkpoint(ckpt_path)
     else:
+        log.info("Instantiating model")
         # for the other modes the trainer will take care of loading the weights if needed
         model = LitModule(
             **cfg.training_setup,

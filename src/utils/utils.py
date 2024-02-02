@@ -139,3 +139,12 @@ def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], 
         
     return trainer
     
+
+def recursive_print_dict(d: Dict, indent: int = 0) -> None:
+    """Recursively prints a dictionary with indentation."""
+    for key, value in d.items():
+        if isinstance(value, dict):
+            print("  " * indent + str(key))
+            recursive_print_dict(value, indent + 1)
+        else:
+            print("  " * indent + str(key))
