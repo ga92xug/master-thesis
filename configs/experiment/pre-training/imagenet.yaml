@@ -50,8 +50,6 @@ training_setup:
       steps_per_trial: 10
       mode: binsearch
 
-
-
   dataset:
     mixup_alpha: 0.2
     cutmix_alpha: 1.0
