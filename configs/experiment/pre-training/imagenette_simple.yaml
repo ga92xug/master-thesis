@@ -1,85 +1,82 @@
 # @package _global_
 
 # to execute this experiment run:
-# python train.py experiment=pre-training/example
+# python train.py experiment=example
 
 defaults:
-  - override /training_setup/dataset: imagenette # imagenet
-  - override /training_setup/network: efficientnet #eq_nasnet
-  - override /training_setup/optimizer: Adam
-  #- override /training_setup/scheduler: none # cosine_annealing_lr
-  #- override /training_setup/callbacks: null
-  - override /training_setup/callbacks: default # Reference to the defaults list in training_setup.callbacks.yaml
-  - override /logger: null 
+  - override /training_setup/dataset: imagenette
+  - override /training_setup/network: eq_nasnet #eq_nasnet
+  - override /training_setup/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
+  - override /training_setup/optimizer: SGD
+  - override /training_setup/scheduler: cosine_annealing_lr
+  - override /logger: wandb
+  - override /training_setup/callbacks: default 
 
-tags: ["pre-train_imagenette"]
+tags: ["pre-train_imagenet"]
 
 seed: 0
+ckpt_path: "/home/frischs/dev1/scaling-laws-ecnn/logs/train/runs/2024-02-02_21-08-03/checkpoints/epoch_000.ckpt"
+train_mode: train
+#train_mode: train
+test_mode: test
+
+#logger:
+#  wandb:
+#    project: "pre-train"
+#    mode: offline
 
 training_setup:
-
-  #callbacks: 
-  #  - model_checkpoint
-  #  - early_stopping
-  #  - model_summary
-  #  - rich_progress_bar
-  #  - model_stats
-  #  - log_code
-  #  - ema
-  # label_smoothing: 0.1
+  #label_smoothing: 0.1
 
   trainer:
     min_epochs: 1
-    max_epochs: 20
+    max_epochs: 7
+    #limit_train_batches: 0.04
 
   optimizer:
-    lr: 0.001
-    weight_decay: 0.0
-    # nesterov: False
-    # momentum: 0.9
-    # lr: 0.5
-    # weight_decay: 2e-05
+    nesterov: False
+    momentum: 0.9
+    lr: 0.5
+    weight_decay: 2e-05
 
-  #scheduler:
-  #  warmup_epochs: 5
-  #  # warmup_method: only linear currently not supported
-  #  warmup_decay: 0.01
+  scheduler:
+    warmup_epochs: 5
+    # warmup_method: only linear currently not supported
+    warmup_decay: 0.01
 
-  callbacks:
-    # stop_training:
-    #   _target_: src._callbacks.stop_training.Stop_After_Epoch
-    #   stop_after_epoch: 50
-
-    
+  #callbacks:
+    # swa:
+    #   _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+    #   swa_lrs: 0.05
+    # batch_size_finder:
+    #   _target_: lightning.pytorch.callbacks.BatchSizeFinder
+    #   batch_arg_name: batch_size_per_device
+    #   steps_per_trial: 10
+    #   mode: binsearch
 
   dataset:
-    resolution: 128
+    resolution: 224
     #mixup_alpha: 0.2
     #cutmix_alpha: 1.0
     # we autotune the batch size to fit into memory
     batch_size: 128 # 128 * 8
-
-    #ra_sampler: True
-    #ra_reps: 4
-
+    
     augment:
-      #interpolation: BILINEAR
+      interpolation: BILINEAR
       train:
-        short_side_center_crop: True
-        #RandomResizedCrop:
-        #  size: 176
-        # RandomHorizontalFlip:
-        #   p: 0.5
-        # TrivialAugmentWide:
-        #   interpolation: BILINEAR
-        # RandomErasing:
-        #   p: 0.1
+        RandomResizedCrop:
+          size: 176
+        RandomHorizontalFlip:
+          p: 0.5
+        TrivialAugmentWide:
+          interpolation: BILINEAR
+        RandomErasing:
+          p: 0.1
 
       eval:
-        short_side_center_crop: True
-        #short_side_center_crop:
-        #  resize_size: 232
-        #  crop_size: 224
+        short_side_center_crop:
+          resize_size: 232
+          crop_size: 224
 
 
 hardware:

@@ -4,7 +4,7 @@
 # python train.py experiment=example
 
 defaults:
-  - override /training_setup/dataset: imagenet
+  - override /training_setup/dataset: imagenette
   - override /training_setup/network: eq_nasnet #eq_nasnet
   - override /training_setup/network/blocks_args_dict: 4blocks
   - override /training_setup/optimizer: SGD
