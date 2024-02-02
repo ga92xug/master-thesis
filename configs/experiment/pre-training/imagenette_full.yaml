@@ -4,9 +4,9 @@
 # python train.py experiment=example
 
 defaults:
-  - override /training_setup/dataset: imagenette
+  - override /training_setup/dataset: imagenet
   - override /training_setup/network: eq_nasnet #eq_nasnet
-  - override /training_setup/network/blocks_args_dict: 1_debug
+  - override /training_setup/network/blocks_args_dict: 4blocks
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
   - override /logger: wandb
@@ -15,11 +15,6 @@ defaults:
 tags: ["pre-train_imagenet"]
 
 seed: 0
-logger:
-  wandb:
-    project: "pre-train"
-    mode: online
-
 train_mode: train
 test_mode: no_test
 
@@ -47,16 +42,17 @@ training_setup:
     warmup_decay: 0.01
 
   callbacks:
-    swa:
-      _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-      swa_lrs: 0.05
-    # batch_size_finder:
-    #   _target_: lightning.pytorch.callbacks.BatchSizeFinder
-    #   batch_arg_name: batch_size_per_device
-    #   steps_per_trial: 10
-    #   mode: binsearch
+    # swa:
+    #   _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+    #   swa_lrs: 0.05
+    batch_size_finder:
+      _target_: lightning.pytorch.callbacks.BatchSizeFinder
+      batch_arg_name: batch_size_per_device
+      steps_per_trial: 10
+      mode: binsearch
 
   dataset:
+    resolution: 224
     mixup_alpha: 0.2
     cutmix_alpha: 1.0
     # we autotune the batch size to fit into memory
@@ -85,8 +81,9 @@ training_setup:
 
 hardware:
   strategy: auto
+  accelerator: gpu
   devices: 1
   num_nodes: 1
-  sync_batchnorm: True
+  #sync_batchnorm: True
 
 

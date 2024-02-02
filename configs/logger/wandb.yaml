@@ -2,7 +2,7 @@ wandb:
   _target_: lightning.pytorch.loggers.wandb.WandbLogger
   entity: ga92xug
   project: "lightning-hydra-template"
-  mode: online
+  mode: ${local.wandb_mode}
   #watch: False                  # For detailed weight analysis
   notes: null
   name: True
