@@ -11,7 +11,7 @@ source activate scaling
 echo "Virtual environment activated"
 srun python src/main.py experiment=pre-training/imagenet local=alex \
     hardware.strategy=ddp hardware.devices=8 \
-    training_setup.dataset.batch_size=1536
+    training_setup.dataset.batch_size=800
 
 
 
