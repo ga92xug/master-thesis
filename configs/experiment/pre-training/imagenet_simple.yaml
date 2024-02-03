@@ -5,8 +5,8 @@
 
 defaults:
   - override /training_setup/dataset: imagenet
-  - override /training_setup/network: efficientnet #eq_nasnet
-  #- override /training_setup/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
+  - override /training_setup/network: eq_nasnet #eq_nasnet
+  - override /training_setup/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
   - override /logger: wandb

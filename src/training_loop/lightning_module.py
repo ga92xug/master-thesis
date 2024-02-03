@@ -200,7 +200,7 @@ class LitModule(LightningModule):
         else:
             raise ValueError(f"Unknown batch type {type(batch)}")
         
-        logits = self.forward(x)
+        logits = self.net(x)
         return logits
 
     def setup(self, stage: str) -> None:
