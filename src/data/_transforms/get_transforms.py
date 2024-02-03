@@ -21,7 +21,7 @@ def get_transforms(
         augment: Union[bool, Dict],
         channel_wise_mean_images: List[float],
         channel_wise_std_images: List[float],
-        verbose: int = 2,
+        verbose: int = 1,
     ) -> Tuple[transforms.Compose, transforms.Compose]:
 
     original_augment = deepcopy(augment)

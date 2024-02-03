@@ -15,7 +15,6 @@ import rootutils
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 
-from src.data.mnist_datamodule import MNISTDataModule
 from src.data.datamodule import DataModule
 from tests.train.helpers.hydra_init import hydra_compose
 
@@ -52,7 +51,6 @@ def test_datamodule(
     np.random.seed(cfg.seed)
 
     dm: LightningDataModule = DataModule(cfg.training_setup.dataset)
-
     dm.prepare_data()
 
     assert not dm.train_set and not dm.val_set and not dm.test_set

@@ -80,7 +80,7 @@ def create_datasets(
         augment=augment, 
         channel_wise_mean_images=channel_wise_mean_images, 
         channel_wise_std_images=channel_wise_std_images,
-        verbose=2,
+        verbose=1,
     )
 
     if isinstance(images, dict):

@@ -88,7 +88,7 @@ def create_datasets(
     elif name == "ILSVRC2012":
         train_dataset = ImageNet(root=location, split="train", transform=train_transform)
         valid_dataset = ImageNet(root=location, split="val", transform=valid_transform)
-        test_dataset = ImageNetTestDataset(test_dir=location, transform=valid_transform)        
+        test_dataset = ImageNetTestDataset(test_dir=location + "/test", transform=valid_transform)        
     else:
         raise RuntimeError(f"Unknown dataset name: {name}.")
 
@@ -125,8 +125,11 @@ def create_datasets(
     # Normalized weights
     # since we are using the stratified_subset_indices function, we can just use the train_val_dataset
     # Extract labels from the dataset
-    labels = [label for _, label in train_dataset]
-    normalized_weights = get_normalize_weights(labels) if should_normalize_weights else None
+    if should_normalize_weights:
+        labels = [label for _, label in train_dataset]
+        normalized_weights = get_normalize_weights(labels)
+    else:
+        normalized_weights = None
 
     return _datasets, normalized_weights, dataloader_kwargs
 

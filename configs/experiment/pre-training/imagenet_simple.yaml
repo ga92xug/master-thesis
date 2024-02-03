@@ -4,9 +4,9 @@
 # python train.py experiment=example
 
 defaults:
-  - override /training_setup/dataset: imagenette
-  - override /training_setup/network: eq_nasnet #eq_nasnet
-  - override /training_setup/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
+  - override /training_setup/dataset: imagenet
+  - override /training_setup/network: efficientnet #eq_nasnet
+  #- override /training_setup/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
   - override /training_setup/optimizer: SGD
   - override /training_setup/scheduler: cosine_annealing_lr
   - override /logger: wandb
@@ -15,22 +15,21 @@ defaults:
 tags: ["pre-train_imagenet"]
 
 seed: 0
-ckpt_path: "/home/frischs/dev1/scaling-laws-ecnn/logs/train/runs/2024-02-03_20-25-51/checkpoints/epoch_001.ckpt"
-train_mode: train_continue
+ckpt_path: "" 
+train_mode: train
 #train_mode: train
 test_mode: test
 
-#logger:
-#  wandb:
-#    project: "pre-train"
-#    mode: offline
+logger:
+  wandb:
+    project: "pre-train"
 
 training_setup:
   #label_smoothing: 0.1
 
   trainer:
     min_epochs: 1
-    max_epochs: 2
+    max_epochs: 1
     #limit_train_batches: 0.04
 
   optimizer:
@@ -45,10 +44,10 @@ training_setup:
     warmup_decay: 0.01
 
   callbacks:
-    swa:
-      _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-      swa_lrs: 0.05
-      swa_epoch_start: 0.001
+    # swa:
+    #   _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+    #   swa_lrs: 0.05
+    #   swa_epoch_start: 0.001
     # batch_size_finder:
     #   _target_: lightning.pytorch.callbacks.BatchSizeFinder
     #   batch_arg_name: batch_size_per_device

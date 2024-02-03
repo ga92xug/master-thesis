@@ -346,9 +346,6 @@ class _RdConv(EquivariantModule, ABC):
         elif self.training:
             # avoid re-computation of the filter and the bias on multiple consecutive calls of `.eval()`
             self.expand_parameters()
-            #self.create_filters()
-            
-
         return super(_RdConv, self).train(mode)
 
 

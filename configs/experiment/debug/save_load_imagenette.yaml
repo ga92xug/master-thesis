@@ -16,7 +16,7 @@ tags: ["pre-train_imagenette", "no_swa_and_ema"]
 
 seed: 0
 
-  "" # train/runs/2024-01-24_19-58-34/checkpoints/epoch_003.ckpt
+ckpt_path:  "" # train/runs/2024-01-24_19-58-34/checkpoints/epoch_003.ckpt
 train_mode: evaluate_only # train_with_pretrain
 test_mode: test
 

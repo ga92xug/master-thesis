@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, Tuple
 
+import os
 import hydra
 from omegaconf import DictConfig
 import torch
@@ -72,6 +73,9 @@ class DataModule(LightningDataModule):
 
         self.batch_size_per_device = data_cfg.batch_size
         self.weights = None
+
+        max_threads = min(32, self.hparams.data_cfg.workers)
+        os.environ['NUMEXPR_MAX_THREADS'] = str(max_threads)
 
     @property
     def num_classes(self) -> int:
@@ -168,7 +172,7 @@ class DataModule(LightningDataModule):
                 train_sampler = DistributedSampler(self.train_set)
         else:
             train_sampler = RandomSampler(self.train_set)
-
+        
         return DataLoader(
             dataset=self.train_set,
             batch_size=self.batch_size_per_device,

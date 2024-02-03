@@ -31,8 +31,6 @@ def get_stats(
     print(flop_count_table(flops, max_depth=5))
     gflops = flops.total() / 1e9
     gflops_per_image = gflops / batch_size
-    print(f"GFLOPs per image: {gflops_per_image}")
-    quit()
     
     # PARAMS
     param_count = parameter_count(net).get("net")
