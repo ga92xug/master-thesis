@@ -81,6 +81,6 @@ hardware:
   strategy: auto
   devices: 1
   num_nodes: 1
-  sync_batchnorm: True
+  #sync_batchnorm: True
 
 

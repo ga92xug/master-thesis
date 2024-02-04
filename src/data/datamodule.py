@@ -141,6 +141,7 @@ class DataModule(LightningDataModule):
                     f"Batch size ({self.hparams.data_cfg.batch_size}) is not divisible by the number of devices ({self.trainer.world_size})."
                 )
             self.batch_size_per_device = self.hparams.data_cfg.batch_size // self.trainer.world_size
+            print(f"Batch size per device: {self.batch_size_per_device}")
 
         # load and split datasets only if not loaded already
         if not self.train_set and not self.val_set and not self.test_set:
