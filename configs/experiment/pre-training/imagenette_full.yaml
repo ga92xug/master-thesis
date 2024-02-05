@@ -42,14 +42,14 @@ training_setup:
     warmup_decay: 0.01
 
   callbacks:
-    # swa:
-    #   _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
-    #   swa_lrs: 0.05
-    batch_size_finder:
-      _target_: lightning.pytorch.callbacks.BatchSizeFinder
-      batch_arg_name: batch_size_per_device
-      steps_per_trial: 10
-      mode: binsearch
+    swa:
+      _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
+      swa_lrs: 0.05
+    # batch_size_finder:
+    #   _target_: lightning.pytorch.callbacks.BatchSizeFinder
+    #   batch_arg_name: batch_size_per_device
+    #   steps_per_trial: 10
+    #   mode: binsearch
 
   dataset:
     resolution: 224

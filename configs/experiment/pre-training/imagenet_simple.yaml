@@ -44,6 +44,9 @@ training_setup:
     warmup_decay: 0.01
 
   callbacks:
+    metric_print:
+      _target_: src._callbacks.metric_print.Metric_Print
+      mode: "memory"
     # swa:
     #   _target_: lightning.pytorch.callbacks.StochasticWeightAveraging
     #   swa_lrs: 0.05
