@@ -166,9 +166,9 @@ class LitModule(LightningModule):
         
         # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("valid/acc_best", self.valid_acc_best.compute(), sync_dist=True, prog_bar=True)
-        self.log("valid/acc_weighted_best", self.valid_acc_weighted_best.compute(), sync_dist=True, prog_bar=True)
-        self.log("valid/loss_best", self.valid_loss_best.compute(), sync_dist=True, prog_bar=True)
+        self.log("valid_best/acc", self.valid_acc_best.compute(), sync_dist=True, prog_bar=False)
+        self.log("valid_best/acc_weighted", self.valid_acc_weighted_best.compute(), sync_dist=True, prog_bar=False)
+        self.log("valid_best/loss", self.valid_loss_best.compute(), sync_dist=True, prog_bar=False)
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
