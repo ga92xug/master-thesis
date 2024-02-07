@@ -36,6 +36,9 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
     hparams["scheduler"] = cfg["training_setup"].get("scheduler")
     hparams["callbacks"] = cfg["training_setup"].get("callbacks")
     hparams["trainer"] = cfg["training_setup"]["trainer"]
+    if cfg.get("training"):
+        hparams["training"] = cfg["training"]
+
 
     # save number of model parameters
     # hparams["model/params/total"] = sum(p.numel() for p in model.parameters())

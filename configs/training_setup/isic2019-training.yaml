@@ -1,21 +1,37 @@
 defaults:
-- _self_
-- optimizer: Adam
-- dataset/custom: isic2019
-- scheduler: reduce_lr_on_plateau 
+  - _self_
+  - dataset: DeepDRiD
+  - callbacks: default
+  - network: eq_nasnet
+  - optimizer: Adam
+  - scheduler: reduce_lr_on_plateau
 
-epochs: 120
-accumulate: 1
+callbacks:
+  model_checkpoint:
+    monitor: "valid/acc_weighted"
+    mode: "max"
+    save_last: True
+    auto_insert_metric_name: False
 
-data:
-  batch_size: 64                
-  eval_batch_size: 64           
+  early_stopping:
+    monitor: "valid/acc_weighted"
+    patience: 30
+    mode: "max"
+
+scheduler: 
+  factor: 0.5
+  patience: 10
 
 optimizer:
   lr: 0.005
   weight_decay: 1e-5
 
-scheduler:
-  factor: 0.5
-  patience: 10
-  verbose: True
+trainer:
+  accumulate_grad_batches: 1
+  max_epochs: 120
+
+
+dataset:
+  batch_size: 64                
+
+

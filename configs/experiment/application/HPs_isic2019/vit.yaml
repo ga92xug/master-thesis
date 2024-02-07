@@ -1,24 +1,31 @@
 # @package _global_
 defaults:
-  - override /training: isic2019-training
-  - override /model: vit
-  - override /wandb: default
+  - override /training_setup: isic2019-training
+  - override /training_setup/dataset: isic2019
+  - override /training_setup/network: vit #eq_nasnet
+  - override /training_setup/scheduler: none
+  - override /logger: wandb
+  - override /training_setup/callbacks: default 
   - _self_
-  
-model:
-  pretrained: False
 
-training:
+tags: ["redo_vit_isic2019_res128"]
+
+logger:
+  wandb:
+    project: master_thesis_important
+    mode: online
+
+training_setup:
+  network:
+    pretrained: False
   optimizer:
     lr: 0.00011086617191327872
     weight_decay: 0.0000105649546739937
 
-  scheduler:
+  scheduler: # not used -> implement None scheduler
     _target_: null
     #factor: 0.03079828066268554
     #patience: 65
-    #verbose: True
+
   
-wandb:
-  project: SL-Application
-  give_name: True
+

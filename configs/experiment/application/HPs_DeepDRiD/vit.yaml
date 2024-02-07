@@ -14,8 +14,8 @@ tags: ["redo_vit_DeepDRiD_res128"]
 
 logger:
   wandb:
-    project: "pre-train"
-    mode: disabled
+    project: master_thesis_important
+    mode: online
 
 training_setup:
   network:
