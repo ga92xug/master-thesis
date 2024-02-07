@@ -37,6 +37,7 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
     hparams["callbacks"] = cfg["training_setup"].get("callbacks")
     hparams["trainer"] = cfg["training_setup"]["trainer"]
     if cfg.get("training"):
+        # backward compatibility
         hparams["training"] = cfg["training"]
 
 

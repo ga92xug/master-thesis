@@ -56,7 +56,7 @@ class EquivariantNASNet(nn.Module):
         verbose: int = 0,
         **kwargs,
     ):
-        super().__init__()        
+        super().__init__()  
         #blocks_args = list(blocks_args)
         assert isinstance(image_size, int), 'Please provide valid image size'
         self.image_size = image_size
@@ -73,8 +73,6 @@ class EquivariantNASNet(nn.Module):
 
         # BlockArgs
         self.blocks_args_list = BlockArgsList.from_dict(blocks_args_dict, stem_channels, width_coefficient, depth_coefficient)
-
-        
         stem_args = self.blocks_args_list[0]
         
         # Get group spaces for specified rotations and flips
@@ -116,69 +114,17 @@ class EquivariantNASNet(nn.Module):
                 print(f"Building block: {i+1}")
             self._blocks[f"block{i+1}"] = self.create_block(block_args)
 
-        last_block_args = self.blocks_args_list[-1]
-        group_id = get_group_id(last_block_args.reflection, last_block_args.group)
-        self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)
-        if last_block_args.kernel_size != 0:
-            # Build head
-            if verbose > 3:
-                print("Building head")
-            # Restrict
-            self.field_type = self.restrict_last.out_type
-        
         # Head
-        if self.restrict_last.setting in ["cnn", "switch"]:
-            N = 0
-        else:
-            N = self.gspace.fibergroup.order()
-        out_channels = adjusted_out_channels(
-                out_channel = last_block_args.out_channel,
-                N=N,
-            )
-        
-        if self.restrict_last.setting in ["cnn", "switch"]:
-            self._bn1 = nn.BatchNorm2d(self.field_type)
-            self._swish1 = nn.SiLU()
-            self._conv_head = Conv2dSamePadding(
-                in_channels=self.field_type,
-                out_channels=out_channels,
-                kernel_size=last_block_args.kernel_size,
-                bias=False,
-            )
-            self._bn2 = nn.BatchNorm2d(out_channels)
-            self._swish2 = nn.SiLU()
-            
-        elif self.restrict_last.setting == "group": 
-            if last_block_args.kernel_size != 0:
-                self._bn1 = BatchNorm(in_type=self.field_type, affine=False)
-                self._swish1 = Swish(in_type=self._bn1.out_type)
-                self._conv_head = Eq_Conv2dSamePadding(
-                    in_type=self._swish1.out_type, 
-                    out_channels=out_channels,
-                    bias=False
-                )
-                self.field_type = self._conv_head.out_type
-            
-            self._bn2 = BatchNorm(in_type=self.field_type, affine=False)
-            self._swish2 = Swish(in_type=self._bn2.out_type)
-            # Final linear layer
-            self.invariant_map = EquivariantPool(
-                self._swish2.out_type, 
-                invariant_map=True
-            )
-        else:
-            raise NotImplementedError(f"This setting: {self.restrict_last.setting} is not implemented")
+        out_channels = self.build_head(verbose, fixed_params)
+
         # pooling
         if verbose > 3:
             print("pooling image size: ", self.image_size)
-        #assert self.image_size <= 8, "We don't want to pool too much, check num_blocks"
-        self._avg_pooling = nn.AdaptiveAvgPool2d(1)
+        pool_size, linear_input_size = self.pool_like(out_channels, num_classes, image_size=self.image_size)
+        self._avg_pooling = nn.AdaptiveAvgPool2d(pool_size)
 
-        self.dropout = nn.Dropout(self.dropout_rate)
-        if self.restrict_last.setting in ["cnn", "switch"]:
-            self.fc = nn.Linear(out_channels, num_classes)
-        else:
-            self.fc = nn.Linear(len(self.invariant_map.out_type), num_classes)
+        self.dropout = nn.Dropout(self.dropout_rate)        
+        self.fc = nn.Linear(linear_input_size, num_classes)
 
     
     def forward(self, inputs):
@@ -191,7 +137,7 @@ class EquivariantNASNet(nn.Module):
                 x = restrict_or_layer(x)
 
         # Head
-        if self.blocks_args_list[-1].kernel_size != 0:
+        if self.head_exists:
             x = self.restrict_last(x)
             x = self._conv_head(self._swish1(self._bn1(x)))
 
@@ -216,6 +162,7 @@ class EquivariantNASNet(nn.Module):
         # restriction
         group_id = get_group_id(block_args.reflection, block_args.group)
         restrict = Restriction_Group_or_CNN(self.field_type,group_id)
+        self.restrict_last = restrict
         layers.append(restrict)
         self.field_type = restrict.out_type
 
@@ -264,11 +211,68 @@ class EquivariantNASNet(nn.Module):
             
         return layer
 
+    def build_head(self, verbose, fixed_params):
+        last_block_args = self.blocks_args_list[-1]
+        self.head_exists = last_block_args.kernel_size > 0
+        if self.head_exists: 
+            # Build head
+            if verbose > 3:
+                print("Building head")
+
+            # Restrict
+            group_id = get_group_id(last_block_args.reflection, last_block_args.group)
+            self.restrict_last = Restriction_Group_or_CNN(self.field_type, group_id)  
+            self.field_type = self.restrict_last.out_type
+        
+    
+            if self.restrict_last.setting in ["cnn", "switch"]:
+                self._bn1 = nn.BatchNorm2d(self.field_type)
+                self._swish1 = nn.SiLU()
+                self._conv_head = Conv2dSamePadding(
+                    in_channels=self.field_type,
+                    out_channels=last_block_args.out_channel,
+                    kernel_size=last_block_args.kernel_size,
+                    bias=False,
+                )
+            elif self.restrict_last.setting == "group": 
+                out_channels = adjusted_out_channels(
+                    out_channel = last_block_args.out_channel,
+                    N=self.field_type.gspace.fibergroup.order(),
+                    fixed_params=fixed_params,
+                )
+                self._bn1 = BatchNorm(in_type=self.field_type, affine=False)
+                self._swish1 = Swish(in_type=self._bn1.out_type)
+                self._conv_head = Eq_Conv2dSamePadding(
+                    in_type=self._swish1.out_type, 
+                    out_channels=out_channels,
+                    bias=False
+                )
+                self.field_type = self._conv_head.out_type
+            else:
+                raise NotImplementedError(f"This setting: {self.restrict_last.setting} is not implemented")
+
+
+        if self.restrict_last.setting in ["cnn", "switch"]:
+            raise NotImplementedError("This setting is not implemented")
+            out_channels = None
+            self._bn2 = nn.BatchNorm2d(out_channels)
+            self._swish2 = nn.SiLU()
+        elif self.restrict_last.setting == "group": 
+            self._bn2 = BatchNorm(in_type=self.field_type, affine=False)
+            self._swish2 = Swish(in_type=self._bn2.out_type)
+            # Final linear layer
+            self.invariant_map = EquivariantPool(
+                self._swish2.out_type, 
+                invariant_map=True
+            ) 
+            out_channels = len(self.invariant_map.out_type)
+        return out_channels
+    
     
     def set_name(self):
-        model_name = f"eq_nasnet_{self.gspace.fibergroup}_b{len(self.blocks_args_list)-2}_\
-            d{self.depth_coefficient}_w{self.width_coefficient}_\
-            r{self.image_size}_drop{self.dropout_rate}"
+        model_name = f"Eq-NasNet-{self.gspace.fibergroup}-b{len(self.blocks_args_list)-2}-\
+            d{self.depth_coefficient}-w{self.width_coefficient}-\
+            r{self.image_size}-drop{self.dropout_rate:.2f}"
         scaling_name = get_scaling_name(
             blocks_args_list=self.blocks_args_list,
             width_coefficient=self.width_coefficient,
@@ -295,3 +299,25 @@ class EquivariantNASNet(nn.Module):
                     layer.expanded_bias = _bias
                 else:
                     layer.expanded_bias = None
+
+
+    def pool_like(self, output: int, num_classes: int, image_size) -> Tuple[int, int]:
+
+        if output >= num_classes:
+            # we can fully pool over spatial dimensions
+            return 1, output
+        
+        # we can't pool over spatial dimensions
+        # 1000 classes
+        # 88 output channels
+        # 88 * x² = 1000
+        # x² = 1000 / 88
+        # x = sqrt(1000 / 88)
+        pooling_size = int(math.ceil(math.sqrt(num_classes / output)))
+        assert pooling_size > 1, "Pooling size must be greater than 1"
+        assert pooling_size <= image_size, "Pooling size must be less than or equal to image size"
+        return pooling_size, output * pooling_size * pooling_size
+
+
+        
+        

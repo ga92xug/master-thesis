@@ -302,7 +302,7 @@ class LitModule(LightningModule):
                 num_channels=num_channels,
                 num_classes=num_classes,
                 image_size=image_size,
-                verbose=verbose,
+                #verbose=verbose,
             )
         stop = timeit.default_timer()
         self.net_building_time = stop - start

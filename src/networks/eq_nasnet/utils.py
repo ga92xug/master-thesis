@@ -13,8 +13,10 @@ import sys
 import os
 
 import wandb
+
 sys.path.append(f"{os.getcwd()}")
 from equivariant.nn import FieldType
+from src.networks.eq_nasnet.block_args import BlockArgs
 
 
 

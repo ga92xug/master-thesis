@@ -4,6 +4,7 @@ defaults:
 
 
 name: imagenette
+resolution: 224
 
 augment: False 
 #  all:
