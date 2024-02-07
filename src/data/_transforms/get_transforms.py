@@ -13,7 +13,7 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
-from . import own_transforms, autoaugment
+from . import own_transforms, autoaugment, staincolorjitter
 
 
 def get_transforms(
@@ -116,6 +116,8 @@ def get_one_transform(
             if "Own" in key:
                 # random rotation does not allow for discrete choices
                 transform_list.append(getattr(own_transforms, key)(**value))
+            elif "StainColorJitterWrapper" in key:
+                transform_list.append(getattr(staincolorjitter, key)(**value))
             elif "CIFAR10Policy" in key:
                 transform_list.append(getattr(autoaugment, key)(**value))
             else:

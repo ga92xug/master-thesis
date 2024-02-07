@@ -2,9 +2,9 @@ defaults:
 - _custom_defaults
 - _self_
 
+name: DeepDRiD
+
 data:
-  #_target_: src.data.datasets.custom.get_data.get_ISIC_2019
-  name: DeepDRiD
   mode: "Overall quality" # patient_DR_Level
             
 augment: 

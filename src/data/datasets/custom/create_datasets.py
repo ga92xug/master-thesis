@@ -50,7 +50,7 @@ class Custom_Dataset(Dataset):
 
 def create_datasets(
     # images and labels
-    data: tuple,    
+    data: Tuple,    
     # transforms
     resolution: int,
     augment: Union[bool, Dict],

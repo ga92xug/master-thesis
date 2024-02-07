@@ -2,8 +2,8 @@ defaults:
 - _custom_defaults
 - _self_
 
-data:
-  name: imagenette
+
+name: imagenette
 
 augment: False 
 #  all:

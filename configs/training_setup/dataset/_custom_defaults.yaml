@@ -4,6 +4,7 @@ data:
   # for hydra call of get_data 
   _target_: src.data.datasets.custom.get_data.get_${training_setup.dataset.data.name}
   resolution: ${training_setup.dataset.resolution}
+  name: ${training_setup.dataset.name}
 
 resolution: 128
 batch_size: 64                # Number of examples to process in a batch during training

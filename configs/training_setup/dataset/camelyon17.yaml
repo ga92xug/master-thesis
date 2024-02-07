@@ -1,0 +1,9 @@
+_target_: src.data.datasets.wilds.create_datasets.create_datasets
+name: camelyon17
+
+augment:
+  train:
+    # values from https://github.com/i-gao/targeted-augs/tree/main
+    StainColorJitterWrapper:
+      p: 0.5682688104816859
+      sigma: 0.1
