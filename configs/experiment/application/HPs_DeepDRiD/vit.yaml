@@ -1,14 +1,25 @@
 # @package _global_
 defaults:
-  - override /training: DeepDRiD-training
-  - override /model: vit
-  - override /wandb: default
+  - override /training_setup: DeepDRiD-training
+  - override /training_setup/dataset: DeepDRiD
+  - override /training_setup/network: vit #eq_nasnet
+  - override /training_setup/scheduler: none
+  - override /logger: wandb
+  - override /training_setup/callbacks: default 
   - _self_
-  
-model:
-  pretrained: False
 
-training:
+
+
+tags: ["redo_vit_DeepDRiD_res128"]
+
+logger:
+  wandb:
+    project: "pre-train"
+    mode: disabled
+
+training_setup:
+  network:
+    pretrained: False
   optimizer:
     lr: 0.00005
     weight_decay: 0.0001803093201705675
@@ -19,7 +30,4 @@ training:
     # factor: 0.1680463774997989
 
   
-wandb:
-  project: SL-Application
-  give_name: True
-  tags: []
+

@@ -13,7 +13,7 @@ for run_folder in "$source_dir"/*; do
         # Check if an offline-run directory was found
         if [ -n "$offline_run_dir" ]; then
             # Use wandb sync to upload the offline-run directory
-            wandb sync "$offline_run_dir" --no-include-online
+            wandb sync "$offline_run_dir" --mark-synced --no-include-synced
             
             # Print a message indicating that the upload is done
             echo "Uploaded $offline_run_dir"

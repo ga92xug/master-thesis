@@ -1,30 +1,36 @@
 defaults:
-- _self_
-- optimizer: Adam
-- dataset: DeepDRiD
-- scheduler: reduce_lr_on_plateau 
+  - _self_
+  - dataset: DeepDRiD
+  - callbacks: default
+  - network: eq_nasnet
+  - optimizer: Adam
+  - scheduler: reduce_lr_on_plateau
 
-epochs: 150
-accumulate: 1
+callbacks:
+  model_checkpoint:
+    monitor: "valid/acc_weighted"
+    mode: "max"
+    save_last: True
+    auto_insert_metric_name: False
 
-earlystop:
-  stop: True          
-  monitor: valid.loss
-  mode: min
-  patience: 40
-  min_delta: 0.001
-  store_in_memory: True
-  baseline: null # 0.70 
+  early_stopping:
+    monitor: "valid/acc_weighted"
+    patience: 30
+    mode: "max"
 
-data:
-  batch_size: 64                
-  eval_batch_size: 64
+scheduler: 
+  factor: 0.5
+  patience: 50
 
 optimizer:
   lr: 0.001
   weight_decay: 1e-5
 
-scheduler:
-  factor: 0.5
-  patience: 50
-  
+trainer:
+  accumulate_grad_batches: 1
+  max_epochs: 150
+
+
+dataset:
+  batch_size: 64                
+
