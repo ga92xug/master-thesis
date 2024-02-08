@@ -152,7 +152,7 @@ def get_one_transform(
 
 
 
-def get_one_transform(
+def get_one_transform_old(
     resolution: int,
     augment: Union[bool, Dict],
     channel_wise_mean_images: List[float],

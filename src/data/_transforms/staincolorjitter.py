@@ -4,6 +4,8 @@ import torch
 from torchvision import transforms
 import torch
 from PIL import Image
+import warnings
+warnings.filterwarnings("ignore", message=".* dimension other than 2 to reverse their shape is deprecated .*")
 # Missing 90deg rotations and horizontal/vertical flips (used in the orig paper)
 # Missing separate brightness and contrast perturbations (used in the orig paper)
 

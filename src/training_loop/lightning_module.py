@@ -15,6 +15,7 @@ from torchmetrics.classification.accuracy import (
     MulticlassAccuracy, 
     BinaryAccuracy
 )
+from torchmetrics.wrappers import MetricTracker
 
 from src._callbacks.model_stats import timeout_handler
 from src.utils.equivariant_utils import is_equivariant_model, create_filters_network
@@ -33,6 +34,7 @@ class LitModule(LightningModule):
         normalization_weights: torch.Tensor,
         compile: bool,
         seed: int,
+        metrics: Dict[str, Any],
         scheduler: Dict[str, Any] = None,
         label_smoothing: float = 0,
         **kwargs: Any,
@@ -55,23 +57,26 @@ class LitModule(LightningModule):
         self.optimizer, self.scheduler, self.scheduler_metric = get_optim_and_scheduler(
             self.net, optimizer, scheduler, kwargs["trainer"]["max_epochs"]
         )
-
-        self.train_metrics = self.create_metrics_collection()
-        self.valid_metrics = self.create_metrics_collection()
-        self.test_metrics = self.create_metrics_collection()
         
         # Loss function
         self.criterion = CrossEntropyLoss(
             weight=normalization_weights,
             label_smoothing=label_smoothing,
         )
-
         # for averaging loss across batches
         self.train_loss = MeanMetric()
         self.valid_loss = MeanMetric()
         self.test_loss = MeanMetric()
 
+        # Metrics 
+        # remove the keyword if max from the metric dict
+        # then we use that in the metric tracker
+        self.train_metrics = self.create_metrics_collection()
+        self.valid_metrics = self.create_metrics_collection()
+        self.test_metrics = self.create_metrics_collection()
+
         # for tracking best so far validation accuracy
+        tracker = MetricTracker(self.valid_metrics, maximize=[False, True])
         self.valid_acc_best = MaxMetric()
         self.valid_acc_weighted_best = MaxMetric()
         self.valid_loss_best = MinMetric()
@@ -79,7 +84,7 @@ class LitModule(LightningModule):
     def create_metrics_collection(self):
         metrics = {
             "acc": MulticlassAccuracy(self.hparams.num_classes, average="micro"),
-            "acc_weighted": MulticlassAccuracy(self.hparams.num_classes, average="macro")
+            #"acc_weighted": MulticlassAccuracy(self.hparams.num_classes, average="macro")
         }
         metrics_collection = MetricCollection(metrics)
         return metrics_collection

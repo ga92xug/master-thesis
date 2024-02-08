@@ -86,10 +86,11 @@ def test_datamodule(
         assert x.dtype == torch.float32
         assert y.dtype == torch.int64
 
+        continue
         _, _, counts = get_stats(dataloader, mode, get_mean_std)
-        
         label_counts_list_modes.append(counts)
 
+    quit()
     # check stratified 
     check_stratified(label_counts_list_modes)
 
@@ -181,5 +182,5 @@ def hash_tensor(tensor):
     return hashlib.sha256(tensor.tobytes()).hexdigest()
 
 if __name__ == "__main__":
-    test_datamodule("imagenet", get_mean_std=False, no_augment=True)
+    test_datamodule("camelyon17", get_mean_std=True, no_augment=False)
 

@@ -1,0 +1,36 @@
+defaults:
+  - _self_
+  - optimizer: Adam
+  - dataset: camelyon17
+  - scheduler: cosine_annealing_lr
+  - callbacks: default
+  - network: eq_nasnet
+
+trainer:
+  max_epochs: 10
+  val_check_interval: 0.25
+
+dataset:
+  batch_size: 512                
+  #distribution_shift: False
+
+optimizer:
+  lr: 0.005
+  weight_decay: 1e-5
+
+#scheduler:
+#  factor: 0.5
+#  patience: 2
+
+callbacks:
+  model_checkpoint:
+    monitor: "valid/acc"
+    mode: "max"
+    save_last: True
+    auto_insert_metric_name: False
+
+  early_stopping:
+    monitor: "valid/acc"
+    patience: 20
+    mode: "max"
+
