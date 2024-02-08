@@ -5,6 +5,7 @@ environment_from_framework.yaml
 spec-file.txt
 #notebooks/
 temp_model.pth
+scripts/alex
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
