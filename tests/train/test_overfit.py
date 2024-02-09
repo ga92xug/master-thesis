@@ -27,14 +27,14 @@ def test_datamodule(
     """
     
     overrides = [
-        "training_setup=a_debug",
+        "train=a_debug",
         "debug=simple",
         "test=False",
-        "training_setup/callbacks=" + "metric_print",
-        "training_setup/dataset=" + dataset,
-        "training_setup/network=" + model,
-        "training_setup.dataset.reduction_factor=" + str(num_overfit),
-        "training_setup.trainer.max_epochs=" + str(epochs),
+        "train/callbacks=" + "metric_print",
+        "train/dataset=" + dataset,
+        "train/network=" + model,
+        "train.dataset.reduction_factor=" + str(num_overfit),
+        "train.trainer.max_epochs=" + str(epochs),
     ]
 
     cfg = hydra_compose(overrides)

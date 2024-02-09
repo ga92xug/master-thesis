@@ -8,7 +8,7 @@ task_name: "debug"
 
 # disable callbacks and loggers during debugging
 logger: null
-training_setup:
+train:
   label_smoothing: 0 
   
   #callbacks: none

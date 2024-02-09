@@ -135,7 +135,7 @@ def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], 
         if cfg.hardware.get("strategy", "auto") != "auto":
             cfg.hardware.strategy = "auto"
         trainer = L.Trainer(
-            **{**cfg.training_setup.trainer, **cfg.hardware},
+            **{**cfg.train.trainer, **cfg.hardware},
             callbacks=callbacks,
             logger=logger,
         )

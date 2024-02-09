@@ -4,13 +4,13 @@
 # python train.py experiment=pre-training/example
 
 defaults:
-  - override /training_setup/dataset: imagenette # imagenet
-  - override /training_setup/network: efficientnet #efficientnet eq_nasnet
-  #- override /training_setup/network/blocks_args_dict: 4blocks
-  - override /training_setup/optimizer: Adam
-  - override /training_setup/scheduler: cosine_annealing_lr
+  - override /train/dataset: imagenette # imagenet
+  - override /train/network: efficientnet #efficientnet eq_nasnet
+  #- override /train/network/blocks_args_dict: 4blocks
+  - override /train/optimizer: Adam
+  - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
-  - override /training_setup/callbacks: null 
+  - override /train/callbacks: null 
 
 tags: ["pre-train_imagenette", "no_swa_and_ema"]
 
@@ -20,7 +20,7 @@ ckpt_path:  "" # train/runs/2024-01-24_19-58-34/checkpoints/epoch_003.ckpt
 train_mode: train # train_with_pretrain
 test_mode: test
 
-training_setup:
+train:
   # label_smoothing: 0.1
 
   trainer:

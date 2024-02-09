@@ -1,11 +1,11 @@
 # @package _global_
 defaults:
-  - override /training_setup: DeepDRiD-training
-  - override /training_setup/dataset: DeepDRiD
-  - override /training_setup/network: vit #eq_nasnet
-  - override /training_setup/scheduler: none
+  - override /train: DeepDRiD-training
+  - override /train/dataset: DeepDRiD
+  - override /train/network: vit #eq_nasnet
+  - override /train/scheduler: none
   - override /logger: wandb
-  - override /training_setup/callbacks: default 
+  - override /train/callbacks: default 
   - _self_
 
 
@@ -17,7 +17,7 @@ logger:
     project: master_thesis_important
     mode: online
 
-training_setup:
+train:
   network:
     pretrained: False
   optimizer:

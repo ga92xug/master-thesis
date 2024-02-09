@@ -9,7 +9,7 @@ defaults:
   - paths: default
   - extras: default
   - hydra: default
-  - training_setup: a_empty
+  - train: a_empty
 
   # experiment configs allow for version control of specific hyperparameters
   # e.g. best hyperparameters for given model and datamodule
@@ -25,7 +25,7 @@ defaults:
   # debugging config (enable through command line, e.g. `python train.py debug=default)
   - debug: null
 
-training_setup:
+train:
   compile: false
   label_smoothing: 0 #.1
 

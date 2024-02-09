@@ -4,13 +4,13 @@
 # python train.py experiment=example
 
 defaults:
-  - override /training_setup/dataset: imagenette
-  - override /training_setup/network: eq_nasnet #eq_nasnet
-  #- override /training_setup/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
-  - override /training_setup/optimizer: SGD
-  - override /training_setup/scheduler: cosine_annealing_lr
+  - override /train/dataset: imagenette
+  - override /train/network: eq_nasnet #eq_nasnet
+  #- override /train/network/blocks_args_dict: 4blocks # 1_debug # 4blocks
+  - override /train/optimizer: SGD
+  - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
-  - override /training_setup/callbacks: default 
+  - override /train/callbacks: default 
 
 tags: ["res128"]
 
@@ -25,7 +25,7 @@ logger:
     project: "pre-train_imagnette"
 #    mode: offline
 
-training_setup:
+train:
   #label_smoothing: 0.1
 
   trainer:

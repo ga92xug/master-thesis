@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
-  - override /training_setup: cifar10-training
-  - override /training_setup.model: eq_wrn
+  - override /train: cifar10-training
+  - override /train.model: eq_wrn
   - override /wandb: default
   
   

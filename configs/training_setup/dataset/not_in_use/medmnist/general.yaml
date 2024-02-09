@@ -4,8 +4,8 @@ data_dir:
 #reduction_factor: 1
 #data:
 #  # for hydra call of get_data 
-#  _target_: src.data.datasets.custom.get_data.get_${training_setup.dataset.data.name}
-#  resolution: ${training_setup.dataset.resolution}
+#  _target_: src.data.datasets.custom.get_data.get_${train.dataset.data.name}
+#  resolution: ${train.dataset.resolution}
 #
 resolution: 28
 batch_size: 64                # Number of examples to process in a batch during training

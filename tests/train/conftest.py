@@ -22,14 +22,14 @@ def cfg_train_global() -> DictConfig:
         # set defaults for all tests
         with open_dict(cfg):
             cfg.paths.root_dir = str(rootutils.find_root(indicator=".git"))
-            cfg.training_setup.trainer.max_epochs = 1
-            cfg.training_setup.trainer.limit_train_batches = 0.01
-            cfg.training_setup.trainer.limit_val_batches = 0.1
-            cfg.training_setup.trainer.limit_test_batches = 0.1
+            cfg.train.trainer.max_epochs = 1
+            cfg.train.trainer.limit_train_batches = 0.01
+            cfg.train.trainer.limit_val_batches = 0.1
+            cfg.train.trainer.limit_test_batches = 0.1
             cfg.hardware.accelerator = "cpu"
             cfg.hardware.devices = 1
-            cfg.training_setup.dataset.num_workers = 0
-            cfg.training_setup.dataset.pin_memory = False
+            cfg.train.dataset.num_workers = 0
+            cfg.train.dataset.pin_memory = False
             cfg.extras.print_config = False
             cfg.extras.enforce_tags = False
             cfg.logger = None

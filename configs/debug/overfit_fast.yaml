@@ -5,7 +5,7 @@
 defaults:
   - default
 
-training_setup:
+train:
   trainer:
     max_epochs: 10
   

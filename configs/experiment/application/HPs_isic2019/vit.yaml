@@ -1,11 +1,11 @@
 # @package _global_
 defaults:
-  - override /training_setup: isic2019-training
-  - override /training_setup/dataset: isic2019
-  - override /training_setup/network: vit #eq_nasnet
-  - override /training_setup/scheduler: none
+  - override /train: isic2019-training
+  - override /train/dataset: isic2019
+  - override /train/network: vit #eq_nasnet
+  - override /train/scheduler: none
   - override /logger: wandb
-  - override /training_setup/callbacks: default 
+  - override /train/callbacks: default 
   - _self_
 
 tags: ["redo_vit_isic2019_res128"]
@@ -15,7 +15,7 @@ logger:
     project: master_thesis_important
     mode: online
 
-training_setup:
+train:
   network:
     pretrained: False
   optimizer:

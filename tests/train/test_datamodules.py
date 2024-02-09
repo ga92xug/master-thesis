@@ -36,21 +36,21 @@ def test_datamodule(
     
 
     overrides = [
-        "training_setup/dataset=" + dataset,
+        "train/dataset=" + dataset,
     ]
 
     if no_augment:
-        overrides.append("training_setup.dataset.augment=false")
+        overrides.append("train.dataset.augment=false")
     
     if get_mean_std:
-        overrides.append("training_setup.dataset.channel_wise_mean_images=null")
-        overrides.append("training_setup.dataset.channel_wise_std_images=null")
-        overrides.append("training_setup.dataset.augment=false")
+        overrides.append("train.dataset.channel_wise_mean_images=null")
+        overrides.append("train.dataset.channel_wise_std_images=null")
+        overrides.append("train.dataset.augment=false")
 
     cfg = hydra_compose(overrides)
     np.random.seed(cfg.seed)
 
-    dm: LightningDataModule = DataModule(cfg.training_setup.dataset)
+    dm: LightningDataModule = DataModule(cfg.train.dataset)
     dm.prepare_data()
 
     assert not dm.train_set and not dm.val_set and not dm.test_set
@@ -77,9 +77,9 @@ def test_datamodule(
         batch = next(iter(dataloader))
         x, y = batch
         if mode == "train":
-            batch_size = cfg.training_setup.dataset.batch_size
+            batch_size = cfg.train.dataset.batch_size
         else:
-            batch_size = cfg.training_setup.dataset.eval_batch_size
+            batch_size = cfg.train.dataset.eval_batch_size
 
         assert len(x) == batch_size
         assert len(y) == batch_size
@@ -95,7 +95,7 @@ def test_datamodule(
     check_stratified(label_counts_list_modes)
 
     # should normalize weights
-    if not cfg.training_setup.dataset.should_normalize_weights:
+    if not cfg.train.dataset.should_normalize_weights:
         counts = label_counts_list_modes[0]
         mean_label_count = np.mean(counts)  
         for count in counts:

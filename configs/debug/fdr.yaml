@@ -5,6 +5,6 @@
 defaults:
   - default
 
-training_setup:
+train:
   trainer:
     fast_dev_run: true

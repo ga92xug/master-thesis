@@ -76,7 +76,7 @@ class LitModule(LightningModule):
         self.test_metrics = self.create_metrics_collection()
 
         # for tracking best so far validation accuracy
-        tracker = MetricTracker(self.valid_metrics, maximize=[False, True])
+        self.tracker = MetricTracker(self.valid_metrics, maximize=[False, True])
         self.valid_acc_best = MaxMetric()
         self.valid_acc_weighted_best = MaxMetric()
         self.valid_loss_best = MinMetric()

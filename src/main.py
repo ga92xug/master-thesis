@@ -53,7 +53,7 @@ def instantiate(
     is_dist = True if cfg.hardware.get("devices", 1) > 1 or cfg.hardware.get("num_nodes", 1) > 1 else False
 
     log.info("Instantiating datamodule")
-    datamodule = DataModule(cfg.training_setup.dataset, is_dist=is_dist)
+    datamodule = DataModule(cfg.train.dataset, is_dist=is_dist)
 
     if train_mode == "train_with_pretrain":
         # load pretrained model
@@ -65,7 +65,7 @@ def instantiate(
         log.info("Instantiating model")
         # for the other modes the trainer will take care of loading the weights if needed
         model = LitModule(
-            **cfg.training_setup,
+            **cfg.train,
             num_channels=datamodule.num_channels,
             num_classes=datamodule.num_classes,
             image_size=datamodule.image_size,
@@ -74,7 +74,7 @@ def instantiate(
         )
 
     log.info("Instantiating callbacks")
-    callbacks: List[Callback] = instantiate_callbacks(cfg.training_setup.get("callbacks"))
+    callbacks: List[Callback] = instantiate_callbacks(cfg.train.get("callbacks"))
     # essential callbacks
     callbacks.extend([Move_2_Device(), Log_Code()])
     test_mode = cfg.get("test_mode", "no_test")
@@ -90,7 +90,7 @@ def instantiate(
 
     log.info(f"Instantiating trainer")
     trainer = Trainer(
-        **{**cfg.training_setup.trainer, **cfg.hardware},
+        **{**cfg.train.trainer, **cfg.hardware},
         callbacks=callbacks,
         logger=logger,
         # distributed sampling is already done by our datamodule

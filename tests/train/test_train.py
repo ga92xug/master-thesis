@@ -19,8 +19,8 @@ def test_train_fast_dev_run(cfg_train: DictConfig) -> None:
     """
     HydraConfig().set_config(cfg_train)
     with open_dict(cfg_train):
-        cfg_train.training_setup.trainer.fast_dev_run = True
-        cfg_train.training_setup.trainer.accelerator = "cpu"
+        cfg_train.train.trainer.fast_dev_run = True
+        cfg_train.train.trainer.accelerator = "cpu"
     train(cfg_train)
 
 
@@ -32,8 +32,8 @@ def test_train_fast_dev_run_gpu(cfg_train: DictConfig) -> None:
     """
     HydraConfig().set_config(cfg_train)
     with open_dict(cfg_train):
-        cfg_train.training_setup.trainer.fast_dev_run = True
-        cfg_train.training_setup.trainer.accelerator = "gpu"
+        cfg_train.train.trainer.fast_dev_run = True
+        cfg_train.train.trainer.accelerator = "gpu"
     train(cfg_train)
 
 
@@ -46,9 +46,9 @@ def test_train_epoch_gpu_amp(cfg_train: DictConfig) -> None:
     """
     HydraConfig().set_config(cfg_train)
     with open_dict(cfg_train):
-        cfg_train.training_setup.trainer.max_epochs = 1
-        cfg_train.training_setup.trainer.accelerator = "gpu"
-        cfg_train.training_setup.trainer.precision = 16
+        cfg_train.train.trainer.max_epochs = 1
+        cfg_train.train.trainer.accelerator = "gpu"
+        cfg_train.train.trainer.precision = 16
     train(cfg_train)
 
 
@@ -60,8 +60,8 @@ def test_train_epoch_double_val_loop(cfg_train: DictConfig) -> None:
     """
     HydraConfig().set_config(cfg_train)
     with open_dict(cfg_train):
-        cfg_train.training_setup.trainer.max_epochs = 1
-        cfg_train.training_setup.trainer.val_check_interval = 0.5
+        cfg_train.train.trainer.max_epochs = 1
+        cfg_train.train.trainer.val_check_interval = 0.5
     train(cfg_train)
 
 
@@ -73,10 +73,10 @@ def test_train_ddp_sim(cfg_train: DictConfig) -> None:
     """
     HydraConfig().set_config(cfg_train)
     with open_dict(cfg_train):
-        cfg_train.training_setup.trainer.max_epochs = 2
-        cfg_train.training_setup.trainer.accelerator = "cpu"
-        cfg_train.training_setup.trainer.devices = 2
-        cfg_train.training_setup.trainer.strategy = "ddp_spawn"
+        cfg_train.train.trainer.max_epochs = 2
+        cfg_train.train.trainer.accelerator = "cpu"
+        cfg_train.train.trainer.devices = 2
+        cfg_train.train.trainer.strategy = "ddp_spawn"
     train(cfg_train)
 
 
@@ -88,7 +88,7 @@ def test_train_resume(tmp_path: Path, cfg_train: DictConfig) -> None:
     :param cfg_train: A DictConfig containing a valid training configuration.
     """
     with open_dict(cfg_train):
-        cfg_train.training_setup.trainer.max_epochs = 1
+        cfg_train.train.trainer.max_epochs = 1
 
     HydraConfig().set_config(cfg_train)
     metric_dict_1, _ = train(cfg_train)
@@ -99,7 +99,7 @@ def test_train_resume(tmp_path: Path, cfg_train: DictConfig) -> None:
 
     with open_dict(cfg_train):
         cfg_train.ckpt_path = str(tmp_path / "checkpoints" / "last.ckpt")
-        cfg_train.training_setup.trainer.max_epochs = 2
+        cfg_train.train.trainer.max_epochs = 2
 
     metric_dict_2, _ = train(cfg_train)
 
