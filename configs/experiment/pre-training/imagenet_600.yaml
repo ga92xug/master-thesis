@@ -5,7 +5,7 @@ defaults:
   - override /train/network/blocks_args_dict: 4blocks
   - override /logger: wandb
 
-tags: ["pre-train_imagenette_50"]
+tags: ["pre-train_imagenet_100"]
 
 seed: 0
 logger:
@@ -14,4 +14,15 @@ logger:
 
 train:
   trainer:
-    max_epochs: 50
+    max_epochs: 600
+  dataset:
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+
+hardware:
+  strategy: auto
+  devices: 1
+  num_nodes: 1
+  #sync_batchnorm: True
+
+

@@ -1,6 +1,5 @@
 default_root_dir: ${paths.output_dir}
 
-accelerator: gpu
 devices: 1
 
 # mixed precision for extra speed-up

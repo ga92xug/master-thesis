@@ -12,22 +12,15 @@ trainer:
 
 dataset:
   batch_size: 512                
-  #distribution_shift: False
 
 optimizer:
   lr: 0.005
   weight_decay: 1e-5
 
-#scheduler:
-#  factor: 0.5
-#  patience: 2
-
 callbacks:
   model_checkpoint:
     monitor: "valid/acc"
     mode: "max"
-    save_last: True
-    auto_insert_metric_name: False
 
   early_stopping:
     monitor: "valid/acc"
