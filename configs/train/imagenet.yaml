@@ -9,6 +9,14 @@ train_mode: train
 test_mode: no_test
 label_smoothing: 0.1
 
+metrics_config:
+  top_5_accuracy: 
+    _target_: torchmetrics.classification.MulticlassAccuracy
+    num_classes: ${dataset.num_classes}
+    top_k: 5
+    average: micro
+    maximize: True
+
 trainer:
   min_epochs: 10
   max_epochs: 100

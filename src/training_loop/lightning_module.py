@@ -1,3 +1,4 @@
+import copy
 import signal
 from typing import Any, Dict, List, Tuple, Union, Mapping
 import hydra
@@ -18,6 +19,7 @@ from torchmetrics.classification.accuracy import (
 from torchmetrics.wrappers import MetricTracker
 
 from src._callbacks.model_stats import timeout_handler
+from src.training_loop.utils import create_metrics_collection
 from src.utils.equivariant_utils import is_equivariant_model, create_filters_network
 from src.utils.scheduler import get_optim_and_scheduler
 from src.utils.utils import recursive_print_dict
@@ -34,7 +36,7 @@ class LitModule(LightningModule):
         normalization_weights: torch.Tensor,
         compile: bool,
         seed: int,
-        metrics: Dict[str, Any],
+        metrics_config: DictConfig,
         scheduler: Dict[str, Any] = None,
         label_smoothing: float = 0,
         **kwargs: Any,
@@ -67,28 +69,12 @@ class LitModule(LightningModule):
         self.train_loss = MeanMetric()
         self.valid_loss = MeanMetric()
         self.test_loss = MeanMetric()
-
-        # Metrics 
-        # remove the keyword if max from the metric dict
-        # then we use that in the metric tracker
-        self.train_metrics = self.create_metrics_collection()
-        self.valid_metrics = self.create_metrics_collection()
-        self.test_metrics = self.create_metrics_collection()
-
-        # for tracking best so far validation accuracy
-        self.tracker = MetricTracker(self.valid_metrics, maximize=[False, True])
-        self.valid_acc_best = MaxMetric()
-        self.valid_acc_weighted_best = MaxMetric()
         self.valid_loss_best = MinMetric()
 
-    def create_metrics_collection(self):
-        metrics = {
-            "acc": MulticlassAccuracy(self.hparams.num_classes, average="micro"),
-            #"acc_weighted": MulticlassAccuracy(self.hparams.num_classes, average="macro")
-        }
-        metrics_collection = MetricCollection(metrics)
-        return metrics_collection
-
+        # Metrics 
+        self.train_metrics = create_metrics_collection(num_classes, metrics_config)
+        self.valid_metrics, self.tracker = create_metrics_collection(num_classes, metrics_config, valid=True)
+        self.test_metrics = create_metrics_collection(num_classes, metrics_config)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through the model `self.net`.
@@ -104,8 +90,6 @@ class LitModule(LightningModule):
         # so it's worth to make sure validation metrics don't store results from these checks
         self.valid_loss.reset()
         self.valid_metrics.reset()
-        self.valid_acc_best.reset()
-        self.valid_acc_weighted_best.reset()
         self.valid_loss_best.reset()
 
     def model_step(
@@ -167,13 +151,13 @@ class LitModule(LightningModule):
                 raise ValueError(f"Unknown metric {key}")
 
         loss = self.valid_loss.compute()   
-        self.valid_loss_best(loss) 
+        self.valid_loss_best(loss)
+        self.log("valid_best/loss", self.valid_loss_best.compute(), sync_dist=True, prog_bar=False) 
+
+        for key, metric in self.tracker.best_metric():
+            print(f"valid_best/{key}", metric)
+            self.log(f"valid_best/{key}", metric, on_step=False, on_epoch=True, prog_bar=False)
         
-        # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
-        # otherwise metric would be reset by lightning after each epoch
-        self.log("valid_best/acc", self.valid_acc_best.compute(), sync_dist=True, prog_bar=False)
-        self.log("valid_best/acc_weighted", self.valid_acc_weighted_best.compute(), sync_dist=True, prog_bar=False)
-        self.log("valid_best/loss", self.valid_loss_best.compute(), sync_dist=True, prog_bar=False)
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
