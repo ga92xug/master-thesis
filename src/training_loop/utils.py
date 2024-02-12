@@ -3,7 +3,7 @@ import signal
 from typing import Any, Dict, List, Tuple, Union, Mapping
 import hydra
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict
 from torchmetrics import MaxMetric, MeanMetric, MetricCollection, MinMetric
 from torchmetrics.classification.accuracy import (
     Accuracy, 
@@ -16,7 +16,7 @@ def create_metrics_collection(
         num_classes: int,
         metrics_config: DictConfig, 
         valid: bool = False
-    ) -> Union[MetricCollection, Tuple[MetricCollection, MetricTracker]]:
+    ) -> Union[MetricCollection, MetricTracker]:
     """
     Create a collection of metrics to track. Always include the accuracy.
     For validation, also create a metric tracker to track the best metric state.
@@ -33,13 +33,13 @@ def create_metrics_collection(
     for key, value in copy_config.items():
         # remove the keyword if max from the value 
         # then we use that in the metric tracker
-        if "max" in value:
-            min_or_max.append(value.pop("max"))
+        with open_dict(value):
+            min_or_max.append(value.pop("maximize"))
         metrics_dict[key] = hydra.utils.instantiate(value)
         
     metrics_collection = MetricCollection(metrics_dict)
     if valid:
         tracker = MetricTracker(metrics_collection, maximize=min_or_max)
-        return metrics_collection, tracker
+        return tracker
     
     return metrics_collection
