@@ -141,10 +141,15 @@ class LitModule(LightningModule):
 
     def on_validation_epoch_start(self) -> None:
         """Lightning hook that is called when a validation epoch starts."""
+        if self.trainer.sanity_checking:
+            return
         self.valid_metrics.increment()
 
     def on_validation_epoch_end(self) -> None:
         "Lightning hook that is called when a validation epoch ends."
+        if self.trainer.sanity_checking:
+            # sanity check does not have a best metric
+            return
         loss = self.valid_loss.compute()   
         self.valid_loss_best(loss)
         self.log("valid_best/loss", self.valid_loss_best.compute(), sync_dist=True, prog_bar=False) 
