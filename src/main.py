@@ -18,6 +18,7 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src._callbacks.move_2_device import Move_2_Device 
 from src._callbacks.log_code import Log_Code
+from src._callbacks.log_config_manually import Log_Config
 from src.data.datamodule import DataModule
 from src.training_loop.lightning_module import LitModule
 from src.utils.ckpt_path import get_ckpt_path
@@ -76,7 +77,7 @@ def instantiate(
     log.info("Instantiating callbacks")
     callbacks: List[Callback] = instantiate_callbacks(cfg.train.get("callbacks", None))
     # essential callbacks
-    callbacks.extend([Move_2_Device(), Log_Code()])
+    callbacks.extend([Move_2_Device(), Log_Code(), Log_Config(cfg)])
     test_mode = cfg.get("test_mode", "no_test")
     if test_mode == "predict":
         # the should be a write_predictions callback

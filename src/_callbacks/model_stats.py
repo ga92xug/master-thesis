@@ -55,7 +55,6 @@ class ModelStats(Callback):
             self.is_nas = True
 
     def on_fit_start(self, trainer, pl_module):
-
         gflops_per_image, param_count = get_stats(
                 net=pl_module, 
                 batch_size=pl_module.hparams.dataset.batch_size, 
