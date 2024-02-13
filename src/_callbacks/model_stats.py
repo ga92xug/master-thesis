@@ -28,7 +28,7 @@ def get_stats(
     flops = FlopCountAnalysis(net, (input_tensor,))
     flops.unsupported_ops_warnings(False)
     flops.uncalled_modules_warnings(False)
-    print(flop_count_table(flops, max_depth=5))
+    #print(flop_count_table(flops, max_depth=5))
     gflops = flops.total() / 1e9
     gflops_per_image = gflops / batch_size
     

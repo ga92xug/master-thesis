@@ -74,7 +74,7 @@ def instantiate(
         )
 
     log.info("Instantiating callbacks")
-    callbacks: List[Callback] = instantiate_callbacks(cfg.train.get("callbacks"))
+    callbacks: List[Callback] = instantiate_callbacks(cfg.train.get("callbacks", None))
     # essential callbacks
     callbacks.extend([Move_2_Device(), Log_Code()])
     test_mode = cfg.get("test_mode", "no_test")

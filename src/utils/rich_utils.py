@@ -27,7 +27,8 @@ def print_config_tree(
         # "extras",
     ),
     not_print: Sequence[str] = (
-        #"paths",
+        "local",
+        "paths",
         "extras",
     ),
     resolve: bool = False,

@@ -36,7 +36,7 @@ class LitModule(LightningModule):
         normalization_weights: torch.Tensor,
         compile: bool,
         seed: int,
-        metrics_config: DictConfig,
+        metrics_config: DictConfig = None,
         scheduler: Dict[str, Any] = None,
         label_smoothing: float = 0,
         **kwargs: Any,
@@ -141,8 +141,8 @@ class LitModule(LightningModule):
 
     def on_validation_epoch_start(self) -> None:
         """Lightning hook that is called when a validation epoch starts."""
-        if self.trainer.sanity_checking:
-            return
+        #if self.trainer.sanity_checking:
+        #    return
         self.valid_metrics.increment()
 
     def on_validation_epoch_end(self) -> None:

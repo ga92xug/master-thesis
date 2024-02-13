@@ -21,9 +21,12 @@ def create_metrics_collection(
     Create a collection of metrics to track. Always include the accuracy.
     For validation, also create a metric tracker to track the best metric state.
     """
+    if metrics_config is None:
+        copy_config = {}
+    else:
+        # copy the config to avoid modifying the original
+        copy_config = copy.deepcopy(metrics_config)
 
-    # copy the config to avoid modifying the original
-    copy_config = copy.deepcopy(metrics_config)
     # always report the accuracy
     metrics_dict = {
         "acc": MulticlassAccuracy(num_classes, average="micro"),
