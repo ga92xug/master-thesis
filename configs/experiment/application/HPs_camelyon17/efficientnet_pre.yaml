@@ -11,10 +11,12 @@ logger:
     project: domain_shift
 
 train:
+  network:
+    pretrained: True
   trainer:
     max_epochs: 5
   dataset:
     batch_size: 512  
   optimizer:
-    lr: 0.004430375245218269
-    weight_decay: 0.0007257005721594283
+    lr: 0.0006289803933672041
+    weight_decay: 3.3861506599629644e-05
