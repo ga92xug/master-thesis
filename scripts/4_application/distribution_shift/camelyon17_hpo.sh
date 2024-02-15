@@ -5,8 +5,9 @@ python src/main.py hparams_search=camelyon \
 python src/main.py hparams_search=camelyon \
     train/network=efficientnet \
 
-exit 0
-  
+python src/main.py hparams_search=camelyon \
+    train/network=eq_nasnet \
+
 python src/main.py hparams_search=camelyon \
     train/network=vit \
 

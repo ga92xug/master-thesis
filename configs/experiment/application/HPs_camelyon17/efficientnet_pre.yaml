@@ -4,6 +4,7 @@ defaults:
   - override /train: camelyon17
   - override /logger: wandb
 
+task_name: camelyon17_domain_shift
 test_mode: test
 
 logger:
@@ -18,5 +19,6 @@ train:
   dataset:
     batch_size: 512  
   optimizer:
-    lr: 0.0006289803933672041
-    weight_decay: 3.3861506599629644e-05
+    lr: 0.08051581638637594 # 0.0006289803933672041
+    weight_decay: 4.418308267895584e-06 # 3.3861506599629644e-05
+
