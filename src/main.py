@@ -14,6 +14,7 @@ from lightning.pytorch.callbacks import BasePredictionWriter
 
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
+os.environ["WANDB__SERVICE_WAIT"]="180"
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src._callbacks.move_2_device import Move_2_Device 
