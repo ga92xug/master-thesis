@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - override /train/network: eq_nasnet
+  - override /train: camelyon17
+  - override /logger: wandb
+
+test_mode: test
+
+logger:
+  wandb:
+    project: domain_shift
+
+train:
+  trainer:
+    max_epochs: 5
+  dataset:
+    batch_size: 512  
+  optimizer:
+    lr: 0.07857549907675211
+    weight_decay: 1.7786975778767818e-06

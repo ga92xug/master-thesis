@@ -4,7 +4,7 @@ figures/
 environment_from_framework.yaml
 spec-file.txt
 #notebooks/
-temp_model.pth
+pre_trained_models/
 scripts/alex
 
 # Byte-compiled / optimized / DLL files

@@ -30,6 +30,7 @@ train:
   label_smoothing: 0 #.1
 
   trainer:
+    fast_dev_run: False
     enable_model_summary: False
     accumulate_grad_batches: 1
     min_epochs: 1 # prevents early stopping
@@ -63,9 +64,6 @@ task_name: "train"
 tags: ["dev"]
 
 train_mode: train # Options: evaluate_only, train, train_continue, train_with_pretrain
-
-# evaluate on test set, using best model weights achieved during training
-# lightning chooses best weights based on the metric specified in checkpoint callback
 test_mode: test
 
 # simply provide checkpoint path to resume training
