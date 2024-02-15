@@ -1,18 +1,15 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
-
 import hydra
 import lightning as L
-from lightning.pytorch.strategies import DDPStrategy
 import rootutils
 import torch
-
-torch.set_float32_matmul_precision('high')
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 from lightning.pytorch.callbacks import BasePredictionWriter
 
 import os
+torch.set_float32_matmul_precision('high')
 os.environ['HYDRA_FULL_ERROR'] = '1'
 os.environ["WANDB__SERVICE_WAIT"]="180"
 
@@ -41,6 +38,8 @@ from src.logger import (
 
 from src.adversarial_attack.adversarial_attack import adversarial_attack
 
+from utils.hash_model import model_hash
+
 log = RankedLogger(__name__, rank_zero_only=True)
 
 
@@ -63,6 +62,9 @@ def instantiate(
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer=None)
         assert ckpt_path, "Checkpoint path must be provided for train_with_pretrain mode."
         model = LitModule.load_from_checkpoint(ckpt_path)
+        hash_model = model_hash(model.net)
+        log.info(f"Hash of model: {hash_model}")
+        quit()
     else:
         log.info("Instantiating model")
         # for the other modes the trainer will take care of loading the weights if needed
