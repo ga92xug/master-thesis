@@ -15,7 +15,12 @@ def model_hash(model):
         # Use the parameter's data converted to bytes
         hash_params.update(param.data.cpu().numpy().tobytes())
 
-    for buffer in model.buffers():
+    for name, buffer in model.named_buffers():
+        if "running" in name or "num_batches_tracked" in name or "indices" in name:
+            continue
+        print_buffer = hashlib.sha256(usedforsecurity=False)
+        print_buffer.update(buffer.detach().cpu().numpy().tobytes())
+        print(name, print_buffer.hexdigest()[:5])
         # Use the buffer's data converted to bytes
         hash_buffer.update(buffer.detach().cpu().numpy().tobytes())
 
