@@ -288,7 +288,7 @@ class _RdConv(EquivariantModule, ABC):
         print("weights", weights.sum().item())
 
         self.filter = self.basisexpansion(weights)
-        print("filter", hash(self.filter))
+        print("filter", self.filter.sum().item())
         self.filter = self.filter.reshape(
             self.filter.shape[0], self.filter.shape[1], *(self.kernel_size,) * self.d
         )
