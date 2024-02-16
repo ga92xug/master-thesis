@@ -282,9 +282,10 @@ class _RdConv(EquivariantModule, ABC):
 
         """
         # Weight standardization
+        print("self.weights", self.weights.sum().item())
         std, mean = torch.std_mean(self.weights, dim=(0), unbiased=False, keepdim=True)
         weights = (self.weights - mean) / (std.expand_as(self.weights) + 1e-5)
-        print("weights", hash(weights))
+        print("weights", weights.sum().item())
 
         self.filter = self.basisexpansion(weights)
         print("filter", hash(self.filter))
