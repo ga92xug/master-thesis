@@ -18,4 +18,4 @@ def create_filters_network(net: nn.Module):
     # the filter and bias have to be recomputed with the loaded weights
     for name, layer in net.named_modules():
         if isinstance(layer, R2Conv):
-            layer.create_filters()
+            layer.expand_parameters()
