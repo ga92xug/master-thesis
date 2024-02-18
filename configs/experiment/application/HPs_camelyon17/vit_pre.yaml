@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /train/network: efficientnet
+  - override /train/network: vit
   - override /train: camelyon17
   - override /logger: wandb
 
@@ -19,6 +19,6 @@ train:
   dataset:
     batch_size: 512  
   optimizer:
-    lr: 0.005252351343930348 # 0.0006289803933672041
-    weight_decay: 0.0000120145257916578 # 3.3861506599629644e-05
+    lr: 0.00011542675973617424 # 0.004430375245218269
+    weight_decay: 0.00000120277217540536 # 0.0007257005721594283
 

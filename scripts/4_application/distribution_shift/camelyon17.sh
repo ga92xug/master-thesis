@@ -1,16 +1,16 @@
-SEEDS="seed=0,1,2,3,4"
+SEEDS="seed=0,1,2,3,4,5,6,7,8,9"
 
-python src/main.py -m train=b_camelyon17-training \
+python src/main.py -m 'experiment=application/HPs_camelyon17/eq_nasnet' \
     $SEEDS \
-    train/network=eq_nasnet \
-    train.dataset.batch_size=512
-
-python src/main.py -m train=b_camelyon17-training \
-    $SEEDS \
-    train/network=efficientnet \
-    train.dataset.batch_size=2048
     
-python src/main.py -m train=b_camelyon17-training \
+python src/main.py -m 'experiment=application/HPs_camelyon17/efficientnet' \
     $SEEDS \
-    train/network=vit \
-    train.dataset.batch_size=256
+
+python src/main.py -m 'experiment=application/HPs_camelyon17/efficientnet_pre' \
+    $SEEDS \
+
+python src/main.py -m 'experiment=application/HPs_camelyon17/vit' \
+    $SEEDS \
+
+python src/main.py -m 'experiment=application/HPs_camelyon17/vit_pre' \
+    $SEEDS \

@@ -19,13 +19,13 @@ optimizer:
 
 callbacks:
   model_checkpoint:
-    monitor: "valid/acc"
-    mode: "max"
+    monitor: "valid/loss"
+    mode: "min"
 
   early_stopping:
-    monitor: "valid/acc"
+    monitor: "valid/loss"
     patience: 2
-    mode: "max"
+    mode: "min"
 
   # batch_size_finder:
   #   _target_: lightning.pytorch.callbacks.BatchSizeFinder
