@@ -355,8 +355,9 @@ class LitModule(LightningModule):
         
         if hasattr(self, "net"):
             if self.hparams.seed != checkpoint['seed']:
+                print(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
                 # we can fix this by initializing a new model with the same seed
-                raise ValueError(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
+                #raise ValueError(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
             # recreate the filters
             print("Creating filters")
             create_filters_network(self.net)

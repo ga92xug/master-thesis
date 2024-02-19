@@ -145,10 +145,13 @@ def normal_case(cfg):
      
     output_before_save = forward_pass(net, input_data)
 
-    hash_basis = hash_basis_expansion(net) 
+    #hash_basis = hash_basis_expansion(net) 
 
     print()
     #print(len(net.conv._basisexpansion.sampled_bases))
+    for key, value in net.named_modules():
+        print("key", key)
+
     for key, value in net.named_buffers(remove_duplicate=False):
         print("key", key, "value", hash_tensor_2(value))
     #print("hash_basis", hash_basis)   
@@ -211,7 +214,7 @@ def new_run_comparison(cfg, path="pre_trained_models/model_and_outputs.pth"):
     saved_input = saved_data["input_data"]
 
     new_net = get_model(cfg)
-    hash_basis = hash_basis_expansion(new_net)
+    #hash_basis = hash_basis_expansion(new_net)
     #print("hash_basis", hash_basis) 
     new_net.load_state_dict(model_state_dict)
       
@@ -245,7 +248,7 @@ def main(cfg: DictConfig) -> Optional[float]:
 
     # Run the new run and compare outputs
     if not cfg.get("train_mode"):
-        L.seed_everything(cfg.seed + 1)
+        #L.seed_everything(cfg.seed + 1)
         new_run_comparison(cfg)
 
 

@@ -62,9 +62,6 @@ def instantiate(
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer=None)
         assert ckpt_path, "Checkpoint path must be provided for train_with_pretrain mode."
         model = LitModule.load_from_checkpoint(ckpt_path)
-        hash_model, hash_buffer = model_hash(model.net)
-        log.info(f"Hash of model: {hash_model}, hash of buffer: {hash_buffer}")
-        quit()
     else:
         log.info("Instantiating model")
         # for the other modes the trainer will take care of loading the weights if needed
