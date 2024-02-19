@@ -20,7 +20,7 @@ rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src.data.datamodule import DataModule
 from src.training_loop.lightning_module import LitModule
 from src.utils.ckpt_path import get_ckpt_path
-from src.utils.utils import compare_state_dicts
+#from src.utils.utils import compare_state_dicts
 from src.networks.eq_nasnet.eq_nasnet import EquivariantNASNet
 from equivariant.nn.group_tensor import GroupTensor
 from equivariant.nn.modules.conv.r2convolution import R2Conv
@@ -149,10 +149,6 @@ class Simple_Eq_Net(nn.Module):
         
         for name, layer in self.named_modules():
             if isinstance(layer, R2Conv):
-                _filter, _bias = layer.expand_parameters()
-                layer.filter = _filter
-                if _bias is not None:
-                    layer.expanded_bias = _bias
-                else:
-                    layer.expanded_bias = None
+                layer.expand_parameters()
+                
                 

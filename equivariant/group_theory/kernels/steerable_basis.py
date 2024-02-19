@@ -8,7 +8,7 @@ import torch
 
 from typing import Type, Union, Tuple, Dict, List, Iterable
 from abc import abstractmethod
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 
 __all__ = ["IrrepBasis", "SteerableKernelBasis"]
 
@@ -233,10 +233,16 @@ class SteerableKernelBasis(KernelBasis):
 
         js = set()
 
+        unique_in_irreps = OrderedDict((i_irrep_id, True) for i_irrep_id in in_repr.irreps)
+        unique_out_irreps = OrderedDict((i_irrep_id, True) for i_irrep_id in out_repr.irreps)
+
+        for i_irrep_id in unique_in_irreps: #set(in_reprs):
+            for o_irrep_id in unique_out_irreps: #set(out_reprs):
+
         # loop over all input irreps
-        for i_irrep_id in set(in_repr.irreps):
-            # loop over all output irreps
-            for o_irrep_id in set(out_repr.irreps):
+        #for i_irrep_id in set(in_repr.irreps):
+        #    # loop over all output irreps
+        #    for o_irrep_id in set(out_repr.irreps):
                 try:
                     # retrieve the irrep intertwiner basis
                     intertwiner_basis = irreps_basis._generator(
@@ -251,6 +257,8 @@ class SteerableKernelBasis(KernelBasis):
                 except EmptyBasisException:
                     # if the basis is empty, skip it
                     pass
+
+        #print("self.irreps_bases", self.irreps_bases)
 
         self._dim_harmonics = defaultdict(int)
         self.bases = [

@@ -1,6 +1,6 @@
 from equivariant.group_theory import Representation, KernelBasis, EmptyBasisException
 
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 import operator
 from typing import Callable, List, Iterable, Dict, Tuple
 
@@ -56,11 +56,11 @@ class BasisExpansion(torch.nn.Module):
         in_reprs = sorted(in_reprs, key=operator.attrgetter("name"))
         out_reprs = sorted(out_reprs, key=operator.attrgetter("name"))
 
-        #unique_in_reprs = OrderedDict((i_repr, True) for i_repr in in_reprs)
-        #unique_out_reprs = OrderedDict((o_repr, True) for o_repr in out_reprs)
+        unique_in_reprs = OrderedDict((i_repr, True) for i_repr in in_reprs)
+        unique_out_reprs = OrderedDict((o_repr, True) for o_repr in out_reprs)
 
-        for i_repr in set(in_reprs):
-            for o_repr in set(out_reprs):
+        for i_repr in unique_in_reprs: #set(in_reprs):
+            for o_repr in unique_out_reprs: #set(out_reprs):
                 reprs_names = (i_repr.name, o_repr.name)
                 try:
                     basis = basis_generator(i_repr, o_repr)
@@ -85,6 +85,11 @@ class BasisExpansion(torch.nn.Module):
 
         # Register sampled kernel bases as attribute
         self.sampled_bases = _sampled_bases
+        for name, sampled_basis in _sampled_bases.items():
+            self.register_buffer(f"sampled_bases_{name}", sampled_basis)        
+
+        # maybe register the bases as buffers
+        
 
         if len(_sampled_bases) == 0:
             print("WARNING! The basis for the block expansion of the filter is empty!")

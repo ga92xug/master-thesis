@@ -293,16 +293,10 @@ class EquivariantNASNet(nn.Module):
         
         for name, layer in self.named_modules():
             if isinstance(layer, R2Conv):
-                _filter, _bias = layer.expand_parameters()
-                layer.filter = _filter
-                if _bias is not None:
-                    layer.expanded_bias = _bias
-                else:
-                    layer.expanded_bias = None
+                layer.expand_parameters()
 
 
     def pool_like(self, output: int, num_classes: int, image_size) -> Tuple[int, int]:
-
         if output >= num_classes:
             # we can fully pool over spatial dimensions
             return 1, output
