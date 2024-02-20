@@ -136,12 +136,30 @@ class Simple_Eq_Net(nn.Module):
             sigma=None,
             frequencies_cutoff=lambda r: 3 * r,
         )
+        self.conv2 = R2Conv(
+            self.out_type,
+            self.out_type,
+            kernel_size=3,
+            padding=1,
+            stride=1,
+            dilation=1,
+            groups=1,
+            bias=False,
+            sigma=None,
+            frequencies_cutoff=lambda r: 3 * r,
+        )
 
 
     def forward(self, x):
         x = GroupTensor(x, self.in_type)
         x = self.conv(x)
-        return x.tensor
+        x = self.conv2(x)
+        #from src.save_load.forward import hash_tensor
+        #print("filter", hash_tensor(self.conv.filter))
+        #print("shape", x.tensor.shape)
+        x = x.tensor
+        x = torch.flatten(x, 1)
+        return x
 
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
@@ -152,3 +170,26 @@ class Simple_Eq_Net(nn.Module):
                 layer.expand_parameters()
                 
                 
+class Simple_CNN(nn.Module):
+    def __init__(self):
+        super(Simple_CNN, self).__init__()  # Corrected: Call to the superclass constructor
+        self.conv1 = nn.Conv2d(3, 16, 3, padding=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = torch.flatten(x, 1) # flatten all dimensions except batch
+        return x
+
+class More_Complex_CNN(nn.Module):
+    def __init__(self):
+        super(More_Complex_CNN, self).__init__() 
+        self.conv1 = nn.Conv2d(3, 16, 3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, 3, padding=1)
+        self.conv3 = nn.Conv2d(32, 64, 3, padding=1)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = torch.flatten(x, 1)
+        return x

@@ -85,11 +85,13 @@ class BasisExpansion(torch.nn.Module):
 
         # Register sampled kernel bases as attribute
         self.sampled_bases = _sampled_bases
+        # Add to buffer otherwise randomly sampled basis are different over random seeds
         for name, sampled_basis in _sampled_bases.items():
-            self.register_buffer(f"sampled_bases_{name}", sampled_basis)        
+            self.register_buffer(f"sampled_bases_{name}", sampled_basis) 
 
-        # maybe register the bases as buffers
-        
+        # Register bases as submodules is not necessary 
+        #for reprs_names, basis in self._bases.items():
+        #    self.add_module(f"_bases_{reprs_names}", basis)       
 
         if len(_sampled_bases) == 0:
             print("WARNING! The basis for the block expansion of the filter is empty!")
