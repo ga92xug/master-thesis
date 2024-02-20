@@ -61,7 +61,7 @@ def train(net, steps, input_data, saving=False):
                 #print("hash weights", hash_tensor(net.conv.weights))
                 save_model_state_dict(net)
 
-            if i >= steps // 2:
+            if i >= 1:
                 #for layer_name, grad in output_before_update.items():
                 output_list.append(output) 
                 grad_list.append(grad)
@@ -73,68 +73,35 @@ def train(net, steps, input_data, saving=False):
 
 def normal_case(cfg):
     image_size = cfg.train.dataset.resolution
-    steps = 3
+    steps = cfg.get("steps", 3)
     input_data = torch.randn(1, 3, image_size, image_size)
     net = get_model(cfg)
-
-    # Initial forward-backward pass
-    #loss = forward_backward_pass(net, input_data)
-    #print("output_before_update", output_before_update)
-    #print("grad_before_update", grads)
-    #print("loss", loss)
-    #quit()
     output_list, grad_list = train(net, steps, input_data, saving=True)
-    # Save outputs and gradients using torch.save
     save_outputs_and_grads(output_list, grad_list, input_data)
-
     print("\nNew model:")
     new_run_comparison(cfg)
 
-def save_outputs_and_grads(outputs_tensor, grads_tensor, input_data):
-    path = "pre_trained_models/test/outputs_grads.pth"
-
-    torch.save({
-        "layer_outputs": outputs_tensor,
-        "layer_gradients": grads_tensor,
-        "input_data": input_data
-    }, path)
-
-def save_model_state_dict(net):
-    path = "pre_trained_models/test/model_state_dict.pth"
-    torch.save(net.state_dict(), path)
 
 def new_run_comparison(cfg):
+    path = "pre_trained_models/test"
     # Load saved model state dictionary
-    saved_model_state_dict = torch.load("pre_trained_models/test/model_state_dict.pth")
+    saved_model_state_dict = torch.load(path + "/model_state_dict.pth")
     
     # Instantiate new model and load saved model state dictionary
     new_net = get_model(cfg)
     new_net.load_state_dict(saved_model_state_dict)
     
     # Load saved outputs and gradients
-    saved_data = torch.load("pre_trained_models/test/outputs_grads.pth")
+    saved_data = torch.load(path + "/outputs_grads.pth")
     saved_outputs = saved_data["layer_outputs"]
     saved_grads = saved_data["layer_gradients"]
     saved_input = saved_data["input_data"]
 
     steps = len(saved_outputs)
     output_list, grad_list = train(new_net, steps, saved_input, saving=False)
+    compare(saved_outputs, output_list, saved_grads, grad_list, steps)
 
-    print("\nComparing outputs and gradients:")
-    for i in range(steps):
-        print(f"Step {i}")
-        discrepancies = compare_model_outputs(saved_outputs[i], output_list[i])
-        if len(discrepancies) > 0:
-            print(f"Discrepancies found in outputs {i}")
-            break
 
-        discrepancies = compare_gradients(saved_grads[i], grad_list[i])
-        if len(discrepancies) > 0:
-            print(f"Discrepancies found in gradients {i}")
-            break
-
-    print("\nOverall no discrepancies found! The models are equivalent")
-    
 
 @hydra.main(version_base="1.3", config_path="../../configs", config_name="conf.yaml")
 def main(cfg: DictConfig) -> None:

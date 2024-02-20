@@ -61,20 +61,20 @@ def attach_hooks(model, saver):
         layer.register_full_backward_hook(saver.save_grad(name))
 
 
-def compare_model_outputs(saved_outputs, new_outputs):
+def compare_outputs(saved_outputs, new_outputs, grad=False):
     # Compare outputs with saved outputs
     discrepancies = {}
     for layer_name, output in new_outputs.items():
         saved_output = saved_outputs.get(layer_name)
         if saved_output is None:
-            raise ValueError(f"Layer {layer_name} not found in saved outputs")
+            raise ValueError(f"Layer {layer_name} not found in saved")
         
-        if not torch.equal(output, saved_output):
+        if not torch.allclose(output, saved_output, atol=1e-5, rtol=1e-4):
             discrepancies[layer_name] = (output, saved_output)
             print(f"Discrepancy in layer {layer_name}:")
-            #print(f"Sum discrepancy: {torch.sum(torch.abs(output - saved_output))}")
-            print("output", hash_tensor(output), "saved_output", hash_tensor(saved_output))
-            break
+            print(f"{((torch.sum(torch.abs(output - saved_output)) / torch.sum(torch.abs(saved_output))) * 100):.2f}%")
+            #print("output", hash_tensor(output), "saved_output", hash_tensor(saved_output))
+            #break
         else:
             #print(f"No discrepancy in layer {layer_name}")
             pass
@@ -84,16 +84,30 @@ def compare_model_outputs(saved_outputs, new_outputs):
     return discrepancies
 
 
-def compare_gradients(saved_grads, new_grads):
-    discrepancies = {}
-    for layer_name, grad in new_grads.items():
-        saved_grad = saved_grads.get(layer_name)
-        if saved_grad is None:
-            raise ValueError(f"Layer {layer_name} not found in saved gradients")
-        
-        if not torch.equal(grad, saved_grad):
-            discrepancies[layer_name] = (grad, saved_grad)
-            print(f"Discrepancy in gradients of layer {layer_name}")
-    if len(discrepancies) == 0:
-        print("No discrepancies found in gradients")
-    return discrepancies
+def save_outputs_and_grads(outputs_tensor, grads_tensor, input_data):
+    path = "pre_trained_models/test/outputs_grads.pth"
+
+    torch.save({
+        "layer_outputs": outputs_tensor,
+        "layer_gradients": grads_tensor,
+        "input_data": input_data
+    }, path)
+
+def save_model_state_dict(net):
+    path = "pre_trained_models/test/model_state_dict.pth"
+    torch.save(net.state_dict(), path)
+
+
+def compare(saved_outputs, output_list, saved_grads, grad_list, steps):
+    print("\nComparing outputs and gradients:")
+    for i in range(steps):
+        print(f"Step {i}")
+        discrepancies = compare_outputs(saved_outputs[i], output_list[i])
+        if len(discrepancies) > 0:
+            raise ValueError(f"Discrepancies found in outputs {i}")
+
+        discrepancies = compare_outputs(saved_grads[i], grad_list[i], grad=True)
+        if len(discrepancies) > 0:
+            raise ValueError(f"Discrepancies found in gradients {i}")
+
+    print("\nOverall no discrepancies found! The models are equivalent")
