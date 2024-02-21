@@ -322,29 +322,11 @@ class LitModule(LightningModule):
         if is_train_mode:
             self.net.eval()
 
-        super().load_state_dict(state_dict, strict)        
+        super().load_state_dict(state_dict, strict=False)        
         #create_filters_network(self.net)
         # put back in train mode
         if is_train_mode:
             self.net.train()
-
-    def on_save_checkpoint(self, checkpoint):
-        if not is_equivariant_model(self.net):
-            # if the model is not equivariant nothing to do
-            return 
-        # save to seed that was used to initialize the model
-        checkpoint['seed'] = self.hparams.seed
-        
-        # filters are destroyed before the model is saved
-        #create_filters_network(self.net)
-        #checkpoint["state_dict"] = self.state_dict()
-        
-        # recursive_print_dict(checkpoint["state_dict"])
-        # equivariant models have to be in eval mode for saving the weights
-        #if self.net.training:
-        #    self.net.eval()
-        #    checkpoint["state_dict"] = self.state_dict()
-        #    self.net.train()
 
 
     def on_load_checkpoint(self, checkpoint):
@@ -352,20 +334,9 @@ class LitModule(LightningModule):
         if not is_equivariant_model(self.net):
             # if the model is not equivariant nothing to do
             return
-        
-        if hasattr(self, "net"):
-            if self.hparams.seed != checkpoint['seed']:
-                print(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
-                # we can fix this by initializing a new model with the same seed
-                #raise ValueError(f"Seed {self.hparams.seed} is different from the one used to save the model {checkpoint['seed']}")
-            # recreate the filters
-            print("Creating filters")
-            create_filters_network(self.net)
-        else:
-            # assume that basically everything is missing
-            print("I think this does not exist")
-            print(self)
-            L.seed_everything(checkpoint['seed'], workers=True)
+        # recreate the filters
+        create_filters_network(self.net)
+        print("Creating filters")
 
 
 if __name__ == "__main__":

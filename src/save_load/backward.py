@@ -83,7 +83,7 @@ def normal_case(cfg):
 
 
 def new_run_comparison(cfg):
-    path = "pre_trained_models/test"
+    path = "pre_trained_models/test_transfer"
     # Load saved model state dictionary
     saved_model_state_dict = torch.load(path + "/model_state_dict.pth")
     

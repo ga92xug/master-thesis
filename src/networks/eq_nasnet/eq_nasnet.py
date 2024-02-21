@@ -285,7 +285,7 @@ class EquivariantNASNet(nn.Module):
 
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
-        super().load_state_dict(state_dict, strict)
+        super().load_state_dict(state_dict, strict=False)
         from equivariant.nn.modules.conv import R2Conv
         print("Loading triggered for eq_nasnet")
         # check seed is the same 

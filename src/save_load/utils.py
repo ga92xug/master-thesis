@@ -69,7 +69,7 @@ def compare_outputs(saved_outputs, new_outputs, grad=False):
         if saved_output is None:
             raise ValueError(f"Layer {layer_name} not found in saved")
         
-        if not torch.allclose(output, saved_output, atol=1e-5, rtol=1e-4):
+        if not torch.allclose(output, saved_output, atol=1e-8, rtol=1e-5):
             discrepancies[layer_name] = (output, saved_output)
             print(f"Discrepancy in layer {layer_name}:")
             print(f"{((torch.sum(torch.abs(output - saved_output)) / torch.sum(torch.abs(saved_output))) * 100):.2f}%")
@@ -104,10 +104,10 @@ def compare(saved_outputs, output_list, saved_grads, grad_list, steps):
         print(f"Step {i}")
         discrepancies = compare_outputs(saved_outputs[i], output_list[i])
         if len(discrepancies) > 0:
-            raise ValueError(f"Discrepancies found in outputs {i}")
+            assert False, f"Discrepancies found in outputs {i}"
 
         discrepancies = compare_outputs(saved_grads[i], grad_list[i], grad=True)
         if len(discrepancies) > 0:
-            raise ValueError(f"Discrepancies found in gradients {i}")
+            assert False, f"Discrepancies found in gradients {i}"
 
     print("\nOverall no discrepancies found! The models are equivalent")
