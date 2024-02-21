@@ -152,11 +152,11 @@ class LitModule(LightningModule):
             return
         loss = self.valid_loss.compute()   
         self.valid_loss_best(loss)
-        self.log("valid_best/loss", self.valid_loss_best.compute(), sync_dist=True, prog_bar=False) 
+        self.log("valid_best/loss", self.valid_loss_best.compute(), on_epoch=True, prog_bar=False, sync_dist=True) 
 
         best_metrics = self.valid_metrics.best_metric()
         for key, metric in best_metrics.items():
-            self.log(f"valid_best/{key}", metric, on_step=False, on_epoch=True, prog_bar=False)
+            self.log(f"valid_best/{key}", metric, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         
 
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
@@ -246,13 +246,13 @@ class LitModule(LightningModule):
 
         # Update and log loss
         loss_func(loss)
-        self.log(f"{mode}/loss", loss_func, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(f"{mode}/loss", loss_func, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
         # Update and log metrics
         metrics_func(logits, targets)
         metrics_dict = metrics_func.compute()
         for key, metric in metrics_dict.items():
-            self.log(f"{mode}/{key}", metric, on_step=False, on_epoch=True, prog_bar=True)
+            self.log(f"{mode}/{key}", metric, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
 
     def get_model(
         self,
