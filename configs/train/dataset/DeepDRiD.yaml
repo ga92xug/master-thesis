@@ -9,7 +9,9 @@ data:
             
 augment: 
   all:
-    short_side_center_crop: True 
+    short_side_center_crop: 
+      resize_size: ${train.dataset.resolution}
+      crop_size: ${train.dataset.resolution}
   train:
     ColorJitter:
       brightness: 0.4

@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - dataset: DeepDRiD
+  - dataset: blood
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
@@ -8,29 +8,32 @@ defaults:
 
 callbacks:
   model_checkpoint:
-    monitor: "valid/acc"
-    mode: "max"
+    monitor: "valid/loss"
+    mode: "min"
     save_last: True
     auto_insert_metric_name: False
 
   early_stopping:
-    monitor: "valid/acc"
-    patience: 30
-    mode: "max"
+    monitor: "valid/loss"
+    patience: 15
+    mode: "min"
 
 scheduler: 
   factor: 0.5
-  patience: 50
+  patience: 10
 
 optimizer:
-  lr: 0.001
+  lr: 0.005
   weight_decay: 1e-5
 
 trainer:
   accumulate_grad_batches: 1
-  max_epochs: 150
-
+  max_epochs: 100
 
 dataset:
   batch_size: 128                
+
+
+
+
 

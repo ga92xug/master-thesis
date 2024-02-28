@@ -6,7 +6,9 @@ name: blood
 
 augment:
   all:
-    short_side_center_crop: True             
+    short_side_center_crop: 
+      resize_size: ${train.dataset.resolution}
+      crop_size: ${train.dataset.resolution}           
 resolution: 128
 channel_wise_mean_images: [0.873558759689331, 0.7481924295425415, 0.7212643027305603]
 channel_wise_std_images: [0.15711703896522522, 0.18307992815971375, 0.07886549085378647]

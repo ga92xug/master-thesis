@@ -1,31 +1,23 @@
 # @package _global_
 defaults:
-  - override /training: DeepDRiD-training
-  - override /model: eq_nasnet
-  - override /model/blocks_args_dict: 4blocks
-  - override /wandb: default
-  - _self_
-  
-model:
-# blocks_args_dict: 4blocks
-  dropout_rate: 0.5226666741451502
+  - override /train/network: eq_nasnet
+  - override /train/network/blocks_args_dict: 4blocks
+  - override /train: deepdrip
+  - override /logger: wandb
 
-training:
+task_name: DeepDRiD_domain_shift
+test_mode: test
+tags: [DeepDRiD_low_data]
+
+logger:
+  wandb:
+    project: low_data
+
+train:
   optimizer:
     lr: 0.00068
     weight_decay: 0.000001
-    # lr: 0.0013149671111997434
-    #weight_decay: 0.00000031521714925058
-
-  scheduler:  # not used -> implement None scheduler
+  scheduler:
     _target_: null
     #   patience: 37
     #   factor: 0.10688753617750324
-
-wandb:
-  project: SL-Application
-  give_name: True
-  tags: []
-
-
-# python training/main.py other.debug=True +exp_model_specific_overwrites=eq_nasnet_DeepDRiD --info config
