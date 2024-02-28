@@ -10,7 +10,7 @@
 # loading
 python src/main.py train=imagenette \
     train_mode=train_continue \
-    ckpt_path=/home/frischs/dev1/scaling-laws-ecnn/logs/pretrained_test/runs/2024-02-21_18-15-43/checkpoints/epoch_001.ckpt \
+    ckpt_path=/home/frischs/dev1/scaling-laws-ecnn/pre_trained_models/test/epoch_005.ckpt  \
     task_name=pretrained_test \
     seed=0 \
     #+deterministic=True \

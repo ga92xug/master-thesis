@@ -6,6 +6,10 @@ from omegaconf import DictConfig, OmegaConf
 import sys
 import os
 
+import torch
+
+from src.utils.equivariant_utils import create_filters_network
+
 sys.path.append(f"{os.getcwd()}")
 
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
@@ -43,6 +47,7 @@ class EquivariantNASNet(nn.Module):
         blocks_args_dict: Dict[str, Any],
         image_size: int,
         #seed: int,
+        pre_trained: str = None,
         width_coefficient=1, 
         depth_coefficient=1,
         dropout_rate=0.2,
@@ -56,7 +61,7 @@ class EquivariantNASNet(nn.Module):
         verbose: int = 0,
         **kwargs,
     ):
-        super().__init__()  
+        super().__init__() 
         #blocks_args = list(blocks_args)
         assert isinstance(image_size, int), 'Please provide valid image size'
         self.image_size = image_size
@@ -123,9 +128,12 @@ class EquivariantNASNet(nn.Module):
         pool_size, linear_input_size = self.pool_like(out_channels, num_classes, image_size=self.image_size)
         self._avg_pooling = nn.AdaptiveAvgPool2d(pool_size)
 
-        self.dropout = nn.Dropout(self.dropout_rate)        
+        self.dropout = nn.Dropout(self.dropout_rate)   
         self.fc = nn.Linear(linear_input_size, num_classes)
 
+        if pre_trained:
+            self.load_pre_trained(pre_trained)
+        
     
     def forward(self, inputs):
         x = GroupTensor(inputs, self.input_field_type)
@@ -285,15 +293,12 @@ class EquivariantNASNet(nn.Module):
 
 
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
-        super().load_state_dict(state_dict, strict=False)
-        from equivariant.nn.modules.conv import R2Conv
+        super().load_state_dict(state_dict, strict=strict)
+        #from equivariant.nn.modules.conv import R2Conv
         print("Loading triggered for eq_nasnet")
         # check seed is the same 
         #assert self.seed == state_dict["seed"], "Save and load seeds are not the same"
-        
-        for name, layer in self.named_modules():
-            if isinstance(layer, R2Conv):
-                layer.expand_parameters()
+        create_filters_network(self)
 
 
     def pool_like(self, output: int, num_classes: int, image_size) -> Tuple[int, int]:
@@ -312,6 +317,17 @@ class EquivariantNASNet(nn.Module):
         assert pooling_size <= image_size, "Pooling size must be less than or equal to image size"
         return pooling_size, output * pooling_size * pooling_size
 
-
+    def load_pre_trained(self, pre_trained: str):
+        assert os.path.isfile(pre_trained), f"Pre-trained weights not found at {pre_trained}"
+        state_dict = torch.load(pre_trained)
+        if "state_dict" in state_dict:
+            # this is a lightning checkpoint
+            state_dict = state_dict["state_dict"]
+        # strip the net from the keys
+        state_dict = {k.replace("net.", ""): v for k, v in state_dict.items()}
+        # remove the fully connected layer from the keys
+        state_dict = {k: v for k, v in state_dict.items() if k not in ["fc.weight", "fc.bias"]}
+        super().load_state_dict(state_dict, strict=False)
+        create_filters_network(self)
         
         

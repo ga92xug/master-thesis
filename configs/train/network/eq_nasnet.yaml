@@ -12,3 +12,5 @@ eq_expand_ratio: 6
 cnn_expand_ratio: 6.0
 increase_blocks: null
 not_increase_1_layer: False
+
+pre_trained: null

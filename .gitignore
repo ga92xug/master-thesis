@@ -6,6 +6,7 @@ spec-file.txt
 #notebooks/
 pre_trained_models/
 scripts/alex
+pypeline.log.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -158,4 +159,5 @@ configs/local/default.yaml
 /data/
 /logs/
 .env
+
 
