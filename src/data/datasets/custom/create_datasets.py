@@ -32,7 +32,11 @@ class Custom_Dataset(Dataset):
         label = self.labels[index]
 
         if isinstance(image, str):
-            image = Image.open(image)
+            if image.endswith(".npy"):
+                image = np.load(image)
+                image = Image.fromarray(image)
+            else:
+                image = Image.open(image)
         elif isinstance(image, np.ndarray):
             image = Image.fromarray(image)
         else:
@@ -53,7 +57,7 @@ def create_datasets(
     data: Tuple,    
     # transforms
     resolution: int,
-    augment: Union[bool, Dict],
+    augment: Union[bool, Dict[str, Any]],
     channel_wise_mean_images: List,
     channel_wise_std_images: List,
     # dataset

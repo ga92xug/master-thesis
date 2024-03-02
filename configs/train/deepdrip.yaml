@@ -1,26 +1,22 @@
 defaults:
-  - _self_
   - dataset: DeepDRiD
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
-  - scheduler: reduce_lr_on_plateau
+  - scheduler: cosine_annealing_lr
+  - _self_
 
 callbacks:
   model_checkpoint:
-    monitor: "valid/acc"
-    mode: "max"
+    monitor: "valid/loss"
+    mode: "min"
     save_last: True
     auto_insert_metric_name: False
 
   early_stopping:
-    monitor: "valid/acc"
+    monitor: "valid/loss"
     patience: 30
-    mode: "max"
-
-scheduler: 
-  factor: 0.5
-  patience: 50
+    mode: "min"
 
 optimizer:
   lr: 0.001
@@ -32,5 +28,5 @@ trainer:
 
 
 dataset:
-  batch_size: 128                
+  batch_size: 256                
 

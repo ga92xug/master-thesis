@@ -1,29 +1,26 @@
 defaults:
-  - _self_
-  - dataset: blood
+  - dataset: adni
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
-  - scheduler: reduce_lr_on_plateau
+  - scheduler: none
+  - _self_
+
 
 callbacks:
   model_checkpoint:
-    monitor: "valid/loss"
-    mode: "min"
+    monitor: "valid/acc"
+    mode: "max"
     save_last: True
     auto_insert_metric_name: False
 
   early_stopping:
-    monitor: "valid/loss"
-    patience: 15
-    mode: "min"
-
-#scheduler: 
-#  factor: 0.5
-#  patience: 10
+    monitor: "valid/acc"
+    patience: 30
+    mode: "max"
 
 optimizer:
-  lr: 0.005
+  lr: 0.001
   weight_decay: 1e-5
 
 trainer:
@@ -32,8 +29,4 @@ trainer:
 
 dataset:
   batch_size: 128                
-
-
-
-
 

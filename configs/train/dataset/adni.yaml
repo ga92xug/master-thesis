@@ -1,0 +1,37 @@
+defaults:
+- _custom_defaults
+- _self_
+
+name: adni
+         
+augment: 
+  all:
+    short_side_center_crop: 
+      resize_size: ${train.dataset.resolution}
+      crop_size: ${train.dataset.resolution}
+  train:
+    RandomHorizontalFlip:
+      p: 0.5
+    #TrivialAugmentWide:
+    #  interpolation: BILINEAR
+    RandomErasing:
+      p: 0.1
+    #ColorJitter:
+    #  brightness: 0.4
+    #  contrast: 0.4
+    #  saturation: 0.4
+    #  hue: 0.1
+  
+    
+
+resolution: 128
+channel_wise_mean_images: [196.64918518066406]
+channel_wise_std_images: [247.41580200195312]
+
+num_channels: 1
+num_classes: 3
+
+val_size: 0.0
+test_size: 0.0
+
+should_normalize_weights: True

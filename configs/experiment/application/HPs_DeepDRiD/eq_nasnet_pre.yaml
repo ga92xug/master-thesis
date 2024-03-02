@@ -1,0 +1,25 @@
+# @package _global_
+defaults:
+  - override /train/network: eq_nasnet
+  - override /train/network/blocks_args_dict: 4blocks
+  - override /train: deepdrip
+  - override /logger: wandb
+
+task_name: DeepDRiD_domain_shift
+test_mode: test
+tags: [DeepDRiD_low_data]
+
+logger:
+  wandb:
+    project: low_data
+
+train:
+  network:
+    pre_trained: logs/pretrain/2024-02-25_19-32-25/checkpoints/epoch_039.ckpt
+  optimizer:
+    lr: 0.001591806674964231
+    weight_decay: 0.001326042532301367
+  scheduler:
+    _target_: null
+    #   patience: 37
+    #   factor: 0.10688753617750324

@@ -25,7 +25,7 @@ class EfficientNet(torch.nn.Module):
     We could have used all models from torchvision.models. The b0 model is from NVIDIA's DeepLearningExamples
     """
 
-    def __init__(self, num_classes, pretrained=True, size="b0", **kwargs):
+    def __init__(self, num_classes, num_channels: int = 3, pretrained=True, size="b0", **kwargs):
         super().__init__()
         if size == "b0" and False:
             model_name='nvidia_efficientnet_' + size
@@ -44,6 +44,15 @@ class EfficientNet(torch.nn.Module):
             self.model = getattr(models, f"efficientnet_{size}")(weights=pretrained_weights(pretrained))
             # Modify the last fully connected layer to have num_classes outputs
             self.model.classifier[1] = torch.nn.Linear(self.model.classifier[1].in_features, num_classes, bias=True)
+
+            if num_channels != 3:
+                from torchvision.ops.misc import Conv2dNormActivation
+                from torchvision.models.efficientnet import _efficientnet_conf
+                # Modify the first layer to have num_channels inputs
+                firstconv_output_channels = _efficientnet_conf(f"efficientnet_b{size}", width_mult=1.0, depth_mult=1.0)[0][0].input_channels
+                self.model.features[0] = Conv2dNormActivation(
+                    num_channels, firstconv_output_channels, kernel_size=3, stride=2, norm_layer=torch.nn.BatchNorm2d, activation_layer=torch.nn.SiLU
+                )
 
         self.name = "EfficientNet_pre_imagenet" if pretrained else "EfficientNet"
 

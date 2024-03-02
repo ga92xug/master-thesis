@@ -1,4 +1,5 @@
 from typing import Dict, List, Tuple, Union
+from sklearn.model_selection import train_test_split
 
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
@@ -176,8 +177,66 @@ def get_DeepDRiD(
 
     return images, labels
 
-def get_imagenet():
-    raise NotImplementedError("Not implemented yet.")
+
+def get_adni(
+    data_dir: str,
+    name: str,
+    **kwargs
+) -> Tuple[Dict, Dict]:
+    def get_subject_identifier(filename: str) -> str:
+        return filename.split('_')[1]
+    
+    location = path.join(data_dir, "adni/adni1/slice2Ddata")
+    train_images, train_labels = [], []
+    val_images, val_labels = [], []
+    test_images, test_labels = [], []
+    for i, class_name in enumerate(os.listdir(location)):
+        class_path = path.join(location, class_name)
+        if not path.isdir(class_path):
+            continue
+        class_images = [f for f in os.listdir(class_path) if f.startswith('axial')]
+        subject_images = {}
+        for image in class_images:
+            subject_id = get_subject_identifier(image)
+            if subject_id not in subject_images:
+                subject_images[subject_id] = []
+            subject_images[subject_id].append(image)
+        subjects = list(subject_images.keys())
+
+        train_subjects, test_subjects = train_test_split(subjects, test_size=0.7, random_state=42)
+        val_subjects, test_subjects = train_test_split(test_subjects, test_size=0.5, random_state=42)
+
+        for subject in train_subjects:
+            train_images.extend([path.join(class_path, img) for img in subject_images[subject]])
+            train_labels.extend([i] * len(subject_images[subject]))
+        
+        for subject in val_subjects:
+            val_images.extend([path.join(class_path, img) for img in subject_images[subject]])
+            val_labels.extend([i] * len(subject_images[subject]))
+        
+        for subject in test_subjects:
+            test_images.extend([path.join(class_path, img) for img in subject_images[subject]])
+            test_labels.extend([i] * len(subject_images[subject]))
+
+
+    images = {
+        "train": train_images,
+        "val": val_images,
+        "test": test_images,
+    }
+
+    #image = np.load(train_images[0])
+    # check if values are in the range [0, 1]
+    #print("max val", np.max(image), "min val", np.min(image))
+    #quit()
+    
+    labels = {
+        "train": train_labels,
+        "val": val_labels,
+        "test": test_labels,
+    }
+    return images, labels
+
 
 ################################################################################
 # Helper functions
@@ -233,6 +292,30 @@ def get_images_and_labels_from_folder(
                         # This is a grayscale image or has less than 3 dimensions, skip it
                         continue
             
+            images.append(image_path)
+            labels.append(label)
+
+    label_encoder = LabelEncoder()
+    labels = label_encoder.fit_transform(labels)
+
+    return images, labels
+
+def get_images_and_labels_from_folder(
+    folder:str,
+    exclude_1_channel: bool = False,
+) -> Tuple[List[str], List[int]]:
+    images = []
+    labels = []
+    for label in os.listdir(folder):
+        folder_label = path.join(folder, label)
+        if not path.isdir(folder_label):
+            # these are files like .DS_Store
+            continue
+        for i, image in enumerate(os.listdir(folder_label)):
+            image_path = path.join(folder_label, image)            
+
+
+
             images.append(image_path)
             labels.append(label)
 
