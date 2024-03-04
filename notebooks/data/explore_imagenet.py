@@ -11,7 +11,7 @@ from pickle import load
 import sys
 import os
 sys.path.append(f"{os.getcwd()}")
-from src.data.datasets.custom.get_data import get_images_and_labels_from_folder
+from src.data.datasets.custom.get_data import subject_split_image_label_folder
 
 def train_data(
     folder:str,
@@ -48,7 +48,7 @@ def get_imagenet(
     val_loc = path.join(location, 'val')
     test_loc = path.join(location, 'test')
 
-    train_images, train_labels = get_images_and_labels_from_folder(train_loc)
+    train_images, train_labels = subject_split_image_label_folder(train_loc)
     val_images, val_labels = None, None # get_images_and_labels_from_folder(val_loc)
     test_images, test_labels = None, None # get_images_and_labels_from_folder(test_loc)
 
