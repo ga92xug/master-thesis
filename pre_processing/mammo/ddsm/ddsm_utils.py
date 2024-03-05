@@ -1,6 +1,29 @@
 import os
 import pandas as pd
 
+def data_cleaning(df: pd.DataFrame):
+    df = df.rename(columns={
+        'image file path':'image_file_path',
+        'cropped image file path': 'cropped_image_file_path',
+        'mass shape':'mass_shape',
+        'left or right breast':'left_or_right_breast',
+        'image view':'image_view',
+        'abnormality type':'abnormality_type'
+    })
+    #mass_df['left_or_right_breast'] = mass_df['left_or_right_breast'].astype('category')
+    #mass_df['image_view'] = mass_df['image_view'].astype('category')
+    #mass_df['mass_margins'] = mass_df['mass_margins'].astype('category')
+    #mass_df['mass_shape'] = mass_df['mass_shape'].astype('category')
+    #mass_df['abnormality_type'] = mass_df['abnormality_type'].astype('category')
+    #mass_df['pathology'] = mass_df['pathology'].astype('category')
+    #mass_df_copy.isna().sum()
+
+    #mass_df_copy['mass_shape'].fillna(method = 'bfill', axis = 0, inplace=True) 
+    #mass_df_copy['mass_margins'].fillna(method = 'bfill', axis = 0, inplace=True) 
+    #mass_df_copy.isna().sum()
+    return df
+
+
 def dicom_data_cleaning(dicom_df: pd.DataFrame):
     #dicom_df_copy = dicom_df.copy()
 
@@ -17,6 +40,7 @@ def dicom_data_cleaning(dicom_df: pd.DataFrame):
 def mass_data_cleaning(mass_df: pd.DataFrame):
     mass_df = mass_df.rename(columns={
         'image file path':'image_file_path',
+        'cropped image file path': 'cropped_image_file_path',
         'mass shape':'mass_shape',
         'left or right breast':'left_or_right_breast',
         'mass margins':'mass_margins',

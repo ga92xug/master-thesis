@@ -1,15 +1,17 @@
 import os
-from typing import Dict, Tuple
+from typing import Dict
 import pandas as pd
-pd.set_option('display.max_columns', None)
-pd.set_option('display.max_rows', None)
 import os
 import sys
 
 from sklearn.model_selection import train_test_split
 sys.path.append(os.getcwd())
 
-from pre_processing.mammo.ddsm.ddsm_utils import data_cleaning
+from pre_processing.mammo.ddsm.ddsm_utils import mass_data_cleaning
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+import os
 
 class DDSMDataManager:
     def __init__(
@@ -25,7 +27,7 @@ class DDSMDataManager:
         self.include_mass = include_mass
         self.include_calc = include_calc
         self.dicom_data = self.load_dicom_data()
-        self.full_mammo_dict = self.build_dicts() #, self.cropped_images_dict, self.roi_img_dict = self.build_dicts()
+        self.full_mammo_dict, self.cropped_images_dict, self.roi_img_dict = self.build_dicts()
 
         self.class_mapper = {
             'MALIGNANT': "malignant", 
@@ -37,7 +39,7 @@ class DDSMDataManager:
         dicom_path = os.path.join(self.base_path, 'csv/dicom_info.csv')
         dicom_data = pd.read_csv(dicom_path)
         dicom_data['image_path'] = dicom_data.image_path.apply(
-            lambda x: x.replace('CBIS-DDSM', self.base_path))
+            lambda x: x.replace('CBIS-DDSM/jpeg', os.path.join(self.base_path, 'jpeg')))
         return dicom_data
     
     def build_dicts(self):
@@ -51,86 +53,64 @@ class DDSMDataManager:
         for dicom in full_mammogram_images:
             key = dicom.split("/")[-2]
             full_mammo_dict[key] = dicom
-        #for dicom in cropped_images:
-        #    key = dicom.split("/")[-2]
-        #    if key in cropped_images_dict:
-        #        print("cropp key:", key)
-        #        quit()
-        #    cropped_images_dict[key] = dicom
-        #for dicom in ROI_mask_images:
-        #    if key in roi_img_dict:
-        #        print("roi key:", key)
-        #        #quit()
-        #    key = dicom.split("/")[-2]
-        #    roi_img_dict[key] = dicom
+        for dicom in cropped_images:
+            key = dicom.split("/")[-2]
+            cropped_images_dict[key] = dicom
+        for dicom in ROI_mask_images:
+            key = dicom.split("/")[-2]
+            roi_img_dict[key] = dicom
         
-        return full_mammo_dict #, cropped_images_dict, roi_img_dict
+        return full_mammo_dict, cropped_images_dict, roi_img_dict
 
     def get_data(self, mode: str, table: str):
         assert mode in ['train', 'test']
         assert table in ['mass', 'calc']
-        print(f"Getting {table} data for {mode} set")
         path = os.path.join(self.base_path, f'csv/{table}_case_description_{mode}_set.csv')
         df = pd.read_csv(path)
-        
-        fix_image_path(df, self.full_mammo_dict)
-        df = data_cleaning(df)
+
+        fix_image_path(df, self.full_mammo_dict, self.cropped_images_dict, self.roi_img_dict)
+        #df = mass_data_cleaning(df)
 
         df['label'] = df['pathology'].map(self.class_mapper)
         return df
 
 
-    def both_datasets(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        calc_train, calc_test = self.get_data('train', 'calc'), self.get_data('test', 'calc')
-        mass_train, mass_test = self.get_data('train', 'mass'), self.get_data('test', 'mass')
-        
-        df_train = self.combine_datasets(mass_train, calc_train)
-        df_test = self.combine_datasets(mass_test, calc_test)
-        return df_train, df_test
-
-    def combine_datasets(self, mass_df, calc_df) -> pd.DataFrame:
-        return pd.concat([mass_df, calc_df], axis=0)
+    def combine_datasets(self, mass_df, calc_df):
+        pass
     
     def split_stratified_with_person_id(self, df, split=0.75):
         pass
 
-    def get_datasets(self) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    def get_datasets(self):
+        if self.include_mass:
+            mass_train, mass_test = self.get_data('train', 'mass'), self.get_data('test', 'mass')
+        if self.include_calc:
+            calc_train, calc_test = self.get_data('train', 'calc'), self.get_data('test', 'calc')
+
         # combine if both datasets are included
         if self.include_mass and self.include_calc:
-            df_train, df_test = self.both_datasets()
+            df_train = self.combine_datasets(mass_train, calc_train)
+            df_test = self.combine_datasets(mass_test, calc_test)
         elif self.include_mass:
-            df_train, df_test = self.get_data('train', 'mass'), self.get_data('test', 'mass')
+            df_train, df_test = mass_train, mass_test
         elif self.include_calc:
-            df_train, df_test = self.get_data('train', 'calc'), self.get_data('test', 'calc')
+            df_train, df_test = calc_train, calc_test
 
         # split stratified by person_id
-        #df_train, df_val = self.split_stratified_with_person_id(df_train, split=0.8)
-        df_val = None
-        
+        df_train, df_val = self.split_stratified_with_person_id(df_train, split=0.8)
 
         return df_train, df_val, df_test
 
 # fix image paths
-def fix_image_path(df, full_mammo_dict, cropped_images_dict = None, roi_img_dict = None):
+def fix_image_path(df, full_mammo_dict, cropped_images_dict, roi_img_dict):
     """correct dicom paths to correct image paths"""
-    counter = 0
     for index, img in enumerate(df.values):
-        #
-        try:
-            img_name = img[11].split("/")[2]
-            df.iloc[index,11] = full_mammo_dict[img_name]
-            #img_name = img[12].split("/")[2]
-            #df.iloc[index,12] = cropped_images_dict[img_name]
-            #img_name = img[13].split("/")[2]
-            #df.iloc[index,13] = roi_img_dict[img_name]
-        except:
-
-            #print("i:", index, "img:", img)
-            #quit()
-            counter += 1
-
-    print("counter:", counter)
-
+        img_name = img[11].split("/")[2]
+        df.iloc[index,11] = full_mammo_dict[img_name]
+        img_name = img[12].split("/")[2]
+        df.iloc[index,12] = cropped_images_dict[img_name]
+        img_name = img[13].split("/")[2]
+        df.iloc[index,13] = roi_img_dict[img_name]
 
 
 
@@ -187,11 +167,22 @@ def split_stratified_with_person_id(df: pd.DataFrame, split: float = 0.75):
     return train_df, valid_df
 
 
-def get_ddsm_df(ddsm_path: str, image_name: str) -> Dict[str, pd.DataFrame]:
+def get_ddsm_df(ddsm_path: str, image_name: str):
     image_dir = os.path.join(ddsm_path, 'jpeg')
 
-    dm = DDSMDataManager(base_path=ddsm_path, image_name=image_name, include_mass=True, include_calc=True)
-    mass_train, mass_valid, mass_test = dm.get_datasets()
+    # dicom data
+    dicom_data = pd.read_csv(os.path.join(ddsm_path, 'csv/dicom_info.csv'))
+    dicom_data['image_path'] = dicom_data.image_path.apply(lambda x: x.replace('CBIS-DDSM/jpeg', image_dir))
+    cropped_images = dicom_data[dicom_data.SeriesDescription == 'cropped images'].image_path
+    full_mammogram_images = dicom_data[dicom_data.SeriesDescription == 'full mammogram images'].image_path
+    ROI_mask_images = dicom_data[dicom_data.SeriesDescription == 'ROI mask images'].image_path
+    full_mammo_dict, cropped_images_dict, roi_img_dict = build_dicts(full_mammogram_images, cropped_images, ROI_mask_images)
+
+    #calc_train, calc_test = get_calc_data(ddsm_path, 'train'), get_calc_data(ddsm_path, 'test')
+    mass_train = get_mass_data(ddsm_path, 'train', full_mammo_dict, cropped_images_dict, roi_img_dict, image_name)
+    mass_test = get_mass_data(ddsm_path, 'test', full_mammo_dict, cropped_images_dict, roi_img_dict, image_name)
+
+    mass_train, mass_valid = split_stratified_with_person_id(mass_train, split=0.8)
     
     dataset_dict = {
         "train": mass_train,
@@ -203,7 +194,7 @@ def get_ddsm_df(ddsm_path: str, image_name: str) -> Dict[str, pd.DataFrame]:
 
 def main():
     path = os.path.expanduser("~/Data/frischs/datasets/mammography/")
-    mass_train, mass_valid, mass_test = get_ddsm_df(path, 'cropped_image_file_path')
+    mass_train, mass_valid, mass_test = get_ddsm_df(path)
     return mass_train, mass_valid, mass_test
 
 

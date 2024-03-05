@@ -9,6 +9,7 @@ import numpy as np
 from os import path
 from PIL import Image
 import rootutils
+from pre_processing.mammo.process import process_DDSM
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
 from src.data.datasets.custom.utils_mammo import subject_split_image_label_folder
 
@@ -184,13 +185,25 @@ def get_mammo(
     data_dir: str,
     name: str,
     resolution: int,
+    pre_process: str = False,
+    cropped: bool = False,
+    no_save: bool = False,
 ) -> Tuple[Dict, Dict]:
+    ddsm_path = path.join(data_dir, "mammo/CBIS-DDSM")
+    if no_save:
+        assert not pre_process, "If we don't save the images have to be preprocessed on the fly"
+        images, labels = process_DDSM(ddsm_path, cropped=cropped, no_save=True)
+        return images, labels
     
-    data_dir = path.join(data_dir, "mammo/CBIS-DDSM/np_dataset/")
-
-    train_images, train_labels = get_images_and_labels_from_folder(data_dir + "train/")
-    val_images, val_labels = get_images_and_labels_from_folder(data_dir + "valid/")
-    test_images, test_labels = get_images_and_labels_from_folder(data_dir + "test/")
+    # save images
+    if pre_process:
+        load_path = process_DDSM(ddsm_path, resize=(resolution, resolution), cropped=cropped, no_save=False)
+    else:
+        load_path = os.path.join(ddsm_path, f"np_dataset{'_cropped' if cropped else ''}")
+        
+    train_images, train_labels = get_images_and_labels_from_folder(load_path + "train/")
+    val_images, val_labels = get_images_and_labels_from_folder(load_path + "val/")
+    test_images, test_labels = get_images_and_labels_from_folder(load_path + "test/")
 
     images = {
         "train": train_images,

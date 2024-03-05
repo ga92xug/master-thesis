@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Dict, Tuple, Union
 
 from tqdm import tqdm
 import cv2
@@ -14,7 +14,7 @@ from torchvision.io import read_image
 import matplotlib.pyplot as plt
 import torch
 import os
-import imghdr
+#import imghdr
 import torch
 #import lightning as pl
 from torch.utils.data import DataLoader, Dataset
@@ -29,8 +29,7 @@ from collections import Counter
 from PIL import Image
 import sys
 sys.path.append(os.getcwd())
-from pre_processing.ddsm.ddsm import get_ddsm_df
-
+from pre_processing.mammo.ddsm.ddsm import get_ddsm_df
 
 PATH = os.path.expanduser("~/Data/frischs/datasets/mammo/")
 
@@ -85,15 +84,15 @@ def create_save_location(
         os.makedirs(os.path.join(path, label), exist_ok=True)
 
 
-def process_save_DDSM(row, save_location_mode, resize):
+def preprocess_save_DDSM(row, save_location_mode, resize, file_path="cropped_image_file_path"):
     # open and process image
-    img = Image.open(row['image_file_path'])
+    img = Image.open(row[file_path])
     numpy_img = np.array(img)
     img, clahe_img = resize_clahe(numpy_img, resize=resize)
 
     # save images
     image_location = os.path.join(save_location_mode, row['label'])
-    img_id = row['image_file_path'].split('/')[-2:] 
+    img_id = row[file_path].split('/')[-2:] 
     img_id = "_".join(img_id).replace(".jpg", "")
     # resized
     resized_image_location = os.path.join(image_location, f"resized{resize[0]}_{img_id}")
@@ -102,24 +101,64 @@ def process_save_DDSM(row, save_location_mode, resize):
     clahe_image_location = os.path.join(image_location, f"clahe{resize[0]}_{img_id}")
     np.save(clahe_image_location, clahe_img)
 
-def pre_process_DDSM(
+def process_DDSM(
+        path: str = PATH,
         resize: Tuple[int] = (224, 224),
-    ):
-    print("Preprocessing DDSM")
-    ddsm_path = os.path.join(PATH, "CBIS-DDSM")
-    save_location = os.path.join(ddsm_path, "np_dataset")
-    datasets = get_ddsm_df(ddsm_path)
-    os.makedirs(save_location, exist_ok=True)
+        cropped: bool = True,
+        no_save: bool = True,
+    ) -> Union[str, Tuple[Dict[str, list], Dict[str, list]]]:
+    """
+    Processing of the DDSM dataset.
+    Step 1: Load the dataframes already split into train, val, and test.\n
+    Step 2:
+        - no_save == True: the images and labels are returned as a dictionary.
+        - no_save == False: the images are preprocessed and saved to disk and the path to the saved images is returned.
+    """
+    print("Processing DDSM")
+    if "CBIS-DDSM" not in path:
+        ddsm_path = os.path.join(path, "CBIS-DDSM")
+    else:
+        ddsm_path = path
+
+    image_name = "cropped_image_file_path" if cropped else "image_file_path"
+    datasets = get_ddsm_df(ddsm_path, image_name)
     
-    for mode, df in datasets.items():
-        print(f"Processing {mode}")
-        save_location_mode = os.path.join(save_location, mode)
-        create_save_location(save_location_mode, df['label'].unique())
-        for i, row in tqdm(df.iterrows()):
-            process_save_DDSM(row, save_location_mode, resize)
+    if not no_save:
+        print("Preprocessing and saving images")
+        save_location = os.path.join(ddsm_path, f"np_dataset{'_cropped' if cropped else ''}")
+        os.makedirs(save_location, exist_ok=True)
+        for mode, df in datasets.items():
+            print(f"Preprocessing {mode}")
+            save_location_mode = os.path.join(save_location, mode)
+            create_save_location(save_location_mode, df['label'].unique())
+            for i, row in tqdm(df.iterrows()):
+                preprocess_save_DDSM(row, save_location_mode, resize, image_name)
+
+        print("Preprocessing and saving done")
+        return save_location
+    else:
+        print(datasets["train"].columns)
+        images = {
+            "train": datasets["train"][image_name].to_list(),
+            "val": datasets["val"][image_name].to_list(),
+            "test": datasets["test"][image_name].to_list(),
+        } 
+        labels = {
+            "train": datasets["train"]["label"].to_list(),
+            "val": datasets["val"]["label"].to_list(),
+            "test": datasets["test"]["label"].to_list(),
+        }
+        return images, labels
+    
             
-    print("Preprocessing done")
+    
 
 if __name__ == "__main__":
     #pre_process_INbreast()
-    pre_process_DDSM()
+    images, labels = process_DDSM()
+
+    for mode, imgs in images.items():
+        print(f"{mode}: {len(imgs)}")
+        for img in imgs[:2]:
+            print(np.load(img).shape)
+        break
