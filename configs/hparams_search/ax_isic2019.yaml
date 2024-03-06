@@ -36,7 +36,6 @@ hydra:
 
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
-
     max_batch_size: 2
     ax_config:
       max_trials: 40
