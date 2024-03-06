@@ -64,6 +64,7 @@ class EquivariantNASNet(nn.Module):
         super().__init__() 
         #blocks_args = list(blocks_args)
         assert isinstance(image_size, int), 'Please provide valid image size'
+        self.pre_trained = pre_trained
         self.image_size = image_size
         #self.seed = seed
         #assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
@@ -278,9 +279,8 @@ class EquivariantNASNet(nn.Module):
     
     
     def set_name(self):
-        model_name = f"Eq-NasNet-{self.gspace.fibergroup}-b{len(self.blocks_args_list)-2}-\
-            d{self.depth_coefficient}-w{self.width_coefficient}-\
-            r{self.image_size}-drop{self.dropout_rate:.2f}"
+        pre_trained = "-pre" if self.pre_trained else ""
+        model_name = f"Eq-NasNet{pre_trained}-{self.gspace.fibergroup}-b{len(self.blocks_args_list)-2}-d{self.depth_coefficient}-w{self.width_coefficient}-r{self.image_size}-drop{self.dropout_rate:.2f}"
         scaling_name = get_scaling_name(
             blocks_args_list=self.blocks_args_list,
             width_coefficient=self.width_coefficient,
@@ -306,12 +306,6 @@ class EquivariantNASNet(nn.Module):
             # we can fully pool over spatial dimensions
             return 1, output
         
-        # we can't pool over spatial dimensions
-        # 1000 classes
-        # 88 output channels
-        # 88 * x² = 1000
-        # x² = 1000 / 88
-        # x = sqrt(1000 / 88)
         pooling_size = int(math.ceil(math.sqrt(num_classes / output)))
         assert pooling_size > 1, "Pooling size must be greater than 1"
         assert pooling_size <= image_size, "Pooling size must be less than or equal to image size"

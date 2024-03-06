@@ -73,6 +73,7 @@ def task_wrapper(task_func: Callable) -> Callable:
     """
 
     def wrap(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        exit_code = 0
         # execute the task
         try:
             metric_dict, object_dict = task_func(cfg=cfg)
@@ -80,7 +81,8 @@ def task_wrapper(task_func: Callable) -> Callable:
         # things to do if exception occurs
         except Exception as ex:
             # save exception to `.log` file
-            log.exception("")
+            log.exception(str(ex))
+            exit_code = 1
 
             # some hyperparameter combinations might be invalid or cause out-of-memory errors
             # so when using hparam search plugins like Optuna, you might want to disable
@@ -97,8 +99,8 @@ def task_wrapper(task_func: Callable) -> Callable:
                 import wandb
 
                 if wandb.run:
-                    log.info("Closing wandb!")
-                    wandb.finish()
+                    # when there was an exception, mark the run as failed
+                    wandb.finish(exit_code)
 
         return metric_dict, object_dict
 

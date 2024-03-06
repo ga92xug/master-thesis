@@ -137,7 +137,6 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     logger: List[Logger] = object_dict["logger"]
     trainer: Trainer = object_dict["trainer"]  
     
-
     if train_mode == "evaluate_only":
         log.info("Running in evaluate_only mode.")
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer)

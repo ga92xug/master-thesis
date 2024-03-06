@@ -6,18 +6,18 @@
 defaults:
   - override /hydra/sweeper: ax
   - override /train/network: eq_nasnet
-  - override /train: deepdrip
+  - override /train: isic2019
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
 test_mode: test
-tags: "[valid_loss]"
+tags: ["valid_acc_weighted"]
 
 seed: null
 
 train:
   trainer:
-    max_epochs: 50
+    max_epochs: 120
     val_check_interval: 1.0
 
   network:
@@ -28,8 +28,7 @@ logger:
   wandb:
     project: "HparamsSearch"
 
-# choose metric which will be optimized by Optuna
-optimized_metric: "valid/loss"
+optimized_metric: "valid/acc_weighted"
 
 # here we define Optuna hyperparameter search
 hydra:

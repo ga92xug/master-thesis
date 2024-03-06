@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+  - override /train: blood
+  - override /train/network: eq_nasnet
+  - override /train/network/blocks_args_dict: 4blocks
+  - override /logger: wandb
+
+task_name: blood_low_data
+test_mode: test
+tags: ["blood_low_data"]
+
+logger:
+  wandb:
+    project: low_data
+
+train:
+  optimizer:
+    lr: 0.001246
+    weight_decay: 4.727e-6
+  scheduler:
+    _target_: null

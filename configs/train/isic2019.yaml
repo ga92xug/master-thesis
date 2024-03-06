@@ -1,10 +1,10 @@
 defaults:
-  - _self_
   - dataset: DeepDRiD
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
-  - scheduler: reduce_lr_on_plateau
+  - scheduler: cosine_annealing_lr
+  - _self_
 
 callbacks:
   model_checkpoint:
@@ -18,10 +18,6 @@ callbacks:
     patience: 30
     mode: "max"
 
-scheduler: 
-  factor: 0.5
-  patience: 10
-
 optimizer:
   lr: 0.005
   weight_decay: 1e-5
@@ -30,8 +26,7 @@ trainer:
   accumulate_grad_batches: 1
   max_epochs: 120
 
-
 dataset:
-  batch_size: 64                
+  batch_size: 128                
 
 

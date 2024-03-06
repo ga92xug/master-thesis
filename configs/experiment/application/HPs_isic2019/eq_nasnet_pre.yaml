@@ -1,8 +1,8 @@
 # @package _global_
 defaults:
+  - override /train: isic2019
   - override /train/network: eq_nasnet
   - override /train/network/blocks_args_dict: 4blocks
-  - override /train: deepdrip
   - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
 
@@ -19,4 +19,4 @@ train:
     pre_trained: logs/pretrain/2024-02-25_19-32-25/checkpoints/epoch_039.ckpt
   optimizer:
     lr: 0.1
-    weight_decay: 1.23e-5
+    weight_decay: 0.0001
