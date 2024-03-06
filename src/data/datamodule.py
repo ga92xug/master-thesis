@@ -102,9 +102,7 @@ class DataModule(LightningDataModule):
 
         :return: normalization weights 
         """
-        if not self.hparams.data_cfg.should_normalize_weights \
-            or self.hparams.data_cfg.reduction_factor > 1:
-            # if we overfit on few training samples, we do not need to normalize the weights
+        if not self.hparams.data_cfg.should_normalize_weights:
             return None
 
         if self.weights is None:

@@ -18,6 +18,13 @@ callbacks:
     patience: 30
     mode: "max"
 
+metrics_config:
+  acc_weighted: 
+    _target_: torchmetrics.classification.MulticlassAccuracy
+    num_classes: ${train.dataset.num_classes}
+    average: macro
+    maximize: True
+
 optimizer:
   lr: 0.005
   weight_decay: 1e-5
@@ -29,7 +36,7 @@ trainer:
 dataset:
   batch_size: 128 
   data:
-    val_on: derm7pt #ham10000
+    val_on: ham10000 #ham10000
     test_on: derm7pt #ham10000 
 
 

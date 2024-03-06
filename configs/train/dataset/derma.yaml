@@ -36,7 +36,7 @@ channel_wise_mean_images: [0.7637829780578613, 0.5462884306907654, 0.57113671302
 channel_wise_std_images: [0.14036989212036133, 0.15156057476997375, 0.16872285306453705]
 
 num_channels: 3
-num_classes: 8
+num_classes: 7
 
 val_size: 0.0
 test_size: 0.0

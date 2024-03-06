@@ -88,7 +88,7 @@ def test_datamodule(
         label_counts_list_modes.append(counts)
 
     # check stratified 
-    #check_stratified(label_counts_list_modes)
+    check_stratified(label_counts_list_modes)
 
     # should normalize weights
     if not cfg.train.dataset.should_normalize_weights:

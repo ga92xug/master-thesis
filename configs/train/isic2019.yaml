@@ -6,6 +6,13 @@ defaults:
   - scheduler: cosine_annealing_lr
   - _self_
 
+metrics_config:
+  acc_weighted: 
+    _target_: torchmetrics.classification.MulticlassAccuracy
+    num_classes: ${train.dataset.num_classes}
+    average: macro
+    maximize: True
+
 callbacks:
   model_checkpoint:
     monitor: "valid/acc_weighted"
