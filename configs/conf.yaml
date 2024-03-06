@@ -42,6 +42,8 @@ train:
 
     # perform a validation loop every N training epochs
     check_val_every_n_epoch: 1
+    # How often to check the validation set. Pass a float in the range [0.0, 1.0]
+    val_check_interval: 1.0
 
   dataset:
     test_as_valid: False  

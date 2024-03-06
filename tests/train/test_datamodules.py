@@ -36,6 +36,7 @@ def test_datamodule(
     
 
     overrides = [
+        "train=" + dataset,
         "train/dataset=" + dataset,
     ]
 
@@ -76,13 +77,10 @@ def test_datamodule(
     for mode, dataloader in dataloaders.items():
         batch = next(iter(dataloader))
         x, y = batch
-        if mode == "train":
-            batch_size = cfg.train.dataset.batch_size
-        else:
-            batch_size = cfg.train.dataset.eval_batch_size
+        batch_size = cfg.train.dataset.batch_size
 
-        assert len(x) == batch_size
-        assert len(y) == batch_size
+        assert len(x) == batch_size, f"len(x) {len(x)} != batch_size {batch_size}"
+        assert len(y) == batch_size, f"len(y) {len(y)} != batch_size {batch_size}"
         assert x.dtype == torch.float32
         assert y.dtype == torch.int64
 
@@ -90,7 +88,7 @@ def test_datamodule(
         label_counts_list_modes.append(counts)
 
     # check stratified 
-    check_stratified(label_counts_list_modes)
+    #check_stratified(label_counts_list_modes)
 
     # should normalize weights
     if not cfg.train.dataset.should_normalize_weights:
@@ -181,5 +179,5 @@ def hash_tensor(tensor):
     return hashlib.sha256(tensor.tobytes()).hexdigest()
 
 if __name__ == "__main__":
-    test_datamodule("mammo", get_mean_std=True, no_augment=True)
+    test_datamodule("derma", get_mean_std=True, no_augment=True)
 

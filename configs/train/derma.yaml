@@ -1,5 +1,5 @@
 defaults:
-  - dataset: isic2019
+  - dataset: derma
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
@@ -27,6 +27,10 @@ trainer:
   max_epochs: 120
 
 dataset:
-  batch_size: 128                
+  batch_size: 128 
+  data:
+    val_on: derm7pt #ham10000
+    test_on: derm7pt #ham10000 
+
 
 

@@ -8,7 +8,7 @@ defaults:
 
 task_name: DeepDRiD_domain_shift
 test_mode: test
-tags: [DeepDRiD_low_data]
+tags: ["DeepDRiD_low_data","tuned_HPs"]
 
 logger:
   wandb:

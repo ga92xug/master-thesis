@@ -7,7 +7,7 @@ defaults:
 
 task_name: blood_low_data
 test_mode: test
-tags: ["blood_low_data"]
+tags: ["blood_low_data","tuned_HPs"]
 
 logger:
   wandb:
