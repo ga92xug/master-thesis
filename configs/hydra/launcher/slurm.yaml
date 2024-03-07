@@ -24,4 +24,4 @@ max_num_timeout: 0
 additional_parameters: {}
 array_parallelism: 256
 setup: null
-srun_args: ["local=alex"]
+srun_args: ["local=alex","train.network.pre_trained=/home/atuin/b180dc/b180dc27/pre_trained_models/epoch_039.ckpt"]

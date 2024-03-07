@@ -23,6 +23,7 @@ train:
   network:
     dropout_rate: 0.5
     pre_trained: logs/pretrain/2024-02-25_19-32-25/checkpoints/epoch_039.ckpt
+    # /home/atuin/b180dc/b180dc27/pre_trained_models/epoch_039.ckpt
 
 logger:
   wandb:
