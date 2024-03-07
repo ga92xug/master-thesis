@@ -8,11 +8,8 @@ import h5py
 import numpy as np
 from os import path
 from PIL import Image
-import rootutils
-from pre_processing.mammo.process import process_DDSM
+
 from src.data.datasets.custom.utils_derma import get_derma_images_labels
-rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
-from src.data.datasets.custom.utils_mammo import subject_split_image_label_folder
 
 
 def get_galaxy10(

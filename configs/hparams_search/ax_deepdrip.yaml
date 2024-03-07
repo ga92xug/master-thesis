@@ -5,13 +5,14 @@
 
 defaults:
   - override /hydra/sweeper: ax
-  - override /train/network: eq_nasnet
   - override /train: deepdrip
+  - override /train/network: eq_nasnet
+  - override /train/scheduler: null
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
 test_mode: test
-tags: "[valid_loss]"
+tags: ["valid_loss"]
 
 seed: null
 
@@ -38,7 +39,7 @@ hydra:
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
 
-    max_batch_size: 2
+    max_batch_size: 1
     ax_config:
       max_trials: 40
       early_stop:
