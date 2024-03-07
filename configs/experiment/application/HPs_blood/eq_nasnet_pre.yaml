@@ -3,6 +3,7 @@ defaults:
   - override /train: blood
   - override /train/network: eq_nasnet
   - override /train/network/blocks_args_dict: 4blocks
+  - override /train/scheduler: none
   - override /logger: wandb
 
 task_name: blood_low_data
@@ -17,5 +18,3 @@ train:
   optimizer:
     lr: 0.001246
     weight_decay: 4.727e-6
-  scheduler:
-    _target_: null

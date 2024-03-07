@@ -72,10 +72,10 @@ def get_ISIC_2019(
     assert resolution <= 450, \
         "The maximum resolution for ISIC_2019 is 450x450 since the minimum height is 450"
 
-    location = data_dir + name
+    location = os.path.join(data_dir, name)
     # these files you download
-    ground_truth = location + '/ISIC_2019_Training_GroundTruth.csv'
-    images = location + '/ISIC_2019_Training_Input'
+    ground_truth = os.path.join(location, "ISIC_2019_Training_GroundTruth.csv")
+    images = os.path.join(location, "ISIC_2019_Training_Input")
 
     df = pd.read_csv(ground_truth)
     for label in df.columns[1:]:
@@ -99,7 +99,7 @@ def get_OCT(
     name: str,
     resolution: int,
 ) -> Tuple[Dict, Dict]:
-    location = data_dir + name + "/CellData/OCT"
+    location = os.path.join(location, name, "CellData/OCT")
 
     train_images, train_labels = get_images_and_labels_from_folder(location + "/train/")
     test_images, test_labels = get_images_and_labels_from_folder(location + "/test/")
@@ -121,7 +121,7 @@ def get_nct(
     name: str,
     resolution: int,
 ) -> Tuple[Dict, Dict]:
-    location = data_dir + name 
+    location = os.path.join(location, name)
 
     train_images, train_labels = get_images_and_labels_from_folder(location + "/NCT-CRC-HE-100K/")
     test_images, test_labels = get_images_and_labels_from_folder(location + "/CRC-VAL-HE-7K/")
@@ -143,7 +143,7 @@ def get_blood(
     name: str,
     resolution: int,
 ) -> Tuple[Dict, Dict]:
-    location = data_dir + name + "/PBC_dataset_normal_DIB/"
+    location = os.path.join(data_dir, name, "PBC_dataset_normal_DIB")
 
     images, labels = get_images_and_labels_from_folder(location)
 
@@ -156,7 +156,7 @@ def get_DeepDRiD(
     resolution: int,
     mode: str,
 ) -> Tuple[Dict, Dict]:
-    location = data_dir + "DeepDRiD/DeepDRiD-master/regular_fundus_images/"
+    location = os.path.join(data_dir, "DeepDRiD/DeepDRiD-master/regular_fundus_images/")
 
     df_train = pd.read_csv(location + 'regular-fundus-training/regular-fundus-training.csv')
     df_val = pd.read_csv(location + 'regular-fundus-validation/regular-fundus-validation.csv')

@@ -1,19 +1,40 @@
 defaults:
-- _self_
-- optimizer: Adam
-- dataset: isic2019
-- scheduler: multi_step_lr 
+  - dataset: isic2019
+  - callbacks: default
+  - network: eq_nasnet
+  - optimizer: Adam
+  - scheduler: multi_step_lr
+  - _self_
 
-epochs: 120
-accumulate: 1
+metrics_config:
+  acc_weighted: 
+    _target_: torchmetrics.classification.MulticlassAccuracy
+    num_classes: ${train.dataset.num_classes}
+    average: macro
+    maximize: True
 
-data:
-  batch_size: 64                
-  eval_batch_size: 64           
+callbacks:
+  model_checkpoint:
+    monitor: "valid/acc_weighted"
+    mode: "max"
+    save_last: True
+    auto_insert_metric_name: False
+
+  early_stopping:
+    monitor: "valid/acc_weighted"
+    patience: 30
+    mode: "max"
 
 optimizer:
   lr: 0.005
   weight_decay: 1e-5
+
+trainer:
+  accumulate_grad_batches: 1
+  max_epochs: 120
+
+dataset:
+  batch_size: 128                
 
 scheduler:
   milestones: [35,75,90,105]
