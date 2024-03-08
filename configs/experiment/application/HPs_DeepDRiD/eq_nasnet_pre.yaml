@@ -2,7 +2,7 @@
 defaults:
   - override /train: deepdrip
   - override /train/network: eq_nasnet_pre
-  - override /train/scheduler: cosine_annealing_lr
+  - override /train/scheduler: none # cosine_annealing_lr
   - override /logger: wandb
 
 task_name: DeepDRiD_domain_shift
@@ -15,5 +15,5 @@ logger:
 
 train:
   optimizer:
-    lr: 0.1
-    weight_decay: 1.23e-5
+    lr: 0.006984 # 0.1
+    weight_decay: 6e-5 # 1.23e-5
