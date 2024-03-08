@@ -39,4 +39,4 @@ num_classes: 8
 val_size: 0.1
 test_size: 0.1
 
-should_normalize_weights: True
+should_normalize_weights: False

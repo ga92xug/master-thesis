@@ -3,7 +3,7 @@ defaults:
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
-  - scheduler: cosine_annealing_lr
+  - scheduler: none
   - _self_
 
 metrics_config:
@@ -34,6 +34,6 @@ trainer:
   max_epochs: 120
 
 dataset:
-  batch_size: 128                
+  batch_size: 64                
 
 
