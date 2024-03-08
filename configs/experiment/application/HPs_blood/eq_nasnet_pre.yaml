@@ -1,8 +1,7 @@
 # @package _global_
 defaults:
   - override /train: blood
-  - override /train/network: eq_nasnet
-  - override /train/network/blocks_args_dict: 4blocks
+  - override /train/network: eq_nasnet_pre
   - override /train/scheduler: none
   - override /logger: wandb
 

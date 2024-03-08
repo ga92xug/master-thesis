@@ -5,7 +5,7 @@
 
 defaults:
   - override /hydra/sweeper: ax
-  - override /train/network: eq_nasnet
+  - override /train/network: eq_nasnet_pre
   - override /train: isic2019
   - override /logger: wandb
 
