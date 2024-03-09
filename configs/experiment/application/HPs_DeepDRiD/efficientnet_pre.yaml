@@ -1,23 +1,23 @@
 # @package _global_
 defaults:
-  - override /training: DeepDRiD-training
-  - override /model: efficientnet
-  - override /wandb: default
-  - _self_
-  
-model:
-  pretrained: True
+  - override /train: deepdrip
+  - override /train/network: efficientnet
+  - override /train/scheduler: none
+  - override /logger: wandb
 
-training:
+train:
+  network:
+    pretrained: True
   optimizer:
     lr: 0.00005
     weight_decay: 0.001
 
-  scheduler: # not used -> implement None scheduler
-    _target_: null
 
-  
+task_name: deepdrip_low_data
+tags: ["tuned_HPs"]
 
-wandb:
-  project: SL-Application
-  give_name: True
+logger:
+  wandb:
+    project: low_data
+
+

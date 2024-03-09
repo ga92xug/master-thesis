@@ -1,25 +1,24 @@
 # @package _global_
 defaults:
-  - override /training: DeepDRiD-training
-  - override /model: vit
-  - override /wandb: default
-  - _self_
-  
-model:
-  pretrained: True
+  - override /train: deepdrip
+  - override /train/network: vit
+  - override /train/scheduler: reduce_lr_on_plateau
+  - override /logger: wandb
 
-training:
+train:
+  network:
+    pretrained: True
   optimizer:
     lr: 0.00005
     weight_decay: 0.0000197902789003467
-
   scheduler: 
     patience: 5
     factor: 0.06938868866678677
 
-  
+task_name: deepdrip_low_data
+tags: ["tuned_HPs"]
 
-wandb:
-  project: SL-Application
-  give_name: True
-  tags: []
+logger:
+  wandb:
+    project: low_data
+

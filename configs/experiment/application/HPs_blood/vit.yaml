@@ -1,26 +1,22 @@
 # @package _global_
 defaults:
-  - override /training: blood-training
-  - override /model: vit
-  - override /wandb: default
-  - _self_
-  
-model:
-  pretrained: False
+  - override /train: blood
+  - override /train/network: vit
+  - override /train/scheduler: none
+  - override /logger: wandb
 
-
-training:
+train:
+  network:
+    pretrained: False
   optimizer:
     lr: 0.00009243097393500883
     weight_decay: 0.0001103807950217191
 
-  scheduler:
-    _target_: null
-  
-wandb:
-  project: SL-Application
-  give_name: True
-  tags: []
+task_name: blood_low_data
+test_mode: test
+tags: ["blood_low_data","tuned_HPs"]
 
+logger:
+  wandb:
+    project: low_data
 
-# python training/main.py other.debug=True +exp_model_specific_overwrites=eq_nasnet_DeepDRiD --info config

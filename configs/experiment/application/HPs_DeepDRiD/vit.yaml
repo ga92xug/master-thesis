@@ -1,21 +1,9 @@
 # @package _global_
 defaults:
-  - override /train: DeepDRiD-training
-  - override /train/dataset: DeepDRiD
-  - override /train/network: vit #eq_nasnet
+  - override /train: deepdrip
+  - override /train/network: vit
   - override /train/scheduler: none
   - override /logger: wandb
-  - override /train/callbacks: default 
-  - _self_
-
-
-
-tags: ["redo_vit_DeepDRiD_res128"]
-
-logger:
-  wandb:
-    project: master_thesis_important
-    mode: online
 
 train:
   network:
@@ -24,10 +12,10 @@ train:
     lr: 0.00005
     weight_decay: 0.0001803093201705675
 
-  scheduler: # not used -> implement None scheduler
-    _target_: null
-    # patience: 43
-    # factor: 0.1680463774997989
 
-  
+task_name: deepdrip_low_data
+tags: ["tuned_HPs"]
 
+logger:
+  wandb:
+    project: low_data

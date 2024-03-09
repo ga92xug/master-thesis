@@ -1,23 +1,19 @@
 # @package _global_
 defaults:
-  - override /train/network: eq_nasnet
-  - override /train/network/blocks_args_dict: 4blocks
   - override /train: deepdrip
+  - override /train/network: eq_nasnet
+  - override /train/scheduler: none
   - override /logger: wandb
-
-task_name: DeepDRiD_domain_shift
-test_mode: test
-tags: [DeepDRiD_low_data]
-
-logger:
-  wandb:
-    project: low_data
 
 train:
   optimizer:
     lr: 0.00068
     weight_decay: 0.000001
-  scheduler:
-    _target_: null
-    #   patience: 37
-    #   factor: 0.10688753617750324
+
+task_name: deepdrip_low_data
+tags: ["tuned_HPs"]
+
+logger:
+  wandb:
+    project: low_data
+

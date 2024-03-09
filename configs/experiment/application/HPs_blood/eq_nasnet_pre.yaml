@@ -5,6 +5,11 @@ defaults:
   - override /train/scheduler: none
   - override /logger: wandb
 
+train:
+  optimizer:
+    lr: 0.001246
+    weight_decay: 4.727e-6
+
 task_name: blood_low_data
 test_mode: test
 tags: ["blood_low_data","tuned_HPs"]
@@ -12,8 +17,3 @@ tags: ["blood_low_data","tuned_HPs"]
 logger:
   wandb:
     project: low_data
-
-train:
-  optimizer:
-    lr: 0.001246
-    weight_decay: 4.727e-6

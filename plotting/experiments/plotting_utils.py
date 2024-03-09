@@ -54,6 +54,7 @@ def get_fig_size(fig_size : Tuple, textwidth_in: float = 5.78853, reduction: flo
 def label2color(name: str):
     name2color_dict = {
         "Eq-NASNet": mcolors.CSS4_COLORS["red"],
+        "Eq-NASNet pre-trained": mcolors.CSS4_COLORS["darkred"],
         "ViT": mcolors.CSS4_COLORS["blue"],
         "ViT pre-trained": mcolors.CSS4_COLORS["navy"],
         "EfficientNet": mcolors.CSS4_COLORS["limegreen"],

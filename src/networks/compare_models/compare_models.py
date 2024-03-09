@@ -76,9 +76,9 @@ class ViT(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    image_size = 528
-    model = EfficientNet(size="b0", num_classes=8, pretrained=True)
-    #model = ViT(num_classes=10, pretrained=False, image_size=image_size)
+    image_size = 128
+    #model = EfficientNet(size="b0", num_classes=8, pretrained=True)
+    model = ViT(num_classes=10, pretrained=True, image_size=image_size)
     print(model)
     x = torch.rand(1, 3, image_size, image_size)
     out = model(x)
