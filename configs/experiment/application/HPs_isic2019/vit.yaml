@@ -4,10 +4,7 @@ defaults:
   - override /train/network: vit 
   - override /train/scheduler: none
   - override /logger: wandb
-  - override /train/callbacks: default 
   - _self_
-
-tags: ["redo_vit_isic2019_res128"]
 
 train:
   network:
@@ -16,6 +13,9 @@ train:
     lr: 0.00011086617191327872
     weight_decay: 0.0000105649546739937
 
+task_name: isic2019
+tags: ["isic2019"]
+
 logger:
   wandb:
-    project: low_data
+    project: ${task_name}

@@ -13,5 +13,5 @@ cnn_expand_ratio: 6.0
 increase_blocks: null
 not_increase_1_layer: False
 
-pre_trained: /home/atuin/b180dc/b180dc27/pre_trained_models/epoch_039.ckpt 
+pre_trained: pre_trained_models/epoch_039.ckpt 
 #logs/pretrain/2024-02-25_19-32-25/checkpoints/epoch_039.ckpt

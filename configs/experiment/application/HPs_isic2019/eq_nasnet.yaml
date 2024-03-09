@@ -1,13 +1,18 @@
 # @package _global_
 defaults:
-  - override /train: isic2019-training-constant_scheduler
-  - override /model: eq_nasnet
-  - override /wandb: default
-  - _self_
-    
-task_name: low_data
-tags: ["DeepDRiD_low_data"]
+  - override /train: isic2019
+  - override /train/network: eq_nasnet_pre
+  - override /train/scheduler: multi_step_lr
+  - override /logger: wandb
+
+train:
+  scheduler:
+    milestones: [35,75,90,105]
+    gamma: 0.5
+
+task_name: isic2019
+tags: ["multi_step_lr_isic2019"]
 
 logger:
   wandb:
-    project: low_data
+    project: ${task_name}

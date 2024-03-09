@@ -7,8 +7,6 @@ defaults:
   - override /train/callbacks: default 
   - _self_
 
-tags: ["redo_vit_isic2019_res128"]
-
 train:
   network:
     pretrained: True
@@ -19,8 +17,10 @@ train:
   scheduler:
     factor: 0.03079828066268554
     patience: 7
-    verbose: True
+
+task_name: isic2019
+tags: ["isic2019"]
 
 logger:
   wandb:
-    project: low_data
+    project: ${task_name}

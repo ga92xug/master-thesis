@@ -4,7 +4,6 @@ defaults:
   - override /train/network: efficientnet 
   - override /train/scheduler: reduce_lr_on_plateau
   - override /logger: wandb
-  - override /train/callbacks: default 
   - _self_
 
 train:
@@ -20,7 +19,10 @@ train:
     metric: valid/acc_weighted
     mode: max
 
+task_name: isic2019
+tags: ["isic2019"]
+
 logger:
   wandb:
-    project: low_data
+    project: ${task_name}
 

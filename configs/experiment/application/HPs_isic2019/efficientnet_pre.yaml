@@ -4,11 +4,18 @@ defaults:
   - override /train/network: efficientnet 
   - override /train/scheduler: none
   - override /logger: wandb
-  - override /train/callbacks: default 
   - _self_
 
+train:
+  network:
+    pretrained: True
+  optimizer:
+    lr: 0.00022916891450866964
+    weight_decay: 0.00014062751634093062
+
+task_name: isic2019
+tags: ["isic2019"]
 
 logger:
   wandb:
-    project: low_data
-
+    project: ${task_name}
