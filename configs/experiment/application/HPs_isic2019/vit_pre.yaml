@@ -1,14 +1,17 @@
 # @package _global_
 defaults:
-  - override /training: isic2019-training
-  - override /model: vit
-  - override /wandb: default
+  - override /train: isic2019
+  - override /train/network: vit 
+  - override /train/scheduler: reduce_lr_on_plateau
+  - override /logger: wandb
+  - override /train/callbacks: default 
   - _self_
-  
-model:
-  pretrained: True
 
-training:
+tags: ["redo_vit_isic2019_res128"]
+
+train:
+  network:
+    pretrained: True
   optimizer:
     lr: 0.00005
     weight_decay: 0.00001016592074437349
@@ -17,7 +20,7 @@ training:
     factor: 0.03079828066268554
     patience: 7
     verbose: True
-  
-wandb:
-  project: SL-Application
-  give_name: True
+
+logger:
+  wandb:
+    project: low_data

@@ -1,19 +1,13 @@
 # @package _global_
 defaults:
-  - override /train: isic2019-training
-  - override /train/dataset: isic2019
-  - override /train/network: vit #eq_nasnet
+  - override /train: isic2019
+  - override /train/network: vit 
   - override /train/scheduler: none
   - override /logger: wandb
   - override /train/callbacks: default 
   - _self_
 
 tags: ["redo_vit_isic2019_res128"]
-
-logger:
-  wandb:
-    project: master_thesis_important
-    mode: online
 
 train:
   network:
@@ -22,10 +16,6 @@ train:
     lr: 0.00011086617191327872
     weight_decay: 0.0000105649546739937
 
-  scheduler: # not used -> implement None scheduler
-    _target_: null
-    #factor: 0.03079828066268554
-    #patience: 65
-
-  
-
+logger:
+  wandb:
+    project: low_data

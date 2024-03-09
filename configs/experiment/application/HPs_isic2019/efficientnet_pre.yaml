@@ -1,26 +1,14 @@
 # @package _global_
 defaults:
-  - override /training: isic2019-training
-  - override /model: efficientnet
-  - override /wandb: default
-  - override /training/scheduler: reduce_lr_on_plateau
+  - override /train: isic2019
+  - override /train/network: efficientnet 
+  - override /train/scheduler: none
+  - override /logger: wandb
+  - override /train/callbacks: default 
   - _self_
-  
-model:
-  pretrained: True
 
-training:
-  optimizer:
-    lr: 
-    weight_decay: 
 
-  scheduler:
-    factor: 
-    patience: 
-    metric: 
-    mode: 
-    #verbose: True
-  
-wandb:
-  project: SL-Application
-  give_name: True
+logger:
+  wandb:
+    project: low_data
+

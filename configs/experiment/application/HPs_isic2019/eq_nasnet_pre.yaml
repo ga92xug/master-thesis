@@ -2,7 +2,6 @@
 defaults:
   - override /train: isic2019
   - override /train/network: eq_nasnet_pre
-  - override /train/network/blocks_args_dict: 4blocks
   - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
 

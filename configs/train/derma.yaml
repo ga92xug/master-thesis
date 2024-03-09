@@ -35,9 +35,6 @@ trainer:
 
 dataset:
   batch_size: 128 
-  data:
-    val_on: ham10000 #ham10000
-    test_on: derm7pt #ham10000 
 
 
 

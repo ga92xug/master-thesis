@@ -2,6 +2,10 @@ defaults:
 - _custom_defaults
 - _self_
 
+data:
+  val_on: ham10000 #ham10000
+  test_on: derm7pt
+
 name: derma
 
 augment: False

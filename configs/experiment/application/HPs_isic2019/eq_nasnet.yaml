@@ -1,11 +1,13 @@
 # @package _global_
 defaults:
-  - override /training: isic2019-training-constant_scheduler
+  - override /train: isic2019-training-constant_scheduler
   - override /model: eq_nasnet
-  - override /model/blocks_args_dict: 4blocks
   - override /wandb: default
   - _self_
     
-wandb:
-  project: SL-Application
-  give_name: True
+task_name: low_data
+tags: ["DeepDRiD_low_data"]
+
+logger:
+  wandb:
+    project: low_data
