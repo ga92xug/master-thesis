@@ -37,7 +37,7 @@ hydra:
         max_epochs_without_improvement: 10
         epsilon: 1.0e-05
       experiment:
-        name: deepdrip_eq_nasnet_pretrained
+        name: isic2019_eq_nasnet_pre
         objective_name: ${optimized_metric}
         minimize: true
         parameter_constraints: null
