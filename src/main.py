@@ -198,9 +198,10 @@ def main(cfg: DictConfig) -> Optional[float]:
     :return: Optional[float] with optimized metric value.
     """
     L.seed_everything(cfg.seed)
-    if cfg.get("deterministic"):
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
+    # 
+    #if cfg.get("deterministic"):
+    #    torch.backends.cudnn.deterministic = True
+    #    torch.backends.cudnn.benchmark = False
 
     # apply extra utilities
     # (e.g. ask for tags if none are provided in cfg, print cfg tree, etc.)

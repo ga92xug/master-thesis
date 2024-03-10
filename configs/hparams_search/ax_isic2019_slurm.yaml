@@ -4,11 +4,10 @@
 # python train.py -m hparams_search=mnist_optuna experiment=example
 
 defaults:
-  - override hydra/launcher: slurm # massively parallelize the search
+  - override /hydra/launcher: slurm # massively parallelize the search
   - override /hydra/sweeper: ax
   - override /train: isic2019
   - override /train/network: eq_nasnet_pre
-  - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
@@ -50,6 +49,9 @@ hydra:
 
       # define hyperparameter search space
       params:
+        train:
+          type: choice
+          values: [isic2019,isic2019_constant_scheduler,isic2019_cosine_scheduler]
         train.optimizer.lr: 
           type: range
           bounds: [1e-4, 0.1]
