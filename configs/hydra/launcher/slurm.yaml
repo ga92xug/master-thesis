@@ -1,4 +1,4 @@
-submitit_folder: ${hydra.sweep.dir}/.submitit/%j
+submitit_folder: ${hydra.sweep.dir}/submitit_logs
 # maximum time for the job in minutes
 timeout_min: 1439 # 24 hours - 1 minute  
 cpus_per_task: 16
@@ -8,12 +8,12 @@ mem_gb: null
 nodes: 1
 name: ${hydra.job.name}
 _target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
-partition: a100
+partition: a40
 qos: null
 comment: null
 constraint: null
 exclude: null
-gres: gpu:a100:1
+gres: gpu:a40:1
 cpus_per_gpu: null
 gpus_per_task: null
 mem_per_gpu: null
@@ -24,4 +24,4 @@ max_num_timeout: 0
 additional_parameters: {}
 array_parallelism: 256
 setup: null
-srun_args: ["local=alex","train.network.pre_trained=/home/atuin/b180dc/b180dc27/pre_trained_models/epoch_039.ckpt"]
+srun_args: ["local=alex"]

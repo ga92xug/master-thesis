@@ -4,7 +4,7 @@
 # python train.py -m hparams_search=mnist_optuna experiment=example
 
 defaults:
-  - override hydra/launcher: slurm # we 
+  - override hydra/launcher: slurm # massively parallelize the search
   - override /hydra/sweeper: ax
   - override /train: isic2019
   - override /train/network: eq_nasnet_pre
@@ -16,12 +16,6 @@ test_mode: test
 tags: ["valid/acc_weighted"]
 
 seed: null
-
-train:
-  trainer:
-    max_epochs: 120
-    val_check_interval: 1.0
-
 
 logger:
   wandb:
@@ -35,7 +29,7 @@ hydra:
 
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
-    max_batch_size: 2
+    max_batch_size: 7 # number of parallel jobs
     ax_config:
       max_trials: 40
       early_stop:

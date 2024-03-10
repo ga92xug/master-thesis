@@ -22,7 +22,7 @@ callbacks:
 
   early_stopping:
     monitor: "valid/acc_weighted"
-    patience: 30
+    patience: 50
     mode: "max"
 
 optimizer:
@@ -31,7 +31,7 @@ optimizer:
 
 trainer:
   accumulate_grad_batches: 1
-  max_epochs: 120
+  max_epochs: 150
 
 dataset:
   batch_size: 128                
