@@ -198,7 +198,7 @@ def main(cfg: DictConfig) -> Optional[float]:
     :return: Optional[float] with optimized metric value.
     """
     L.seed_everything(cfg.seed)
-    # 
+    # does not work with pickle
     #if cfg.get("deterministic"):
     #    torch.backends.cudnn.deterministic = True
     #    torch.backends.cudnn.benchmark = False
