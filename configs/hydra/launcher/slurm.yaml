@@ -2,7 +2,7 @@ submitit_folder: ${hydra.sweep.dir}/submitit_logs
 # maximum time for the job in minutes
 timeout_min: 1439 # 24 hours - 1 minute  
 cpus_per_task: 16
-gpus_per_node: 1
+gpus_per_node: null
 tasks_per_node: 1
 mem_gb: null
 nodes: 1
@@ -13,7 +13,7 @@ qos: null
 comment: null
 constraint: null
 exclude: null
-gres: gpu:a40:1
+gres: "gpu:a40:1"
 cpus_per_gpu: null
 gpus_per_task: null
 mem_per_gpu: null
@@ -24,4 +24,4 @@ max_num_timeout: 0
 additional_parameters: {}
 array_parallelism: 256
 setup: [source activate scaling]
-srun_args: ["local=alex"]
+srun_args: null

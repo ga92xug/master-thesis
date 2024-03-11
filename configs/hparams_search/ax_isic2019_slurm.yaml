@@ -9,6 +9,7 @@ defaults:
   - override /train: isic2019
   - override /train/network: eq_nasnet_pre
   - override /logger: wandb
+  #- override /local: alex
 
 task_name: ${logger.wandb.project}
 test_mode: test
@@ -28,7 +29,7 @@ hydra:
 
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
-    max_batch_size: 7 # number of parallel jobs
+    max_batch_size: 8 # number of parallel jobs
     ax_config:
       max_trials: 40
       early_stop:
