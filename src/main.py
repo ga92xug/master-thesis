@@ -197,6 +197,10 @@ def main(cfg: DictConfig) -> Optional[float]:
     :param cfg: DictConfig configuration composed by Hydra.
     :return: Optional[float] with optimized metric value.
     """
+    #import random
+    #print("scheduler", cfg.train.scheduler)
+    #return random.random()
+
     L.seed_everything(cfg.seed)
     # 
     #if cfg.get("deterministic"):

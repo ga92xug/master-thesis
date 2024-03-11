@@ -10,8 +10,9 @@ from plotting.experiments.d_application.util import *
 
 def get_wandb_low_data_regime_run_ids(
         filters: Dict[str, str],
+        project: str,
     ):
-    runs = get_wandb_runs_from_filters(filters)
+    runs = get_wandb_runs_from_filters(filters, project=project)
     save_run_ids = {}
 
     for run in runs:
@@ -20,6 +21,7 @@ def get_wandb_low_data_regime_run_ids(
         if name not in save_run_ids:
             save_run_ids[name] = {}
 
+        #print("config", config)
         reduction_factor = config["dataset"]["reduction_factor"]
 
 

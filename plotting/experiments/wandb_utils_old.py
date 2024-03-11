@@ -70,17 +70,16 @@ def download_run(
 
     result[metric] = run.history(keys=[metric]).values[:, 1] * 100
 
-    result["param_count"] = run.config["param_count"] 
+    result["param_count"] = run.history(keys=[name_param_count]).values[:, 1][0] 
     if name_param_count == "param_count":
         result["param_count"] *= 1e6
         
     # some of the runs do not have flops
-    result["flops"] = run.config["GFLOPs_per_image"] * 1e9
-    #if "GFLOPs" in run.history().columns:
-    #    result["flops"] = run.history(keys=['GFLOPs']).values[:, 1][0] * 1e9
-    #else:
-    #    print(f"Run {run_id} does not have flops!")
-    #    result["flops"] = None
+    if "GFLOPs" in run.history().columns:
+        result["flops"] = run.history(keys=['GFLOPs']).values[:, 1][0] * 1e9
+    else:
+        print(f"Run {run_id} does not have flops!")
+        result["flops"] = None
 
     if normalize_flops:
         run_config = run.config

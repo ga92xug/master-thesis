@@ -7,7 +7,7 @@ defaults:
   - network: eq_nasnet
 
 trainer:
-  max_epochs: 1
+  max_epochs: 3
   # val_check_interval: 0.25
 
 dataset:

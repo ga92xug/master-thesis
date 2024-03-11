@@ -8,7 +8,7 @@ sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params import *
 from plotting.experiments.wandb_utils import get_wandb_data_multiple_runs
-from plotting.experiments.d_application.low_data_regime.wandb_data import get_wandb_low_data_regime_run_ids
+from plotting.experiments.d_application.low_data_regime.wandb_data_2 import get_wandb_low_data_regime_run_ids
 from plotting.experiments.d_application.low_data_regime.plotting_functions import plot_low_data_regime
 
 
@@ -44,6 +44,7 @@ def one_low_data_regime_plot(
     for model_name, value in model2label_run_ids_dict.items():
         labels_run_ids = value # ["labels_run_ids"]
         print("labels_run_ids", labels_run_ids)
+        print("project", wandb_projects)
 
         data = get_wandb_data_multiple_runs(
             entity=wandb_entity, 
@@ -74,7 +75,7 @@ def one_low_data_regime_plot(
 
 def main():
     cfg, save_folder_name = plot_init("d_application/low_data_regime", override=True)
-    metric = "test.acc"
+    metric = "test/acc"
 
     experiments2filters = OmegaConf.to_container(
             cfg.experiments, resolve=True, throw_on_missing=True)
@@ -91,7 +92,7 @@ def main():
         filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)
-        model2run_ids = get_wandb_low_data_regime_run_ids(filters)
+        model2run_ids = get_wandb_low_data_regime_run_ids(filters, project=cfg.experiments.wandb_projects)
              
         one_low_data_regime_plot(
             metric=metric,

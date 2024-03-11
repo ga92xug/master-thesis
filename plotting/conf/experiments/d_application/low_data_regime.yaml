@@ -1,15 +1,15 @@
 DeepDRiD:
   filters:
-    tags: DeepDRiD_low_data_3
+    #tags: DeepDRiD_low_data_3
     #config.training.earlystop.monitor: valid.loss
-    #config.training.dataset._target_: "training.datasets.general.get_data.get_DeepDRiD" 
-    # created_at:
-    #     $gt: '2023-11-03###'
+    config.dataset.name: "DeepDRiD" 
+    #created_at:
+    #    $lt: '2024-03-10'
     # intial experiments have been with valid.acc but more variance accross all models
-Blood:
-  filters:
-    tags: Blood_low_data_3
+#Blood:
+#  filters:
+#    tags: Blood_low_data_3
     #created_at:
     #    $gt: '2023-11-06###'
 
-wandb_projects: ["SL-Application"]
+wandb_projects: low_data

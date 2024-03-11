@@ -8,13 +8,13 @@ def create_name_comparision_models(config):
     Example names: "eq_nasnet", "vit_pre", "vit", "efficientnet_pre", "efficientnet"
     """
 
-    name = config["network"]["_target_"].split(".")[-1]
-    pretrained = config["network"].get("pretrained", False) or config["network"].get("pre_trained", False)
+    name = config["model"]["_target_"].split(".")[-1]
+    pretrained = config["model"].get("pretrained", False)
     if pretrained:
         name += " pre-trained"
 
-    #if "EquivariantNASNet" in name:
-    #    name = "Eq-NASNet"
+    if "EquivariantNASNet" in name:
+        name = "Eq-NASNet"
     return name
 
 def sorting_key(name: str):
@@ -26,14 +26,8 @@ def sorting_key(name: str):
     elif "Eq-NASNet" in name:
         sort_key = 30
 
-    try:
-        if "pre-trained" in name:
-            sort_key += 1
-    except Exception as e:
-        print("name", name)
-        print("sort_key", sort_key)
-        print("e", e)
-        raise e
+    if "pre-trained" in name:
+        sort_key += 1
 
     if sort_key is None:
         sort_key = 100

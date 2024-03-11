@@ -1,0 +1,19 @@
+# @package _global_
+defaults:
+  - override /train: camelyon17
+  - override /train/network: eq_nasnet_pre
+  - override /train/scheduler: none
+  - override /logger: wandb
+
+train:
+  optimizer:
+    lr: 
+    weight_decay: 
+
+task_name: camelyon17_domain_shift
+tags: ["tuned_HPs"]
+
+logger:
+  wandb:
+    project: domain_shift
+
