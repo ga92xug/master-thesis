@@ -31,7 +31,7 @@ def restructure_data(
 
 
 def one_low_data_regime_plot(
-        metric: Dict[str, str],
+        metric: str,
         wandb_entity: str,
         wandb_projects: str,
         save_folder_name: str,
@@ -42,9 +42,9 @@ def one_low_data_regime_plot(
     ):
     model2data = {}
     for model_name, value in model2label_run_ids_dict.items():
+        print("Model name:", model_name)
         labels_run_ids = value # ["labels_run_ids"]
         print("labels_run_ids", labels_run_ids)
-        print("project", wandb_projects)
 
         data = get_wandb_data_multiple_runs(
             entity=wandb_entity, 
@@ -79,21 +79,19 @@ def main():
 
     experiments2filters = OmegaConf.to_container(
             cfg.experiments, resolve=True, throw_on_missing=True)
-    print("experiments2filters", experiments2filters)
 
     for exp_name, values in experiments2filters.items():
-        if isinstance(values, list):
+        if isinstance(values, list) or isinstance(values, str):
             # This is not a experiment
             continue
-
-        # if exp_name != "DeepDRiD":
-        #     continue
 
         filters = values["filters"]
         print("name", exp_name)
         print("filters", filters)
+        # Get the run ids for the low data regime experiments.
         model2run_ids = get_wandb_low_data_regime_run_ids(filters, project=cfg.experiments.wandb_projects)
-             
+        
+        # with the run ids plot the data
         one_low_data_regime_plot(
             metric=metric,
             wandb_entity=cfg.wandb_entity, 

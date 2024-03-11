@@ -121,7 +121,7 @@ def get_wandb_data_multiple_runs(
         projects: str, 
         labels_run_ids: Dict[str, List[str]],
         name_param_count : str = "param_count", 
-        metric : str = "valid.acc",
+        metric : str = "valid/acc",
     ) -> Dict[str, Dict[str, Dict]]: 
     """
     Download the data for multiple runs. \

@@ -9,15 +9,17 @@ def create_name_comparision_models(config):
     """
 
     name = config["network"]["_target_"].split(".")[-1]
+    if "EquivariantNASNet" in name:
+        name = "Eq-NASNet"
+    
     pretrained = config["network"].get("pretrained", False) or config["network"].get("pre_trained", False)
     if pretrained:
         name += " pre-trained"
 
-    #if "EquivariantNASNet" in name:
-    #    name = "Eq-NASNet"
     return name
 
 def sorting_key(name: str):
+    print("sorting name", name)
     sort_key = None
     if "EfficientNet" in name:
         sort_key = 10
@@ -52,7 +54,7 @@ def get_wandb_runs_from_filters(
     filters["state"] = "finished"
     runs = api.runs(path=f"{entity}/{project}", filters=filters)
 
-    print("Number of runs:", len(runs))
+    print("Number of runs that match the inital filter:", len(runs))
     return runs
 
 def name2color(name: str):

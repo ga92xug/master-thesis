@@ -12,6 +12,12 @@ def get_wandb_low_data_regime_run_ids(
         filters: Dict[str, str],
         project: str,
     ):
+    """
+    Get the run ids for the low data regime experiments.
+    - filters them project them and puts them in a dict by:
+        - model name
+        - reduction factor
+    """
     runs = get_wandb_runs_from_filters(filters, project=project)
     save_run_ids = {}
 
@@ -23,7 +29,6 @@ def get_wandb_low_data_regime_run_ids(
 
         #print("config", config)
         reduction_factor = config["dataset"]["reduction_factor"]
-
 
         if reduction_factor not in save_run_ids[name]:
             save_run_ids[name][reduction_factor] = []

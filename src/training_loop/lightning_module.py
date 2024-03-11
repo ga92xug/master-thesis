@@ -221,6 +221,7 @@ class LitModule(LightningModule):
                     "monitor": self.scheduler_metric,
                     "interval": "epoch",
                     "frequency": 1,
+                    "strict": False, # must be False for ReduceLROnPlateau on valid metric
                 },
             }
         return {"optimizer": self.optimizer}
