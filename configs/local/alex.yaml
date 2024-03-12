@@ -1,5 +1,0 @@
-work_dir: /home/atuin/b180dc/b180dc27
-data_dir: ${local.work_dir}/datasets
-log_dir: ${local.work_dir}/logs
-
-wandb_mode: offline # the compute nodes have no access to the internet

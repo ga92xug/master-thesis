@@ -1,4 +1,0 @@
-data_dir: '/home/frischs/Data/frischs/datasets/'
-log_dir: ${paths.root_dir}/logs/
-
-wandb_mode: online

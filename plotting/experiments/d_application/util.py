@@ -19,7 +19,6 @@ def create_name_comparision_models(config):
     return name
 
 def sorting_key(name: str):
-    print("sorting name", name)
     sort_key = None
     if "EfficientNet" in name:
         sort_key = 10
@@ -28,14 +27,8 @@ def sorting_key(name: str):
     elif "Eq-NASNet" in name:
         sort_key = 30
 
-    try:
-        if "pre-trained" in name:
-            sort_key += 1
-    except Exception as e:
-        print("name", name)
-        print("sort_key", sort_key)
-        print("e", e)
-        raise e
+    if "pre-trained" in name:
+        sort_key += 1
 
     if sort_key is None:
         sort_key = 100
@@ -60,6 +53,7 @@ def get_wandb_runs_from_filters(
 def name2color(name: str):
     name2color_dict = {
         "Eq-NASNet": mcolors.CSS4_COLORS["red"],
+        "Eq-NASNet pre-trained": mcolors.CSS4_COLORS["darkred"],
         "ViT": mcolors.CSS4_COLORS["blue"],
         "ViT pre-trained": mcolors.CSS4_COLORS["navy"],
         "EfficientNet": mcolors.CSS4_COLORS["limegreen"],
