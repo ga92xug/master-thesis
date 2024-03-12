@@ -2,18 +2,13 @@
 defaults:
   - override /train: isic2019
   - override /train/network: eq_nasnet_pre
-  - override /train/scheduler: multi_step_lr
+  - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
 
-#train:
-#  optimizer:
-#    lr: 0.1
-#    weight_decay: 0.0001
-
 train:
-  scheduler:
-    milestones: [35,75,90,105]
-    gamma: 0.5
+  optimizer:
+    lr: 0.006973595677318753
+    weight_decay: 0.00000128944918099231
 
 task_name: isic2019
 tags: ["isic2019"]

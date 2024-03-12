@@ -62,7 +62,7 @@ hydra:
           bounds: [0.1, 0.9]
         train.scheduler.patience:
           type: range
-          bounds: [5, ${train.trainer.max_epochs}]
+          bounds: [5, 150]
 
         train.optimizer.lr: 
           type: range
