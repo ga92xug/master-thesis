@@ -3,7 +3,7 @@ defaults:
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
-  - scheduler: cosine_annealing_lr
+  - scheduler: none
   - _self_
 
 callbacks:
