@@ -7,12 +7,13 @@ defaults:
   - override /hydra/launcher: slurm # massively parallelize the search
   - override /hydra/sweeper: ax
   - override /train: deepdrip
-  - override /train/network: eq_nasnet
+  - override /train/network: eq_nasnet_pre
+  - override /train/scheduler: reduce_lr_on_plateau
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
 test_mode: test
-tags: ["valid/acc"]
+tags: ["valid/loss"]
 
 seed: null
 
@@ -20,7 +21,12 @@ logger:
   wandb:
     project: "HparamsSearch"
 
-optimized_metric: "valid/acc"
+optimized_metric: "valid/loss"
+
+train:
+  scheduler:
+    metric: ${optimized_metric}
+    mode: min
 
 # here we define Optuna hyperparameter search
 hydra:
@@ -51,6 +57,13 @@ hydra:
 
       # define hyperparameter search space
       params:
+        train.scheduler.factor: 
+          type: range
+          bounds: [0.1, 0.9]
+        train.scheduler.patience:
+          type: range
+          bounds: [5, ${train.trainer.max_epochs}]
+
         train.optimizer.lr: 
           type: range
           bounds: [1e-4, 0.1]
@@ -59,5 +72,4 @@ hydra:
           type: range
           bounds: [1e-6, 1e-2]
           log_scale: true
-
 
