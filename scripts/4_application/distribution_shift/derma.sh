@@ -4,7 +4,7 @@ export DERMA="tags="[dist_shift_derma]" task_name=derma train=derma"
 
 
 #$PY_SCRIPT -m experiment=application/HPs_isic2019/efficientnet_pre \
-#    $DERMA local=encephalon
+#    $DERMA
 
 $PY_SCRIPT -m experiment=application/HPs_isic2019/efficientnet \
-    $DERMA local=encephalon
+    $DERMA
