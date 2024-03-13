@@ -7,8 +7,8 @@ defaults:
 
 train:
   optimizer:
-    lr: 0.001528 # 0.00068
-    weight_decay: 0.000001
+    lr: 0.005296 # 0.00068
+    weight_decay: 0.000003913
 
 task_name: deepdrip_low_data
 tags: ["tuned_HPs"]
