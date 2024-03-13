@@ -12,7 +12,7 @@ defaults:
 
 task_name: ${logger.wandb.project}
 test_mode: test
-tags: ["valid/acc"]
+tags: ["valid/loss"]
 
 seed: null
 
