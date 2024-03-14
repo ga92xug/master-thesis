@@ -1,4 +1,4 @@
 defaults:
-  - vit
+  - efficientnet
 
 pre_trained: True 
