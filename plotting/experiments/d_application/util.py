@@ -13,7 +13,7 @@ def create_name_comparision_models(config):
         name = "Eq-NASNet"
     
     pretrained = config["network"].get("pretrained", False) or config["network"].get("pre_trained", False)
-    if pretrained:
+    if pre_trained
         name += " pre-trained"
 
     return name

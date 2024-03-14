@@ -76,6 +76,7 @@ class EquivariantNASNet(nn.Module):
         self.depth_coefficient = depth_coefficient
         self.width_coefficient = width_coefficient
         self.fixed_params = fixed_params
+        self.num_channels = num_channels
 
         # BlockArgs
         self.blocks_args_list = BlockArgsList.from_dict(blocks_args_dict, stem_channels, width_coefficient, depth_coefficient)
@@ -317,10 +318,13 @@ class EquivariantNASNet(nn.Module):
         if "state_dict" in state_dict:
             # this is a lightning checkpoint
             state_dict = state_dict["state_dict"]
-        # strip the net from the keys
-        state_dict = {k.replace("net.", ""): v for k, v in state_dict.items()}
+            # strip the net from the keys
+            state_dict = {k.replace("net.", ""): v for k, v in state_dict.items()}
         # remove the fully connected layer from the keys
         state_dict = {k: v for k, v in state_dict.items() if k not in ["fc.weight", "fc.bias"]}
+        if self.num_channels != 3:
+            # remove the first layer from the keys
+            state_dict = {k: v for k, v in state_dict.items() if not k.startswith("_conv_stem")}
         super().load_state_dict(state_dict, strict=False)
         create_filters_network(self)
         

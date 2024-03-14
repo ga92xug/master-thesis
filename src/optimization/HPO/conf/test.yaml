@@ -9,7 +9,7 @@ HPOs:
     restore: False
     model_overrides:
       model: efficientnet
-      model.pretrained: False
+      model.pre_trained False
 
 data:
   global_overrides:

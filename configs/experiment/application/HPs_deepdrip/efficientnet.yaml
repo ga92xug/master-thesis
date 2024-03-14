@@ -7,7 +7,7 @@ defaults:
 
 train:
   network:
-    pretrained: False
+    pre_trained: False
   optimizer:
     lr: 0.0013960833048305068
     weight_decay: 0.00000265302216705901

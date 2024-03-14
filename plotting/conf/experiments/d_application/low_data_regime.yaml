@@ -1,8 +1,10 @@
 DeepDRiD:
   filters:
-    #tags: DeepDRiD_low_data_3
+    "$not": 
+      tags: old
     #config.training.earlystop.monitor: valid.loss
     config.dataset.name: "DeepDRiD" 
+    
     #created_at:
     #    $lt: '2024-03-10'
     # intial experiments have been with valid.acc but more variance accross all models

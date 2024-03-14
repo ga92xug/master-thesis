@@ -1,2 +1,2 @@
 _target_: src.networks.compare_models.compare_models.EfficientNet
-pretrained: False
+pre_trained: False

@@ -99,7 +99,7 @@ def get_OCT(
     name: str,
     resolution: int,
 ) -> Tuple[Dict, Dict]:
-    location = os.path.join(location, name, "CellData/OCT")
+    location = os.path.join(data_dir, "oct/CellData/OCT")
 
     train_images, train_labels = get_images_and_labels_from_folder(location + "/train/")
     test_images, test_labels = get_images_and_labels_from_folder(location + "/test/")
