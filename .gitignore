@@ -9,6 +9,7 @@ scripts/alex
 pypeline.log.*
 plotting/conf/*
 notebooks/*
+pre_processing/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -22,7 +22,7 @@ callbacks:
 
   early_stopping:
     monitor: "valid/acc_weighted"
-    patience: 150
+    patience: 5
     mode: "max"
 
 optimizer:
