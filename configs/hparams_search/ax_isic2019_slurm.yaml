@@ -8,6 +8,7 @@ defaults:
   - override /hydra/sweeper: ax
   - override /train: isic2019
   - override /train/network: eq_nasnet_pre
+  - override /train/scheduler: reduce_lr_on_plateau
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
@@ -35,13 +36,13 @@ hydra:
     ax_config:
       max_trials: 40
       early_stop:
-        minimize: true
+        minimize: false
         max_epochs_without_improvement: 10
         epsilon: 1.0e-05
       experiment:
         name: isic2019_eq_nasnet_pre
         objective_name: ${optimized_metric}
-        minimize: true
+        minimize: false
         parameter_constraints: null
         outcome_constraints: null
         status_quo: null
@@ -52,9 +53,13 @@ hydra:
 
       # define hyperparameter search space
       params:
-        train:
-          type: choice
-          values: [isic2019,isic2019_constant_scheduler,isic2019_cosine_scheduler]
+        train.scheduler.factor: 
+          type: range
+          bounds: [0.1, 0.9]
+        train.scheduler.patience:
+          type: range
+          bounds: [5, 150]
+
         train.optimizer.lr: 
           type: range
           bounds: [1e-4, 0.1]
