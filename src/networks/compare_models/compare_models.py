@@ -61,9 +61,15 @@ class EfficientNet(torch.nn.Module):
         return self.model(x)
     
 class ViT(torch.nn.Module):
-    def __init__(self, num_classes, pre_trained=True, image_size=224, **kwargs):
+    def __init__(self, num_classes, num_channels: int = 3, pre_trained=True, image_size=224, **kwargs):
         super().__init__()
         self.model = vit_b_16(weights=pretrained_weights(pre_trained), image_size=image_size)
+
+        if num_channels != 3:
+            self.model.conv_proj = torch.nn.Conv2d(
+                in_channels=num_channels, out_channels=768, kernel_size=16, stride=16
+            )
+
 
         # Modify the last fully connected layer to have num_classes
         in_features = self.model.heads[0].in_features
@@ -77,10 +83,11 @@ class ViT(torch.nn.Module):
 
 if __name__ == "__main__":
     image_size = 128
+    num_channels = 1
     #model = EfficientNet(size="b0", num_classes=8, pretrained=True)
-    model = ViT(num_classes=10, pre_trained=True, image_size=image_size)
+    model = ViT(num_classes=10, num_channels=num_channels, pre_trained=True, image_size=image_size)
     print(model)
-    x = torch.rand(1, 3, image_size, image_size)
+    x = torch.rand(1, num_channels, image_size, image_size)
     out = model(x)
     print(out.shape)
     print(out)
