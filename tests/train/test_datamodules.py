@@ -179,5 +179,5 @@ def hash_tensor(tensor):
     return hashlib.sha256(tensor.tobytes()).hexdigest()
 
 if __name__ == "__main__":
-    test_datamodule("derma", get_mean_std=True, no_augment=True)
+    test_datamodule("oct", get_mean_std=False, no_augment=False)
 

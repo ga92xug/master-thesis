@@ -10,7 +10,7 @@ def create_name_comparision_models(config):
 
     name = config["model"]["_target_"].split(".")[-1]
     pretrained = config["model"].get("pretrained", False)
-    if pretrained:
+    if pre_trained
         name += " pre-trained"
 
     if "EquivariantNASNet" in name:

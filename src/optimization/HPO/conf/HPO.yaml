@@ -21,27 +21,27 @@ HPOs:
     more_trials: False
     model_overrides:
       model: efficientnet
-      model.pretrained: False
+      model.pre_trained False
 
   efficientnet_pre:
     done: False
     restore: False
     model_overrides:
       model: efficientnet
-      model.pretrained: True
+      model.pre_trained True
 
   vit:
     done: False
     model_overrides:
       model: vit
-      model.pretrained: False
+      model.pre_trained False
 
   vit_pre:
     done: False
     restore: False
     model_overrides:
       model: vit
-      model.pretrained: True
+      model.pre_trained True
 
 data:
   global_overrides:

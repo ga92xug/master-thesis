@@ -12,8 +12,8 @@ sys.path.append(f"{os.getcwd()}")
 
 from src.networks.compare_models.vision_transformer import vit_b_16
 
-def pretrained_weights(pretrained: bool):    
-    if pretrained:
+def pretrained_weights(pre_trained: bool):    
+    if pre_trained:
         weights='IMAGENET1K_V1'
     else:
         weights=None
@@ -25,11 +25,11 @@ class EfficientNet(torch.nn.Module):
     We could have used all models from torchvision.models. The b0 model is from NVIDIA's DeepLearningExamples
     """
 
-    def __init__(self, num_classes, num_channels: int = 3, pretrained=True, size="b0", **kwargs):
+    def __init__(self, num_classes, num_channels: int = 3, pre_trained=True, size="b0", **kwargs):
         super().__init__()
         if size == "b0" and False:
             model_name='nvidia_efficientnet_' + size
-            self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', model_name, pretrained=pretrained)
+            self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', model_name, pretrained=pre_trained)
             # Modify the last fully connected layer to have num_classes outputs
             in_features = self.model.classifier[3].in_features  # The 'fc' layer is the 4th layer in 'classifier', so its index is 3
             self.model.classifier[3] = torch.nn.Linear(in_features, num_classes)
@@ -41,7 +41,7 @@ class EfficientNet(torch.nn.Module):
                 return load_state_dict_from_url(self.url, *args, **kwargs)
             WeightsEnum.get_state_dict = get_state_dict
 
-            self.model = getattr(models, f"efficientnet_{size}")(weights=pretrained_weights(pretrained))
+            self.model = getattr(models, f"efficientnet_{size}")(weights=pretrained_weights(pre_trained))
             # Modify the last fully connected layer to have num_classes outputs
             self.model.classifier[1] = torch.nn.Linear(self.model.classifier[1].in_features, num_classes, bias=True)
 
@@ -54,22 +54,22 @@ class EfficientNet(torch.nn.Module):
                     num_channels, firstconv_output_channels, kernel_size=3, stride=2, norm_layer=torch.nn.BatchNorm2d, activation_layer=torch.nn.SiLU
                 )
 
-        self.name = "EfficientNet_pre_imagenet" if pretrained else "EfficientNet"
+        self.name = "EfficientNet_pre_imagenet" if pre_trained else "EfficientNet"
 
 
     def forward(self, x):
         return self.model(x)
     
 class ViT(torch.nn.Module):
-    def __init__(self, num_classes, pretrained=True, image_size=224, **kwargs):
+    def __init__(self, num_classes, pre_trained=True, image_size=224, **kwargs):
         super().__init__()
-        self.model = vit_b_16(weights=pretrained_weights(pretrained), image_size=image_size)
+        self.model = vit_b_16(weights=pretrained_weights(pre_trained), image_size=image_size)
 
         # Modify the last fully connected layer to have num_classes
         in_features = self.model.heads[0].in_features
         self.model.heads[0] = torch.nn.Linear(in_features, num_classes)
 
-        self.name = "ViT_pre_imagenet" if pretrained else "ViT"
+        self.name = "ViT_pre_imagenet" if pre_trained else "ViT"
 
     def forward(self, x):
         return self.model(x)
@@ -78,7 +78,7 @@ class ViT(torch.nn.Module):
 if __name__ == "__main__":
     image_size = 128
     #model = EfficientNet(size="b0", num_classes=8, pretrained=True)
-    model = ViT(num_classes=10, pretrained=True, image_size=image_size)
+    model = ViT(num_classes=10, pre_trained=True, image_size=image_size)
     print(model)
     x = torch.rand(1, 3, image_size, image_size)
     out = model(x)
