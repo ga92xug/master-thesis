@@ -6,7 +6,7 @@ from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 
-from src.data.datasets.utils import (
+from src.data._datasets.utils import (
     get_normalize_weights, 
     split_with_stratify, 
 )

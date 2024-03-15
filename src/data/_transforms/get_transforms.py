@@ -11,9 +11,11 @@ from torchvision.transforms.functional import InterpolationMode
 
 import sys
 import os
+
+from .not_used import autoaugment, own_transforms
 sys.path.append(f"{os.getcwd()}")
 os.environ['HYDRA_FULL_ERROR'] = '1'
-from . import own_transforms, autoaugment, staincolorjitter
+from . import staincolorjitter
 
 
 def get_transforms(
@@ -113,13 +115,8 @@ def get_one_transform(
     # add augmentations
     if isinstance(augment, dict):
         for key, value in augment.items():
-            if "Own" in key:
-                # random rotation does not allow for discrete choices
-                transform_list.append(getattr(own_transforms, key)(**value))
-            elif "StainColorJitterWrapper" in key:
+            if "StainColorJitterWrapper" in key:
                 transform_list.append(getattr(staincolorjitter, key)(**value))
-            elif "CIFAR10Policy" in key:
-                transform_list.append(getattr(autoaugment, key)(**value))
             else:
                 if "interpolation" in value:
                     if isinstance(value["interpolation"], str):

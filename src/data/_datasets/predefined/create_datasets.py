@@ -24,7 +24,7 @@ import sys
 import os
 sys.path.append(f"{os.getcwd()}")
 
-from src.data.datasets.utils import get_normalize_weights
+from src.data._datasets.utils import get_normalize_weights
 from src.data._transforms.get_transforms import get_transforms
 
 def create_datasets(
