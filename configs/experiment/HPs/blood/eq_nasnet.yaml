@@ -1,9 +1,0 @@
-# @package _global_
-defaults:
-  - HPs/blood/all
-  - override /train/network: eq_nasnet
-
-train:
-  optimizer:
-    lr: 0.005
-    weight_decay: 1e-5

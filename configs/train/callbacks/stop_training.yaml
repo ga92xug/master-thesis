@@ -1,3 +1,0 @@
-Stop_After_Epoch:
-  _target_: src._callbacks.stop_training.Stop_After_Epoch
-  stop_after_epoch: 2

@@ -1,9 +1,0 @@
-# @package _global_
-defaults:
-  - HPs/deepdrip/all
-  - override /train/network: vit
-
-train:
-  optimizer:
-    lr: 0.00005
-    weight_decay: 0.0001803093201705675

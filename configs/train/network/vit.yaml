@@ -1,3 +1,0 @@
-_target_: src.networks.compare_models.compare_models.ViT
-pre_trained: False
-image_size: 128

@@ -1,4 +1,0 @@
-defaults:
-  - efficientnet
-
-pre_trained: True 

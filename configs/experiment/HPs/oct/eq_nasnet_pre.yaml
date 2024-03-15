@@ -1,9 +1,0 @@
-# @package _global_
-defaults:
-  - HPs/oct/all
-  - override /train/network: eq_nasnet_pre
-
-train:
-  optimizer:
-    lr: 0.00013114903569956386
-    weight_decay: 0.00002381774785397358

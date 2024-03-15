@@ -1,9 +1,0 @@
-# @package _global_
-defaults:
-  - HPs/oct/all
-  - override /train/network: efficientnet_pre
-
-train:
-  optimizer:
-    lr: 0.0034767280193448145
-    weight_decay: 0.000001

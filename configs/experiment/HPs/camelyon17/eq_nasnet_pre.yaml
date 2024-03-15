@@ -1,9 +1,0 @@
-# @package _global_
-defaults:
-  - HPs/camelyon17/all
-  - override /train/network: eq_nasnet_pre
-
-train:
-  optimizer:
-    lr: 0.004013
-    weight_decay: 1.366e-6
