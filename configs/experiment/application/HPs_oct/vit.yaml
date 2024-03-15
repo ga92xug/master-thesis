@@ -17,4 +17,4 @@ tags: ["oct"]
 
 logger:
   wandb:
-    project: domain_shift
+    project: low_data
