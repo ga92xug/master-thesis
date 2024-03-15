@@ -1,8 +1,8 @@
 defaults:
   - isic2019 
-  
   - override scheduler@scheduler: cosine_annealing_lr  
   # works as well
   #- override /train/scheduler@scheduler: multi_step_lr  
   
-
+# we need this file to search for the scheduler 
+# see hparams_search isic2019

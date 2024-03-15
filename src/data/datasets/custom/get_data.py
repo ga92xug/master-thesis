@@ -150,7 +150,7 @@ def get_blood(
     return images, labels
 
 
-def get_DeepDRiD(
+def get_deepdrip(
     data_dir: str,
     name: str,
     resolution: int,

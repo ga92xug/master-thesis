@@ -5,31 +5,7 @@ defaults:
 name: ISIC_2019
 
 augment: False
-  #all:
-  #  short_side_center_crop: True 
-  #train:
-  #  ColorJitter:
-  #    brightness: 0.4
-  #    contrast: 0.4
-  #    saturation: 0.4
-  #    hue: 0.1
-  #  Own_Cutout:
-  #    n_holes: 1
-  #    length: 16
-  #  RandomHorizontalFlip:
-  #    p: 0.5
-  #  RandomVerticalFlip:
-  #    p: 0.5     
-  #  RandomRotation:
-  #    degrees: 180
-  #  RandomResizedCrop:
-  #    scale: [0.8, 1.0]
-  #    ratio: [0.75, 1.3333333333333333]
-  #  RandomAffine:
-  #    degrees: 180
-  #    translate: [0.2, 0.2]  
-  #    scale: [0.8,1.2]
-  #    shear: 10          
+         
 channel_wise_mean_images: [0.6674857139587402, 0.5294152498245239, 0.5243144631385803]
 channel_wise_std_images: [0.22288909554481506, 0.2025708705186844, 0.21405166387557983]
 

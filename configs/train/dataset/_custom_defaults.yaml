@@ -7,4 +7,4 @@ data:
   name: ${train.dataset.name}
 
 resolution: 128
-batch_size: 64                # Number of examples to process in a batch during training
+batch_size: 64             

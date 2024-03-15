@@ -1,6 +1,5 @@
 defaults:
   - isic2019 
-  
   - override scheduler@scheduler: multi_step_lr  
   # works as well
   #- override /train/scheduler@scheduler: multi_step_lr  

@@ -1,12 +1,10 @@
 # @package _global_
 defaults:
   - override /train: imagenet
-  - override /train/network: eq_nasnet #eq_nasnet
+  - override /train/network: eq_nasnet 
   - override /train/network/blocks_args_dict: 4blocks
-  - override /logger: wandb
 
 tags: ["pre-train_imagenet_100"]
-
 seed: 0
 logger:
   wandb:

@@ -1,8 +1,0 @@
-_target_: training.datasets.med_mnist.data_loader.build_loaders
-name: PathMNIST #, ChestMNIST, DermaMNIST, OCTMNIST, PneumoniaMNIST, RetinaMNIST, BreastMNIST, BloodMNIST, TissueMNIST, OrganAMNIST, OrganCMNIST, OrganSMNIST
-channel_wise_mean_images: [0.7405422329902649, 0.532980740070343, 0.7058265805244446]
-channel_wise_std_images: [0.12368195503950119, 0.17676201462745667, 0.12443065643310547]
-num_channels: 3
-num_classes: 9
-resolution: 28
-should_normalize_weights: True

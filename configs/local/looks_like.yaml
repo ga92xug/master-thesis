@@ -5,8 +5,6 @@ log_dir: ${local.work_dir}/logs
 
 wandb_mode: offline # the compute nodes have no access to the internet
 
-
-
 # encephalon
 data_dir: '/home/frischs/Data/frischs/datasets/'
 log_dir: ${paths.root_dir}/logs/
