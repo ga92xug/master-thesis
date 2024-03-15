@@ -4,7 +4,7 @@ defaults:
   - callbacks: default
   - network: eq_nasnet
   - optimizer: Adam
-  - scheduler: reduce_lr_on_plateau
+  - scheduler: none
 
 callbacks:
   model_checkpoint:
@@ -17,10 +17,6 @@ callbacks:
     monitor: "valid/loss"
     patience: 15
     mode: "min"
-
-#scheduler: 
-#  factor: 0.5
-#  patience: 10
 
 optimizer:
   lr: 0.005

@@ -1,0 +1,15 @@
+# @package _global_
+defaults:
+  - HPs/deepdrip/all
+  - override /train/network: eq_nasnet_pre
+  - override /train/scheduler: reduce_lr_on_plateau
+
+train:
+  optimizer:
+    lr: 0.08487 # 0.1
+    weight_decay: 0.000005183 # 1.23e-5
+  scheduler:
+    patience: 14
+    factor: 0.9
+  trainer:
+    log_every_n_steps: 1

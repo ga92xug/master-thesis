@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - HPs/deepdrip/all
+  - override /train/network: eq_nasnet
+
+train:
+  optimizer:
+    lr: 0.005296 
+    weight_decay: 0.000003913
+

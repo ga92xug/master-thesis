@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - override /train: oct
+  - override /logger: wandb
+
+task_name: oct
+tags: ["tuned_HPs"]
+
+logger:
+  wandb:
+    project: low_data
+

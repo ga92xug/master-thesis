@@ -1,0 +1,16 @@
+# @package _global_
+defaults:
+  - HPs/oct/all
+  - override /train/network: vit
+
+train:
+  optimizer:
+    lr: 0.0001
+    weight_decay: 0.0000015919289161532088
+
+task_name: oct
+tags: ["oct"]
+
+logger:
+  wandb:
+    project: low_data

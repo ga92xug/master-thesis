@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /train: camelyon17
+
+task_name: camelyon17
+tags: ["tuned_HPs"]
+
+logger:
+  wandb:
+    project: domain_shift
+

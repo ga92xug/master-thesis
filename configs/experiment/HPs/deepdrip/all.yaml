@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /train: deepdrip
+
+task_name: deepdrip
+tags: ["tuned_HPs"]
+
+logger:
+  wandb:
+    project: low_data
+

@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - HPs/blood/all
+  - override /train/network: efficientnet
+
+train:
+  optimizer:
+    lr: 0.0005258641063603519
+    weight_decay: 0.00000165943876390034

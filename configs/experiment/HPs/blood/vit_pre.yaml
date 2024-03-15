@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - HPs/blood/all
+  - override /train/network: vit_pre
+
+train:
+  optimizer:
+    lr: 0.0000583916347414611
+    weight_decay: 0.00000829577246037681

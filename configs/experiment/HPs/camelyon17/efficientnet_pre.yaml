@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - HPs/camelyon17/all
+  - override /train/network: efficientnet_pre
+
+train:
+  optimizer:
+    lr: 0.005252351343930348 
+    weight_decay: 0.0000120145257916578
+

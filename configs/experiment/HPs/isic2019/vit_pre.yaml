@@ -1,0 +1,13 @@
+# @package _global_
+defaults:
+  - HPs/isic2019/all
+  - override /train/network: vit_pre
+  - override /train/scheduler: reduce_lr_on_plateau
+
+train:
+  optimizer:
+    lr: 0.00005
+    weight_decay: 0.00001016592074437349
+  scheduler:
+    factor: 0.03079828066268554
+    patience: 7
