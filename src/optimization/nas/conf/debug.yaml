@@ -1,0 +1,45 @@
+defaults:
+- _self_
+- search_space: galaxy10
+- objective: galaxy10
+
+
+exp_name: galaxy10_5blocks_test
+seed: 42
+evaluate_only: False
+
+training:
+  model: eq_nasnet
+  model.fixed_params: False
+  model.stem_channels: 16
+  training: galaxy10-training
+  training.epochs: 1
+  training.steps_per_epoch: 10
+
+generation:
+  num_total_trials: 50  # total evaluation budget
+  num_sobol_trials: 1
+  num_fullbayesian_trials: -1
+  batch_size: 1
+  progress_bar: False
+  num_samples: 32
+  warmup_steps: 64
+  #num_botorch_trials: 15
+
+runner:
+  script_path: "experiment/main.py"
+  verbose: 1
+
+client:
+  restart: True
+  warm_start: null
+
+other:
+  save_every: 1
+  verbose: 1
+
+wandb:
+  entity: "ga92xug"
+  project: "SL-NAS-high-level"
+  mode: disabled
+  mode_runs: disabled

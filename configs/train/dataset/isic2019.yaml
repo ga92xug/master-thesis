@@ -1,0 +1,18 @@
+defaults:
+- _custom_defaults
+- _self_
+
+name: ISIC_2019
+
+augment: False
+         
+channel_wise_mean_images: [0.6674857139587402, 0.5294152498245239, 0.5243144631385803]
+channel_wise_std_images: [0.22288909554481506, 0.2025708705186844, 0.21405166387557983]
+
+num_channels: 3
+num_classes: 8
+
+val_size: 0.1
+test_size: 0.1
+
+should_normalize_weights: False

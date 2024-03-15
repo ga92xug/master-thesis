@@ -1,0 +1,66 @@
+
+
+defaults:
+  - _self_
+  - dataset: DeepDRiD # DeepDRiD
+
+HPOs: 
+  eq_nasnet:
+    done: False
+    restore: False
+    eval_only: False
+    dropout_rate: False          # if not defined False
+    model_overrides:
+      model: eq_nasnet
+      "model/blocks_args_dict": 4blocks
+
+  efficientnet:
+    done: False
+    eval_only: False
+    restore: False
+    more_trials: False
+    model_overrides:
+      model: efficientnet
+      model.pre_trained False
+
+  efficientnet_pre:
+    done: False
+    restore: False
+    model_overrides:
+      model: efficientnet
+      model.pre_trained True
+
+  vit:
+    done: False
+    model_overrides:
+      model: vit
+      model.pre_trained False
+
+  vit_pre:
+    done: False
+    restore: False
+    model_overrides:
+      model: vit
+      model.pre_trained True
+
+data:
+  global_overrides:
+    wandb.project: SL-ray
+    training: ${dataset.name}-training 
+    training.dataset.resolution: 128
+    other.should_test: True
+    other.verbose: 1
+
+    training.dataset.reduction_factor: ${low_data_regime}
+    training.earlystop.monitor: valid.acc
+    training.earlystop.mode: max
+    training.earlystop.baseline: null
+    training.earlystop.stop: True
+
+    wandb.mode: online
+    #training.earlystop.patience: 0
+    #training.epochs: 1
+
+    
+debug: 0 # 0: no debug, 1: debug trainingsprocess with short training, 2: debug init process no training
+low_data_regime: 0.1

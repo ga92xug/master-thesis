@@ -1,0 +1,39 @@
+defaults:
+- _custom_defaults
+- _self_
+
+name: mammo
+         
+augment: 
+  all:
+    short_side_center_crop: 
+      resize_size: ${train.dataset.resolution}
+      crop_size: ${train.dataset.resolution}
+  train:
+    RandomHorizontalFlip:
+      p: 0.5
+    RandomRotation:
+      degrees: 180
+      interpolation: BILINEAR
+      
+    #TrivialAugmentWide:
+    #  interpolation: BILINEAR
+    RandomErasing:
+      p: 0.1
+    #ColorJitter:
+    #  brightness: 0.4
+    #  contrast: 0.4
+    #  saturation: 0.4
+    #  hue: 0.1
+  
+resolution: 224
+channel_wise_mean_images: [0.2264558970928192]
+channel_wise_std_images: [0.26939043402671814]
+
+num_channels: 1
+num_classes: 2
+
+val_size: 0.0
+test_size: 0.0
+
+should_normalize_weights: True

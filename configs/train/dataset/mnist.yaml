@@ -1,0 +1,18 @@
+_target_: src.data.datasets.predefined.create_datasets.create_datasets
+name: mnist
+
+augment: False
+
+channel_wise_mean_images: [0.1308618187904358]
+channel_wise_std_images: [0.30833175778388977]
+resolution: 28
+
+num_channels: 1
+num_classes: 10
+
+batch_size: 128                
+eval_batch_size: 128 
+
+valid_size: 0.4
+
+should_normalize_weights: False

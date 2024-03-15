@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+  - override /training: galaxy10-training
+  - override /model: eq_nasnet
+  - override /wandb: default
+  - _self_
+  
+  
+model:
+  blocks_args_dict:
+    _3:
+      se_ratio: 0.0
+  dropout_rate: 0.2
+  width_coefficient: 2
+
+
+wandb:
+  give_name: final_isic2019
+  notes: droput0.0
+
+# python training/main.py +experiments_nas_common=galaxy10_match_performance

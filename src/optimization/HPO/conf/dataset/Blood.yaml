@@ -1,0 +1,9 @@
+name: blood
+
+initial_epochs: 100
+
+BO_optimizer:
+  num_trials: 25
+  grace_period: 0.5
+  metric: valid.acc
+  goal: max

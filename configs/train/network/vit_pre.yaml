@@ -1,0 +1,4 @@
+defaults:
+  - vit
+
+pre_trained: True 

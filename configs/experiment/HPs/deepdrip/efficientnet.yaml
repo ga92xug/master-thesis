@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - HPs/deepdrip/all
+  - override /train/network: efficientnet
+
+train:
+  optimizer:
+    lr: 0.0013960833048305068
+    weight_decay: 0.00000265302216705901
+

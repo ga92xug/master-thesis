@@ -1,0 +1,10 @@
+_target_: src.data.datasets.custom.create_datasets.create_datasets
+reduction_factor: 1
+data:
+  # for hydra call of get_data 
+  _target_: src.data.datasets.custom.get_data.get_${train.dataset.data.name}
+  resolution: ${train.dataset.resolution}
+  name: ${train.dataset.name}
+
+resolution: 128
+batch_size: 64             

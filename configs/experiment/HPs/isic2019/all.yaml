@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - override /train: isic2019
+
+task_name: isic2019
+tags: ["tuned_HPs"]
+
+logger:
+  wandb:
+    project: isic2019
+

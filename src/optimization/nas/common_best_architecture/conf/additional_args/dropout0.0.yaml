@@ -1,0 +1,6 @@
+{
+  #other.debug: True,
+  model.dropout_rate: 0.0,
+  wandb.notes: dropout_0.0
+  
+}

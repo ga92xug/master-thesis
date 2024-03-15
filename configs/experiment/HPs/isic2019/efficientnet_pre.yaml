@@ -1,0 +1,9 @@
+# @package _global_
+defaults:
+  - HPs/isic2019/all
+  - override /train/network: efficientnet_pre
+
+train:
+  optimizer:
+    lr: 0.00022916891450866964
+    weight_decay: 0.00014062751634093062

@@ -1,0 +1,4 @@
+bounds:
+  valid_acc: 0.93
+  gflops: 94
+max_building_time: 480    # in seconds

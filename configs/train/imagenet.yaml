@@ -1,0 +1,53 @@
+defaults:
+  - dataset: imagenet
+  - callbacks: default
+  - network: eq_nasnet
+  - optimizer: SGD
+  - scheduler: cosine_annealing_lr
+
+label_smoothing: 0.1
+
+metrics_config:
+  top_5_accuracy: 
+    _target_: torchmetrics.classification.MulticlassAccuracy
+    num_classes: ${train.dataset.num_classes}
+    top_k: 5
+    average: micro
+    maximize: True
+
+trainer:
+  min_epochs: 10
+  max_epochs: 100
+
+optimizer:
+  nesterov: False
+  momentum: 0.9
+  lr: 0.5
+  weight_decay: 1e-05
+
+scheduler:
+  warmup_epochs: 5
+  warmup_decay: 0.01
+
+dataset:
+  mixup_alpha: 0.1
+  cutmix_alpha: 1.0
+  # we autotune the batch size to fit into memory
+  batch_size: 128 # 128 * 8
+
+  ra_sampler: True
+  ra_reps: 4
+
+callbacks:
+  model_checkpoint:
+    monitor: "valid/acc"
+    mode: "max"
+
+  early_stopping:
+    monitor: "valid/acc"
+    patience: 20
+    mode: "max"
+
+
+
+

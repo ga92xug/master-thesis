@@ -1,0 +1,78 @@
+import pandas as pd
+import wandb
+import os
+from ax.service.ax_client import AxClient
+from ax.service.utils.report_utils import exp_to_df
+
+def init_wandb(run_id, cfg, wandb_config=None):
+    if run_id is not None:
+        # resume wandb run
+        run = wandb.init(
+            project=cfg.wandb.project, 
+            entity=cfg.wandb.entity, 
+            mode=cfg.wandb.mode,
+            resume="allow",
+            id=run_id,  # resume the run using the saved run ID
+        )
+    else:
+        run = wandb.init(
+            project=cfg.wandb.project, 
+            entity=cfg.wandb.entity, 
+            mode=cfg.wandb.mode,
+            config=wandb_config,
+        )
+
+    # wandb_logger = logging.getLogger('wandb')
+    # wandb_logger.setLevel(logging.ERROR)  # Set to ERROR to suppress most console output
+    run.log_code(".")
+    return run
+
+def get_largest_saved_version_ax_client(folder: str = None):
+    if folder is None:
+        global save_folder
+        folder = save_folder
+    # get the largest version
+    version = -1
+    result = None
+    for file in os.listdir(folder):
+        if file.startswith("ax_client_"):
+            file_version = int(file.split("_")[-1].split(".")[0])
+            if file_version > version:
+                version = file_version
+                result = file
+        
+        if file == "ax_client.json":
+            result = file
+            version = 0
+
+    print("Largest version: ", version, result)
+    return version, result
+
+def get_ax_client_from_folder(
+        folder: str, 
+        path: str = "../../Data/frischs/NAS_data_save/"
+    ) -> AxClient:
+    
+    location = os.path.join(path, folder)
+    _, name = get_largest_saved_version_ax_client(location)
+    filepath = os.path.join(location, name)
+    ax_client = AxClient.load_from_json_file(filepath=filepath)
+    return ax_client
+
+def show_experiment_ordered_frame(client: AxClient) -> pd.DataFrame:
+    df = exp_to_df(client.experiment)
+    df = df.drop_duplicates(subset=['arm_name'], keep=False)
+    if "valid_acc_weighted" in df.columns:
+        df = df.sort_values(by=["valid_acc_weighted"], ascending=False)
+    else:
+        df = df.sort_values(by=["valid_acc"], ascending=False)
+    return df
+
+
+def get_name_performance_metric(experiment):
+    if "valid_acc_weighted" in experiment.metrics:
+        return "valid_acc_weighted"
+    elif "valid_acc" in experiment.metrics:
+        return "valid_acc"
+    else:
+        raise ValueError("No valid performance metric found")

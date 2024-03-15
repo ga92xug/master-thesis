@@ -1,0 +1,32 @@
+defaults:
+  - dataset: DeepDRiD
+  - callbacks: default
+  - network: eq_nasnet
+  - optimizer: Adam
+  - scheduler: none
+  - _self_
+
+callbacks:
+  model_checkpoint:
+    monitor: "valid/loss"
+    mode: "min"
+    save_last: True
+    auto_insert_metric_name: False
+
+  early_stopping:
+    monitor: "valid/loss"
+    patience: 30
+    mode: "min"
+
+optimizer:
+  lr: 0.001
+  weight_decay: 1e-5
+
+trainer:
+  accumulate_grad_batches: 1
+  max_epochs: 150
+
+
+dataset:
+  batch_size: 256                
+

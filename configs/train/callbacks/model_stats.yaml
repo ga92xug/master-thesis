@@ -1,0 +1,4 @@
+model_stats:
+  _target_: src._callbacks.model_stats.ModelStats
+  max_gflops: -1
+  nas_trial: -1

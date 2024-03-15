@@ -1,0 +1,10 @@
+# @package _global_
+defaults:
+  - HPs/camelyon17/all
+  - override /train/network: vit
+
+train:
+  optimizer:
+    lr: 0.00012110667473884368 
+    weight_decay: 0.00000107551739261184
+

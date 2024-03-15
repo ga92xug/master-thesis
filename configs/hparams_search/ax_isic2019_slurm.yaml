@@ -1,0 +1,71 @@
+# @package _global_
+
+# example hyperparameter optimization of some experiment with Optuna:
+# python train.py -m hparams_search=mnist_optuna experiment=example
+
+defaults:
+  - override /hydra/launcher: slurm # massively parallelize the search
+  - override /hydra/sweeper: ax
+  - override /train: isic2019
+  - override /train/network: eq_nasnet_pre
+  - override /train/scheduler: reduce_lr_on_plateau
+  - override /logger: wandb
+
+task_name: ${logger.wandb.project}
+test_mode: test
+tags: ["valid/acc_weighted"]
+
+seed: null
+
+logger:
+  wandb:
+    project: "HparamsSearch"
+
+optimized_metric: "valid/acc_weighted"
+
+hydra:
+  mode: "MULTIRUN" 
+  launcher:
+    max_num_timeout: 4
+    timeout_min: 360 
+
+  sweeper:
+    _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
+    max_batch_size: 10 # number of parallel jobs
+    ax_config:
+      max_trials: 40
+      early_stop:
+        minimize: false
+        max_epochs_without_improvement: 10
+        epsilon: 1.0e-05
+      experiment:
+        name: isic2019_eq_nasnet_pre
+        objective_name: ${optimized_metric}
+        minimize: false
+        parameter_constraints: null
+        outcome_constraints: null
+        status_quo: null
+      client:
+        verbose_logging: false
+        random_seed: null
+      is_noisy: true
+
+      # define hyperparameter search space
+      params:
+        train.scheduler.factor: 
+          type: range
+          bounds: [0.1, 0.9]
+        train.scheduler.patience:
+          type: range
+          bounds: [5, 150]
+
+        train.optimizer.lr: 
+          type: range
+          bounds: [1e-4, 0.1]
+          log_scale: true
+        train.optimizer.weight_decay: 
+          type: range
+          bounds: [1e-6, 1e-2]
+          log_scale: true
+
+

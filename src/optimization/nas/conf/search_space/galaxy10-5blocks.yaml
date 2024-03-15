@@ -1,0 +1,19 @@
+num_middle_blocks: 4
+
+dropout_rate: [0., 0.2 ,0.3, 0.4, 0.5]
+expand_ratio: [2, 4, 6]
+
+reflection: [-1, 0]
+num_layers: [1, 2]
+conv_op: ["conv", "dconv", "mbconv"]
+kernel_size: [3, 5]
+se_ratio: [.0, .25, .5, .75]
+skip_op: ["no", "identity", "conv"]
+stride: [1, 2]
+out_channels: [1.,4.]
+choice_2_range_params:
+    group: [1, 2, 4, 8, 16]
+
+constraints:
+    max_out_channels: 7
+    min_stride: 6

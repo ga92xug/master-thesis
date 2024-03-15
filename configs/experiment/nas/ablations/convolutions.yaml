@@ -1,0 +1,22 @@
+# @package _global_
+defaults:
+  - override /train: isic2019
+  
+train: 
+  network:
+    conv_op: conv
+    blocks_args_dict:
+      _1:
+        conv_op: ${model.conv_op}
+      _2:
+        conv_op: ${model.conv_op}
+      _3:
+        conv_op: ${model.conv_op}
+    width_coefficient: 0.8
+
+tags: [ablation_nas_architecture, change_conv]
+
+logger:
+  wandb:
+    notes: change_convolutions_$(model.conv_op)
+    

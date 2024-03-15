@@ -1,0 +1,9 @@
+defaults:
+  - isic2019 
+  - override scheduler@scheduler: multi_step_lr  
+  # works as well
+  #- override /train/scheduler@scheduler: multi_step_lr  
+  
+scheduler:
+  milestones: [35,75,90,105]
+  gamma: 0.5

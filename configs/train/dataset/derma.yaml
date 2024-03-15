@@ -1,0 +1,49 @@
+defaults:
+- _custom_defaults
+- _self_
+
+data:
+  val_on: derm7pt #ham10000
+  test_on: derm7pt
+
+name: derma
+
+augment:
+  eval:
+    short_side_center_crop: 
+      resize_size: ${train.dataset.resolution}
+      crop_size: ${train.dataset.resolution} 
+  train:
+    ColorJitter:
+      brightness: 0.4
+      contrast: 0.4
+      saturation: 0.4
+      hue: 0.1
+    #RandomErasing:
+    #  p: 0.1
+  #  RandomHorizontalFlip:
+  #    p: 0.5
+  #  RandomVerticalFlip:
+  #    p: 0.5     
+    RandomRotation:
+      degrees: 180
+    RandomResizedCrop:
+      scale: [0.8, 1.0]
+      ratio: [0.75, 1.3333333333333333]
+    RandomAffine:
+      degrees: 180
+      translate: [0.2, 0.2]  
+      scale: [0.8,1.2]
+      shear: 10          
+
+# train set ham10000
+channel_wise_mean_images: [0.7637829780578613, 0.5462884306907654, 0.5711367130279541]
+channel_wise_std_images: [0.14036989212036133, 0.15156057476997375, 0.16872285306453705]
+
+num_channels: 3
+num_classes: 7
+
+val_size: 0.0
+test_size: 0.0
+
+should_normalize_weights: True

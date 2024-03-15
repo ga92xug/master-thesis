@@ -1,0 +1,19 @@
+# @package _global_
+
+# overfits to 3 batches
+
+defaults:
+  - default
+
+train:
+  trainer:
+    max_epochs: 10
+  
+  dataset:
+    reduction_factor: 25
+
+  # model ckpt and early stopping need to be disabled during overfitting
+  callbacks: null
+
+hardware:
+  accelerator: gpu

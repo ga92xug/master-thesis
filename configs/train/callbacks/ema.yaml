@@ -1,0 +1,4 @@
+ema:
+  _target_: src._callbacks.ema.EMA
+  decay: 0.99998
+  every_n_steps: 32

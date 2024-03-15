@@ -1,0 +1,19 @@
+defaults:
+- _self_
+#- datasets: all
+- adjust_lists: keep_all
+- additional_args: nothing
+
+datasets: [mnist_rot]
+
+data_dir: experiments/b_NAS/data/common_best_architecture/
+
+map_strategies_2_replacement_groups: {
+  cifar10: cifar10,
+  cifar10_rot: mnist_rot,
+  galaxy10: galaxy10,
+  mnist12k: cifar10,
+  mnist_rot: mnist_rot,
+  isic2019: isic2019,
+  stl10: cifar10,
+}

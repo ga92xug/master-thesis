@@ -1,0 +1,21 @@
+# @package _global_
+defaults:
+  - override /train: imagenet
+  - override /train/network: eq_nasnet 
+  - override /train/network/blocks_args_dict: 4blocks
+
+tags: ["pre-train_imagenet_100"]
+seed: 0
+logger:
+  wandb:
+    project: "pre-train"
+
+train:
+  trainer:
+    max_epochs: 100
+  dataset:
+    mixup_alpha: 0.1
+    cutmix_alpha: 1.0
+
+
+

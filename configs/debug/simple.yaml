@@ -1,0 +1,49 @@
+# @package _global_
+defaults:
+  - override /train/network: efficientnet
+  - override /train/callbacks: none
+
+# default debugging setup, runs 1 full epoch
+# other debugging configs can inherit from this one
+
+# overwrite task name so debugging logs are stored in separate folder
+task_name: "debug"
+
+# disable callbacks and loggers during debugging
+logger: null
+train:
+  label_smoothing: 0 
+  
+  #callbacks: none
+  trainer:
+    max_epochs: 10
+    check_val_every_n_epoch: 1
+    log_every_n_steps: 50
+    enable_checkpointing: False
+
+
+  dataset:
+    num_workers: 0 
+    pin_memory: False 
+   
+
+extras:
+  ignore_warnings: False
+  enforce_tags: False
+
+# sets level of all command line loggers to 'DEBUG'
+# https://hydra.cc/docs/tutorials/basic/running_your_app/logging/
+hydra:
+  job_logging:
+    root:
+      level: DEBUG
+
+  # use this to also set hydra loggers to 'DEBUG'
+  # verbose: True
+
+hardware:
+  accelerator: gpu 
+  devices: 1 
+
+
+
