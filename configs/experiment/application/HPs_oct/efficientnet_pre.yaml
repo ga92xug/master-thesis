@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - override /train: oct
+  - override /train/network: efficientnet_pre
+  - override /train/scheduler: none
+  - override /logger: wandb
+  - _self_
+
+train:
+  optimizer:
+    lr: 0.0034767280193448145
+    weight_decay: 0.000001
+
+task_name: oct
+tags: ["oct"]
+
+logger:
+  wandb:
+    project: domain_shift
+

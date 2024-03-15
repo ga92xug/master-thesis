@@ -1,0 +1,20 @@
+# @package _global_
+defaults:
+  - override /train: oct
+  - override /train/network: vit_pre
+  - override /logger: wandb
+  - _self_
+
+train:
+  network:
+    pre_trained: False
+  optimizer:
+    lr: 0.0001
+    weight_decay: 0.0000015919289161532088
+
+task_name: oct
+tags: ["oct"]
+
+logger:
+  wandb:
+    project: domain_shift

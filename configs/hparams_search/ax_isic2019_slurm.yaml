@@ -23,12 +23,11 @@ logger:
 
 optimized_metric: "valid/acc_weighted"
 
-# here we define Optuna hyperparameter search
 hydra:
   mode: "MULTIRUN" 
   launcher:
     max_num_timeout: 4
-    timeout_min: 360 # 5 hours
+    timeout_min: 360 
 
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper

@@ -1,0 +1,17 @@
+# @package _global_
+defaults:
+  - override /train: oct
+  - override /train/network: eq_nasnet
+  - override /logger: wandb
+
+train:
+  optimizer:
+    lr: 0.0008177534143469913
+    weight_decay: 0.000028806802340596616
+
+task_name: oct
+tags: ["oct"]
+
+logger:
+  wandb:
+    project: domain_shift
