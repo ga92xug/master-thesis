@@ -23,7 +23,8 @@ import sys
 import os
 os.environ['HYDRA_FULL_ERROR'] = '1'
 sys.path.append(f"{os.getcwd()}")
-from src.data.datasets.utils import get_normalize_weights, get_transforms
+from src.data._transforms.get_transforms import get_transforms
+from src.data.datasets.utils import get_normalize_weights
 
 
 def create_datasets(
@@ -79,7 +80,7 @@ def create_datasets(
         },
     }
     print("here")
-    quit()
+    #quit()
     return (datasets, normalized_weights, dataloader_kwargs)
 
 

@@ -15,7 +15,7 @@ os.environ['HYDRA_FULL_ERROR'] = '1'
 
 def get_normalize_weights(
         labels: Union[List, np.ndarray],
-        verbose: int,
+        verbose: int = 1,
     ) -> torch.Tensor:
     """
     Normalize the weights of the dataset based on the labels.
