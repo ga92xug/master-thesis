@@ -158,7 +158,6 @@ class LitModule(LightningModule):
         for key, metric in best_metrics.items():
             self.log(f"valid_best/{key}", metric, on_step=False, on_epoch=True, prog_bar=False, sync_dist=True)
         
-
     def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         """Perform a single test step on a batch of data from the test set.
 
@@ -206,11 +205,6 @@ class LitModule(LightningModule):
 
     def configure_optimizers(self) -> Dict[str, Any]:
         """Choose what optimizers and learning-rate schedulers to use in your optimization.
-        Normally you'd need one. But in the case of GANs or similar you might have multiple.
-
-        Examples:
-            https://lightning.ai/docs/pytorch/latest/common/lightning_module.html#configure-optimizers
-
         :return: A dict containing the configured optimizers and learning-rate schedulers to be used for training.
         """
         if self.scheduler is not None:
@@ -254,6 +248,7 @@ class LitModule(LightningModule):
         metrics_dict = metrics_func.compute()
         for key, metric in metrics_dict.items():
             self.log(f"{mode}/{key}", metric, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+
 
     def get_model(
         self,
@@ -302,8 +297,6 @@ class LitModule(LightningModule):
             # Cancel alarm
             signal.alarm(0)
 
-        # the model has to be in eval mode for loading the weights
-        # net.eval()        
         return net
 
    
@@ -324,20 +317,15 @@ class LitModule(LightningModule):
             self.net.eval()
 
         super().load_state_dict(state_dict, strict=False)        
-        #create_filters_network(self.net)
         # put back in train mode
         if is_train_mode:
             self.net.train()
 
 
     def on_load_checkpoint(self, checkpoint):
-        """This is called before load_state_dict()"""
-        if not is_equivariant_model(self.net):
-            # if the model is not equivariant nothing to do
-            return
-        # recreate the filters
-        create_filters_network(self.net)
-        print("Creating filters")
+        if is_equivariant_model(self.net):
+            # recreate the filters
+            create_filters_network(self.net)
 
 
 if __name__ == "__main__":

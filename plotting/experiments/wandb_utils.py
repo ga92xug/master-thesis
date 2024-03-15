@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import sys
 
 sys.path.append(f"{os.getcwd()}")
-from src.networks.util import flatten_dict
+from src.networks.equivariant_utils.utils import flatten_dict
 
 
 def find_run(entity: str, projects: list, run_id: str) -> wandb.apis.public.Run:

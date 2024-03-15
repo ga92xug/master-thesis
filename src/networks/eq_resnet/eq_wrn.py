@@ -3,37 +3,35 @@ from typing import Tuple, List
 import torch.nn as nn
 import torch.nn.functional as F
 from omegaconf import DictConfig
-import sys
-
-sys.path.append('../networks') # add parent directory
-
 import numpy as np
+import os
+import sys
+sys.path.append(os.getcwd()) # add parent directory
 
 from equivariant.nn import (
     FieldType,
     SequentialModule,
     GroupTensor,
 )
-from networks import (
-    Restriction,
-    EquivariantPool,
-    EquivariantConv,
-)
+from networks.equivariant_utils.eq_convs import EquivariantConv
+from networks.equivariant_utils.eq_other import EquivariantNorm, EquivariantPool
 from equivariant.nn.modules import nonlinearities
-from networks.eq_other import EquivariantNorm
-from networks.CNNs.wrn import WideResNet
+try:
+    from networks.test_models.wrn import WideResNet
+except:
+    print("WideResNet not found, parameter fix with iter not possible.")
+
 from networks.eq_resnet.util import (
     EquivariantWideConvBlock, 
     EquivariantWideConvBlock_vary_l, 
     EquivariantWideConvBlock_drop_out,
 )
 
-from networks.util import (
+from src.networks.equivariant_utils.utils import (
     calculate_output_image_size,
     get_fixed_params,
     get_gspace_from_name,
     get_param_count,
-    cuda_memory_usage,
 )
 
 

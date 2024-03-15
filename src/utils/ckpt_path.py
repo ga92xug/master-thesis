@@ -1,14 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
-
-import hydra
-import torch
 from lightning import Trainer
-from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
 import os
 
 from src.utils import RankedLogger
-
 log = RankedLogger(__name__, rank_zero_only=True)
 
 
@@ -26,13 +20,6 @@ def get_ckpt_path(cfg: DictConfig, mode: str, trainer: Trainer) -> str:
         # normal training
         # no ckpt path needed
         raise RuntimeError("No ckpt path needed for train mode!")
-    elif mode == "train_with_pretrain":
-        if trainer is None:
-            # load pretrained model
-            log.info("Loading pretrained model")
-            ckpt_path = cfg.ckpt_path
-        else:
-            raise RuntimeError("No ckpt path needed for train mode!")
     elif mode == "evaluate_only":
         ckpt_path = cfg.get("ckpt_path")
         if ckpt_path is None:

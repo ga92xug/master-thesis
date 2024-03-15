@@ -1,36 +1,22 @@
 from typing import Tuple, Callable, Iterable, List, Dict, Any, Mapping
-
 import math
 from torch import nn
-from omegaconf import DictConfig, OmegaConf
 import sys
 import os
-
 import torch
-
-from src.utils.equivariant_utils import create_filters_network
-
 sys.path.append(f"{os.getcwd()}")
-
+from src.utils.equivariant_utils import create_filters_network
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
 from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
-
-from src.networks.eq_restriction import Restriction_Group_or_CNN
+from src.networks.equivariant_utils.eq_restriction import Restriction_Group_or_CNN
 from src.networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
-
-from src.networks import (
-    EquivariantPool, 
-)
-from src.networks.eq_convs import (
-    Eq_Conv2dSamePadding,
-)
-
-from src.networks.util import (
+from src.networks import EquivariantPool
+from src.networks.equivariant_utils.eq_convs import Eq_Conv2dSamePadding
+from src.networks.equivariant_utils.utils import (
     get_group_id, 
     get_gspace_from_id, 
     adjusted_out_channels,
 )
-
 from equivariant.nn import (
     GroupTensor,
     FieldType,
@@ -40,13 +26,11 @@ from equivariant.nn import (
     Swish,
 )
 
-
 class EquivariantNASNet(nn.Module):
     def __init__(
         self, 
         blocks_args_dict: Dict[str, Any],
         image_size: int,
-        #seed: int,
         pre_trained: str = None,
         width_coefficient=1, 
         depth_coefficient=1,

@@ -1,10 +1,9 @@
-from copy import deepcopy
 import math
-from typing import Tuple
 import warnings
-import sys
 import torch
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+import os
+import sys
+sys.path.append(os.getcwd())   
 
 from equivariant.nn import (
     rot2dOnR2,
@@ -251,52 +250,52 @@ def get_param_count(model_name, in_mb=False, verbose=False):
 
 
 def get_gspace_from_name(group, rotation):
-        """Get group space for a given group and rotation.
-        Args:
-            group (str): Group name.
-            rotation (int): Rotation.
-        Returns:
-            gspace: Group space.
-        """
-        if group == "cyclic":
-            gspace = rot2dOnR2(rotation)
-        elif group == "dihedral":
-            gspace = flipRot2dOnR2(rotation)
-        elif group == "orthogonal":
-            gspace = flipRot2dOnR2(-1)
-        else:
-            raise ValueError(
-                f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
-            )
-        return gspace
+    """Get group space for a given group and rotation.
+    Args:
+        group (str): Group name.
+        rotation (int): Rotation.
+    Returns:
+        gspace: Group space.
+    """
+    if group == "cyclic":
+        gspace = rot2dOnR2(rotation)
+    elif group == "dihedral":
+        gspace = flipRot2dOnR2(rotation)
+    elif group == "orthogonal":
+        gspace = flipRot2dOnR2(-1)
+    else:
+        raise ValueError(
+            f'Group "{group}" is not know. Available groups: [cyclic, dihedral, orthogonal]'
+        )
+    return gspace
 
 def get_gspace_from_id(id):
-        """Get group space from id.
-        Args:
-            id (tuple): Group id.
-        Returns:
-            gspace: Group space.
-        """
-        if isinstance(id, tuple):
-            reflection, rotation = id
-        elif isinstance(id, int):
-            reflection, rotation = -1, id
-        else:
-            raise ValueError(
-                f'Group id "{id}" is not know. {type(id)}'
-            )
+    """Get group space from id.
+    Args:
+        id (tuple): Group id.
+    Returns:
+        gspace: Group space.
+    """
+    if isinstance(id, tuple):
+        reflection, rotation = id
+    elif isinstance(id, int):
+        reflection, rotation = -1, id
+    else:
+        raise ValueError(
+            f'Group id "{id}" is not know. {type(id)}'
+        )
 
-        if reflection is None or reflection == -1:
-            # cyclic
-            gspace = rot2dOnR2(rotation)
-        elif reflection >= 0:
-            # dihedral
-            gspace = flipRot2dOnR2(rotation)
-        else:
-            raise ValueError(
-                f'Group id "{id}" is not know.'
-            )
-        return gspace
+    if reflection is None or reflection == -1:
+        # cyclic
+        gspace = rot2dOnR2(rotation)
+    elif reflection >= 0:
+        # dihedral
+        gspace = flipRot2dOnR2(rotation)
+    else:
+        raise ValueError(
+            f'Group id "{id}" is not know.'
+        )
+    return gspace
 
 def compare_dicts(dict1, dict2):
     # Find keys that are unique to each dictionary
@@ -319,21 +318,5 @@ def compare_dicts(dict1, dict2):
     print("Keys unique to dict2:", keys_unique_to_dict2)
     print("Key-Value differences:", differences)
 
-from collections.abc import MutableMapping
 
-def flatten_dict(dictionary, parent_key='', separator='_'):
-    items = []
-    for key, value in dictionary.items():
-        new_key = str(parent_key) + str(separator) + str(key) if parent_key != "" else key
-        if isinstance(value, MutableMapping):
-            items.extend(flatten_dict(value, new_key, separator=separator).items())
-        else:
-            items.append((new_key, value))
-    return dict(items)
 
-if __name__ == "__main__":
-    nested_dict = {0: {'bla': 1, 'blu': 2}}
-    flattened_dict = flatten_dict(nested_dict)
-    print(flattened_dict)
-    #gspace = flipRot2dOnR2(4)
-    #print(gspace.fibergroup.regular_representation)

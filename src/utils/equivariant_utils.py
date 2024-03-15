@@ -1,4 +1,3 @@
-from typing import Tuple
 from torch import nn
 
 from equivariant.nn.modules.equivariant_module import EquivariantModule
@@ -12,10 +11,8 @@ def is_equivariant_model(network: nn.Module) -> bool:
         
     return False
         
-
 def create_filters_network(net: nn.Module):
     """Update the filters and bias of the equivariant layers with the pretrained weights."""
-    # the filter and bias have to be recomputed with the loaded weights
     for name, layer in net.named_modules():
         if isinstance(layer, R2Conv):
             layer.expand_parameters()

@@ -2,7 +2,7 @@ from typing import Tuple, List
 from torch import nn
 import numpy as np
 import sys
-from networks.util import cuda_memory_usage, get_fixed_params
+from src.networks.equivariant_utils.utils import cuda_memory_usage, get_fixed_params
 sys.path.append('../scaling-laws-ecnn') # add parent directory
 
 from equivariant.nn import (
@@ -12,8 +12,8 @@ from equivariant.nn import (
     PointwiseDropout,
 )
 from equivariant.nn.modules import nonlinearities
-from networks.eq_other import EquivariantNorm
-from networks.eq_convs import EquivariantConv
+from networks.equivariant_utils.eq_other import EquivariantNorm
+from networks.equivariant_utils.eq_convs import EquivariantConv
 
 
 class EquivariantWideConvBlock(EquivariantModule):

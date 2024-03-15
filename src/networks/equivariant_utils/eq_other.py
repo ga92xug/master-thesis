@@ -1,9 +1,8 @@
-from typing import Tuple, List
+from typing import Tuple
 from torch import nn
-import numpy as np
+import os
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
-import equivariant.nn as nn_eq
+sys.path.append(os.getcwd())
 
 from equivariant.nn import (
     FieldType,
@@ -22,19 +21,6 @@ __all__ = [
 ]
 
 
-def only_zero_freq(repr: Representation):
-    for irr in repr.irreps:
-        idx = list(
-            filter(
-                lambda x: repr.group.irreps()[x].name == f"irrep_{irr[0]},{irr[1]}",
-                range(len(repr.group.irreps())),
-            )
-        )
-        if repr.group.irreps()[idx[0]].attributes["frequency"] != 0:
-            return False
-    return True
-
-
 class EquivariantNorm(EquivariantModule):
     def __init__(
         self,
@@ -50,7 +36,6 @@ class EquivariantNorm(EquivariantModule):
 
         self.norm = norm(self.in_type, param)
         
-
         self.out_type = self.norm.out_type
 
     def forward(self, x):

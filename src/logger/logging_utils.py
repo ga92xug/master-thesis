@@ -1,7 +1,8 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 from lightning_utilities.core.rank_zero import rank_zero_only
-from omegaconf import OmegaConf
+from lightning.pytorch.loggers import Logger
+from omegaconf import DictConfig, OmegaConf
 
 from src.logger import pylogger
 
@@ -9,7 +10,7 @@ log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 
 
 @rank_zero_only
-def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
+def log_hyperparameters(loggers: List[Logger], cfg: DictConfig) -> None:
     """Controls which config parts are saved by Lightning loggers.
 
     Additionally saves:
@@ -22,11 +23,9 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
     """
     hparams = {}
 
-    cfg = OmegaConf.to_container(object_dict["cfg"], resolve=True)
-    model = object_dict["model"]
-    trainer = object_dict["trainer"]
+    cfg = OmegaConf.to_container(cfg, resolve=True)
 
-    if not trainer.logger:
+    if not loggers and len(loggers) == 0:
         log.warning("Logger not found! Skipping hyperparameter logging...")
         return
 
@@ -40,16 +39,6 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
         # backward compatibility
         hparams["training"] = cfg["training"]
 
-
-    # save number of model parameters
-    # hparams["model/params/total"] = sum(p.numel() for p in model.parameters())
-    # hparams["model/params/trainable"] = sum(
-    #     p.numel() for p in model.parameters() if p.requires_grad
-    # )
-    # hparams["model/params/non_trainable"] = sum(
-    #     p.numel() for p in model.parameters() if not p.requires_grad
-    # )
-
     hparams["hardware"] = cfg["hardware"]
     hparams["extras"] = cfg.get("extras")
     hparams["task_name"] = cfg.get("task_name")
@@ -59,5 +48,5 @@ def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
     hparams["optimized_metric"] = cfg.get("optimized_metric")
 
     # send hparams to all loggers
-    for logger in trainer.loggers:
+    for logger in loggers:
         logger.log_hyperparams(hparams)

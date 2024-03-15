@@ -14,7 +14,7 @@ from .eq_convs import (
     Eq_Conv2dSamePadding,
     Eq_Conv2dSamePaddingChangeFactor,
 )
-from .util import (
+from .equivariant_utils.utils import (
     get_width_and_height_from_size,
     calculate_output_image_size,
     cuda_memory_usage,

@@ -11,6 +11,10 @@ plotting/conf/*
 notebooks/*
 pre_processing/*
 src/adversarial_attack/*
+src/save_load/*
+
+plotting/*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

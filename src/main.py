@@ -3,25 +3,19 @@ import hydra
 import lightning as L
 import rootutils
 import torch
-from lightning import Callback, LightningDataModule, LightningModule, Trainer
+from lightning import Callback, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
-from lightning.pytorch.callbacks import BasePredictionWriter
-
 import os
+import random
 torch.set_float32_matmul_precision('high')
 os.environ['HYDRA_FULL_ERROR'] = '1'
-os.environ["WANDB__SERVICE_WAIT"]="180"
 
 rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
-from src._callbacks.move_2_device import Move_2_Device 
-from src._callbacks.log_code import Log_Code
-from src._callbacks.log_config_manually import Log_Config
 from src.data.datamodule import DataModule
 from src.training_loop.lightning_module import LitModule
 from src.utils.ckpt_path import get_ckpt_path
-from src.utils.utils import recursive_print_dict
-
+from src.logger import instantiate_loggers
 from src.utils import (
     RankedLogger,
     extras,
@@ -31,22 +25,13 @@ from src.utils import (
     task_wrapper,
     get_test_trainer,
 )
-
-from src.logger import (
-    instantiate_loggers
-)
-
-from src.adversarial_attack.adversarial_attack import adversarial_attack
-
-from utils.hash_model import model_hash
-
 log = RankedLogger(__name__, rank_zero_only=True)
 
 
 def instantiate(
     cfg: DictConfig,
     train_mode: str,
-) -> Dict[str, Union[DictConfig, DataModule, LightningModule, List[Callback], List[Logger], Trainer]]:
+) -> Tuple[DataModule, LightningModule, List[Callback], List[Logger], Trainer]:
     """
     Instantiates all objects needed for lightning training (or testing).
     """
@@ -56,32 +41,18 @@ def instantiate(
     log.info("Instantiating datamodule")
     datamodule = DataModule(cfg.train.dataset, is_dist=is_dist)
 
-    if train_mode == "train_with_pretrain":
-        # load pretrained model
-        log.info("Loading pretrained model")
-        ckpt_path = get_ckpt_path(cfg, train_mode, trainer=None)
-        assert ckpt_path, "Checkpoint path must be provided for train_with_pretrain mode."
-        model = LitModule.load_from_checkpoint(ckpt_path)
-    else:
-        log.info("Instantiating model")
-        # for the other modes the trainer will take care of loading the weights if needed
-        model = LitModule(
-            **cfg.train,
-            num_channels=datamodule.num_channels,
-            num_classes=datamodule.num_classes,
-            image_size=datamodule.image_size,
-            normalization_weights=datamodule.normalization_weights,
-            seed=cfg.seed,
-        )
+    log.info("Instantiating model")
+    model = LitModule(
+        **cfg.train,
+        num_channels=datamodule.num_channels,
+        num_classes=datamodule.num_classes,
+        image_size=datamodule.image_size,
+        normalization_weights=datamodule.normalization_weights,
+        seed=cfg.seed,
+    )
 
     log.info("Instantiating callbacks")
-    callbacks: List[Callback] = instantiate_callbacks(cfg.train.get("callbacks", None))
-    # essential callbacks
-    callbacks.extend([Move_2_Device(), Log_Code(), Log_Config(cfg)])
-    test_mode = cfg.get("test_mode", "no_test")
-    if test_mode == "predict":
-        # the should be a write_predictions callback
-        assert any([isinstance(callback, BasePredictionWriter) for callback in callbacks]), "No callback found for writing predictions!"
+    callbacks: List[Callback] = instantiate_callbacks(cfg)
 
     log.info("Instantiating loggers")
     logger: List[Logger] = instantiate_loggers(
@@ -94,49 +65,19 @@ def instantiate(
         **{**cfg.train.trainer, **cfg.hardware},
         callbacks=callbacks,
         logger=logger,
-        # distributed sampling is already done by our datamodule
-        use_distributed_sampler=False,
+        use_distributed_sampler=False, # distributed sampling is already done by our datamodule
     )
 
-    object_dict = {
-        "cfg": cfg,
-        "datamodule": datamodule,
-        "model": model,
-        "callbacks": callbacks,
-        "logger": logger,
-        "trainer": trainer,
-    }
+    log_hyperparameters(loggers=logger, cfg=cfg)
+    return datamodule, model, callbacks, logger, trainer
 
-    if logger:
-        log.info("Logging hyperparameters!")
-        log_hyperparameters(object_dict)
-
-    return object_dict
-
-@task_wrapper
-def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-    """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
-    training.
-
-    This method is wrapped in optional @task_wrapper decorator, that controls the behavior during
-    failure. Useful for multiruns, saving info about the crash, etc.
-
-    :param cfg: A DictConfig configuration composed by Hydra.
-    :return: A tuple with metrics and dict with all instantiated objects.
-    """
-    # set seed for random number generators in pytorch, numpy and python.random
-    if cfg.get("seed"):
-        L.seed_everything(cfg.seed, workers=True)
-
-    train_mode = cfg.get("train_mode", "train")
-
-    object_dict = instantiate(cfg, train_mode)
-    datamodule: DataModule = object_dict["datamodule"]
-    model: LitModule = object_dict["model"]
-    callbacks: List[Callback] = object_dict["callbacks"]
-    logger: List[Logger] = object_dict["logger"]
-    trainer: Trainer = object_dict["trainer"]  
-    
+def train(
+        cfg: DictConfig,
+        datamodule: DataModule,
+        model: LightningModule,
+        trainer: Trainer,
+        train_mode: str,
+    ) -> Dict[str, Any]:
     if train_mode == "evaluate_only":
         log.info("Running in evaluate_only mode.")
         ckpt_path = get_ckpt_path(cfg, train_mode, trainer)
@@ -150,10 +91,18 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
     else:
         raise ValueError(f"Unknown training mode: {train_mode}")
+    
+    return trainer.callback_metrics
 
-    train_metrics = trainer.callback_metrics
-    test_mode = cfg.get("test_mode", "no_test")
-
+def test(
+        cfg: DictConfig,
+        datamodule: DataModule,
+        model: LightningModule,
+        trainer: Trainer,
+        test_mode: str,
+        logger: List[Logger],
+        callbacks: List[Callback],
+    ):
     if test_mode == "test":
         log.info("Starting testing.")
         trainer = get_test_trainer(cfg, trainer, logger=logger, callbacks=callbacks)
@@ -170,25 +119,46 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     else:
         raise ValueError(f"Unknown test mode: {test_mode}")
 
-    test_metrics = trainer.callback_metrics
+    return trainer.callback_metrics
 
+@task_wrapper
+def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
+    training.
 
+    This method is wrapped in optional @task_wrapper decorator, that controls the behavior during
+    failure. Useful for multiruns, saving info about the crash, etc.
+
+    :param cfg: A DictConfig configuration composed by Hydra.
+    :return: A tuple with metrics and dict with all instantiated objects.
+    """
+    # instantiate all objects
+    train_mode = cfg.get("train_mode", "train")
+    datamodule, model, callbacks, logger, trainer = instantiate(cfg, train_mode) 
+    
+    # train
+    train_metrics = train(cfg, datamodule, model, trainer, train_mode)
+
+    # test
+    test_mode = cfg.get("test_mode", "no_test")
+    test_metrics = test(cfg, datamodule, model, trainer, test_mode, logger, callbacks)
+
+    # adversarial attack
     if cfg.get("adversarial_attack", False):
         log.info("Start adversarial attack")
         datamodule.setup()
-        adversarial_attack(
-            mode=cfg.adversarial_attack,
+        hydra.utils.call(
+            cfg.adversarial_attack, 
             model=model.net,
-            dataloader=datamodule.test_dataloader(),
-            cfg=cfg,
-            logger=logger,
+            dataloader=datamodule.test_dataloader(), 
+            cfg=cfg, 
+            logger=logger
         )
-
-
+        
     # merge train and test metrics
     metric_dict = {**train_metrics, **test_metrics}
 
-    return metric_dict, object_dict
+    return metric_dict
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="conf.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
@@ -197,61 +167,26 @@ def main(cfg: DictConfig) -> Optional[float]:
     :param cfg: DictConfig configuration composed by Hydra.
     :return: Optional[float] with optimized metric value.
     """
-    #import random
-    #print("scheduler", cfg.train.scheduler)
-    #return random.random()
-
-    L.seed_everything(cfg.seed)
-    # does not work with pickle
-    #if cfg.get("deterministic"):
-    #    torch.backends.cudnn.deterministic = True
-    #    torch.backends.cudnn.benchmark = False
+    if cfg.get("test_hp_search", False):
+        # if we are testing the hyperparameter search, we return a random value
+        return random.random()
+    L.seed_everything(cfg.seed, workers=True)
 
     # apply extra utilities
     # (e.g. ask for tags if none are provided in cfg, print cfg tree, etc.)
     extras(cfg)
 
     # train the model
-    metric_dict, _ = train(cfg) 
+    metric_dict = train(cfg) 
 
     # safely retrieve metric value for hydra-based hyperparameter optimization
     metric_value = get_metric_value(
         metric_dict=metric_dict, metric_name=cfg.get("optimized_metric")
     )
 
-    # return optimized metric
     return metric_value
 
 
 if __name__ == "__main__":
     main()
 
-
-"""
-    elif train_mode in ["train", "train_with_pretrain"]:
-        log.info("Starting training.")
-        trainer.fit(model=model, datamodule=datamodule)
-        #model.net.cuda()
-        model.net.eval()
-        torch.save(model.net.state_dict(), 'temp_model.pth')
-        quit()
-        trainer.validate(model=model, datamodule=datamodule, ckpt_path=None, verbose=True)
-        trainer.test(model=model, datamodule=datamodule, ckpt_path=None)
-        print("Saving model")
-        print("hash conv weight", hash_tensor(model.net._conv_stem.conv2d.conv.weights))
-        if not hasattr(model.net._conv_stem.conv2d.conv, "filter"):
-            #print("No filter")
-            from equivariant.nn.modules.conv import R2Conv
-            for name, layer in model.net.named_modules():
-                if isinstance(layer, R2Conv):
-                    #print(f"Loading layer {name}")
-                    _filter, _bias = layer.expand_parameters()
-                    layer.filter = _filter
-                    if _bias is not None:
-                        layer.expanded_bias = _bias
-                    else:
-                        layer.expanded_bias = None
-        print("hash conv filter", hash_tensor(model.net._conv_stem.conv2d.conv.filter))
-        torch.save(model.net.state_dict(), 'temp_model.pth')
-        quit()
-"""

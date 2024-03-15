@@ -131,7 +131,15 @@ def get_metric_value(metric_dict: Dict[str, Any], metric_name: Optional[str]) ->
     return metric_value
 
 
-def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], callbacks: List[L.Callback]) -> L.Trainer:
+def get_test_trainer(
+        cfg: DictConfig, 
+        trainer: L.Trainer, 
+        logger: List[Logger], 
+        callbacks: List[L.Callback]
+    ) -> L.Trainer:
+    """
+    Returns a (new) trainer for testing to avoid using multiple devices or nodes.
+    """
     # set number of devices and nodes to 1 for testing
     if trainer.num_devices > 1 or trainer.num_nodes > 1:
         if cfg.hardware.get("num_nodes", 1) > 1:
@@ -145,7 +153,6 @@ def get_test_trainer(cfg: DictConfig, trainer: L.Trainer, logger: List[Logger], 
             callbacks=callbacks,
             logger=logger,
         )
-        
     return trainer
     
 

@@ -2,9 +2,10 @@ import math
 from typing import Tuple, List
 from torch import nn
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+import os
+sys.path.append(os.getcwd())
 
-from src.networks.eq_other import EquivariantNorm, EquivariantPool
+from src.networks.equivariant_utils.eq_other import EquivariantNorm, EquivariantPool
 
 from equivariant.nn import (
     GroupTensor,
