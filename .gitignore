@@ -3,7 +3,7 @@ imgs/
 figures/
 environment_from_framework.yaml
 spec-file.txt
-#notebooks/
+notebooks/
 pre_trained_models/
 scripts/alex
 pypeline.log.*
@@ -12,9 +12,7 @@ notebooks/*
 pre_processing/*
 src/adversarial_attack/*
 src/save_load/*
-
 plotting/*
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
