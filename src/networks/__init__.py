@@ -1,12 +1,12 @@
-from .eq_other import (
+from .equivariant_utils.eq_other import (
     EquivariantNorm,
     EquivariantPool,
 )
-from .eq_restriction import (
+from .equivariant_utils.eq_restriction import (
     Restriction,
     Restriction_from_id,
 )
-from .eq_convs import (
+from .equivariant_utils.eq_convs import (
     EquivariantConv,
     EquivariantConvBlock,
     EquivariantSqueezeExcitation,

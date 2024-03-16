@@ -12,7 +12,7 @@ from equivariant.nn import (
     DisentangleModule,
     RestrictionModule,
 )
-from src.networks.eq_other import EquivariantPool
+from src.networks.equivariant_utils.eq_other import EquivariantPool
 
 class Restriction(EquivariantModule):
     def __init__(
