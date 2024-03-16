@@ -122,7 +122,7 @@ def test(
     return trainer.callback_metrics
 
 @task_wrapper
-def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def train_eval_entrypoint(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
     training.
 
@@ -177,7 +177,7 @@ def main(cfg: DictConfig) -> Optional[float]:
     extras(cfg)
 
     # train the model
-    metric_dict = train(cfg) 
+    metric_dict = train_eval_entrypoint(cfg) 
 
     # safely retrieve metric value for hydra-based hyperparameter optimization
     metric_value = get_metric_value(

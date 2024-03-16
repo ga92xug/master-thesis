@@ -1,4 +1,4 @@
-_target_: src.data.datasets.predefined.create_datasets.create_datasets
+_target_: src.data._datasets.predefined.create_datasets.create_datasets
 name: cifar10
 
 augment: 

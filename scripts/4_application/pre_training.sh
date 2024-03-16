@@ -6,6 +6,5 @@ python src/main.py experiment=pre-training/imagenet_100 test_mode=no_test \
     train.network.blocks_args_dict._4.reflection=0 \
     train.network.blocks_args_dict._4.group=1 \
     train_mode=train_continue \
-    ckpt_path=logs/pretrain/2024-02-25_19-32-25/checkpoints/last.ckpt \
+    ckpt_path=logs/pretrain/runs/2024-03-05_15-15-31/checkpoints/epoch_042.ckpt \
     train.trainer.accumulate_grad_batches=8 \
-    

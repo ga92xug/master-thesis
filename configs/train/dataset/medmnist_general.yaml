@@ -1,10 +1,10 @@
-_target_: src.data.datasets.med_mnist.create_datasets.create_datasets
+_target_: src.data._datasets.med_mnist.create_datasets.create_datasets
 augment: False
 data_dir: 
 #reduction_factor: 1
 #data:
 #  # for hydra call of get_data 
-#  _target_: src.data.datasets.custom.get_data.get_${train.dataset.data.name}
+#  _target_: src.data._datasets.custom.get_data.get_${train.dataset.data.name}
 #  resolution: ${train.dataset.resolution}
 #
 resolution: 28
