@@ -4,26 +4,22 @@
 # python train.py -m hparams_search=mnist_optuna experiment=example
 
 defaults:
+  - override /hydra/launcher: slurm
   - override /hydra/sweeper: ax
   - override /train/network: eq_nasnet
-  - override /train: deepdrip
+  - override /train: blood
+  - override /train/scheduler: cosine_annealing_lr
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
 test_mode: test
-tags: "[valid_loss]"
+tags: ["blood_eq_nasnet_pretrained_full_data"]
 
 seed: null
 
 train:
-  dataset:
-    reduction_factor: 0.1
-  callbacks:
-    early_stopping:
-      patience: 100
   trainer:
-    max_epochs: 200
-    check_val_every_n_epoch: 5
+    max_epochs: 50
 
   network:
     dropout_rate: 0.5
@@ -33,25 +29,25 @@ logger:
   wandb:
     project: "HparamsSearch"
 
-# choose metric which will be optimized by Optuna
 optimized_metric: "valid/loss"
 
-# here we define Optuna hyperparameter search
 hydra:
   mode: "MULTIRUN" 
-
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
+    launcher:
+      max_num_timeout: 4
+      timeout_min: 360 
 
-    max_batch_size: 2
+    max_batch_size: 5
     ax_config:
-      max_trials: 40
+      max_trials: 20
       early_stop:
         minimize: true
         max_epochs_without_improvement: 10
         epsilon: 1.0e-05
       experiment:
-        name: deepdrip_eq_nasnet_pretrained
+        name: blood_eq_nasnet_pretrained
         objective_name: ${optimized_metric}
         minimize: true
         parameter_constraints: null

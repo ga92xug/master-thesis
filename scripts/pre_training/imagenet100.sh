@@ -1,3 +1,4 @@
+#!/bin/bash
 python src/main.py experiment=pre-training/imagenet_100 test_mode=no_test \
     task_name=pretrain \
     train.dataset.batch_size=128 \

@@ -4,52 +4,43 @@
 # python train.py -m hparams_search=mnist_optuna experiment=example
 
 defaults:
+  - override /hydra/launcher: slurm # massively parallelize the search
   - override /hydra/sweeper: ax
-  - override /train: deepdrip
-  - override /train/network: eq_nasnet
-  - override /train/scheduler: null
+  - override /train: oct
+  - override /train/network: eq_nasnet_pre
   - override /logger: wandb
 
 task_name: ${logger.wandb.project}
 test_mode: test
-tags: ["valid_loss"]
+tags: ["valid/acc_weighted"]
 
 seed: null
-
-train:
-  trainer:
-    max_epochs: 50
-    val_check_interval: 1.0
-
-  network:
-    dropout_rate: 0.5
-    pre_trained: logs/pretrain/2024-02-25_19-32-25/checkpoints/epoch_039.ckpt
 
 logger:
   wandb:
     project: "HparamsSearch"
 
-# choose metric which will be optimized by Optuna
-optimized_metric: "valid/loss"
+optimized_metric: "valid/acc_weighted"
 
-# here we define Optuna hyperparameter search
 hydra:
   mode: "MULTIRUN" 
+  launcher:
+    timeout_min: 240 # 4 hours
+    max_num_timeout: 4
 
   sweeper:
     _target_: hydra_plugins.hydra_ax_sweeper.ax_sweeper.AxSweeper
-
-    max_batch_size: 1
+    max_batch_size: 5 # number of parallel jobs
     ax_config:
-      max_trials: 40
+      max_trials: 20
       early_stop:
-        minimize: true
+        minimize: false
         max_epochs_without_improvement: 10
         epsilon: 1.0e-05
       experiment:
-        name: deepdrip_eq_nasnet_pretrained
+        name: oct_eq_nasnet
         objective_name: ${optimized_metric}
-        minimize: true
+        minimize: false
         parameter_constraints: null
         outcome_constraints: null
         status_quo: null
@@ -68,5 +59,4 @@ hydra:
           type: range
           bounds: [1e-6, 1e-2]
           log_scale: true
-
 
