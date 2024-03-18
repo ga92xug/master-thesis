@@ -12,7 +12,7 @@ notebooks/*
 pre_processing/*
 src/adversarial_attack/*
 src/save_load/*
-plotting/*
+#plotting/*
 *not_used*
 
 # Byte-compiled / optimized / DLL files
