@@ -1,0 +1,13 @@
+DeepDRiD:
+  filters:
+    config.training.adversarial_attack: Foolbox
+    config.training.epochs: 100 # full training
+    config.training.dataset.name: DeepDRiD_quality
+Blood:
+  filters:
+    config.training.adversarial_attack: Foolbox
+    config.training.epochs: 100 # full training
+    config.training.dataset.name: blood
+
+
+wandb_projects: ["SL-Application"]

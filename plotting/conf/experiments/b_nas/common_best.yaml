@@ -1,0 +1,53 @@
+mnist12k:
+  labels_run_ids:
+    Eq-NASNet: [d9fwlmg6]
+    Eq-WRN-16-4: [v39l5c9e]
+    WRN-16-4: [8182cpum]
+  dataset: mnist12k
+
+mnist_rot:
+  labels_run_ids:
+    Eq-NASNet: [emm8y2em]
+    Eq-WRN-16-4: [dvbnwzbz]
+    NAS-on-MNIST rot: [3tfzbuct]
+    WRN-16-4: [stz622pp]
+  dataset: mnist_rot
+
+cifar10:
+  labels_run_ids:
+    Eq-NASNet: [oj1twq4i]
+    Eq-WRN-16-4: [lzpxj79q]
+    NAS-on-CIFAR10: [o9tte2ci]
+    WRN-16-4: [tn05kvz2]
+    #DenseNet: [9z9q8wvp]
+  dataset: cifar10
+
+#galaxy10-eq_nasnet_tests:
+#  labels_run_ids:
+#    normal: [fpnm1nkc]
+#    se0_d0.2_w2: [36jzil3m]
+#    se0_d0.0_w2: [rmuv5wmj]
+#    se0_d0.0_w1: [4784sgy5]
+#  dataset: galaxy10
+
+galaxy10-normal:
+  labels_run_ids:
+    Eq-NASNet: [36jzil3m]
+    Eq-WRN-16-4: [c3vqa6y2]
+    NAS-on-Galaxy10: [iogz6ykb]
+    #DenseNet: [dvf3c02p]
+    WRN-16-4: [jghlotrz]
+  dataset: galaxy10
+
+isic2019:
+  labels_run_ids:
+    Eq-NASNet: [sn2lrp4a, si8ubh8x, n2exzy14]
+    Eq-WRN-16-4: [f2fgkmto]
+    WRN-16-4: [n7i1jtw6]
+    #DenseNet: [d6mr3c2r]
+  #horizontal_line:
+  #  y: 0.65
+  #  label: SOTA
+  #  color: red
+  #  linestyle: dashed
+  dataset: isic2019

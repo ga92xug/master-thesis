@@ -7,7 +7,7 @@ notebooks/
 pre_trained_models/
 scripts/alex
 pypeline.log.*
-plotting/conf/*
+#plotting/conf/*
 notebooks/*
 pre_processing/*
 src/adversarial_attack/*
