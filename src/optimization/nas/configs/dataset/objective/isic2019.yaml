@@ -1,0 +1,13 @@
+bounds:
+  valid/acc_weighted: 0.62
+  GFLOPs_per_image: 8000
+max_building_time: 600    # in seconds
+
+objectives:
+  _0:
+    name: valid/acc_weighted
+    minimize: false
+  _1:
+    name: GFLOPs_per_image
+    minimize: false
+    

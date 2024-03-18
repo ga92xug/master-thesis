@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+  - objective: isic2019
+  - search_space: 3blocks
+
+name: isic2019
+
+
+  

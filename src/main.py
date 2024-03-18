@@ -68,7 +68,7 @@ def instantiate(
         use_distributed_sampler=False, # distributed sampling is already done by our datamodule
     )
 
-    log_hyperparameters(loggers=logger, cfg=cfg)
+    log_hyperparameters(loggers=logger, cfg=cfg, net_building_time=model.net_building_time)
     return datamodule, model, callbacks, logger, trainer
 
 def train(

@@ -28,6 +28,15 @@ pip install -r requirements.txt
 
 Adjust the output folder etc. in `training/conf/config.yaml`.
 
+Unfortunatly the Hydra Ax sweeper that we use for the HPO requires a Ax version that does not support multiobjective optimization yet. However we need multiobjective optimization for the Neural Architecture Search. This should be fixed in the next version. Currently we recommend a separate environment where you adjust the Ax version for the HPO:
+
+```shell
+pip install gpytorch==1.8.1 # hydra fixes the wrong gpytorch version currently
+pip install ax-platform==0.2.0 # multiobjective not supported
+pip install hydra-ax-sweeper --upgrade # install the plugin
+```
+Known caveats: https://github.com/facebookresearch/hydra/issues/2813, https://github.com/pytorch/botorch/issues/1370 
+
 ## Dataset
 
 Download the necessary datasets and adjust the `data_dir` in `training/conf/config.yaml`.

@@ -10,7 +10,7 @@ log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 
 
 @rank_zero_only
-def log_hyperparameters(loggers: List[Logger], cfg: DictConfig) -> None:
+def log_hyperparameters(loggers: List[Logger], cfg: DictConfig, net_building_time: str) -> None:
     """Controls which config parts are saved by Lightning loggers.
 
     Additionally saves:
@@ -46,6 +46,7 @@ def log_hyperparameters(loggers: List[Logger], cfg: DictConfig) -> None:
     hparams["ckpt_path"] = cfg.get("ckpt_path")
     hparams["seed"] = cfg.get("seed")
     hparams["optimized_metric"] = cfg.get("optimized_metric")
+    hparams["net_building_time"] = net_building_time
 
     # send hparams to all loggers
     for logger in loggers:

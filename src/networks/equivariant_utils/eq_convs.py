@@ -225,6 +225,7 @@ class EquivariantSqueezeExcitation(EquivariantModule):
     def __init__(
         self,
         in_type: FieldType,
+        bias: bool = False,
         sequeeze_ratio: float = 0.25,
     ):
         super(EquivariantSqueezeExcitation, self).__init__()
@@ -236,7 +237,8 @@ class EquivariantSqueezeExcitation(EquivariantModule):
             in_type=self.in_type, 
             change_factor=sequeeze_ratio, 
             kernel_size=1, 
-            padding=0
+            padding=0,
+            bias=bias,
         )
 
         self.act_func = Swish(self.conv1.out_type)
@@ -245,7 +247,8 @@ class EquivariantSqueezeExcitation(EquivariantModule):
             self.act_func.out_type, 
             len(self.in_type),
             kernel_size=1, 
-            padding=0
+            padding=0,
+            bias=bias,
         )
 
         self.scale_activation = NormNonLinearity(

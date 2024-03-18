@@ -1,0 +1,27 @@
+defaults:
+  - _self_
+  - dataset: isic2019
+
+exp_name: test
+seed: 42
+evaluate_only: False
+save_path: logs/nas/${exp_name}
+save_every: 1
+
+generation:
+  num_total_trials: 100  # total evaluation budget
+  num_sobol_trials: 25 # 25
+  num_fullbayesian_trials: -1
+  batch_size: 1
+  disable_progbar: True
+  num_samples: 256 
+  warmup_steps: 512
+  #num_botorch_trials: 15
+
+dataset:
+  additional_overrides:
+    train: ${dataset.name}
+    train/scheduler: cosine_annealing_lr # param free scheduler
+    train/network: eq_nasnet
+    logger: csv
+    logger.csv.save_dir: ${save_path}

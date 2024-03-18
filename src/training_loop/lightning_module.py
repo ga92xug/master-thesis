@@ -297,6 +297,8 @@ class LitModule(LightningModule):
             # Cancel alarm
             signal.alarm(0)
 
+        
+
         return net
 
    

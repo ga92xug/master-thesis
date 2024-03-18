@@ -1,18 +1,7 @@
-from ax import (
-    ChoiceParameter,
-    ParameterType,
-    RangeParameter,
-    SearchSpace,
-    ParameterConstraint,
-)
-from ax import ParameterType, RangeParameter, SearchSpace
-from ax.core import ParameterConstraint, OrderConstraint
 import numpy as np
 from omegaconf import OmegaConf
 import warnings
 
-from requests import get
-from torch import mul
 warnings.filterwarnings("ignore", category=UserWarning)
 
 

@@ -1,0 +1,8 @@
+# @package _global_
+
+
+generation:
+  num_samples: 16 #128
+  warmup_steps: 32 # 256
+  disable_progbar: False
+  num_sobol_trials: 2

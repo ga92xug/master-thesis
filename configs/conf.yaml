@@ -71,3 +71,6 @@ ckpt_path: null
 seed: 0
 
 adversarial_attack: False # Foolbox
+
+NAS:
+  trial_index: -1

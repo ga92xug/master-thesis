@@ -76,7 +76,7 @@ def task_wrapper(task_func: Callable) -> Callable:
         exit_code = 0
         # execute the task
         try:
-            metric_dict, object_dict = task_func(cfg=cfg)
+            metric_dict = task_func(cfg=cfg)
 
         # things to do if exception occurs
         except Exception as ex:
@@ -102,7 +102,7 @@ def task_wrapper(task_func: Callable) -> Callable:
                     # when there was an exception, mark the run as failed
                     wandb.finish(exit_code)
 
-        return metric_dict, object_dict
+        return metric_dict
 
     return wrap
 
