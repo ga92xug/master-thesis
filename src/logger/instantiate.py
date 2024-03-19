@@ -1,15 +1,10 @@
 from typing import List, Union, Dict
 
 import hydra
-from lightning import Callback
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
-import torch
-import wandb
 
 from src.logger import pylogger
-from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
-
 log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 
 
@@ -67,7 +62,7 @@ def give_wandb_name(
     
     # do check for true, since strings are also true
     if give_name == True:
-        if project == "SL-Scaling":
+        if project == "scaling":
             assert isinstance(model_name, dict), "for scaling name need a dict"
             return model_name["scaling_name"]
         else:

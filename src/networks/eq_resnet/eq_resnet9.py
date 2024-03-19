@@ -3,10 +3,11 @@ import numpy as np
 from typing import Tuple
 import torch
 from torch import nn
+import os
 import sys
-sys.path.append('../scaling-laws-ecnn') # add parent directory
+sys.path.append(f"{os.getcwd()}")
 
-from nn import (
+from equivariant.nn import (
     rot2dOnR2,
     flipRot2dOnR2,
     FieldType,

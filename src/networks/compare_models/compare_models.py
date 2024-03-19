@@ -70,7 +70,6 @@ class ViT(torch.nn.Module):
                 in_channels=num_channels, out_channels=768, kernel_size=16, stride=16
             )
 
-
         # Modify the last fully connected layer to have num_classes
         in_features = self.model.heads[0].in_features
         self.model.heads[0] = torch.nn.Linear(in_features, num_classes)

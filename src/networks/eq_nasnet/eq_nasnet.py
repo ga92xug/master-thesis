@@ -5,9 +5,9 @@ import sys
 import os
 import torch
 sys.path.append(f"{os.getcwd()}")
+from src.networks.eq_nasnet.utils import set_eq_nasnet_name
 from src.utils.equivariant_utils import create_filters_network
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
-from src.networks.eq_nasnet.naming_eq_nasnet import get_scaling_name
 from src.networks.equivariant_utils.eq_restriction import Restriction_Group_or_CNN
 from src.networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
 from src.networks import EquivariantPool
@@ -46,13 +46,9 @@ class EquivariantNASNet(nn.Module):
         **kwargs,
     ):
         super().__init__() 
-        #blocks_args = list(blocks_args)
         assert isinstance(image_size, int), 'Please provide valid image size'
         self.pre_trained = pre_trained
         self.image_size = image_size
-        #self.seed = seed
-        #assert isinstance(blocks_args, list), f'blocks_args should be a list, is a {type(blocks_args)}'
-        #assert len(blocks_args) > 0, 'block args must be greater than 0'
         self.verbose = verbose
         self.dropout_rate = dropout_rate
         self.eq_expand_ratio = eq_expand_ratio
@@ -71,7 +67,15 @@ class EquivariantNASNet(nn.Module):
         gspace = get_gspace_from_id(group_id)
         self.gspace = gspace
 
-        self.set_name()
+        self.name = set_eq_nasnet_name(
+            pre_trained=pre_trained,
+            gspace=gspace,
+            blocks_args_list=self.blocks_args_list,
+            depth_coefficient=depth_coefficient,
+            width_coefficient=width_coefficient,
+            image_size=image_size,
+            dropout_rate=dropout_rate,
+        )
 
         self.input_field_type = FieldType(
             self.gspace, [self.gspace.trivial_repr] * num_channels
@@ -97,9 +101,8 @@ class EquivariantNASNet(nn.Module):
         self.image_size = int(math.ceil(self.image_size / stem_args.stride))
 
         # Build blocks
-        self._blocks = nn.ModuleDict({})
-        
         # block 0 is the stem, block -1 is the head
+        self._blocks = nn.ModuleDict({})
         for i, block_args in enumerate(self.blocks_args_list[1:-1]):
             if self.verbose > 3:
                 print(f"Building block: {i+1}")
@@ -109,9 +112,11 @@ class EquivariantNASNet(nn.Module):
         out_channels = self.build_head(verbose, fixed_params)
 
         # pooling
-        if verbose > 3:
-            print("pooling image size: ", self.image_size)
-        pool_size, linear_input_size = self.pool_like(out_channels, num_classes, image_size=self.image_size)
+        pool_size, linear_input_size = self.pool_like(
+            out_channels=out_channels, 
+            num_classes=num_classes, 
+            image_size=self.image_size
+        )
         self._avg_pooling = nn.AdaptiveAvgPool2d(pool_size)
 
         self.dropout = nn.Dropout(self.dropout_rate)   
@@ -181,7 +186,6 @@ class EquivariantNASNet(nn.Module):
     )-> nn.Module:  
         setting = restrict.setting
         if setting in ["cnn", "switch"]:
-            
             layer = NAS_layer(
                     in_channel_size=self.field_type,
                     block_args=block_args,
@@ -189,7 +193,6 @@ class EquivariantNASNet(nn.Module):
                     dropout_rate=self.dropout_rate,
                     expand_ratio=self.cnn_expand_ratio,
                 )
-        
         else:
             layer = Eq_NAS_layer(
                     in_type=self.field_type,
@@ -262,21 +265,6 @@ class EquivariantNASNet(nn.Module):
             out_channels = len(self.invariant_map.out_type)
         return out_channels
     
-    
-    def set_name(self):
-        pre_trained = "-pre" if self.pre_trained else ""
-        model_name = f"Eq-NasNet{pre_trained}-{self.gspace.fibergroup}-b{len(self.blocks_args_list)-2}-d{self.depth_coefficient}-w{self.width_coefficient}-r{self.image_size}-drop{self.dropout_rate:.2f}"
-        scaling_name = get_scaling_name(
-            blocks_args_list=self.blocks_args_list,
-            width_coefficient=self.width_coefficient,
-            resolution=self.image_size,    
-        )
-        self.name = {
-            "model_name": model_name,
-            "scaling_name": scaling_name,
-        }
-
-
     def load_state_dict(self, state_dict: Mapping[str, Any], strict: bool = True):
         super().load_state_dict(state_dict, strict=strict)
         #from equivariant.nn.modules.conv import R2Conv
@@ -284,17 +272,6 @@ class EquivariantNASNet(nn.Module):
         # check seed is the same 
         #assert self.seed == state_dict["seed"], "Save and load seeds are not the same"
         create_filters_network(self)
-
-
-    def pool_like(self, output: int, num_classes: int, image_size) -> Tuple[int, int]:
-        if output >= num_classes:
-            # we can fully pool over spatial dimensions
-            return 1, output
-        
-        pooling_size = int(math.ceil(math.sqrt(num_classes / output)))
-        assert pooling_size > 1, "Pooling size must be greater than 1"
-        assert pooling_size <= image_size, "Pooling size must be less than or equal to image size"
-        return pooling_size, output * pooling_size * pooling_size
 
     def load_pre_trained(self, pre_trained: str):
         assert os.path.isfile(pre_trained), f"Pre-trained weights not found at {pre_trained}"

@@ -17,7 +17,7 @@ from networks.equivariant_utils.eq_convs import EquivariantConv
 from networks.equivariant_utils.eq_other import EquivariantNorm, EquivariantPool
 from equivariant.nn.modules import nonlinearities
 try:
-    from networks.test_models.wrn import WideResNet
+    from networks.not_used.wrn import WideResNet
 except:
     print("WideResNet not found, parameter fix with iter not possible.")
 

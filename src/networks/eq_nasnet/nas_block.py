@@ -1,28 +1,22 @@
-import copy
 from typing import List, Tuple
-from numpy import block
 import torch
-from torch import batch_norm, nn
+from torch import nn
 from torch.nn import functional as F
+import os
 import sys
-
-
-sys.path.append('../networks') # add parent directory
+sys.path.append(f"{os.getcwd()}")
 
 from src.networks.eq_nasnet.block_args import BlockArgs
-
 from src.networks.equivariant_utils.eq_other import EquivariantPool
 from src.networks.equivariant_utils.eq_convs import (
     EquivariantConv,
     EquivariantSqueezeExcitation,
     Eq_Conv2dSamePadding,
 )
-
 from src.networks.equivariant_utils.utils import (
     calculate_output_image_size, 
     adjusted_out_channels,
 )
-
 from equivariant.nn import (
     GroupTensor,
     FieldType,
@@ -127,18 +121,9 @@ class Eq_NAS_layer(EquivariantModule):
         self.dropout = PointwiseDropout(self._conv2.out_type, p=dropout_rate)
         self.out_type = self.dropout.out_type
 
-        #print("skip connection ", self.original_in_type.size, self._conv2.out_type.size)
-        #print("type ", self.original_in_type, self._conv2.out_type)
-        # Skip connection
-        # if block_args.skip == "identity" and block_args.stride == 1 and \
-        #     in_channel_size == block_args.out_channel:
-        #     #print("skip identity")
-        #     self.shortcut = GroupPoolingReduction(self.original_in_type)
-
         if block_args.skip == "conv" \
             or block_args.stride > 1 \
             or self.original_in_type != self.dropout.out_type:
-            #print("skip conv")
             # for larger strides or group changes we have to use a conv layer
             batch_norm = BatchNorm(in_type=self.original_in_type, affine=False)
             shortcut = EquivariantConv(
@@ -162,8 +147,6 @@ class Eq_NAS_layer(EquivariantModule):
             raise ValueError(f"Unsupported skip connection type. \
                              Got: {block_args.skip}")
 
-        #print()
-        
     def forward(self, inputs):
         x = inputs
         # Expansion

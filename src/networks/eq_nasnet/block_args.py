@@ -120,8 +120,6 @@ class BlockArgs:
         assert isinstance(value, str) and value in ["conv", "dconv", "mbconv"]
         self._conv_op = value
 
-
-
     @staticmethod
     def decode_block_string(block_string):
         options = {}
