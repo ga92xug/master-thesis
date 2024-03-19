@@ -1,4 +1,5 @@
 import os
+import pickle
 import sys
 import numpy as np
 from typing import List, Union
@@ -7,7 +8,7 @@ from omegaconf import OmegaConf
 sys.path.append(f"{os.getcwd()}")
 from plotting.experiments.plotting_utils import *
 from plotting.experiments.plot_acc_flops_params import *
-from plotting.experiments.wandb_utils import get_wandb_data_multiple_runs
+from plotting.experiments.wandb_get_data import get_wandb_data_multiple_runs
 from plotting.experiments.d_application.low_data_regime.wandb_data_2 import get_wandb_low_data_regime_run_ids
 from plotting.experiments.d_application.low_data_regime.plotting_functions import plot_low_data_regime
 
@@ -56,6 +57,7 @@ def one_low_data_regime_plot(
         data = restructure_data(data, metric)
         model2data[model_name] = data
 
+    save_data(model2data, save_folder_name, save_name)
 
     #fig_size = get_fig_size((8,4))
     fig = plot_low_data_regime(
@@ -71,11 +73,26 @@ def one_low_data_regime_plot(
         name=save_name,
         folder_name=save_folder_name,
     )
+
+def save_data(model2data: Dict[str, Dict[float, np.ndarray]], save_folder_name: str, save_name: str):
+    # first we transform the data 
+    for model_name, data in model2data.items():
+        for reduction_factor, values in data.items():
+            model2data[model_name][reduction_factor] = list(values)
+
+    print("model2data", model2data)
+
+    # then we save with pickle
+    save_path = f"{save_folder_name}/{save_name}.pkl"
+    with open(save_path, "wb") as f:
+        pickle.dump(model2data, f)
+
     
+
 
 def main():
     cfg, save_folder_name = plot_init("d_application/low_data_regime", override=True)
-    metric = "test/acc_weighted"
+    
 
     experiments2filters = OmegaConf.to_container(
             cfg.experiments, resolve=True, throw_on_missing=True)
@@ -84,6 +101,8 @@ def main():
         if isinstance(values, list) or isinstance(values, str):
             # This is not a experiment
             continue
+
+        metric = values["metric"]
 
         filters = values["filters"]
         print("name", exp_name)

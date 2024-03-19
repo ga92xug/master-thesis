@@ -5,7 +5,7 @@ from plotting.experiments.b_NAS.plot_nas_results import scalar_mappable
 from experiments.b_NAS.common_best_architecture.util import *
 from experiments.b_NAS.util import *
 from plotting.experiments.plotting_utils import *
-from plotting.experiments.wandb_utils import *
+from plotting.experiments.wandb_get_data import *
 
 
 def plot_scalar_mappable(ax_client, save_folder_name, dataset_name):

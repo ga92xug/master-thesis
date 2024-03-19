@@ -1,5 +1,4 @@
 filter_groupby_dict:
-
     # width scaling
     b3_d-1-2-2_wX_r96:
         filters: 
@@ -105,7 +104,8 @@ filter_groupby_dict:
 plots:
     width_scaling:
         paths:
-            wX: b3_d-1-2-2_wX_r96
+            b3_d-1-2-2_wX_r96: b3_d-1-2-2_wX_r96
+            #wX: b3_d-1-2-2_wX_r96
             #w1: baseline_isic2019_3blocks
             #w_: width_scaling_experiment
         colors: [b]
@@ -113,15 +113,19 @@ plots:
     
     depth_scaling:
         paths:
-            b3dX: b3_dX_w1_r96
-            b4dX: b4_dX_w1_r96
+            b3_dX_w1_r96: b3_dX_w1_r96
+            b4_dX_w1_r96: b4_dX_w1_r96
+            #b3dX: b3_dX_w1_r96
+            #b4dX: b4_dX_w1_r96
         colors: [b, r]
         linestyles: ['-', '-']
 
     resolution_scaling:
         paths:
-            b3rX: b3_d-1-2-2_w1_rX
-            b4rX: b4_d-1-2-2-2_w1_rX
+            b3_d-1-2-2_w1_rX: b3_d-1-2-2_w1_rX
+            b4_d-1-2-2-2_w1_rX: b4_d-1-2-2-2_w1_rX
+            #b3rX: b3_d-1-2-2_w1_rX
+            #b4rX: b4_d-1-2-2-2_w1_rX
         colors: [b, r]
         linestyles: ['-', '-']
 

@@ -1,3 +1,4 @@
+import pickle
 from omegaconf import DictConfig, OmegaConf
 import os
 import sys
@@ -30,6 +31,15 @@ def scaling_plot_data(
 
     wandb_data = get_data_for_exp(paths2filter_dict, wandb_entity, wandb_projects, metric)
     flops, accuracy_values, labels, legend_labels = transform_data(wandb_data, metric, exp_dict, name)
+
+    save_data(
+        flops=flops,
+        accuracy_values=accuracy_values,
+        labels=labels,
+        legend_labels=legend_labels,
+        save_folder_name=save_folder_name,
+        name=name,
+    )    
 
     colors = exp_dict["colors"]
     linestyles = exp_dict["linestyles"]
@@ -142,6 +152,35 @@ def main():
     )
 
 
+def save_data(
+        flops: list,
+        accuracy_values: list,
+        labels: list,
+        legend_labels: list,
+        save_folder_name: str,
+        name: str,
+):
+    if legend_labels is None:
+        copy_legend_labels = ["3 Blocks"]
+    else:
+        copy_legend_labels = legend_labels.copy()
+
+    pickel = {}
+    for i, legend in enumerate(copy_legend_labels):
+        pickel[legend] = {}
+        for j, label in enumerate(labels[i]):
+            pickel[legend][label] = {}
+            pickel[legend][label]["flops"] = float(flops[i][j])
+            pickel[legend][label]["accuracy"] = accuracy_values[i][j].tolist()
+
+    save_path = f"{save_folder_name}/{name}.pkl"
+    with open(save_path, "wb") as f:
+        pickle.dump(pickel, f)
+
+    # open the file and check if the data is correct
+    with open(save_path, "rb") as f:
+        data = pickle.load(f)
+        print(data)
 
 
 if __name__ == "__main__":

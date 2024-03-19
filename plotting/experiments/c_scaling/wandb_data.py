@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Union
 import numpy as np
 import re
 
@@ -15,15 +15,16 @@ from joblib import Memory
 
 import os
 import sys
+
 sys.path.append(f"{os.getcwd()}")
-from plotting.experiments.wandb_utils import download_run
+from plotting.experiments.wandb_get_data import download_run
 from plotting.experiments.plot_acc_flops_params import get_metric_from_downloaded_data, transform_data_to_arrays
-from networks.util import flatten_dict
+from src.optimization.optimization_utils import flatten_dict
 
 
-cache_dir = '/home/frischs/.cache/scaling_plots/'
-memory = Memory(location=cache_dir, verbose=1)
-@memory.cache
+#cache_dir = '/home/frischs/.cache/scaling_plots/'
+#memory = Memory(location=cache_dir, verbose=1)
+#@memory.cache
 def get_data_for_exp(
         paths_dict: dict,
         wandb_entity: str,
@@ -85,6 +86,7 @@ def changes_for_paper(
         labels: list,
         legends: list,
         name: str,
+        save_as_pickle: bool,
     ):
     """
     Changes to the data for the paper.
@@ -113,6 +115,8 @@ def changes_for_paper(
         
         return labels, legends
 
+    if save_as_pickle:
+        name = "compound_scaling"
 
     if name == "depth_scaling":
         # remove the data points that drop the accuracy
@@ -177,7 +181,8 @@ def transform_data(
         accuracy_values=accuracy_values, 
         labels=labels,
         legends=legend, 
-        name=name
+        name=name,
+        save_as_pickle=True,
     )
 
     return flops, accuracy_values, labels, legend
@@ -187,7 +192,7 @@ def get_wandbdata_with_filters(
         wandb_projects: str,
         filters: Dict[str, Any],
         metric: str,
-        group_by: str or List[str] = None,
+        group_by: Union[str, List[str]] = None,
     ):
     api = wandb.Api()
     runs = api.runs(path=f"{wandb_entity}/{wandb_projects}", filters=filters)
@@ -239,8 +244,11 @@ def get_wandbdata_with_filters(
         else:
             seeds[group].add(seed)
 
-        results[group][run.id] = download_run(run=run, metric=metric)
+        if len(results[group]) == 5:
+            print(f"Skipping run {run.id} because we already have 5 runs for this group.")
+            continue
 
+        results[group][run.id] = download_run(run=run, metric=metric)
     return results
 
 
