@@ -13,6 +13,7 @@ logger:
 
 train:
   trainer:
+    accumulate_grad_batches: 8
     max_epochs: 100
   dataset:
     mixup_alpha: 0.1

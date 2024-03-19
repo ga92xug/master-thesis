@@ -18,7 +18,6 @@ def blood():
         submitit_logs="logs/submitit_logs/"
     )
 
-
 def oct():
     experiment_location = "experiment=HPs/oct/"
     args = [
