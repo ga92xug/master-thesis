@@ -2,9 +2,8 @@
 defaults:
   - HPs/isic2019/all
   - override /train/network: eq_nasnet_pre
-  - override /train/scheduler: cosine_annealing_lr
 
 train:
   optimizer:
-    lr: 0.006973595677318753
-    weight_decay: 0.00000128944918099231
+    lr: 0.0009522015026841092
+    weight_decay: 0.00006508127431287963

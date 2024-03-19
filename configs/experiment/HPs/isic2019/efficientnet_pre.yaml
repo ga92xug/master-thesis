@@ -2,8 +2,14 @@
 defaults:
   - HPs/isic2019/all
   - override /train/network: efficientnet_pre
+  - override /train/scheduler: reduce_lr_on_plateau
 
 train:
   optimizer:
-    lr: 0.00022916891450866964
-    weight_decay: 0.00014062751634093062
+    lr: 0.0001
+    weight_decay: 0.0006779094123548484
+
+  scheduler:
+      factor: 0.791925055704743
+      patience: 19
+      metric: valid/acc_weighted

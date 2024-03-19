@@ -2,12 +2,13 @@
 defaults:
   - HPs/isic2019/all
   - override /train/network: eq_nasnet
-  - override /train/scheduler: multi_step_lr
+  - override /train/scheduler: reduce_lr_on_plateau
 
 train:
   optimizer:
-    lr: 0.005
-    weight_decay: 1e-5
+    lr: 0.0025107148951358034
+    weight_decay: 0.000004175423970766061
   scheduler:
-    milestones: [35,75,90,105]
-    gamma: 0.5
+    factor: 0.9
+    patience: 17
+    metric: valid/acc_weighted
