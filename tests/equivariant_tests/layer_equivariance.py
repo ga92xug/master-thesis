@@ -1,5 +1,6 @@
 import sys
 import os
+from typing import List
 
 sys.path.append(f"{os.getcwd()}")
 import torch
@@ -19,14 +20,18 @@ from src.networks import (
     EquivariantPool,
 )
 
-from src.networks.eq_convs import (
+from src.networks.equivariant_utils.eq_convs import (
     Eq_Conv2dSamePaddingChangeFactor,
     EquivariantSqueezeExcitation,
     Equivariant_Conv_BN_actF,
 )
 
 
-def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
+def check_layer_equivariance(
+        rotations: List[int] = [1, 2, 4], 
+        in_channels: int = 8,
+        device: str = "cpu"
+    ):
     """Runs equivariance check from EquivariantModule on pre-defined equivariant layers.
         The transformations applied during the check are defined by the transform function in FieldType.
 
@@ -46,6 +51,10 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
         - EquivariantSqueezeExcitation
         - Eq_Conv2dSamePaddingChangeFactor
     """
+    assert device in ["cuda", "cpu"], f"Device {device} not supported."
+    if device == "cuda":
+        assert torch.cuda.is_available(), "CUDA not available."
+
     # Iterate over different number of rotations
     for rot in rotations:
         # Cyclic and dihedral groups
@@ -65,7 +74,7 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
                 dilation=1,
                 bias=True,
                 frequencies_cutoff=lambda r: 3 * r,
-            ).cuda()
+            ).to(device)
             print("\nR2Conv:")
             conv.check_equivariance(atol=0.00001, rtol=0.0001)
 
@@ -74,7 +83,7 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
             pool.check_equivariance()
 
             x = GroupTensor(
-                torch.randn(16, input_field_type.size, 10, 10).cuda(), input_field_type
+                torch.randn(16, input_field_type.size, 10, 10).to(device), input_field_type
             )
 
             norm = GroupNorm(input_field_type, num_groups=3)
@@ -94,28 +103,28 @@ def check_layer_equivariance(rotations: list = [1, 2, 4], in_channels: int = 8):
                 kernel_size=3,
                 padding=1,
                 #num_groups=4,
-            ).cuda()
+            ).to(device)
             print("\nConv Block:")
             conv_block.check_equivariance()
 
             conv_bn_act = Equivariant_Conv_BN_actF(
                 in_type=input_field_type,
                 out_channels=16,
-            ).cuda()
+            ).to(device)
             print("\nConv BN Act:")
             conv_bn_act.check_equivariance()
 
             squeeze_excitation = EquivariantSqueezeExcitation(
                 in_type=input_field_type,
                 sequeeze_ratio=0.25,
-            ).cuda()
+            ).to(device)
             print("\nSqueeze Excitation:")
             squeeze_excitation.check_equivariance()
 
             conv_same = Eq_Conv2dSamePaddingChangeFactor(
                 in_type=input_field_type,
                 change_factor=1.25,
-            ).cuda()
+            ).to(device)
             print("\nConv Same:")
             conv_same.check_equivariance()
 

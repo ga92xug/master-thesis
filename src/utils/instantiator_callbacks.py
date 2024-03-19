@@ -36,7 +36,7 @@ def instantiate_callbacks(cfg: DictConfig) -> List[Callback]:
             callbacks.append(hydra.utils.instantiate(cb_conf))
 
     # essential callbacks
-    callbacks.extend([Move_2_Device(), Log_Code(), Log_Config(cfg)])
+    callbacks.extend([Log_Code(), Log_Config(cfg)])
 
     test_mode = cfg.get("test_mode", "no_test")
     if test_mode == "predict":

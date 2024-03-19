@@ -199,24 +199,22 @@ class R2Conv(_RdConv):
         assert input.type == self.in_type
 
         if not self.training:
-            # _filter = self.filter
-            # _bias = self.expanded_bias
-            pass
-        else:
             # Retrieve filter and bias
-            #_filter, _bias = self.expand_parameters()
-            self.expand_parameters()
+            _filter = self.filter
+            _bias = self.expanded_bias
+        else:
+            _filter, _bias = self.expand_parameters()
         
         # Use filter for convolution and return result
         if self.padding_mode == "zeros":
             output = conv2d(
                 input.tensor,
-                self.filter,
+                _filter,
                 stride=self.stride,
                 padding=self.padding,
                 dilation=self.dilation,
                 groups=self.groups,
-                bias=self.bias,
+                bias=_bias,
             )
         else:
             output = conv2d(

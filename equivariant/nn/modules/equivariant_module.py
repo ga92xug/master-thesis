@@ -91,8 +91,10 @@ class EquivariantModule(Module, ABC):
         """
         if x is None:
             c = self.in_type.size
-            x = torch.randn(3, c, 10, 10).cuda()
+            x = torch.randn(3, c, 10, 10)
             x = GroupTensor(x, self.in_type)
+            if hasattr(self, "weight"):
+                x = x.to(self.weight.device)
 
         errors = []
 

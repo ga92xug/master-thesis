@@ -15,4 +15,4 @@ def create_filters_network(net: nn.Module):
     """Update the filters and bias of the equivariant layers with the pretrained weights."""
     for name, layer in net.named_modules():
         if isinstance(layer, R2Conv):
-            layer.expand_parameters()
+            layer.save_expand_params()

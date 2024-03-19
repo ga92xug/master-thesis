@@ -8,4 +8,4 @@ class Move_2_Device(Callback):
     def setup(self, trainer, pl_module, stage):
         for name, layer in pl_module.net.named_modules():
             if isinstance(layer, R2Conv):
-                layer.expand_parameters()
+                layer.save_expand_params()
