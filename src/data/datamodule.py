@@ -1,64 +1,23 @@
 from typing import Any, Dict, Optional, Tuple
-
 import os
 import hydra
 from omegaconf import DictConfig
 import torch
 from lightning import LightningDataModule
 from torch.utils.data import DataLoader, Dataset, SequentialSampler, RandomSampler
-
-from src.data._transforms.cut_mix import get_mixup_cutmix
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.distributed import DistributedSampler
 
+from src.data._transforms.cut_mix import get_mixup_cutmix
 from src.data.ra_sampler import RASampler
 
 class DataModule(LightningDataModule):
-    """`LightningDataModule`
-
-    A `LightningDataModule` implements 7 key methods:
-
-    ```python
-        def prepare_data(self):
-        # Things to do on 1 GPU/TPU (not on every GPU/TPU in DDP).
-        # Download data, pre-process, split, save to disk, etc...
-
-        def setup(self, stage):
-        # Things to do on every process in DDP.
-        # Load data, set variables, etc...
-
-        def train_dataloader(self):
-        # return train dataloader
-
-        def val_dataloader(self):
-        # return validation dataloader
-
-        def test_dataloader(self):
-        # return test dataloader
-
-        def predict_dataloader(self):
-        # return predict dataloader
-
-        def teardown(self, stage):
-        # Called on every process in DDP.
-        # Clean up after fit or test.
-    ```
-
-    This allows you to share a full dataset without explaining how to download,
-    split, transform and process the data.
-
-    Read the docs:
-        https://lightning.ai/docs/pytorch/latest/data/datamodule.html
-    """
-
     def __init__(
         self,
         data_cfg: DictConfig,
         is_dist: bool = False,
     ) -> None:
         """Initialize a `DataModule`.
-
-        :param data_dir: The data directory. Defaults to `"data/"`.
         """
         super().__init__()
 

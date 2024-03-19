@@ -84,7 +84,6 @@ def create_datasets(
     return _datasets, normalized_weights, dataloader_kwargs
 
 
-
 class Dataset_Wrapper(Dataset):
     """
     This class is a wrapper for the WILDS datasets. Since we don't need the metadata, we can just return the x and y.

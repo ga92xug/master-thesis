@@ -42,51 +42,19 @@ class Custom_Dataset(Dataset):
         else:
             raise RuntimeError("Unknown image type")
 
-        #print("image: ", image)
-        #image = image.convert("RGB")
-
         if self.transform is not None:
             image = self.transform(image)
 
         label = torch.tensor(label, dtype=torch.int64)
         return image, label
 
-
-def create_datasets(
-    # images and labels
-    data: Tuple,    
-    # transforms
-    resolution: int,
-    augment: Union[bool, Dict[str, Any]],
-    channel_wise_mean_images: List,
-    channel_wise_std_images: List,
-    # dataset
-    val_size: float,
-    test_size: float,
-    reduction_factor: float,
-    should_normalize_weights: bool,
-    # just test
-    test_as_valid: bool = False,
-    **kwargs,
-) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
-    """
-    Creates [train, valid, test] datasets from the predefined datasets.
-
-    Returns: 
-    Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]: A tuple containing the datasets, the normalization weights and the dataloader kwargs.
-    """
-    # we use recursive instantiation from hydra to get the data
-    images, labels = data
-
-    # Define the transformations
-    train_transform, valid_transform = get_transforms(
-        resolution=resolution, 
-        augment=augment, 
-        channel_wise_mean_images=channel_wise_mean_images, 
-        channel_wise_std_images=channel_wise_std_images,
-        verbose=1,
-    )
-
+def split_data(
+        images: Union[Dict[str, Any], List[str]],
+        labels: Union[Dict[str, Any], List[str]],
+        val_size: float,
+        test_size: float,
+        reduction_factor: float,
+    ):
     if isinstance(images, dict):
         # split the data; assume there are train and test sets; create val set from train set if not exists
         if "test" not in images:
@@ -128,6 +96,51 @@ def create_datasets(
                 val_size=val_size,
                 test_size=test_size,
             )
+    
+    return train_images, train_labels, val_images, val_labels, test_images, test_labels
+
+
+def create_datasets(
+    # images and labels
+    data: Tuple,    
+    # transforms
+    resolution: int,
+    augment: Union[bool, Dict[str, Any]],
+    channel_wise_mean_images: List[float],
+    channel_wise_std_images: List[float],
+    # dataset
+    val_size: float,
+    test_size: float,
+    reduction_factor: float,
+    should_normalize_weights: bool,
+    **kwargs,
+) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
+    """
+    Creates [train, valid, test] datasets from the predefined datasets.
+
+    Returns: 
+    Tuple[Dict[str, Dataset], torch.Tensor, Dict[Any]]: A tuple containing the datasets, the normalization weights and the dataloader kwargs.
+    """
+    # we use recursive instantiation from hydra to get the data
+    images, labels = data
+
+    # Split the data into train, val, and test arrays.
+    train_images, train_labels, val_images, val_labels, test_images, test_labels = split_data(
+        images=images, 
+        labels=labels, 
+        val_size=val_size,
+        test_size=test_size,
+        reduction_factor=reduction_factor,
+    )
+
+    # Define the transformations
+    train_transform, valid_transform = get_transforms(
+        resolution=resolution, 
+        augment=augment, 
+        channel_wise_mean_images=channel_wise_mean_images, 
+        channel_wise_std_images=channel_wise_std_images,
+        verbose=1,
+    )
 
     # Create the DataLoaders
     train_set = Custom_Dataset(train_images, train_labels, transform=train_transform)

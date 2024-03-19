@@ -9,7 +9,7 @@ import numpy as np
 from os import path
 from PIL import Image
 
-from src.data._datasets.custom.utils_derma import get_derma_images_labels
+from src.data._datasets.custom.utils import get_derma_images_labels
 
 
 def get_galaxy10(
