@@ -9,10 +9,7 @@ Please also check out the project website [here](https://daveredrum.github.io/Sc
 
 For additional detail:  
 --------------------------------------------------------------------------------
-**[Poster]()** | **[Thesis]()** 
-
-ich brauche noch eine github page damit man sowas machen kann https://gabri95.github.io/Thesis/thesis.pdf
-
+| **[Paper]()** | **[Thesis](https://ga92xug.github.io/projects/scaling_laws/path_to_thesis)** | **[Thesis Poster](https://ga92xug.github.io/projects/scaling_laws/path_to_poster)**
 
 
 ## Setup

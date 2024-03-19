@@ -14,6 +14,7 @@ src/adversarial_attack/*
 src/save_load/*
 #plotting/*
 *not_used*
+down_load_to_csv/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
