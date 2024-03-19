@@ -1,0 +1,14 @@
+# @package _global_
+defaults:
+  - imagenet_100
+
+tags: ["pre-train_imagenet_600"]
+
+train:
+  trainer:
+    max_epochs: 600
+  dataset:
+    mixup_alpha: 0.2
+    cutmix_alpha: 1.0
+
+

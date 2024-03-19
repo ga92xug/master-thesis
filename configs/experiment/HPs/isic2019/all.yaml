@@ -7,5 +7,5 @@ tags: ["tuned_HPs"]
 
 logger:
   wandb:
-    project: isic2019
+    project: ${task_name}
 

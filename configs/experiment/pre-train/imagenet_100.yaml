@@ -2,10 +2,11 @@
 defaults:
   - override /train: imagenet
   - override /train/network: eq_nasnet 
-  - override /train/network/blocks_args_dict: 4blocks
 
+task_name: pre-train
 tags: ["pre-train_imagenet_100"]
 seed: 0
+test_mode: no_test
 logger:
   wandb:
     project: "pre-train"

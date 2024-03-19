@@ -2,7 +2,7 @@
 defaults:
   - HPs/isic2019/all
   - override /train/network: eq_nasnet
-  - override /train/scheduler: reduce_lr_on_plateau
+  - override /train: isic2019_reduce_lr_on_plateau
 
 train:
   optimizer:
@@ -11,4 +11,3 @@ train:
   scheduler:
     factor: 0.9
     patience: 17
-    metric: valid/acc_weighted

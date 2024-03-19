@@ -2,7 +2,7 @@
 defaults:
   - HPs/isic2019/all
   - override /train/network: efficientnet 
-  - override /train/scheduler: reduce_lr_on_plateau
+  - override /train: isic2019_reduce_lr_on_plateau
 
 train:
   network:
@@ -13,6 +13,4 @@ train:
   scheduler:
     factor: 0.02493979877210027
     patience: 7
-    metric: valid/acc_weighted
-    mode: max
 

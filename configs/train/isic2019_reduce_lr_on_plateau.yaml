@@ -1,0 +1,7 @@
+defaults:
+  - isic2019 
+  - override scheduler@scheduler: reduce_lr_on_plateau  
+  
+scheduler:
+  metric: valid/acc_weighted
+  mode: max

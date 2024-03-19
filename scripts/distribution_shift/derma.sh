@@ -1,4 +1,5 @@
-DERMA="tags="[dist_shift_derma]" task_name=domain_shift train=derma"
+#!/bin/bash
+DERMA="tags=[tuned_HPs_isic2019] task_name=derma train=derma logger.wandb.project=domain_shift"
 SEEDS="seed=0,1,2,3,4"
 BASE_EXP="experiment=HPs/isic2019/" 
 # the HPs should be similar since isic2019 is to a large extend HAM10000

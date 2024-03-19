@@ -23,16 +23,15 @@ def build_slurm_command_low_data(
     else:
         # https://github.com/facebookincubator/submitit/issues/1718
         # would run all jobs at once -> not wanted
-        #executor.update_parameters(local_array_parallelism=1)
         pass
 
     networks = [
         "efficientnet_pre",
-        #"efficientnet",
-        #"vit_pre",
-        #"vit",
-        #"eq_nasnet_pre",
-        #"eq_nasnet",
+        "efficientnet",
+        "vit_pre",
+        "vit",
+        "eq_nasnet_pre",
+        "eq_nasnet",
     ]
     networks = [experiment_location + experiment for experiment in networks]
     seeds = "seed=0,1,2,3,4"
@@ -48,11 +47,12 @@ def build_slurm_command_low_data(
             command += f" train.trainer.check_val_every_n_epoch={val_check}"
             command += f" {seeds}"
 
+            if not execute:
+                print(command)
+                continue
+
             if local:
-                if execute:
-                    job_runner(command)
-                else:
-                    print(command)
+                job_runner(command)
             else:
                 executor.update_parameters(slurm_job_name=job_name)
                 executor.submit(job_runner, command)
