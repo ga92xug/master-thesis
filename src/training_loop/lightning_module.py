@@ -1,29 +1,18 @@
-import copy
 import signal
 from typing import Any, Dict, List, Tuple, Union, Mapping
 import hydra
 
 import timeit
-import numpy as np
 import torch
 from torch.nn import CrossEntropyLoss, Module
 from lightning import LightningModule
-import lightning as L
 from omegaconf import DictConfig
-from torchmetrics import MaxMetric, MeanMetric, MetricCollection, MinMetric
-from torchmetrics.classification.accuracy import (
-    Accuracy, 
-    MulticlassAccuracy, 
-    BinaryAccuracy
-)
+from torchmetrics import MeanMetric, MinMetric
 from torchmetrics.wrappers import MetricTracker
-
 from src._callbacks.model_stats import timeout_handler
 from src.training_loop.utils import create_metrics_collection
 from src.utils.equivariant_utils import is_equivariant_model, create_filters_network
 from src.utils.scheduler import get_optim_and_scheduler
-from src.utils.utils import recursive_print_dict
-
 
 class LitModule(LightningModule):
     def __init__(
@@ -329,6 +318,3 @@ class LitModule(LightningModule):
             # recreate the filters
             create_filters_network(self.net)
 
-
-if __name__ == "__main__":
-    _ = LitModule(None, None, None, None)

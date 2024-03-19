@@ -1,15 +1,10 @@
 import copy
-import signal
 from typing import Any, Dict, List, Tuple, Union, Mapping
 import hydra
 
 from omegaconf import DictConfig, open_dict
-from torchmetrics import MaxMetric, MeanMetric, MetricCollection, MinMetric
-from torchmetrics.classification.accuracy import (
-    Accuracy, 
-    MulticlassAccuracy, 
-    BinaryAccuracy
-)
+from torchmetrics import MetricCollection
+from torchmetrics.classification.accuracy import MulticlassAccuracy
 from torchmetrics.wrappers import MetricTracker
 
 def create_metrics_collection(
