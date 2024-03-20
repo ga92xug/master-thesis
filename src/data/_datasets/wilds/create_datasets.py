@@ -50,7 +50,7 @@ def create_datasets(
 ) -> Tuple[Dict[str, Dataset], torch.Tensor, Dict[str, Any]]:
 
     location = os.path.join(data_dir, name)
-    dataset = get_dataset('camelyon17', root_dir=location, download=False)
+    dataset = get_dataset('camelyon17', root_dir=location, download=download)
 
 
     # Define the transformations

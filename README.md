@@ -12,7 +12,7 @@ For additional detail:
 | **[Paper]()** | **[Thesis](https://ga92xug.github.io/projects/scaling_laws/path_to_thesis)** | **[Thesis Poster](https://ga92xug.github.io/projects/scaling_laws/path_to_poster)**
 
 
-## Setup
+## Get started
 The code is tested on Ubuntu 20.04.6 LTS with PyTorch 2.0.0 CUDA 11.7 installed.
 ```shell
 conda install pytorch==2.0.0 torchvision==0.15.0 torchaudio==2.0.0 pytorch-cuda=11.7 -c pytorch -c nvidia
@@ -23,16 +23,13 @@ Install the necessary packages listed out in `requirements.txt`:
 pip install -r requirements.txt
 ```
 
-Adjust the output folder etc. in `training/conf/config.yaml`.
+Create a file `configs/local/default.yaml` where you specify the data directory. This is where the datasets are expected. In `configs/local/looks_like.yaml` 2 examples how your local configuration could look like.
 
-Unfortunatly the Hydra Ax sweeper that we use for the HPO requires a Ax version that does not support multiobjective optimization yet. However we need multiobjective optimization for the Neural Architecture Search. This should be fixed in the next version. Currently we recommend a separate environment where you adjust the Ax version for the HPO:
+You can try out our pre-trained Eq-NASNet with the following command. The Camelyon17 dataset is downloaded in this case automatically for you. For the other datasets see the section datasets.
 
 ```shell
-pip install gpytorch==1.8.1 # hydra fixes the wrong gpytorch version currently
-pip install ax-platform==0.2.0 # multiobjective not supported
-pip install hydra-ax-sweeper --upgrade # install the plugin
+python src/main.py train=camelyon17 train/network=eq_nasnet_pre train.dataset.download=True
 ```
-Known caveats: https://github.com/facebookresearch/hydra/issues/2813, https://github.com/pytorch/botorch/issues/1370 
 
 ## Dataset
 
@@ -81,6 +78,16 @@ We compared the efficiency of Eq-NASNet against EfficientNet and ViT. The follow
 
 
 ### Adversarial Attacks
+
+## Caveats
+Unfortunatly the Hydra Ax sweeper that we use for the HPO requires a Ax version that does not support multiobjective optimization yet. However we need multiobjective optimization for the Neural Architecture Search. This should be fixed in the next version. Currently we recommend a separate environment where you adjust the Ax version for the HPO:
+
+```shell
+pip install gpytorch==1.8.1 # hydra fixes the wrong gpytorch version currently
+pip install ax-platform==0.2.0 # multiobjective not supported
+pip install hydra-ax-sweeper --upgrade # install the plugin
+```
+Known caveats: https://github.com/facebookresearch/hydra/issues/2813, https://github.com/pytorch/botorch/issues/1370 
 
 ## Acknowledgement
 We would like to thank [QUVA-Lab/escnn](https://github.com/QUVA-Lab/escnn) for the ECNN library.

@@ -26,4 +26,6 @@ num_classes: 2
 valid_size: 0.0
 test_size: 0.0
 
+download: False
+
 should_normalize_weights: False
