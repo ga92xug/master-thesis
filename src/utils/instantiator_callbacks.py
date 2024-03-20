@@ -7,7 +7,6 @@ from omegaconf import DictConfig
 from lightning.pytorch.callbacks import BasePredictionWriter
 
 from src.logger import pylogger
-from src._callbacks.move_2_device import Move_2_Device 
 from src._callbacks.log_code import Log_Code
 from src._callbacks.log_config_manually import Log_Config
 

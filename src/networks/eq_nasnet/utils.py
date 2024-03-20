@@ -7,15 +7,15 @@ from equivariant.nn.gspace import GSpace
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
 
 
-def pool_like(output: int, num_classes: int, image_size) -> Tuple[int, int]:
-    if output >= num_classes:
+def pool_like(out_channels: int, num_classes: int, image_size) -> Tuple[int, int]:
+    if out_channels >= num_classes:
         # we can fully pool over spatial dimensions
-        return 1, output
+        return 1, out_channels
     
-    pooling_size = int(math.ceil(math.sqrt(num_classes / output)))
+    pooling_size = int(math.ceil(math.sqrt(num_classes / out_channels)))
     assert pooling_size > 1, "Pooling size must be greater than 1"
     assert pooling_size <= image_size, "Pooling size must be less than or equal to image size"
-    return pooling_size, output * pooling_size * pooling_size
+    return pooling_size, out_channels * pooling_size * pooling_size
 
 ################################################################################
 # utils for naming Eq-NasNet

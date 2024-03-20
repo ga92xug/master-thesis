@@ -5,7 +5,7 @@ import sys
 import os
 import torch
 sys.path.append(f"{os.getcwd()}")
-from src.networks.eq_nasnet.utils import set_eq_nasnet_name
+from src.networks.eq_nasnet.utils import pool_like, set_eq_nasnet_name
 from src.utils.equivariant_utils import create_filters_network
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
 from src.networks.equivariant_utils.eq_restriction import Restriction_Group_or_CNN
@@ -112,7 +112,7 @@ class EquivariantNASNet(nn.Module):
         out_channels = self.build_head(verbose, fixed_params)
 
         # pooling
-        pool_size, linear_input_size = self.pool_like(
+        pool_size, linear_input_size = pool_like(
             out_channels=out_channels, 
             num_classes=num_classes, 
             image_size=self.image_size
@@ -281,12 +281,14 @@ class EquivariantNASNet(nn.Module):
             state_dict = state_dict["state_dict"]
             # strip the net from the keys
             state_dict = {k.replace("net.", ""): v for k, v in state_dict.items()}
+
         # remove the fully connected layer from the keys
         state_dict = {k: v for k, v in state_dict.items() if k not in ["fc.weight", "fc.bias"]}
         if self.num_channels != 3:
             # remove the first layer from the keys
             state_dict = {k: v for k, v in state_dict.items() if not k.startswith("_conv_stem")}
         super().load_state_dict(state_dict, strict=False)
+
         create_filters_network(self)
         
         

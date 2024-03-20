@@ -22,8 +22,6 @@ def get_ckpt_path(cfg: DictConfig, mode: str, trainer: Trainer) -> str:
         raise RuntimeError("No ckpt path needed for train mode!")
     elif mode == "evaluate_only":
         ckpt_path = cfg.get("ckpt_path")
-        if ckpt_path is None:
-            raise RuntimeError("No ckpt path provided for evaluate_only mode!")
     elif mode == "train_continue":
         ckpt_path = cfg.get("ckpt_path")
         if ckpt_path is None:
@@ -35,8 +33,7 @@ def get_ckpt_path(cfg: DictConfig, mode: str, trainer: Trainer) -> str:
         else:
             ckpt_path = trainer.checkpoint_callback.best_model_path
 
-    # 
-    if ckpt_path == "":
+    if ckpt_path == "" or ckpt_path is None:
         return None
     else:
         if not os.path.exists(ckpt_path):
