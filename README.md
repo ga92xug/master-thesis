@@ -52,7 +52,8 @@ The scripts to run the following experiments can be found in `scripts/` in the r
 
 ### New ECNN Baseline Architecture
 Search for a new ECNN baseline architecture with [Ax](https://github.com/facebook/Ax). This is an illustration of the search space:
-<p align="center"><img src="demo/search_space.pdf" width="800px"/></p>
+todo pdf file format is not allowed
+<p align="center"><img src="demo/search_space.svg" width="800px"/></p>
 
 The search space can be changed in the config `src/optimization/configs` and further extended in `src/optimization/NAS`.
 
@@ -95,6 +96,6 @@ Known caveats: https://github.com/facebookresearch/hydra/issues/2813, https://gi
 We would like to thank [QUVA-Lab/escnn](https://github.com/QUVA-Lab/escnn) for the awesome ECNN library.
 
 ## License
-ScanRefer is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License](LICENSE).
+Scaling Laws of Equivariant Convolutional Neural Networks is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License](LICENSE).
 
 Copyright (c) 2023 Stefan Frisch, Florian Hölzl, Georgios Kaissis
