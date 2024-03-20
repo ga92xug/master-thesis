@@ -1,0 +1,27 @@
+ax-platform
+einops
+fvcore
+gpytorch==1.11
+h5py
+hydra-ax-sweeper
+hydra-core
+# hydra-submitit-launcher optional for slurm clusters
+iopath
+lightning
+numpy
+omegaconf
+opencv-python
+openpyxl
+opt-einsum
+pandas
+Pillow
+pytorch-lightning
+rich
+rootutils
+scikit-image
+scikit-learn
+torch==2.1.
+torchaudio
+torchmetrics
+torchvision
+wandb
