@@ -6,12 +6,11 @@ spec-file.txt
 notebooks/
 scripts/alex
 pypeline.log.*
-#plotting/conf/*
+plotting/
 notebooks/*
 pre_processing/*
 src/adversarial_attack/*
 src/save_load/*
-#plotting/*
 *not_used*
 download/*
 
