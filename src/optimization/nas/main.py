@@ -6,14 +6,10 @@ from typing import Dict
 import hydra
 import torch
 import wandb
-#os.environ["WANDB_SILENT"] = "true"
-
 from omegaconf import DictConfig
-
 import logging
 from ax.utils.common.logger import ROOT_STREAM_HANDLER
 ROOT_STREAM_HANDLER.setLevel(logging.ERROR)
-
 # Local
 import os
 import sys

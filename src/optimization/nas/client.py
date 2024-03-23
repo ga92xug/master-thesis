@@ -1,10 +1,7 @@
 import os
 from typing import Dict
 from omegaconf import DictConfig
-
-# Ax service
 from ax.service.ax_client import AxClient, ObjectiveProperties
-
 import logging
 from ax.utils.common.logger import ROOT_STREAM_HANDLER
 ROOT_STREAM_HANDLER.setLevel(logging.ERROR)

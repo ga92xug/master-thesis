@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - override /train: isic2019_constant_scheduler
+  - override /train: isic2019
   
 train:
   dataset:
