@@ -93,7 +93,7 @@ pip install hydra-ax-sweeper --upgrade # install the plugin
 Known caveats: https://github.com/facebookresearch/hydra/issues/2813, https://github.com/pytorch/botorch/issues/1370 
 
 ## Acknowledgement
-We want to thank [QUVA-Lab/escnn](https://github.com/QUVA-Lab/escnn) for the awesome ECNN library.
+We want to thank [QUVA-Lab/escnn](https://github.com/QUVA-Lab/escnn) for the awesome ECNN library. We also want to thank the [Lightning-Hydra-Template](https://github.com/ashleve/lightning-hydra-template) for their clean trainingscode template.
 
 ## License
 Scaling Laws of Equivariant Convolutional Neural Networks is licensed under a [Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License](LICENSE).

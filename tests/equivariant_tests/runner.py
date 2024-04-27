@@ -1,10 +1,13 @@
 import sys
 import os
 from typing import List
-
-
-sys.path.append(f"{os.getcwd()}")
 import torch
+import rootutils
+
+rootutils.setup_root(__file__, indicator=".git", pythonpath=True)
+#sys.path.append(os.getcwd())
+#print(sys.path)
+
 from equivariant.nn import (
     rot2dOnR2,
     flipRot2dOnR2,
@@ -13,7 +16,6 @@ from equivariant.nn import (
 )
 
 from tests.equivariant_tests.modules import *
-
 
 def check_layer_equivariance(
         rotations: List[int] = [1, 2, 4], 

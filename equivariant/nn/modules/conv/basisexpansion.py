@@ -84,7 +84,7 @@ class BasisExpansion(torch.nn.Module):
                     pass
 
         # Register sampled kernel bases as attribute
-        self.sampled_bases = _sampled_bases
+        self.sampled_bases_names = set(_sampled_bases.keys())
         # Add to buffer otherwise randomly sampled basis are different over random seeds
         for name, sampled_basis in _sampled_bases.items():
             self.register_buffer(f"sampled_bases_{name}", sampled_basis) 
@@ -339,9 +339,6 @@ class BasisExpansion(torch.nn.Module):
             dtype=torch.float32,
         )
 
-        # send to the device the sampled bases
-        sampled_bases = {k: v.to(weights.device) for k, v in sampled_bases.items()}
-
         # Iterate through all input-output field representations pairs
         for io_pair in reprs_pairs:
             coefficients = weights[
@@ -445,3 +442,20 @@ class BasisExpansion(torch.nn.Module):
                 return False
 
         return True
+
+    @property
+    def sampled_bases(self):
+        """
+        The sampled bases have to be a property and can not be assigned 
+        self.sampled_bases = _sampled_bases, because buffers don't fully behave like tensors.
+
+        With self.sampled_bases = {sampled_bases_{name} for name in self.sampled_bases_names} 
+        in the init method the sampled bases a copy of the buffer is created and 
+        this copy is not moved to the device. Has to be done dynamically.
+
+        https://github.com/pytorch/pytorch/issues/37386
+        """
+        return {
+            name: self.__getattr__(f"sampled_bases_{name}")
+            for name in self.sampled_bases_names
+        }

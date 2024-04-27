@@ -2,9 +2,6 @@ import sys
 import os
 from typing import List
 
-from src.networks.eq_resnet.util import EquivariantWideConvBlock
-
-
 sys.path.append(f"{os.getcwd()}")
 import torch
 from equivariant.nn import (
@@ -19,6 +16,7 @@ from equivariant.nn import (
     GSpace,
 )
 
+from src.networks.eq_resnet.util import EquivariantWideConvBlock
 from src.networks.equivariant_utils.eq_convs import (
     EquivariantConvBlock,
     Eq_Conv2dSamePaddingChangeFactor,

@@ -223,7 +223,7 @@ class R2Conv(_RdConv):
                     self._reversed_padding_repeated_twice,
                     self.padding_mode,
                 ),
-                self.filter,
+                _filter,
                 stride=self.stride,
                 dilation=self.dilation,
                 groups=self.groups,

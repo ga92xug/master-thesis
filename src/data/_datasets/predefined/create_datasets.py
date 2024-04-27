@@ -11,6 +11,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 from torch.utils.data import DataLoader
 from PIL import Image
 from torch.utils.data.dataset import Dataset, random_split
+from wilds import get_dataset
 
 from torchvision.datasets import (
     CIFAR10,
@@ -53,7 +54,7 @@ def create_datasets(
 
     data_dir = kwargs["data"]["data_dir"]
     
-    assert name in ["cifar10", "cifar100", "stl10", "mnist", "ILSVRC2012"], "Unknown dataset name."
+    assert name in ["cifar10", "cifar100", "stl10", "mnist", "ILSVRC2012", "camelyon17"], "Unknown dataset name."
 
     #location = data_dir + name + "/"
     location = os.path.join(data_dir, name)
@@ -67,7 +68,7 @@ def create_datasets(
         verbose=1,
     )
 
-    if name != "ILSVRC2012":
+    if name not in ["ILSVRC2012", "camelyon17"]:
         dataset_class = getattr(datasets, name.upper())
     
     # load the dataset
@@ -88,7 +89,17 @@ def create_datasets(
     elif name == "ILSVRC2012":
         train_dataset = ImageNet(root=location, split="train", transform=train_transform)
         valid_dataset = ImageNet(root=location, split="val", transform=valid_transform)
-        test_dataset = ImageNetTestDataset(test_dir=location + "/test", transform=valid_transform)        
+        test_dataset = ImageNetTestDataset(test_dir=location + "/test", transform=valid_transform)
+    elif name == "camelyon17":
+        dataset = get_dataset('camelyon17', root_dir=location, download=download)
+        train_dataset = dataset.get_subset("train",transform=train_transform)
+        valid_dataset = dataset.get_subset("val",transform=valid_transform)
+        test_dataset = dataset.get_subset("test",transform=valid_transform)
+
+        # Wrap the datasets
+        train_dataset = Dataset_Wrapper(train_dataset)
+        valid_dataset = Dataset_Wrapper(valid_dataset)
+        test_dataset = Dataset_Wrapper(test_dataset)
     else:
         raise RuntimeError(f"Unknown dataset name: {name}.")
 
@@ -148,6 +159,20 @@ class Subset_Transform_Dataset(Dataset):
     def __len__(self):
         return len(self.subset)
 
+class Dataset_Wrapper(Dataset):
+    """
+    This class is a wrapper for the WILDS datasets. Since we don't need the metadata, we can just return the x and y.
+    """
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+        
+    def __getitem__(self, index):
+        x, y, meta = self.dataset[index]
+        return x, y
+        
+    def __len__(self):
+        return len(self.dataset)
 
 def stratified_subset_indices(
     dataset: Dataset, 

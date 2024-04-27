@@ -9,7 +9,7 @@ from src.networks.eq_nasnet.utils import pool_like, set_eq_nasnet_name
 from src.utils.equivariant_utils import create_filters_network
 from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
 from src.networks.equivariant_utils.eq_restriction import Restriction_Group_or_CNN
-from src.networks.eq_nasnet.nas_block import Conv2dSamePadding, Eq_NAS_layer, NAS_layer
+from src.networks.eq_nasnet.nas_block import Eq_NAS_layer, NAS_layer, get_same_padding
 from src.networks import EquivariantPool
 from src.networks.equivariant_utils.eq_convs import Eq_Conv2dSamePadding
 from src.networks.equivariant_utils.utils import (
@@ -225,10 +225,11 @@ class EquivariantNASNet(nn.Module):
             if self.restrict_last.setting in ["cnn", "switch"]:
                 self._bn1 = nn.BatchNorm2d(self.field_type)
                 self._swish1 = nn.SiLU()
-                self._conv_head = Conv2dSamePadding(
+                self._conv_head = nn.Conv2d(
                     in_channels=self.field_type,
                     out_channels=last_block_args.out_channel,
                     kernel_size=last_block_args.kernel_size,
+                    padding=get_same_padding(last_block_args.out_channel),
                     bias=False,
                 )
             elif self.restrict_last.setting == "group": 

@@ -8,10 +8,17 @@ from src.networks.eq_nasnet.block_args import BlockArgs, BlockArgsList
 
 
 def pool_like(out_channels: int, num_classes: int, image_size) -> Tuple[int, int]:
+    """
+    If the number of classes is greater than the number of output channels we 
+    don't want to pool over all spatial dimensions. This is particularly useful
+    when pre-training on ImageNet.
+    """
+
     if out_channels >= num_classes:
         # we can fully pool over spatial dimensions
         return 1, out_channels
     
+    # give th
     pooling_size = int(math.ceil(math.sqrt(num_classes / out_channels)))
     assert pooling_size > 1, "Pooling size must be greater than 1"
     assert pooling_size <= image_size, "Pooling size must be less than or equal to image size"

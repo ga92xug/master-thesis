@@ -11,8 +11,8 @@ from equivariant.nn import (
     PointwiseDropout,
 )
 from equivariant.nn.modules import nonlinearities
-from networks.equivariant_utils.eq_other import EquivariantNorm
-from networks.equivariant_utils.eq_convs import EquivariantConv
+from src.networks.equivariant_utils.eq_other import EquivariantNorm
+from src.networks.equivariant_utils.eq_convs import EquivariantConv
 
 
 class EquivariantWideConvBlock(EquivariantModule):

@@ -345,11 +345,11 @@ class _RdConv(EquivariantModule, ABC):
     def save_expand_params(self):
         _filter, _bias = self.expand_parameters()
     
-        self.register_buffer("filter", _filter)
-        if _bias is not None:
-            self.register_buffer("expanded_bias", _bias)
-        else:
-            self.expanded_bias = None
+        self.register_buffer("filter", _filter, persistent=False)
+        if hasattr(self, "expanded_bias"):
+            # there can be already an expanded bias if we load a pre-trained model
+            del self.expanded_bias
+        self.register_buffer("expanded_bias", _bias, persistent=False)
 
     def evaluate_output_shape(self, input_shape: Tuple) -> Tuple:
         assert len(input_shape) == 2 + self.d
