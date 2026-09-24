@@ -7,7 +7,7 @@ Equivariant Convolutional Neural Networks (ECNNs) leverage rotational and reflec
 
 For additional detail:  
 --------------------------------------------------------------------------------
-**[Thesis](https://ga92xug.github.io/projects/scaling_laws/path_to_thesis)** | **[Thesis Poster](https://ga92xug.github.io/projects/scaling_laws/path_to_poster)**
+**[Thesis](https://ga92xug.github.io/assets/pdf/scaling_laws_ecnns_thesis.pdf)** | **[Thesis Poster](https://ga92xug.github.io/projects/scaling_laws/path_to_poster)**
 
 
 ## Get started
