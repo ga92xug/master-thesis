@@ -1,6 +1,6 @@
 # Scaling Laws of Equivariant Convolutional Neural Networks
 Master's thesis of Stefan Frisch at TUM, supervised by Florian Hölzl.
-<p align="center"><img src="demo/combined_width_depth_res_scaling.svg" width="800px"/></p>
+<p align="center"><img src="demo/combined_width_depth_res_scaling.png" width="800px"/></p>
 
 ## Introduction
 Equivariant Convolutional Neural Networks (ECNNs) leverage rotational and reflectional symmetries in addition to the translational symmetries from CNNs. Despite their potential, ECNNs often struggle to outperform CNNs due to unexplored design complexities and computational demands. Our study introduces Eq-NASNet, a novel architecture optimized for performance and computational efficiency. A key finding of our research is the empirical demonstration of scaling laws for ECNNs, examining the impact of network width, depth, and resolution on performance. Our comprehensive evaluations reveal that Eq-NASNet surpasses established models like EfficientNet and Vision Transformer (ViT) in medical image classification tasks while having a computational demand similar to EfficientNet. It also excels in low-data scenarios and against adversarial attacks, showcasing its superiority for medical tasks that benefit from enhanced image symmetry exploitation.
@@ -52,15 +52,17 @@ The scripts to run the following experiments can be found in `scripts/` in the r
 
 ### New ECNN Baseline Architecture
 Search for a new ECNN baseline architecture with [Ax](https://github.com/facebook/Ax). This is an illustration of the search space:
-todo pdf file format is not allowed
-<p align="center"><img src="demo/search_space.svg" width="800px"/></p>
+<p align="center"><img src="demo/search_space.png" width="800px"/></p>
 
 The search space can be changed in the config `src/optimization/configs` and further extended in `src/optimization/NAS`.
+
+The multiobjective search trades off accuracy against compute. Each point is one sampled architecture on ISIC2019, coloured by search iteration, with the Eq-WRN-16-4 baseline for reference:
+<p align="center"><img src="demo/nas/isic2019.png" width="600px"/></p>
 
 --------------------------------------------------------------------------------
 ### Scaling Laws
 We empirically showed the existence of scaling laws for ECNNs. The following figure shows the scaling laws for the width, depth, and resolution of ECNNs on the ISIC2019 dataset:
-<p align="center"><img src="demo/combined_width_depth_res_scaling.svg" width="800px"/></p>
+<p align="center"><img src="demo/combined_width_depth_res_scaling.png" width="800px"/></p>
 
 ## Evaluation
 We evaluated our Eq-NASNet against established models like EfficientNet and Vision Transformer (ViT):
@@ -75,8 +77,26 @@ ToDo update numbers
 | $\hookrightarrow$ pre-trained | 66.34 (±1.64) | 85.69 | 5.5 |
 | **Eq-NASNet** | **69.69 (±0.07)** | **0.66** | 1.7 |
 
+### Training Efficiency
+Validation accuracy against the FLOPs consumed in training, plus the resulting test accuracy. Eq-NASNet is the most compute efficient early in training on both datasets and ends ahead on Blood, whereas EfficientNet needs many more epochs but overtakes it on DeepDRiD. Blood (left) and DeepDRiD (right):
+<p align="center">
+  <img src="demo/efficiency/blood.png" width="430px"/>
+  <img src="demo/efficiency/deepdrid.png" width="430px"/>
+</p>
+
 ### Low Data Regime
-ToDo: add images from paper
+Test accuracy when training on subsets of the data. Eq-NASNet beats both models trained from scratch throughout. On Blood it also matches the pre-trained baselines down to 5% of the data, while on DeepDRiD it stays behind them. Blood (left) and DeepDRiD (right):
+<p align="center">
+  <img src="demo/low_data_regime/blood.png" width="430px"/>
+  <img src="demo/low_data_regime/deepdrid.png" width="430px"/>
+</p>
+
+### Adversarial Attacks
+Robust accuracy under $L_2$ DeepFool and $L_2$ PGD for increasing perturbation budgets. Eq-NASNet retains the highest robust accuracy on both datasets, matched by ViT only at the largest budgets on DeepDRiD, while both EfficientNet variants degrade sharply. Blood (left) and DeepDRiD (right):
+<p align="center">
+  <img src="demo/adversarial_attacks/blood.png" width="430px"/>
+  <img src="demo/adversarial_attacks/deepdrid.png" width="430px"/>
+</p>
 
 ### Domain Shift
 ToDo: add images from paper
