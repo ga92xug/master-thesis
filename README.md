@@ -5,7 +5,7 @@ Master's thesis of Stefan Frisch at TUM, supervised by Florian Hölzl.
 ## Introduction
 Equivariant Convolutional Neural Networks (ECNNs) leverage rotational and reflectional symmetries in addition to the translational symmetries from CNNs. Despite their potential, ECNNs often struggle to outperform CNNs due to unexplored design complexities and computational demands. Our study introduces Eq-NASNet, a novel architecture optimized for performance and computational efficiency. A key finding of our research is the empirical demonstration of scaling laws for ECNNs, examining the impact of network width, depth, and resolution on performance. Our comprehensive evaluations reveal that Eq-NASNet surpasses established models like EfficientNet and Vision Transformer (ViT) in medical image classification tasks while having a computational demand similar to EfficientNet. It also excels in low-data scenarios and against adversarial attacks, showcasing its superiority for medical tasks that benefit from enhanced image symmetry exploitation.
 
-Please also check out the project website [here]().
+Please also check out the project website [here](https://ga92xug.github.io/projects/scaling_laws/).
 
 For additional detail:  
 --------------------------------------------------------------------------------
