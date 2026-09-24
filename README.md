@@ -9,7 +9,7 @@ Please also check out the project website [here](https://ga92xug.github.io/proje
 
 For additional detail:  
 --------------------------------------------------------------------------------
-**[Paper]()** | **[Thesis](https://ga92xug.github.io/projects/scaling_laws/path_to_thesis)** | **[Thesis Poster](https://ga92xug.github.io/projects/scaling_laws/path_to_poster)**
+**[Thesis](https://ga92xug.github.io/projects/scaling_laws/path_to_thesis)** | **[Thesis Poster](https://ga92xug.github.io/projects/scaling_laws/path_to_poster)**
 
 
 ## Get started
